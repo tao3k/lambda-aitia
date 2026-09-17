@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+# Official NODIS snapshots are content-addressed evidence. Preserve their bytes;
+# upstream trailing whitespace must not be normalized or reported as a patch
+# hygiene error.
+modules/sdlc/standards/sources/*.html whitespace=-trailing-space,-blank-at-eof
+modules/sdlc/standards/source.lock.ss linguist-generated=true

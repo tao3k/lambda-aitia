@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Lambda Aitia Architecture Decision Records
+
+* Contract
+
+An RFC defines a broader problem, architecture and unresolved questions.  An
+ADR closes one bounded architectural choice and records why it was chosen.
+Neither an accepted RFC nor an accepted ADR is runtime authority.
+
+Aitia ADRs use the Nygard core (=Context=, =Decision=, =Consequences=) plus the
+MADR decision fields needed for review and machine projection:
+
+- metadata: status, date, revision, decision-makers, consulted, informed;
+- context and problem statement;
+- decision drivers;
+- considered options, including the chosen option;
+- decision outcome and positive, negative or neutral consequences;
+- confirmation/fitness functions;
+- typed links to ADRs and RFCs.
+
+The public lifecycle is =proposed -> accepted|rejected=, followed by
+=accepted -> deprecated|superseded=.  A deprecated ADR may later become
+superseded.  Rejected and superseded records are terminal.  Supersession must
+emit both =superseded-by= and =supersedes= links and a new revision; history is
+never rewritten in place.
+
+* Template
+
+#+begin_example
+#+title: ADR NNNN — Short outcome-oriented title
+#+status: proposed
+#+date: YYYY-MM-DD
+#+revision: r1
+#+decision-makers:
+#+consulted:
+#+informed:
+#+rfc:
+
+* Context and Problem Statement
+* Decision Drivers
+* Considered Options
+* Decision Outcome
+* Consequences
+* Confirmation
+* More Information
+#+end_example
+
+* Authority Boundary
+
+=ADR->assurance-decision= preserves the ADR identity, revision and canonical
+digest.  Accepted and proposed ADRs project to =unknown=, not =supported=.
+Deprecated or superseded ADRs project to =stale=.  A separate admitted
+assurance closure and authority receipt is required before any effect.
+
+* Standardization Sources
+
+- https://github.com/npryce/adr-tools — Nygard-style Context, Decision and
+  Consequences core plus linked supersession behavior.
+- https://github.com/adr/madr — decision drivers, considered options, outcome,
+  confirmation and machine-readable metadata.
+- https://github.com/architecture-decision-record/architecture-decision-record
+  — template catalog and ADR authoring guidance.

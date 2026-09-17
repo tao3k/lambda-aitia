@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+#
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+manifest.ss
+version.ss
+.gerbil/
+.bin/
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.dll
+bindings/python/.venv/
+bindings/python/build/
+bindings/python/dist/
+bindings/python/*.egg-info/
+bindings/python/src/*.egg-info/
+bindings/python/src/lambda_aitia/_native/_build_temp/
+bindings/python/src/lambda_aitia/_native/lib/

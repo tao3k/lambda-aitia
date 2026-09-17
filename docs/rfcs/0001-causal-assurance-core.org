@@ -1,0 +1,324 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0001 — Causal Assurance Core
+#+status: draft
+#+date: 2026-09-17
+#+startup: overview
+
+* Decision summary
+
+Lambda Aitia owns a domain-neutral, POO-native model of why an engineering
+claim is justified, what defeats or invalidates that justification, which
+verification obligations follow, and which decisions/effects must remain
+blocked.  It does not own domain knowledge, a second graph engine, verifier
+implementations, runtime execution or effect authority.
+
+The core abstraction is an executable causal assurance case, not a collection
+of verification result flags:
+
+#+begin_example
+claims + assumptions + typed relations + obligations + evidence
++ invalidation + decisions + effect guards
+#+end_example
+
+* Problem
+
+Conventional pipelines retain =test passed=, =proof passed= or =review passed=
+without retaining enough structure to answer whether the result still applies
+after a source, assumption, dependency, tool or policy revision changes.  They
+also tend to blur several incompatible relations:
+
+- a value was derived from a source;
+- one component structurally depends on another;
+- one event caused or enabled another;
+- evidence supports or defeats a claim;
+- a decision authorizes an effect.
+
+Collapsing these into one edge type permits invalid inference.  Aitia therefore
+models relation planes separately and admits cross-plane projections only
+through named, checked functions that emit receipts.
+
+* Ownership boundaries
+
+| Owner | Owns | Does not own |
+|-------+------+--------------|
+| Lambda Episteme | vertical knowledge, Profiles, Cases and non-SDLC domain sources | Software/SDLC causal assurance or runtime authority |
+| Lambda Aitia | Software/SDLC, ADR and standards modules; claims, assumptions, relation semantics, obligations, evidence admission, invalidation and planning | non-software vertical truth, graph runtime, verifier semantics or effect execution |
+| POO Flow | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
+| POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
+| Aitia Python binding | Aitia-owned CFFI transport, ABI negotiation and typed JSON projection | reimplementing Scheme decisions or generic Runtime ownership |
+| Lean | general proof terms and assurance laws | current runtime state or action authority |
+| TLA+/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
+| Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
+| Runtime Host | final typed boundary for authorized execution | manufacturing missing evidence or guessing transport/runtime state |
+| Application | explicit selection, composition and policy | redefining source-owned semantics |
+
+Dependency rule: POO Flow core must remain usable without Lambda Aitia.
+Lambda Aitia may consume only reviewed stable POO Flow public contracts.
+Integration belongs to an application or an isolated contribution adapter;
+POO Flow core never imports Lambda Aitia, and the parent Git submodule causes no
+implicit activation.
+
+Lambda Aitia owns its Python project under =bindings/python=.  Its Scheme
+semantic surface is compiled AOT and exposed through a dedicated C ABI using
+the owned result/release convention established by POO Flow's Scheme-native
+ABI.  Public Scheme and Python namespaces remain unversioned; ABI revision is
+explicit descriptor metadata rather than part of those names.  The Python
+package transports requests and results only; Scheme remains the decision
+owner.  POO Flow's =packages/python-runtime= remains a separate generic
+execution/lifecycle contract and is not repurposed as an SDLC semantic API.
+
+* Semantic objects
+
+All public values are ordinary Gerbil POO objects or nominal boundary values.
+Pure functions derive indexes, closures, plans and projections.
+
+** Artifact
+
+An immutable or revisioned input/output with identity, media kind, digest,
+revision, owner and provenance.
+
+** Claim
+
+A scoped predicate with assumptions, possible defeaters, support requirements,
+validity interval, revision and current status.
+
+** Assumption
+
+An explicit premise.  It is never hidden in an adapter configuration.  An
+assumption has an owner, scope, revision and review/expiry policy.
+
+** Observation and Event
+
+An Observation binds a fact to a clock role, logical position and source.  An
+Event binds identity, subject, event kind, observation, payload, modality,
+commitment state and declared causal parents.
+
+** Obligation
+
+A question that must be discharged for a claim or decision at an exact
+snapshot.  The obligation states the required evidence kind and capability;
+it does not select or invoke a tool by itself.
+
+** Evidence
+
+An attributable result binding producer, tool/version, input artifacts,
+obligation, output digest, subject, revision, scope, validity interval and
+admission status.
+
+** Finding and Counterexample
+
+A typed challenge to a claim, model or assumption.  It remains visible after
+repair and is linked to the evidence that closes or supersedes it.
+
+** Decision and Effect
+
+A Decision records a policy outcome over an exact assurance snapshot.  An
+Effect is a separately identified real-world operation.  A decision can
+authorize an effect request; it does not prove that the effect started or
+completed.
+
+** ADR and RFC relationship
+
+An RFC frames a broad problem, architecture, invariants and open questions.  An
+Architecture Decision Record closes one bounded architectural choice with its
+context, drivers, considered options, outcome, consequences and confirmation.
+Typed =refines-rfc= and =implements-rfc= links connect the two without merging
+their lifecycle or identity.
+
+The =modules/ADR/= record model follows the Nygard core and MADR review fields.
+Its lifecycle is forward-only: =proposed= may become =accepted= or =rejected=;
+an accepted record may become =deprecated= or =superseded=.  Supersession
+creates reciprocal links and new revisions while preserving both predecessor
+values.
+
+An accepted ADR says that maintainers selected an architectural option.  It
+does not say that evidence supports the option at the current source snapshot,
+that an assurance obligation is discharged, or that an effect is authorized.
+=ADR->assurance-decision= therefore projects accepted/proposed records to
+=unknown=, and deprecated/superseded records to =stale=.  Only a separately
+admitted assurance closure and authority receipt can cross the effect boundary.
+
+* Relation planes
+
+** Provenance plane
+
+Representative relations: =derived-from=, =generated-by=, =cites= and =used=.
+Provenance establishes lineage.  Activity usage plus generation does not by
+itself manufacture a derivation or causal claim.
+
+** Structural dependency plane
+
+Representative relations: =depends-on=, =implements=, =tests= and =refines=.
+This plane supports reverse impact and obligation selection.  Its output is
+explicitly structural and has no release or runtime authority.
+
+** Temporal and causal plane
+
+Representative relations: =precedes=, =causal-parent=, =enables= and
+=prevents=.  Modalities are observed, declared, derived, hypothesized and
+counterfactual.  Missing parents and temporal contradictions create an unknown
+frontier.  Earlier-than never automatically promotes to caused-by.
+
+** Assurance plane
+
+Representative relations: =supports=, =discharges=, =defeats= and
+=invalidates=.  Assurance edges bind exact claims, assumptions, obligations and
+evidence revisions.
+
+** Authority plane
+
+Representative relations: =authorizes=, =denies= and =requires-review=.
+Authority consumes an admitted assurance closure but is neither an assurance
+edge nor a causal edge.  Authority is revocable and snapshot-bound.
+
+* State model
+
+The core does not force truth into a Boolean.  The initial status vocabulary is:
+
+| State | Meaning |
+|-------+---------|
+| supported | current admitted support closes the scoped obligation |
+| violated | current evidence contradicts the required predicate |
+| unknown | required facts or relations are unresolved |
+| stale | a bound revision, interval or tool/source identity no longer matches |
+| conflicted | attributable current inputs disagree without a resolution rule |
+| hypothesized | candidate material not admitted as observation |
+| counterfactual | explicit alternate branch, never committed history |
+| not-applicable | an accountable policy decision excludes the obligation |
+
+No state silently upgrades to =supported=.  Resolution functions return a
+typed result with diagnostics and witness paths.
+
+* Snapshot and invalidation
+
+An assurance snapshot binds:
+
+- graph identity and canonical digest;
+- source and artifact revisions;
+- claim and assumption revisions;
+- immutable event cut and unresolved frontier;
+- policy identity/revision;
+- admitted evidence identities and validity intervals.
+
+Change processing is pure:
+
+#+begin_example
+admit change
+  -> compute structural witnesses
+  -> select affected claims and assumptions
+  -> invalidate dependent support
+  -> derive obligations
+  -> invalidate decisions
+  -> emit effect guards
+#+end_example
+
+An invalidation receipt reports affected and unresolved identities.  Its slots
+for temporal assessment, assurance closure, release authorization and runtime
+execution are false unless a separately owned phase supplies the corresponding
+receipt.  Presentation values cannot mutate the admitted snapshot.
+
+* Functional verification planning
+
+The planner consumes values and returns a value:
+
+#+begin_example
+Plan : Change -> Snapshot -> Policy -> PlanningResult
+#+end_example
+
+PlanningResult contains ordered obligations, capability requirements,
+dependency constraints, rejected alternatives and blockers.  Tool invocation
+is outside this function.  An adapter later consumes one obligation and returns
+a typed execution outcome; evidence admission is another separate function.
+
+The first verifier kinds are Lean proof, TLA+/TLC model check, runtime replay,
+unit test, integration test, Cedar differential, static analysis and human
+review.  This list is extensible through named POO-native helpers, not raw
+compute hooks.
+
+* Assurance laws
+
+The architecture requires executable formal statements of at least these laws:
+
+1. Evidence freshness: support for revision R uses evidence bound to R and to
+   the exact subject/assumption closure.
+2. No stale authority: an impacted dependency invalidates dependent authority
+   until current obligations are discharged.
+3. Modality preservation: hypothesized/counterfactual events cannot discharge
+   an observed-fact obligation.
+4. Counterfactual isolation: an alternate branch cannot become committed
+   history without an explicit authorized transition.
+5. Composition obligation: independently supported A and B do not imply that
+   compose(A,B) is supported.
+6. Unknown blocks closure: an unresolved required frontier cannot grant
+   authority.
+7. Effect separation: authorization neither proves effect start nor effect
+   completion.
+
+Lean proves general laws.  TLA+/TLC checks lifecycle interleavings such as a
+source change racing a cached decision or an effect beginning after revocation.
+
+* Public API direction
+
+The intended module family is =modules/assurance/=.  It follows the established
+five-role convention:
+
+- =types.ss=: nominal boundary predicates and status/relation kinds;
+- =objects.ss=: POO prototypes and immutable constructors;
+- =funs.ss=: pure validation, indexing, closure, invalidation and planning;
+- =config.ss=: declared default policies only;
+- =interface.ss=: the sole supported public re-export boundary.
+
+No public raw alist schema, generic edge constructor, implicit global registry,
+import-time I/O, verifier invocation or action hook is accepted.
+
+* First Software/SDLC qualification
+
+Aitia owns Software Engineering and SDLC vocabulary, standards, requirements,
+lifecycle facts and GitOps sources.  Its assurance kernel is domain-neutral:
+NASA and provider-specific facts enter only through typed projection boundaries.
+The reference qualification projects only the identities and relations required
+by this RFC, then exercises:
+
+- structural impact without causal promotion;
+- declared, observed, derived, hypothesized and counterfactual separation for
+  software changes and lifecycle decisions;
+- explicit unknown frontier;
+- evidence invalidation after a source revision;
+- new obligation planning;
+- stale release/effect decision rejection at Cedar/Runtime Host boundaries.
+
+Success establishes a bounded software lifecycle reference case, not general
+standards compliance, release certification or unrestricted causal inference.
+
+* Rejected designs
+
+1. One generic knowledge-graph edge type: rejected because relation families
+   have incompatible inference and authority rules.
+2. A fixed CI pipeline: rejected because verification is derived from impacted
+   obligations and available capabilities.
+3. Copying Software/SDLC standards into the assurance kernel: rejected because
+   standards already have an Aitia-owned SDLC module and hard-coding them into
+   the kernel would collapse the domain/module boundary.
+4. A second Graph implementation: rejected because POO Flow owns the graph
+   substrate and algorithms.
+5. Green-check aggregation: rejected because it loses revisions, assumptions,
+   provenance, invalidation and effect boundaries.
+6. Runtime fallback authorization: rejected because missing authority must stay
+   a typed failure.
+
+* Open decisions before stable release
+
+The repository license is closed as =Apache-2.0 AND
+LGPL-2.1-or-later=, matching POO Flow.  Remaining decisions are:
+
+1. Whether proof sources live entirely in this repository or are consumed
+   through an independently versioned proof package.
+2. Minimal stable POO Flow interfaces permitted as Aitia dependencies.
+3. Persistence format for canonical snapshots; persistence must remain a
+   projection, not semantic authority.
+
+The namespace is unversioned and the manifest carries an explicit numeric
+revision.  Until the remaining decisions close, the current API is executable
+qualification evidence rather than a stable release commitment.

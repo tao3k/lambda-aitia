@@ -1,0 +1,138 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Lambda Aitia — causal assurance as executable knowledge
+#+startup: overview
+
+* Purpose
+
+Lambda Aitia is the software and SDLC causal-assurance contribution for the POO
+Flow ecosystem.  It also owns the software Architecture Decision Record (ADR)
+module migrated from Lambda Episteme.  It answers five questions about an
+engineering conclusion:
+
+1. What exactly is claimed?
+2. Which sources, assumptions, arguments and evidence support it?
+3. Which structural, temporal and causal relations justify that support?
+4. Which changes make the conclusion stale, unknown, conflicted or invalid?
+5. Which decisions and real effects must remain blocked until the resulting
+   obligations are discharged again?
+
+The project manages the justification and invalidation of conclusions.  It is
+not a database of green verification results and it is not a generic knowledge
+graph.
+
+* Place in the ecosystem
+
+#+begin_example
+lambda-aitia
+  Software/SDLC, ADR, NASA and GitOps sources
+  claims, assumptions, typed relations, obligations, evidence,
+  invalidation and assurance planning
+          ^
+          |
+lambda-episteme
+  optional non-SDLC vertical knowledge and decision-kind/ontology sources
+          |
+          v
+POO Flow
+  POO-native composition, functional flow, graph substrate,
+  verifier/runtime handoff and effect boundary
+#+end_example
+
+This is a conceptual flow, not permission to collapse repository ownership.
+POO Flow core never imports a concrete Lambda contribution.  Lambda Aitia may
+consume only reviewed stable POO Flow public contracts; applications own the
+explicit composition of Episteme, Aitia and POO Flow.  Mounting this Git
+submodule does not import a module, activate a Profile, run a verifier, grant a
+capability, authorize a decision or execute an effect.
+
+Python integration is maintained entirely under =bindings/python= in this
+repository.  POO Flow's =packages/python-runtime= remains the generic runtime
+and lifecycle binding; it does not own Aitia semantics.  Aitia Scheme is
+compiled AOT behind an owned-byte C ABI, while the Aitia Python package only
+performs ABI negotiation and JSON transport.  It does not reimplement Scheme
+decisions.
+
+* Core model
+
+The initial semantic vocabulary is deliberately small:
+
+#+begin_example
+Artifact       Claim          Assumption      Observation
+Event          Action         Obligation      Evidence
+Counterexample Finding        Decision        Effect
+#+end_example
+
+Relations are typed by plane.  A generic =edge(from, to)= is not part of the
+public model.
+
+| Plane | Representative relations | Meaning |
+|-------+--------------------------+---------|
+| Provenance | derived-from, generated-by, cites, used | where a value came from |
+| Structural dependency | depends-on, implements, tests, refines | what a change may affect |
+| Temporal and causal | precedes, causal-parent, enables, prevents | what happened and why |
+| Assurance | supports, discharges, defeats, invalidates | why a claim is or is not justified |
+| Authority | authorizes, denies, requires-review | whether a decision may cross an effect boundary |
+
+The planes have different admission and inference rules.  In particular,
+=derived-from= is not =caused-by=, temporal order is not causal proof,
+structural reachability is not assurance closure, and evidence is not action
+authority.
+
+* First executable slice
+
+The first vertical slice is one fail-closed lifecycle:
+
+#+begin_example
+source revision changes
+  -> structural impact is computed
+  -> affected assumptions and claims are selected
+  -> dependent evidence becomes stale
+  -> new obligations are planned
+  -> the old decision loses authority
+  -> the associated effect remains blocked
+#+end_example
+
+The slice succeeds only when receipts bind the subject, source revision,
+assumption set, claim, obligation, producer identity, tool identity, artifact
+digest and validity interval.  Missing or conflicting facts remain explicit;
+they are never converted into an inferred success.
+
+* Project rules
+
+- Public extension APIs are POO-native.  Ordinary users compose objects,
+  prototypes, slots and pure functions rather than raw alist DSLs or ad hoc
+  patch languages.
+- Functional transformations are values first.  Side effects live behind an
+  explicit POO Flow verifier or runtime handoff.
+- Relation planes remain disjoint and fail closed at their boundaries.
+- =supported=, =violated=, =unknown=, =stale=, =conflicted=,
+  =hypothesized=, =counterfactual= and =not-applicable= are first-class states.
+- A plan is not an execution, a receipt is not proof, proof is not current
+  authority, and authority is not proof that an effect completed.
+- Lambda Aitia owns Software Engineering/SDLC, NASA and GitOps source modules;
+  its assurance kernel reasons over those declared facts without embedding a
+  NASA- or provider-specific rule.
+- Lambda Episteme retains non-SDLC vertical knowledge such as Healthcare and
+  the independently owned decision-kind/ontology surfaces.
+
+* License
+
+Lambda Aitia uses the same intentional dual-license contract as POO Flow:
+=Apache-2.0 AND LGPL-2.1-or-later=.  Recipients must comply with both licenses.
+The machine-readable declaration and complete texts are maintained in
+[[file:REUSE.toml][REUSE.toml]], [[file:LICENSE][LICENSE]] and [[file:LICENSES/][LICENSES/]].
+
+* Planning documents
+
+- [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]] defines the architecture, invariants and
+  ownership boundaries.
+- [[file:docs/adrs/README.org][ADR contract and template]] defines standardized bounded decisions, lifecycle,
+  RFC links and the non-authorizing assurance projection.
+- [[file:ROADMAP.org][ROADMAP]] defines phases, deliverables and completion gates.
+- [[file:docs/plans/software-sdlc-integration-inventory.org][Software/SDLC integration inventory]] classifies the existing implementation as
+  keep, reference, generalize or later migrate.
+
+The repository is currently in Phase 0: contract and project closure.  No
+runtime authority or production assurance claim is established yet.

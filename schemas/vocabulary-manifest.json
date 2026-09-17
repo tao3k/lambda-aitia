@@ -1,0 +1,58 @@
+{
+  "manifestSchema": "lambda-aitia.vocabulary-manifest",
+  "revision": 1,
+  "semanticOwner": "lambda-aitia",
+  "nodeKinds": [
+    "artifact",
+    "claim",
+    "assumption",
+    "observation",
+    "event",
+    "action",
+    "obligation",
+    "evidence",
+    "counterexample",
+    "finding",
+    "decision",
+    "effect"
+  ],
+  "states": [
+    "supported",
+    "violated",
+    "unknown",
+    "stale",
+    "conflicted",
+    "hypothesized",
+    "counterfactual",
+    "not-applicable"
+  ],
+  "ADR": {
+    "recordSchema": "lambda-aitia.ADR-record",
+    "statuses": ["proposed", "accepted", "rejected", "deprecated", "superseded"],
+    "linkRelations": [
+      "supersedes",
+      "superseded-by",
+      "amends",
+      "amended-by",
+      "relates-to",
+      "refines-rfc",
+      "implements-rfc"
+    ],
+    "acceptedGrantsAuthority": false
+  },
+  "relationPlanes": {
+    "provenance": ["derived-from", "generated-by", "cites", "used"],
+    "structural": ["depends-on", "implements", "tests", "refines"],
+    "causal": ["precedes", "causal-parent", "enables", "prevents"],
+    "assurance": ["supports", "discharges", "defeats", "invalidates"],
+    "authority": ["authorizes", "denies", "requires-review"]
+  },
+  "receiptSchemas": [
+    "lambda-aitia.ADR-record",
+    "lambda-aitia.assurance-snapshot",
+    "lambda-aitia.invalidation-receipt",
+    "lambda-aitia.planning-result",
+    "lambda-aitia.native-descriptor",
+    "lambda-aitia.native-error"
+  ]
+}

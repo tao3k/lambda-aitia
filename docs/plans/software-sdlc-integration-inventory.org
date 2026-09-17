@@ -1,0 +1,162 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Software/SDLC-to-Aitia Integration Inventory
+#+status: draft
+#+date: 2026-09-17
+#+startup: overview
+
+* Purpose
+
+Lambda Aitia owns causal assurance for software engineering and the SDLC,
+including the migrated SDLC, NASA and GitOps source modules.  It does not own
+unrelated vertical business-domain models.  Lambda Episteme retains those
+verticals, including Healthcare, plus independently owned decision-kind and
+ontology surfaces.
+
+The software Architecture Decision Record module is also Aitia-owned and is
+published as =ADR=.  No lowercase compatibility module is retained.
+
+The source migration recorded here is complete.  This inventory now governs
+the post-migration boundary and prevents either repository from reintroducing
+compatibility aliases or duplicate semantic owners.
+
+Classification:
+
+- =keep=: current owner remains authoritative;
+- =reference=: Aitia consumes a public contract without copying it;
+- =generalize=: implement a domain-neutral Aitia reasoning concept from the
+  observed behavior, using new source and tests;
+- =migrate-later=: move only after parity, ownership and dependency gates pass.
+
+* Normative layering
+
+#+begin_example
+Lambda Aitia
+  Software Engineering and SDLC modules
+  NASA standards and GitOps Profiles
+  claim and assumption support
+  typed provenance/dependency/causal/assurance/authority relations
+  change impact, evidence invalidation and obligation planning
+          |
+          | inert plans, decisions and receipts
+          v
+POO Flow
+  POO composition, functional execution, graph substrate,
+  verifier/runtime adapters and effect handoff
+#+end_example
+
+Lambda Episteme composes beside Aitia when an application needs non-SDLC
+vertical knowledge; it is not an upstream owner for Aitia's SDLC semantics.
+POO Flow execution does not redefine Aitia reasoning.
+
+* Inventory
+
+| Current source | Current owner | Classification | Aitia use | Boundary |
+|----------------+---------------+----------------+-----------+----------|
+| =ontology/10_Software_Engineering/= | Lambda Episteme | keep, reference | software component, implementation artifact and decision vocabulary | RDF/ontology remains knowledge authority, never imported back from Aitia projections |
+| =modules/sdlc/types.ss= and =objects.ss= | Lambda Aitia | migrated | project, requirement, obligation, evidence and revision facts | Aitia is the sole implementation owner; no Episteme compatibility alias |
+| =modules/sdlc/review.ss= | Lambda Aitia | migrated | evidence-present, stale-evidence, missing-evidence and unknown inputs | review packet remains non-authoritative |
+| =modules/sdlc/impact.ss= | Lambda Aitia | migrated | deterministic software change witnesses and verification recheck selection | Aitia owns the source and parity tests |
+| =modules/sdlc/standards/nasa-*= | Lambda Aitia | migrated with SDLC | requirements, applicability, tailoring, lifecycle and verification requests | NASA stays an isolated standard family, not a generic kernel rule |
+| =t/sdlc/=, NASA source snapshots, import/report tools and SDLC Profiles | Lambda Aitia | migrated with SDLC | qualification evidence and reproducible sources | production, tests, tools and Profiles share one owner |
+| =modules/gitops/=, GitOps/GitHub Profiles and scenario adapter | Lambda Aitia | migrated | repository revision, check and delivery-decision facts | stable public namespace has no version suffix; revision is evidence metadata |
+| =modules/decision-kind/= | Lambda Episteme | keep, reference | accountable software decision kinds and conflicts | Aitia links decisions but does not redefine their domain meaning |
+| =src/graph/= | POO Flow | reference | graph substrate and typed traversal | Aitia creates no second graph engine |
+| POO Flow verification contribution contracts | POO Flow | reference | verifier capability and receipt handoff | a plan never invokes a verifier directly |
+| =bindings/runtime-c/include/poo_flow/scheme_native_v1.h= pattern | POO Flow | reference | owned-byte AOT Scheme ABI convention | Aitia uses stable unversioned language namespaces; ABI revision is descriptor metadata |
+| =bindings/python= | Lambda Aitia | new | Aitia-owned CFFI consumer and wheel for the Scheme-native ABI | Python transports JSON and never duplicates Scheme decisions |
+| =packages/python-runtime= | POO Flow | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
+| =packages/proof/lean/PooFlowProof/Enterprise/EvidenceFreshness.lean= | POO Flow proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
+| SDLC/change lifecycle TLA+ model to be added | Aitia | new | invalidate, plan, reverify, decide and gate lifecycle | must be generic, with NASA supplied only as external facts |
+| Cedar adapter and Runtime Host | POO Flow | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
+
+* Existing semantics to preserve
+
+The current SDLC implementation already enforces boundaries Aitia must not
+weaken:
+
+1. Project, evidence and review facts bind subject, revision and scope.
+2. Evidence for another revision is classified as stale rather than current.
+3. A review packet reports =compliance: not-evaluated= and
+   =authority: not-verified=.
+4. SDLC change impact returns deterministic witnesses and required verification
+   rechecks but keeps =release-authorized? = false= and
+   =runtime-executed? = false=.
+5. NASA verification requests and lifecycle gates remain standard-specific and
+   source-bound.
+6. GitOps change, check and decision values preserve exact repository revision.
+
+* Target abstraction map
+
+| Source/POO Flow concept | Aitia abstraction |
+|---------------------------+--------------------|
+| software requirement or standard clause | source-owned Artifact plus Claim/Assumption input |
+| implementation artifact/revision | changed Artifact and structural dependency seed |
+| SDLC obligation | source obligation projected to an Aitia verification obligation |
+| SDLC evidence | candidate Evidence requiring Aitia freshness and scope admission |
+| SDLC review packet | non-authoritative Finding/assessment input |
+| SDLC change-impact witness | InvalidationReceipt structural witness |
+| GitOps check | verifier outcome bound to repository revision |
+| GitOps decision | candidate Decision, separate from effect authority |
+| Lean/TLC/test result | verifier outcome awaiting Evidence admission |
+| Cedar/Runtime Host decision | authority/effect boundary over a current closed snapshot |
+
+* First parity fixture
+
+The first fixture is purely software engineering:
+
+#+begin_example
+Requirement R@1 constrains Implementation I@1
+Verification V@1 checks I@1 against R@1
+Evidence E@1 discharges Obligation O@1 for ReleaseClaim C@1
+Decision D@1 permits deployment Effect X under Snapshot G@1
+
+Change R@1 -> R@2 or I@1 -> I@2
+  => dependent assumptions and C@1 impacted
+  => E@1 stale for the changed closure
+  => O@2 derived for the exact impacted verification set
+  => D@1 invalid
+  => X blocked
+#+end_example
+
+Required negative cases:
+
+- =implements= or =precedes= cannot by itself discharge O;
+- a path containing an untyped edge is rejected;
+- missing requirement-to-implementation traceability produces unknown;
+- a proposed or counterfactual change cannot become committed history;
+- E with a different repository/source digest is stale;
+- an SDLC review packet or planner receipt cannot stand in for E;
+- D does not prove deployment X started or completed;
+- a NASA applicability decision cannot be generalized into a global Aitia rule.
+
+* Post-migration integration sequence
+
+1. Freeze the software fixture and negative contracts in Aitia.
+2. Implement relation-plane and status vocabulary without importing a concrete
+   standard, provider or vertical domain.
+3. Implement snapshot and invalidation semantics over a minimal POO Flow Graph
+   adapter.
+4. Preserve the completed SDLC/GitOps ownership cutover with source-collection
+   and negative namespace tests.
+5. Commit Aitia first, Episteme deletion second and parent gitlink/registry
+   cutover last.
+6. Extend only Aitia's dedicated AOT C ABI and Aitia-owned Python package after
+   Scheme semantics and negative contracts close.
+
+* Evidence required for migration acceptance
+
+- source and target test inventories;
+- exact public API diff;
+- cold and warm build receipts for both repositories;
+- deterministic canonical-output comparison;
+- negative-contract parity;
+- standard/proof/model dependency audit;
+- POO Flow core bootstrap proving it does not import Lambda Aitia;
+- application integration test showing stale software evidence blocks release
+  and deployment effects;
+- rollback plan retaining the original source owner until acceptance.
+
+No item in this document authorizes moving SDLC, GitOps or Aitia Python
+semantics back into Lambda Episteme or POO Flow's generic Python runtime.

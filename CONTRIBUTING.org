@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Contributing to Lambda Aitia
+
+* License
+
+Every contribution is accepted under =Apache-2.0 AND
+LGPL-2.1-or-later=.  Source files must carry the repository SPDX header unless
+their format is covered by =REUSE.toml=.
+
+* Ownership boundaries
+
+- Lambda Aitia owns Software/SDLC, NASA, GitOps, assurance semantics and its
+  own C and Python bindings.
+- Lambda Episteme owns non-SDLC vertical knowledge such as Healthcare.
+- POO Flow owns POO/functional composition, graph substrate and generic
+  runtime handoff.  POO Flow core must never import Lambda Aitia.
+- Public extension APIs are ordinary POO-native objects and named pure
+  functions.  Raw alist DSLs and anonymous compute hooks are not public APIs.
+
+* Change acceptance
+
+A change is not complete from a happy-path result alone.  It must include the
+source owner, negative contracts, focused tests, affected public-consumer tests
+and an attributable receipt.  A plan, proof, authorization and executed effect
+remain separate facts.
+
+Run the relevant repository gates from the POO Flow mount:
+
+#+begin_src sh
+just build-contribute lambda-aitia
+just test-contribute lambda-aitia modules
+just test-contribute lambda-aitia assurance
+just check-aitia-native
+just check-license-contract
+#+end_src
+
+Do not add compatibility aliases, version suffixes to the public Scheme or
+Python namespace, or duplicate Aitia semantics in Python.

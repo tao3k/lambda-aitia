@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0002 — Standardize ADR and connect it to RFC
+#+status: accepted
+#+date: 2026-09-17
+#+revision: r1
+#+decision-makers: tao3k maintainers
+#+consulted: POO Flow maintainers
+#+informed: Lambda Aitia consumers
+#+rfc: RFC-0001
+
+* Context and Problem Statement
+
+The migrated ADR module described lifecycle policy but had no nominal record,
+option, consequence or link model.  It could not prove which option was chosen,
+why a decision changed, whether supersession was reciprocal, or how the record
+related to an RFC and an assurance decision.
+
+* Decision Drivers
+
+- Stay compatible with widely used ADR document structures.
+- Preserve machine-checkable state transitions and immutable history.
+- Join bounded decisions to broader RFCs without conflating the two artifacts.
+- Prevent an accepted document from silently granting effect authority.
+
+* Considered Options
+
+1. Keep only the historical governance Profile and GQL query.
+2. Store ADRs as untyped Markdown/Org files and infer lifecycle from Git.
+3. Add POO-native ADR records based on the Nygard and MADR structures, with
+   typed RFC links and a non-authorizing assurance projection.
+
+* Decision Outcome
+
+Choose option 3.  =modules/ADR/= owns nominal records, options, consequences,
+links, lifecycle validation, reciprocal supersession and canonical projection.
+Org documents remain the review surface; POO values are the executable semantic
+surface.  RFC links use =refines-rfc= or =implements-rfc= rather than pretending
+that an ADR replaces the RFC.
+
+* Consequences
+
+- Good: required rationale and rejected alternatives are inspectable.
+- Good: forward-only lifecycle and reciprocal supersession are executable.
+- Good: RFC, assurance and authority remain separate typed boundaries.
+- Bad: legacy ADR documents require normalization before projection.
+
+* Confirmation
+
+- =just test-contribute lambda-aitia ADR= validates records, negative cases,
+  transitions, reciprocal supersession and assurance projection.
+- =just test-contribute lambda-aitia assurance= validates the receiving nominal
+  Decision type and its independent support rules.
+- Source and registry tests require the exact uppercase =ADR= module namespace.
+
+* More Information
+
+- [[file:README.org][Aitia ADR contract and template]]
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- https://github.com/adr/madr
+- https://github.com/npryce/adr-tools

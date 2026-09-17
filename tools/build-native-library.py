@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+#
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+"""Build the Aitia Gambit link unit as a real shared library.
+
+The four phases follow Gambit's embedding contract: discover the Gerbil runtime
+closure, generate a non-flat gsc link source, compile it with ``___LIBRARY``,
+then link the complete module/object set with libgambit.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+
+RUNTIME_MODULES = (
+    "gerbil/runtime/gambit",
+    "gerbil/runtime/util",
+    "gerbil/runtime/table",
+    "gerbil/runtime/control",
+    "gerbil/runtime/system",
+    "gerbil/runtime/c3",
+    "gerbil/runtime/mop",
+    "gerbil/runtime/mop-system-classes",
+    "gerbil/runtime/error",
+    "gerbil/runtime/interface",
+    "gerbil/runtime/hash",
+    "gerbil/runtime/thread",
+    "gerbil/runtime/syntax",
+    "gerbil/runtime/eval",
+    "gerbil/runtime/repl",
+    "gerbil/runtime/loader",
+    "gerbil/runtime/init",
+    "gerbil/runtime",
+)
+
+
+def run(arguments: list[str], *, cwd: Path, capture: bool = False) -> str:
+    result = subprocess.run(
+        arguments,
+        cwd=cwd,
+        check=True,
+        text=True,
+        capture_output=capture,
+        env=os.environ,
+    )
+    return result.stdout if capture else ""
+
+
+def replace_suffix(path: Path, suffix: str) -> Path:
+    return path.with_suffix(suffix)
+
+
+def unique(paths: list[Path]) -> list[Path]:
+    seen: set[Path] = set()
+    result: list[Path] = []
+    for path in paths:
+        resolved = path.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            result.append(resolved)
+    return result
+
+
+def gerbil_home(project: Path) -> Path:
+    value = run(
+        ["gxi", "-e", "(displayln (gerbil-home))"], cwd=project, capture=True
+    ).strip()
+    return Path(value).resolve()
+
+
+def module_closure(project: Path) -> tuple[list[tuple[str, Path]], Path]:
+    expression = r'''(let* ((ctx (import-module "bindings/c/aitia-native.ss"))
+                             (deps (gxc#find-runtime-module-deps ctx)))
+                        (for-each
+                         (lambda (dep)
+                           (displayln (expander-context-id dep) "\t"
+                                      (gxc#find-static-module-file dep)))
+                         deps)
+                        (displayln "ROOT\t" (gxc#find-static-module-file ctx)))'''
+    output = run(
+        [
+            "gxi",
+            "-e",
+            "(import :gerbil/compiler/driver :gerbil/expander)",
+            "-e",
+            expression,
+        ],
+        cwd=project,
+        capture=True,
+    )
+    dependencies: list[tuple[str, Path]] = []
+    root: Path | None = None
+    for line in output.splitlines():
+        module_id, raw_path = line.split("\t", 1)
+        if module_id == "ROOT":
+            root = Path(raw_path)
+        else:
+            dependencies.append((module_id, Path(raw_path)))
+    if root is None:
+        raise RuntimeError("Gerbil did not report the Aitia native root")
+    return dependencies, root.resolve()
+
+
+def generated_define(link_source: Path, name: str) -> str:
+    match = re.search(
+        rf"^#define {re.escape(name)} ([A-Za-z0-9_]+)$",
+        link_source.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    if match is None:
+        raise RuntimeError(f"Gambit {name} is absent from {link_source}")
+    return match.group(1)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", required=True, type=Path)
+    arguments = parser.parse_args()
+
+    project = Path(__file__).resolve().parents[1]
+    output = arguments.output.expanduser().resolve()
+    build_dir = output.parent
+    build_dir.mkdir(parents=True, exist_ok=True)
+    home = gerbil_home(project)
+    gerbil_lib = home / "lib"
+    gerbil_static = gerbil_lib / "static"
+    dependencies, root = module_closure(project)
+
+    libgerbil_scm = [
+        path
+        for module_id, path in dependencies
+        if (module_id.startswith("gerbil/") or module_id.startswith("std/"))
+        and not module_id.startswith("gerbil/core")
+    ]
+    runtime_scm = [
+        gerbil_static / f"{module.replace('/', '__')}.scm"
+        for module in RUNTIME_MODULES
+    ]
+    libgerbil_scm = unique(runtime_scm + libgerbil_scm)
+    user_scm = unique(
+        [
+            path
+            for module_id, path in dependencies
+            if not module_id.startswith("gerbil/")
+            and not module_id.startswith("std/")
+            and path.is_file()
+            and path.stat().st_size > 0
+        ]
+    )
+
+    link_source = build_dir / "aitia-native_.c"
+    link_object = build_dir / "aitia-native_.o"
+    runtime_object = build_dir / "aitia-runtime.o"
+    run(
+        [
+            "gsc",
+            "-target",
+            "C",
+            "-link",
+            "-o",
+            str(link_source),
+            *[str(replace_suffix(path, ".c")) for path in libgerbil_scm],
+            *[str(path) for path in user_scm],
+            str(root),
+        ],
+        cwd=project,
+    )
+    run(
+        [
+            "gsc",
+            "-target",
+            "C",
+            "-cc-options",
+            "-D___LIBRARY",
+            "-obj",
+            "-o",
+            str(link_object),
+            str(link_source),
+        ],
+        cwd=project,
+    )
+    run(
+        [
+            "gsc",
+            "-target",
+            "C",
+            "-cc-options",
+            (
+                f"-D___VERSION={generated_define(link_source, '___VERSION')} "
+                "-DPOO_FLOW_AITIA_LINKER="
+                f"{generated_define(link_source, '___LINKER_ID')}"
+            ),
+            "-obj",
+            "-o",
+            str(runtime_object),
+            "bindings/c/aitia-runtime.c",
+        ],
+        cwd=project,
+    )
+
+    module_objects = [replace_suffix(path, ".o") for path in user_scm]
+    libgerbil_objects = [replace_suffix(path, ".o") for path in libgerbil_scm]
+    missing = [
+        path
+        for path in [*module_objects, root.with_suffix(".o"), *libgerbil_objects]
+        if not path.is_file()
+    ]
+    if missing:
+        raise RuntimeError(f"native closure object is absent: {missing[0]}")
+    link_flags = shlex.split(
+        (gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()")
+    )
+    shared_flags = (
+        ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"]
+        if sys.platform == "darwin"
+        else ["-shared"]
+    )
+    run(
+        [
+            os.environ.get("CC", "cc"),
+            *shared_flags,
+            "-o",
+            str(output),
+            *[str(path) for path in module_objects],
+            str(root.with_suffix(".o")),
+            str(link_object),
+            str(runtime_object),
+            *[str(path) for path in libgerbil_objects],
+            "-L",
+            str(gerbil_lib),
+            "-lgambit",
+            *link_flags,
+        ],
+        cwd=project,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

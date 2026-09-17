@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+#
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+[build-system]
+requires = ["setuptools>=77", "wheel", "cffi>=2.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lambda-aitia"
+version = "0.1.0"
+description = "Python binding for Lambda Aitia's Scheme-owned assurance core"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0 AND LGPL-2.1-or-later"
+license-files = ["LICENSE"]
+dependencies = ["cffi>=2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "setuptools>=77"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lambda_aitia = ["py.typed", "_native/lib/*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
+testpaths = ["tests"]

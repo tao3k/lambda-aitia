@@ -1,0 +1,65 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0001 — Contribution Dependency Direction
+#+status: accepted
+#+date: 2026-09-17
+#+revision: r1
+#+decision-makers: tao3k maintainers
+#+consulted: POO Flow maintainers
+#+informed: contribution consumers
+#+rfc: RFC-0001
+
+* Context and Problem Statement
+
+Lambda Aitia needs POO Flow composition and graph contracts, while POO Flow
+must remain independently usable.  The ownership of Software/SDLC, native
+bindings and runtime transport also needs one explicit direction.
+
+* Decision Drivers
+
+- Preserve independent contribution ownership.
+- Prevent activation merely by mounting a Git submodule.
+- Keep Scheme as Aitia's semantic owner across the C ABI and Python binding.
+- Keep generic runtime/lifecycle transport separate from domain semantics.
+
+* Considered Options
+
+1. POO Flow core imports Aitia.
+2. Bidirectional imports between POO Flow and Aitia.
+3. Aitia imports reviewed POO Flow public contracts; applications compose them.
+
+* Decision Outcome
+
+Lambda Aitia may import reviewed public POO Flow contracts.  POO Flow core must
+remain usable without Lambda Aitia and must never import Aitia source modules.
+Applications explicitly compose POO Flow, Aitia and any other contribution.
+Mounting the Aitia Git submodule performs no activation, verification or
+effect.
+
+Lambda Aitia owns its Software/SDLC, NASA, GitOps, assurance, C ABI and Python
+binding surfaces.  Lambda Episteme owns non-SDLC vertical knowledge.  POO
+Flow's =packages/python-runtime= remains generic runtime/lifecycle transport;
+it is not an Aitia semantic owner.
+
+* Consequences
+
+- Good: Aitia modules use precise POO Flow import owners rather than aggregate
+  facades when a precise owner exists.
+- Good: integration adapters live in Aitia or an application, not POO Flow core.
+- Good: Python calls the Aitia C ABI and does not reproduce Scheme decisions.
+- Neutral: parent registration identifies and locates the contribution but grants no
+  runtime authority.
+- Bad: dependency reversal becomes a release-blocking ownership error and
+  therefore requires explicit adapter work.
+
+* Confirmation
+
+- Parent registry and import-policy tests retain the one-way dependency.
+- Aitia native and Python smoke tests cross only the owned C ABI.
+- Source scans reject Aitia imports from POO Flow core.
+
+* More Information
+
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- [[file:0002-standardize-ADR-and-connect-RFC.org][ADR 0002 — Standardize ADR and connect it to RFC]]

@@ -1,0 +1,302 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Lambda Aitia Roadmap
+#+startup: overview
+
+* Completion discipline
+
+Each phase closes only when its source, negative contracts, executable checks
+and exact receipt are present.  A document, passing happy-path test, generated
+artifact or tool exit code is not by itself phase completion.  Later phases do
+not retroactively make an earlier ownership or semantic gap acceptable.
+
+The roadmap uses these states:
+
+- =planned=: scope and owner are known, but implementation has not started;
+- =active=: implementation may proceed inside the phase boundary;
+- =evidence-partial=: some gates pass but semantic closure is incomplete;
+- =blocked=: an explicit external decision or capability is required;
+- =complete=: every listed exit gate has current attributable evidence.
+
+* Phase 0 — Project and contract closure
+
+Status: =evidence-partial=
+
+Deliverables:
+
+1. Project charter and RFC 0001.
+2. [X] Repository license/SPDX expression synchronized with POO Flow as
+   =Apache-2.0 AND LGPL-2.1-or-later=, including REUSE metadata and both full
+   license texts, plus a source-owned contribution policy.
+3. Independent build, test and release lane; no implicit parent build.
+4. [X] A versioned vocabulary manifest for node kinds, relation planes, states
+   and receipt schema identifiers.
+5. [X] An Architecture Decision Record for the dependency direction:
+   applications compose contributions; POO Flow core never imports Aitia.
+6. A checked integration inventory covering Lambda Episteme Software
+   Engineering, SDLC, GitOps and decision knowledge plus POO Flow Graph, Lean,
+   TLA+, Cedar and Runtime Host artifacts.
+
+Exit gates:
+
+- every public term has one semantic owner;
+- =provenance=, =structural=, =causal=, =assurance= and =authority= are not
+  represented by one untyped edge family;
+- the license policy is explicit rather than inferred from a bare license file;
+- a clean clone can run the repository's own checks without relying on dirty
+  parent state;
+- mounting the repository performs no activation or effect.
+
+* Phase 1 — SDLC ownership migration and POO-native semantic kernel
+
+Status: =evidence-partial=
+
+Deliverables:
+
+1. [X] Complete the source-owned migration of SDLC implementation, tests, source
+   snapshots, tools and Profiles into Lambda Aitia.
+2. [X] Replace the old package namespace and owner identities with
+   =:poo-flow/lambda-aitia/modules/sdlc= and =lambda-aitia=; do not publish a
+   compatibility alias unless separately authorized.
+3. [X] Establish the five-role SDLC module family: =types.ss=, =objects.ss=, =funs.ss=,
+   =config.ss= and =interface.ss=.
+4. Nominal boundary contracts for Artifact, Claim, Assumption, Observation,
+   Event, Action, Obligation, Evidence, Counterexample, Finding, Decision and
+   Effect.
+5. POO prototypes for immutable declarations and snapshot-bound instances.
+6. Typed relation objects for all five planes.
+7. Pure construction, validation, canonical ordering and digest projection.
+8. Explicit status values: supported, violated, unknown, stale, conflicted,
+   hypothesized, counterfactual and not-applicable.
+
+Required negative contracts:
+
+- an untyped or cross-plane relation is rejected;
+- duplicate identity with unequal content is conflicted, never last-write-wins;
+- temporal precedence cannot construct a causal edge;
+- hypothesized or counterfactual material cannot discharge an observed-fact
+  obligation;
+- object shape, profile selection and graph membership grant no authority.
+
+Exit gates:
+
+- kernel checks run without NASA- or provider-specific imports;
+- the complete prior SDLC/NASA test inventory passes from the Aitia-owned
+  package before the Episteme source is removed;
+- public construction is POO-native and functional;
+- canonical projection is deterministic under input permutation;
+- malformed, incomplete and conflicting inventories fail closed.
+
+* Phase 2 — Assurance graph and invalidation kernel
+
+Status: =planned=
+
+Deliverables:
+
+1. An =AssuranceSnapshot= that binds graph identity, source revisions, claim
+   revisions and an immutable fact cut.
+2. Plane-specific indexes and reachability queries over the POO Flow Graph
+   substrate; Aitia does not create a second graph engine.
+3. Change admission and structural impact selection.
+4. Support-set invalidation from source/assumption changes to claims,
+   obligations, evidence, decisions and effects.
+5. Explicit unresolved frontier, strongly connected component handling and
+   deterministic witness paths.
+6. An =InvalidationReceipt= that is inert: it never asserts temporal proof,
+   release authorization or runtime execution.
+
+Core law:
+
+#+begin_example
+changed(dependency)
+and reaches(dependency, claim)
+=> not authorized(claim)
+until current obligations are discharged by current evidence
+#+end_example
+
+Exit gates:
+
+- stale evidence can never support a current decision;
+- an unknown frontier prevents closed assurance;
+- cycles converge to a deterministic invalidation result;
+- structural impact remains distinct from causal impact;
+- output includes exact witnesses and unresolved inputs, not only counts.
+
+* Phase 3 — Obligation derivation and verification planning
+
+Status: =planned=
+
+Deliverables:
+
+1. Typed obligation kinds for proof, model checking, replay, unit/integration
+   test, static analysis, authorization differential and human review.
+2. A pure planner from Change + Snapshot + Policy to an ordered functional
+   verification plan.
+3. Capability requirements and selection criteria for verifier adapters.
+4. Composition obligations: evidence for A and B never proves composition
+   safety for A with B.
+5. Planner explanation receipts containing selected and rejected verifier
+   choices.
+
+Exit gates:
+
+- the same snapshot and policy produce the same plan;
+- unavailable capabilities yield an explicit blocked obligation;
+- no planner path invokes a tool or fabricates an execution receipt;
+- policy cannot suppress a current failure without an attributable authority
+  decision that remains visible as a separate edge.
+
+* Phase 4 — Verifier adapters and evidence admission
+
+Status: =planned=
+
+Deliverables:
+
+1. Adapter contracts for Lean, TLA+/TLC, native tests, static analyzers,
+   runtime replay and human review.
+2. Evidence envelopes binding producer, tool/version, input artifact digests,
+   obligation, output digest, subject, revision, scope and validity interval.
+3. Admission rules for successful, failed, timed-out, unavailable and
+   indeterminate verifier outcomes.
+4. Provenance-preserving counterexample and finding ingestion.
+5. Replay checks proving presentation mutation cannot forge admitted evidence.
+6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
+   caller-release pattern; public Scheme and Python namespaces remain
+   unversioned while ABI revision is explicit metadata.
+7. [X] An Aitia-owned =bindings/python= out-of-line CFFI package.  POO Flow's
+   =packages/python-runtime= remains runtime-only, and Python contains no
+   duplicate Aitia semantics.
+
+Exit gates:
+
+- tool exit success without bound artifacts is rejected;
+- an old receipt fails after any bound input revision changes;
+- timeout and unavailable remain typed failures;
+- counterexamples invalidate claims but never mutate committed history;
+- human evidence names the accountable authority and review scope.
+- direct Scheme, pure-C harness and Python CFFI paths agree on canonical output
+  digests and typed failures;
+- the installed Python wheel consumes the AOT/native artifact without Gerbil.
+
+* Phase 5 — Assurance laws in Lean and lifecycle model in TLA+
+
+Status: =planned=
+
+Lean owns general laws, including:
+
+- evidence freshness and exact subject/revision binding;
+- no stale authority;
+- causal modality preservation;
+- counterfactual isolation;
+- composition creates a new obligation;
+- unknown or conflicted support cannot grant authority.
+
+TLA+ owns the dynamic lifecycle:
+
+#+begin_example
+change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
+#+end_example
+
+Required model-checking counterexamples include stale cached decisions,
+evidence admitted after a source change, release before re-verification,
+counterfactual promotion without transition authority and effect execution
+after revocation.
+
+Exit gates:
+
+- proof and model artifacts are source-bound and reproducible;
+- TLC checks both safety and meaningful progress assumptions;
+- a Lean theorem is not treated as a runtime decision;
+- formal artifacts have negative tests showing the intended boundary.
+
+* Phase 6 — POO Flow integration and effect gate
+
+Status: =planned=
+
+Deliverables:
+
+1. Application-owned composition of Lambda Episteme facts, Aitia assurance and
+   POO Flow execution.
+2. POO Flow functional plans that consume Aitia obligations without importing
+   Aitia into the POO Flow core bootstrap.
+3. Aitia AOT Scheme exports through a dedicated C ABI using the established
+   POO Flow Scheme-native result ownership convention.
+4. Aitia's own Python binding consumes that ABI through CFFI and returns typed
+   projections.  POO Flow's Python runtime remains a separate generic runtime
+   and lifecycle transport.
+5. Cedar projection from a current admitted Decision, with snapshot and
+   invalidation bindings.
+6. Runtime Host rejection of stale, unknown, conflicted, revoked or incomplete
+   assurance closures.
+
+Exit gates:
+
+- no Scheme-side fallback grants authority when Cedar/Host is unavailable;
+- a decision invalidates before any dependent effect can begin;
+- runtime completion has its own receipt and is not inferred from authorization;
+- parent, Aitia and Episteme tests remain independently runnable.
+
+* Phase 7 — Software/SDLC reference qualification
+
+Status: =planned=
+
+The first reference case is a software change crossing requirement,
+implementation, verification, release-decision and effect boundaries.  It
+uses Aitia-owned Software/SDLC knowledge while keeping NASA and provider rules
+outside the domain-neutral assurance kernel.
+
+Scenarios:
+
+1. current requirement, implementation and verification revisions support a
+   bounded release claim;
+2. a requirement or source revision invalidates evidence and blocks release;
+3. a changed implementation regenerates exactly the impacted verification
+   obligations;
+4. a missing traceability or causal dependency produces an unknown frontier;
+5. successful proof/model/test evidence with a stale revision remains rejected;
+6. an approved SDLC review packet remains non-authoritative until the separate
+   application decision and Runtime Host gate are current.
+
+Exit gates:
+
+- all scenario claims trace to exact source and assumption identities;
+- structural, temporal, assurance and authority receipts remain separate;
+- the qualification can be replayed from a clean checkout;
+- the resulting statement is limited to this bounded software lifecycle case,
+  not general standards compliance or release certification.
+
+* Phase 8 — Generalization and release
+
+Status: =planned=
+
+Deliverables:
+
+1. A second independently sourced Software/SDLC regime proving that the kernel
+   does not encode NASA-specific or repository-provider-specific rules.
+2. Versioned public schemas and compatibility policy.
+3. Performance receipts for incremental invalidation and warm-path planning.
+4. Threat model, security review and supply-chain provenance.
+5. Release manifest with source, proof, test, model and runtime evidence.
+
+Release is blocked until the second vertical uses the same kernel without a
+domain branch and the public API remains POO-native.
+
+* Immediate work queue
+
+These are the next bounded changes after Phase 0 review:
+
+1. [X] Add the repository contribution policy under the confirmed license contract.
+2. [X] Record the exact SDLC source/test/tool/profile inventory and current receipts.
+3. [X] Move the SDLC and GitOps owners into Aitia and close namespace, build and test parity.
+4. Add the five-role =modules/assurance/= skeleton with declarations only.
+5. Define the versioned vocabulary manifest and schema identifiers.
+6. Implement relation-plane validation and its negative test matrix.
+7. Implement canonical identity/digest projection.
+8. [X] Define the Aitia Scheme-native C ABI and pure-C harness with an unversioned
+   public namespace and explicit ABI revision metadata.
+9. [X] Complete Aitia's =bindings/python= CFFI consumer and wheel receipt.
+10. Create the smallest change-to-invalidation fixture with no verifier calls.
+
+No Python semantic duplicate, Cedar policy, proof migration or effect execution
+belongs in this immediate queue.

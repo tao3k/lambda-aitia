@@ -1,0 +1,98 @@
+// SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+//
+// SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#include "lambda_aitia/aitia.h"
+
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#if defined(_WIN32)
+#include <windows.h>
+typedef HMODULE library_handle;
+#define LIBRARY_OPEN(path) LoadLibraryA(path)
+#define LIBRARY_SYMBOL(handle, name) GetProcAddress(handle, name)
+#define LIBRARY_CLOSE(handle) FreeLibrary(handle)
+#else
+#include <dlfcn.h>
+typedef void *library_handle;
+#define LIBRARY_OPEN(path) dlopen(path, RTLD_NOW | RTLD_LOCAL)
+#define LIBRARY_SYMBOL(handle, name) dlsym(handle, name)
+#define LIBRARY_CLOSE(handle) dlclose(handle)
+#endif
+
+typedef uint32_t (*abi_revision_fn)(void);
+typedef int32_t (*runtime_init_fn)(void);
+typedef void (*runtime_shutdown_fn)(void);
+typedef int32_t (*descriptor_fn)(poo_flow_aitia_result *);
+typedef void (*result_init_fn)(poo_flow_aitia_result *);
+typedef void (*result_release_fn)(poo_flow_aitia_result *);
+
+int main(int argc, char **argv) {
+  library_handle library;
+  abi_revision_fn abi_revision;
+  runtime_init_fn runtime_init;
+  runtime_shutdown_fn runtime_shutdown;
+  descriptor_fn descriptor;
+  result_init_fn result_init;
+  result_release_fn result_release;
+  poo_flow_aitia_result result;
+
+  if (argc != 2) return 64;
+  library = LIBRARY_OPEN(argv[1]);
+  if (library == NULL) {
+#if defined(_WIN32)
+    (void)fprintf(stderr, "unable to load Lambda Aitia library\n");
+#else
+    (void)fprintf(stderr, "%s\n", dlerror());
+#endif
+    return 1;
+  }
+  runtime_init = (runtime_init_fn)LIBRARY_SYMBOL(
+      library, "poo_flow_aitia_runtime_init");
+  runtime_shutdown = (runtime_shutdown_fn)LIBRARY_SYMBOL(
+      library, "poo_flow_aitia_runtime_shutdown");
+  abi_revision =
+      (abi_revision_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_abi_revision");
+  descriptor =
+      (descriptor_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_descriptor");
+  result_init =
+      (result_init_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_result_init");
+  result_release =
+      (result_release_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_result_release");
+  if (runtime_init == NULL || runtime_shutdown == NULL ||
+      abi_revision == NULL || descriptor == NULL || result_init == NULL ||
+      result_release == NULL) {
+    LIBRARY_CLOSE(library);
+    return 2;
+  }
+  if (runtime_init() != 0) {
+    LIBRARY_CLOSE(library);
+    return 3;
+  }
+  if (abi_revision() != POO_FLOW_AITIA_ABI_REVISION) {
+    runtime_shutdown();
+    LIBRARY_CLOSE(library);
+    return 4;
+  }
+  result_init(&result);
+  if (descriptor(&result) != 0 || result.status != 0 ||
+      result.payload == NULL || result.length == 0 ||
+      strstr((const char *)result.payload, "lambda-aitia.native-descriptor") ==
+          NULL) {
+    result_release(&result);
+    runtime_shutdown();
+    LIBRARY_CLOSE(library);
+    return 5;
+  }
+  result_release(&result);
+  if (result.payload != NULL || result.length != 0 || result.status != 0) {
+    runtime_shutdown();
+    LIBRARY_CLOSE(library);
+    return 6;
+  }
+  runtime_shutdown();
+  LIBRARY_CLOSE(library);
+  return 0;
+}
