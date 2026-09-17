@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0003 — Review the POO Flow contract allowlist
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0003
+:STATUS:          accepted
+:DATE:            2026-09-17
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+Lambda Aitia depends on POO Flow mechanisms but must not track arbitrary parent
+internals.  RFC 0001 requires a reviewed stable dependency boundary.
+
+* Decision Drivers
+
+- Keep POO Flow independently usable without Aitia.
+- Make every imported mechanism owner auditable.
+- Prevent convenience imports from silently expanding the dependency surface.
+
+* Considered Options
+
+1. Permit any =:poo-flow/src/= import.
+2. Copy POO Flow mechanisms into Aitia.
+3. Maintain an exact reviewed owner allowlist and require an ADR revision for
+   additions.
+
+* Decision Outcome
+
+Choose option 3.  The initial allowlist contains only the precise owners already
+required by the migrated implementation:
+
+- module-system contribution model, interface, testing and verification;
+- module declaration, source discovery, load path and POO CLOS interfaces;
+- governance types, objects and pure functions;
+- source-lock and standards-provider interfaces;
+- profile composition, source admission and testing observation;
+- the functional core helpers and GitHub Funflow contract used by GitOps;
+- user composition discovery syntax.
+
+Aggregate parent facades, runtime lifecycle owners, Cedar authority and effect
+execution are not implicitly allowed.  A new owner path requires review and a
+new ADR revision.  Moving an allowlisted contract is a coordinated breaking
+change until POO Flow publishes a stable facade for it.
+
+* Consequences
+
+- Good: the current dependency surface is explicit and source-owned.
+- Good: new internal imports fail governance review instead of becoming custom.
+- Bad: some accepted paths still use =src/= names and therefore need coordinated
+  stabilization before Aitia 1.0.
+
+* Confirmation
+
+- Review compares Scheme imports against the owner set; an executable
+  repository gate remains required before this check can be called automatic.
+- POO Flow core import-policy tests continue to reject Aitia imports.
+- RFC acceptance remains blocked if the allowlist and actual imports diverge.
+
+* More Information
+
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- [[file:0001-dependency-direction.org][ADR 0001 — Contribution Dependency Direction]]

@@ -26,6 +26,7 @@ typedef uint32_t (*abi_revision_fn)(void);
 typedef int32_t (*runtime_init_fn)(void);
 typedef void (*runtime_shutdown_fn)(void);
 typedef int32_t (*descriptor_fn)(poo_flow_aitia_result *);
+typedef int32_t (*payload_operation_fn)(char *, poo_flow_aitia_result *);
 typedef void (*result_init_fn)(poo_flow_aitia_result *);
 typedef void (*result_release_fn)(poo_flow_aitia_result *);
 
@@ -35,9 +36,11 @@ int main(int argc, char **argv) {
   runtime_init_fn runtime_init;
   runtime_shutdown_fn runtime_shutdown;
   descriptor_fn descriptor;
+  payload_operation_fn sdlc_flow_plan;
   result_init_fn result_init;
   result_release_fn result_release;
   poo_flow_aitia_result result;
+  char plan_input[] = "{\"lifecycle-id\":\"release/42\"}";
 
   if (argc != 2) return 64;
   library = LIBRARY_OPEN(argv[1]);
@@ -57,13 +60,15 @@ int main(int argc, char **argv) {
       (abi_revision_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_abi_revision");
   descriptor =
       (descriptor_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_descriptor");
+  sdlc_flow_plan = (payload_operation_fn)LIBRARY_SYMBOL(
+      library, "poo_flow_aitia_sdlc_flow_plan");
   result_init =
       (result_init_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_result_init");
   result_release =
       (result_release_fn)LIBRARY_SYMBOL(library, "poo_flow_aitia_result_release");
   if (runtime_init == NULL || runtime_shutdown == NULL ||
       abi_revision == NULL || descriptor == NULL || result_init == NULL ||
-      result_release == NULL) {
+      result_release == NULL || sdlc_flow_plan == NULL) {
     LIBRARY_CLOSE(library);
     return 2;
   }
@@ -92,6 +97,17 @@ int main(int argc, char **argv) {
     LIBRARY_CLOSE(library);
     return 6;
   }
+  if (sdlc_flow_plan(plan_input, &result) != 0 || result.status != 0 ||
+      result.payload == NULL ||
+      strstr((const char *)result.payload, "lambda-aitia.sdlc-flow-plan") ==
+          NULL ||
+      strstr((const char *)result.payload, "release/42/effect") == NULL) {
+    result_release(&result);
+    runtime_shutdown();
+    LIBRARY_CLOSE(library);
+    return 7;
+  }
+  result_release(&result);
   runtime_shutdown();
   LIBRARY_CLOSE(library);
   return 0;

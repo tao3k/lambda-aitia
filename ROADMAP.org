@@ -54,20 +54,20 @@ Status: =evidence-partial=
 
 Deliverables:
 
-1. [X] Complete the source-owned migration of SDLC implementation, tests, source
+1. Complete the source-owned migration of SDLC implementation, tests, source
    snapshots, tools and Profiles into Lambda Aitia.
-2. [X] Replace the old package namespace and owner identities with
+2. Replace the old package namespace and owner identities with
    =:poo-flow/lambda-aitia/modules/sdlc= and =lambda-aitia=; do not publish a
    compatibility alias unless separately authorized.
 3. [X] Establish the five-role SDLC module family: =types.ss=, =objects.ss=, =funs.ss=,
    =config.ss= and =interface.ss=.
-4. Nominal boundary contracts for Artifact, Claim, Assumption, Observation,
+4. [X] Nominal boundary contracts for Artifact, Claim, Assumption, Observation,
    Event, Action, Obligation, Evidence, Counterexample, Finding, Decision and
    Effect.
-5. POO prototypes for immutable declarations and snapshot-bound instances.
-6. Typed relation objects for all five planes.
-7. Pure construction, validation, canonical ordering and digest projection.
-8. Explicit status values: supported, violated, unknown, stale, conflicted,
+5. [X] POO prototypes for immutable declarations and snapshot-bound instances.
+6. [X] Typed relation objects for all five planes.
+7. [X] Pure construction, validation, canonical ordering and digest projection.
+8. [X] Explicit status values: supported, violated, unknown, stale, conflicted,
    hypothesized, counterfactual and not-applicable.
 
 Required negative contracts:
@@ -90,11 +90,11 @@ Exit gates:
 
 * Phase 2 — Assurance graph and invalidation kernel
 
-Status: =planned=
+Status: =active=
 
 Deliverables:
 
-1. An =AssuranceSnapshot= that binds graph identity, source revisions, claim
+1. [X] An =AssuranceSnapshot= that binds graph identity, source revisions, claim
    revisions and an immutable fact cut.
 2. Plane-specific indexes and reachability queries over the POO Flow Graph
    substrate; Aitia does not create a second graph engine.
@@ -103,7 +103,7 @@ Deliverables:
    obligations, evidence, decisions and effects.
 5. Explicit unresolved frontier, strongly connected component handling and
    deterministic witness paths.
-6. An =InvalidationReceipt= that is inert: it never asserts temporal proof,
+6. [X] An =InvalidationReceipt= that is inert: it never asserts temporal proof,
    release authorization or runtime execution.
 
 Core law:
@@ -164,9 +164,12 @@ Deliverables:
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
    caller-release pattern; public Scheme and Python namespaces remain
    unversioned while ABI revision is explicit metadata.
-7. [X] An Aitia-owned =bindings/python= out-of-line CFFI package.  POO Flow's
-   =packages/python-runtime= remains runtime-only, and Python contains no
-   duplicate Aitia semantics.
+7. [X] An Aitia-owned, uv-managed =bindings/python= production SDLC Runtime
+   with an out-of-line CFFI package.  POO Flow's =packages/python-runtime=
+   remains the generic runtime mechanism, and Python contains no duplicate
+   Aitia semantics.
+8. [X] ABI revision 2 publishes the canonical eight-stage POO Flow DAG as an
+   inert typed =SdlcFlowPlan=; it does not claim authorization or execution.
 
 Exit gates:
 
@@ -222,7 +225,8 @@ Deliverables:
    Aitia into the POO Flow core bootstrap.
 3. Aitia AOT Scheme exports through a dedicated C ABI using the established
    POO Flow Scheme-native result ownership convention.
-4. Aitia's own Python binding consumes that ABI through CFFI and returns typed
+4. Aitia's own production Python SDLC Runtime consumes that ABI through CFFI
+   and returns typed
    projections.  POO Flow's Python runtime remains a separate generic runtime
    and lifecycle transport.
 5. Cedar projection from a current admitted Decision, with snapshot and
@@ -288,15 +292,16 @@ These are the next bounded changes after Phase 0 review:
 
 1. [X] Add the repository contribution policy under the confirmed license contract.
 2. [X] Record the exact SDLC source/test/tool/profile inventory and current receipts.
-3. [X] Move the SDLC and GitOps owners into Aitia and close namespace, build and test parity.
-4. Add the five-role =modules/assurance/= skeleton with declarations only.
-5. Define the versioned vocabulary manifest and schema identifiers.
-6. Implement relation-plane validation and its negative test matrix.
-7. Implement canonical identity/digest projection.
+3. Move the SDLC and GitOps owners into Aitia and close the published Episteme
+   deletion plus parent pin; Aitia-side source and parity are complete.
+4. [X] Add the five-role =modules/assurance/= skeleton with declarations only.
+5. [X] Define the versioned vocabulary manifest and schema identifiers.
+6. [X] Implement relation-plane validation and its negative test matrix.
+7. [X] Implement canonical identity/digest projection.
 8. [X] Define the Aitia Scheme-native C ABI and pure-C harness with an unversioned
    public namespace and explicit ABI revision metadata.
 9. [X] Complete Aitia's =bindings/python= CFFI consumer and wheel receipt.
-10. Create the smallest change-to-invalidation fixture with no verifier calls.
+10. [X] Create the smallest change-to-invalidation fixture with no verifier calls.
 
 No Python semantic duplicate, Cedar policy, proof migration or effect execution
 belongs in this immediate queue.

@@ -79,6 +79,15 @@ def descriptor() -> dict[str, Any]:
     return _call("descriptor")
 
 
+def sdlc_flow_plan(lifecycle_id: str) -> dict[str, Any]:
+    """Ask Scheme to project an SDLC lifecycle onto the POO Flow DAG."""
+
+    payload = json.dumps(
+        {"lifecycle-id": lifecycle_id}, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+    return _call("sdlc-flow-plan", payload)
+
+
 def evaluate_gitops(change: Mapping[str, Any]) -> dict[str, Any]:
     """Ask Scheme to evaluate one GitOps change and its check evidence."""
 

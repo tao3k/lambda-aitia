@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0002 — Snapshot and Invalidation Kernel
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0002
+:STATUS:     draft
+:DATE:       2026-09-17
+:PARENT_RFC: lambda-aitia-rfc-0001
+:IMPLEMENTS: lambda-aitia-rfc-0001
+:END:
+
+* Decision summary
+
+An =AssuranceSnapshot= is an immutable, canonical fact cut binding graph,
+source, claim, policy and evidence revisions.  A change produces an inert
+=InvalidationReceipt= through pure traversal of typed relations.  The receipt
+selects affected current obligations, evidence, decisions and effects; it does
+not run a verifier, derive replacement obligations or authorize an effect.
+
+* Input contracts
+
+The initial kernel accepts:
+
+- type-specific POO-native Artifact, Claim, Assumption, Observation, Event,
+  Action, Obligation, Evidence, Counterexample, Finding, Decision and Effect;
+- typed relations whose kind has exactly one relation-plane owner;
+- graph identity, source and claim revision bindings, immutable fact cut,
+  policy identity/revision and admitted evidence identities;
+- a non-empty receipt identity and changed semantic identities.
+
+Duplicate identities with unequal canonical content are conflicts.  Missing
+relation endpoints and unknown change identities remain an unresolved frontier.
+
+* Traversal contract
+
+Structural and support relations are traversed from changed dependency target
+to dependent source.  Authority effects are traversed from an impacted decision
+to the effect target.  Temporal precedence is never promoted into causality and
+does not participate in structural invalidation.
+
+The current implementation returns deterministic impacted identities and exact
+relation witnesses.  The lifecycle stage graph now uses the POO Flow Graph/DAG
+substrate, but invalidation traversal still requires the reviewed Graph adapter
+plus SCC/path normalization before this RFC can be accepted.
+
+* Receipt contract
+
+The receipt contains changed and impacted identities, invalidated evidence,
+selected current obligations, invalidated decisions, blocked effects, witnesses
+and unresolved inputs.  These fields are always false in this phase:
+
+- =temporal-proven?=
+- =release-authorized?=
+- =runtime-executed?=
+
+Phase 3 owns derivation of replacement obligations.  Phase 4 owns verifier
+outcomes and evidence admission.  The Runtime Host owns effect execution.
+
+* Required negative contracts
+
+- a same-shaped non-nominal node is rejected;
+- a cross-plane relation is rejected;
+- hypothesized, counterfactual, stale or conflicted evidence cannot discharge
+  an observed obligation;
+- missing changed identities remain unresolved;
+- a receipt cannot set temporal proof, release authority or runtime execution;
+- input permutation cannot change snapshot or receipt identity order.
+
+* Acceptance gates
+
+- replace the local traversal with a minimal reviewed POO Flow Graph adapter;
+- add deterministic SCC and complete witness-path behavior;
+- prove invalidation is monotone for a fixed snapshot;
+- prove stale evidence cannot support a current decision;
+- replay the bounded Software/SDLC change fixture from a clean checkout;
+- retain exact source, policy and evidence revision receipts.
+
+* Relationship to ADRs
+
+- ADR 0003 constrains POO Flow contracts used by the graph adapter.
+- ADR 0004 assigns the general laws and lifecycle models to Aitia.
+- ADR 0005 defines persistence as a canonical non-authoritative projection.

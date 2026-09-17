@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0005 — Persist canonical snapshot projections
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0005
+:STATUS:          accepted
+:DATE:            2026-09-17
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+Assurance snapshots need replayable persistence without turning serialized JSON
+or a database row into semantic or authority state.
+
+* Decision Outcome
+
+Persist a canonical JSON projection identified by the vocabulary-manifest
+revision and the snapshot digest.  Scheme POO values and pure validation remain
+the semantic owner.  Loading a projection reconstructs candidate values, checks
+the schema revision, recomputes the digest and reruns admission; deserialization
+alone never restores support, Decision authority or Effect permission.
+
+Unknown fields, missing required bindings, unsupported manifest revisions and
+digest mismatches fail closed.  Storage engines may index projections but may
+not mutate their meaning.
+
+* Consequences
+
+- Good: snapshots are portable and independently digestible.
+- Good: persistence remains replaceable and non-authoritative.
+- Bad: schema evolution requires explicit projection migrations and replay.
+
+* Confirmation
+
+- Permuting input objects produces identical canonical bytes and digest.
+- Presentation-only mutation cannot enter an admitted snapshot.
+- A stale or unsupported persisted projection is rejected before planning.
+
+* More Information
+
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- [[file:../rfcs/0002-snapshot-and-invalidation-kernel.org][RFC 0002 — Snapshot and Invalidation Kernel]]

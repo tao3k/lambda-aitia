@@ -2,8 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-"""Python access to Lambda Aitia's Scheme-owned assurance decisions."""
+"""Production Python runtime for Lambda Aitia's Scheme-owned SDLC."""
 
 from .native import AitiaNativeError, descriptor, evaluate_gitops
+from .runtime import SdlcFlowPlan, SdlcRuntime
 
-__all__ = ["AitiaNativeError", "descriptor", "evaluate_gitops"]
+__all__ = [
+    "AitiaNativeError",
+    "SdlcFlowPlan",
+    "SdlcRuntime",
+    "descriptor",
+    "evaluate_gitops",
+]

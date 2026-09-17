@@ -12,6 +12,7 @@ import platform
 import shutil
 
 from setuptools import setup
+from setuptools.command.build_ext import build_ext
 from setuptools.command.build_py import build_py
 
 NATIVE_LIBRARY_ENV = "LAMBDA_AITIA_NATIVE_LIBRARY"
@@ -41,7 +42,18 @@ class BuildPyWithAitiaLibrary(build_py):
         shutil.copy2(_native_library(), target / library_name)
 
 
+class BuildExtWithFreshAitiaAbi(build_ext):
+    """Recompile the tiny shim because CFFI cannot track its included headers."""
+
+    def finalize_options(self) -> None:
+        super().finalize_options()
+        self.force = True
+
+
 setup(
     cffi_modules=["src/lambda_aitia/_native/_build.py:ffibuilder"],
-    cmdclass={"build_py": BuildPyWithAitiaLibrary},
+    cmdclass={
+        "build_ext": BuildExtWithFreshAitiaAbi,
+        "build_py": BuildPyWithAitiaLibrary,
+    },
 )

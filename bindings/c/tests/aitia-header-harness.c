@@ -15,4 +15,4 @@ _Static_assert(offsetof(poo_flow_aitia_result, length) >
                    offsetof(poo_flow_aitia_result, payload),
                "length must follow payload");
 
-int main(void) { return POO_FLOW_AITIA_ABI_REVISION == 1u ? 0 : 1; }
+int main(void) { return POO_FLOW_AITIA_ABI_REVISION == 2u ? 0 : 1; }

@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0004 — Own assurance proofs in Lambda Aitia
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0004
+:STATUS:          accepted
+:DATE:            2026-09-17
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-proof-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+The assurance laws and lifecycle model need one source owner.  POO Flow already
+contains generic composition and runtime proofs, but those artifacts must not
+become owners of Aitia claim, evidence or invalidation semantics.
+
+* Decision Outcome
+
+Lambda Aitia owns Lean statements and TLA+ models whose vocabulary is defined by
+Aitia, including evidence freshness, no stale authority, invalidation,
+counterfactual isolation and the assurance lifecycle.  It may consume a pinned,
+independently versioned POO Flow proof package for generic composition laws.
+POO Flow proof sources are referenced, not copied or silently moved.
+
+Theorems and TLC receipts remain evidence inputs.  Neither grants a current
+Decision or Effect authority.
+
+* Consequences
+
+- Good: proof statements evolve with their semantic owner.
+- Good: generic POO Flow laws remain reusable and independently released.
+- Bad: cross-repository theorem dependencies require explicit version receipts.
+
+* Confirmation
+
+- Aitia proof builds run from Aitia-owned source paths.
+- Imported POO Flow theorems name an exact package revision.
+- Negative fixtures show that a theorem or TLC success is not runtime authority.
+
+* More Information
+
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]

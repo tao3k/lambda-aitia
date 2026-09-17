@@ -14,6 +14,7 @@
 
 (def +lambda-aitia-public-entry-modules+
   '("interface.ss"
+    "bindings/c/aitia-contract.ss"
     "modules/ADR/interface.ss"
     "modules/assurance/interface.ss"
     "modules/gitops/interface.ss"

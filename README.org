@@ -47,11 +47,12 @@ explicit composition of Episteme, Aitia and POO Flow.  Mounting this Git
 submodule does not import a module, activate a Profile, run a verifier, grant a
 capability, authorize a decision or execute an effect.
 
-Python integration is maintained entirely under =bindings/python= in this
-repository.  POO Flow's =packages/python-runtime= remains the generic runtime
-and lifecycle binding; it does not own Aitia semantics.  Aitia Scheme is
-compiled AOT behind an owned-byte C ABI, while the Aitia Python package only
-performs ABI negotiation and JSON transport.  It does not reimplement Scheme
+The production Python SDLC Runtime is maintained entirely under
+=bindings/python= in this repository; it is not an example.  POO Flow's
+=packages/python-runtime= remains the generic graph execution and lifecycle
+mechanism and does not own Aitia semantics.  Aitia Scheme is compiled AOT
+behind an owned-byte C ABI.  The Python project validates typed lifecycle
+receipts and exposes them to downstream systems without reimplementing Scheme
 decisions.
 
 * Core model
@@ -134,5 +135,8 @@ The machine-readable declaration and complete texts are maintained in
 - [[file:docs/plans/software-sdlc-integration-inventory.org][Software/SDLC integration inventory]] classifies the existing implementation as
   keep, reference, generalize or later migrate.
 
-The repository is currently in Phase 0: contract and project closure.  No
-runtime authority or production assurance claim is established yet.
+The repository has Phase 0 and Phase 1 evidence-partial work plus an active
+Phase 2 snapshot/invalidation slice.  ABI revision 2 and =SdlcRuntime.plan()=
+form the first production Python runtime contract for the complete eight-stage
+SDLC DAG.  That plan remains inert: executable stage receipts, release
+authority and completed effects are not claimed yet.

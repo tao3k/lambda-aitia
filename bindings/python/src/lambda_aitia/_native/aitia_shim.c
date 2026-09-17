@@ -59,6 +59,7 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
   lambda_aitia_result_init_fn result_init;
   lambda_aitia_result_release_fn result_release;
   lambda_aitia_descriptor_fn descriptor;
+  lambda_aitia_evaluate_fn sdlc_flow_plan;
   lambda_aitia_evaluate_fn evaluate;
   poo_flow_aitia_result result;
   char *input = NULL;
@@ -88,11 +89,13 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
       library, "poo_flow_aitia_result_release");
   descriptor = (lambda_aitia_descriptor_fn)LAMBDA_AITIA_SYMBOL(
       library, "poo_flow_aitia_descriptor");
+  sdlc_flow_plan = (lambda_aitia_evaluate_fn)LAMBDA_AITIA_SYMBOL(
+      library, "poo_flow_aitia_sdlc_flow_plan");
   evaluate = (lambda_aitia_evaluate_fn)LAMBDA_AITIA_SYMBOL(
       library, "poo_flow_aitia_gitops_evaluate");
   if (runtime_init == NULL || runtime_shutdown == NULL || revision == NULL ||
       result_init == NULL || result_release == NULL || descriptor == NULL ||
-      evaluate == NULL) {
+      sdlc_flow_plan == NULL || evaluate == NULL) {
     lambda_aitia_write_error(error, error_capacity,
                              "Lambda Aitia ABI symbol is absent");
     LAMBDA_AITIA_CLOSE(library);
@@ -114,10 +117,11 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
   result_init(&result);
   if (strcmp(operation, "descriptor") == 0) {
     status = descriptor(&result);
-  } else if (strcmp(operation, "gitops-evaluate") == 0) {
+  } else if (strcmp(operation, "sdlc-flow-plan") == 0 ||
+             strcmp(operation, "gitops-evaluate") == 0) {
     if (payload == NULL || payload_length == 0 || payload_length == SIZE_MAX) {
       lambda_aitia_write_error(error, error_capacity,
-                               "GitOps evaluation requires JSON input");
+                               "Aitia operation requires JSON input");
       result_release(&result);
       runtime_shutdown();
       LAMBDA_AITIA_CLOSE(library);
@@ -133,7 +137,9 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
     }
     memcpy(input, payload, payload_length);
     input[payload_length] = '\0';
-    status = evaluate(input, &result);
+    status = strcmp(operation, "sdlc-flow-plan") == 0
+                 ? sdlc_flow_plan(input, &result)
+                 : evaluate(input, &result);
     free(input);
   } else {
     lambda_aitia_write_error(error, error_capacity, "unknown Aitia operation");

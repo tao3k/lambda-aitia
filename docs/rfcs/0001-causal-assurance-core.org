@@ -2,9 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 #+title: RFC 0001 — Causal Assurance Core
-#+status: draft
-#+date: 2026-09-17
 #+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0001
+:STATUS:     draft
+:DATE:       2026-09-17
+:END:
 
 * Decision summary
 
@@ -47,7 +51,7 @@ through named, checked functions that emit receipts.
 | Lambda Aitia | Software/SDLC, ADR and standards modules; claims, assumptions, relation semantics, obligations, evidence admission, invalidation and planning | non-software vertical truth, graph runtime, verifier semantics or effect execution |
 | POO Flow | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
 | POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
-| Aitia Python binding | Aitia-owned CFFI transport, ABI negotiation and typed JSON projection | reimplementing Scheme decisions or generic Runtime ownership |
+| Aitia Python SDLC Runtime | production SDLC API, Aitia-owned CFFI transport, ABI negotiation and typed receipt projection | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
 | Lean | general proof terms and assurance laws | current runtime state or action authority |
 | TLA+/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
 | Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
@@ -64,10 +68,11 @@ Lambda Aitia owns its Python project under =bindings/python=.  Its Scheme
 semantic surface is compiled AOT and exposed through a dedicated C ABI using
 the owned result/release convention established by POO Flow's Scheme-native
 ABI.  Public Scheme and Python namespaces remain unversioned; ABI revision is
-explicit descriptor metadata rather than part of those names.  The Python
-package transports requests and results only; Scheme remains the decision
-owner.  POO Flow's =packages/python-runtime= remains a separate generic
-execution/lifecycle contract and is not repurposed as an SDLC semantic API.
+explicit descriptor metadata rather than part of those names.  The production
+Python package validates and materializes lifecycle requests and receipts;
+Scheme remains the decision owner.  POO Flow's =packages/python-runtime=
+remains the separate generic execution/lifecycle mechanism consumed by the
+Aitia SDLC runtime rather than becoming a second SDLC semantic API.
 
 * Semantic objects
 
@@ -308,17 +313,20 @@ standards compliance, release certification or unrestricted causal inference.
 6. Runtime fallback authorization: rejected because missing authority must stay
    a typed failure.
 
-* Open decisions before stable release
+* Closed architecture decisions and remaining acceptance work
 
 The repository license is closed as =Apache-2.0 AND
-LGPL-2.1-or-later=, matching POO Flow.  Remaining decisions are:
+LGPL-2.1-or-later=, matching POO Flow.  The former open decisions are closed by:
 
-1. Whether proof sources live entirely in this repository or are consumed
-   through an independently versioned proof package.
-2. Minimal stable POO Flow interfaces permitted as Aitia dependencies.
-3. Persistence format for canonical snapshots; persistence must remain a
-   projection, not semantic authority.
+1. ADR 0004: Aitia owns assurance-specific Lean/TLA+ sources and may consume a
+   pinned POO Flow proof package for generic laws.
+2. ADR 0003: exact POO Flow mechanism owners form a reviewed allowlist; additions
+   require an ADR revision.
+3. ADR 0005: canonical JSON snapshots are persistence projections, never
+   semantic or effect authority.
 
 The namespace is unversioned and the manifest carries an explicit numeric
-revision.  Until the remaining decisions close, the current API is executable
+revision.  RFC 0001 remains draft until RFC 0002 closes graph/SCC/witness-path
+semantics, the published Episteme cutover is clean-clone reproducible and the
+bounded Software/SDLC qualification passes.  The current API is executable
 qualification evidence rather than a stable release commitment.

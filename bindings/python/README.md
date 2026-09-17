@@ -3,11 +3,34 @@ SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 -->
 
-# Lambda Aitia Python binding
+# Lambda Aitia Python SDLC Runtime
 
-This package is the Python consumer of Lambda Aitia's Scheme-native C ABI.
-Scheme remains the semantic owner of GitOps and SDLC decisions; Python only
-serializes JSON input and decodes the returned JSON result.
+This is Lambda Aitia's production Python project, not an example package.  It
+is the Python runtime surface for the complete SDLC lifecycle:
+
+```text
+change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
+```
+
+Lambda Aitia Scheme owns the lifecycle vocabulary, assurance semantics,
+decisions and receipts. POO Flow owns the reusable Graph/DAG and runtime
+mechanisms. The Python package consumes those contracts through the stable C
+ABI and does not reimplement either owner's semantics.
+
+The current production surface publishes and validates the canonical lifecycle
+DAG through `SdlcRuntime.plan()`. The returned receipt is deliberately inert:
+it cannot claim release authorization or runtime execution. Stage execution is
+added only as each real Scheme operation and attributable receipt becomes
+available; the package will never simulate completion with Python callbacks.
+
+```python
+from lambda_aitia import SdlcRuntime
+
+plan = SdlcRuntime().plan("release/42")
+assert plan.topological_order[-1] == "release/42/effect"
+assert not plan.release_authorized
+assert not plan.runtime_executed
+```
 
 Builds require `LAMBDA_AITIA_NATIVE_LIBRARY` to identify the qualified native
 library that will be bundled into the wheel.
