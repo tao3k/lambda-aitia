@@ -119,9 +119,11 @@ jobs:
           gerbil_home="$release_root/prefix/current"
           test -x "$gerbil_home/bin/gxi"
           test -x "$gerbil_home/bin/gxpkg"
+          export GERBIL_HOME="$gerbil_home"
+          export PATH="$release_root/prefix/bin:$PATH"
           echo "GERBIL_HOME=$gerbil_home" >> "$GITHUB_ENV"
           echo "$release_root/prefix/bin" >> "$GITHUB_PATH"
-          "$gerbil_home/bin/gxi" --version | tee "$RUNNER_TEMP/gerbil-version.txt"
+          gxi --version | tee "$RUNNER_TEMP/gerbil-version.txt"
           grep -F "Gerbil 07c8481" "$RUNNER_TEMP/gerbil-version.txt"
 
       - name: Install declared Gerbil package dependencies
