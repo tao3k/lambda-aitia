@@ -60,6 +60,9 @@
 (def authorization
   (assurance-relation "relation/authorization" 'authority 'authorizes
                       "decision/release" "effect/deploy" 'declared))
+(def reverse-dependency
+  (assurance-relation "relation/reverse-dependency" 'structural 'implements
+                      "artifact/source" "claim/release" 'declared))
 
 (def (software-snapshot nodes relations (unresolved '()))
   (assurance-snapshot
@@ -119,7 +122,19 @@
         (check-equal?
          (map (lambda (node) (.ref node 'identity)) (.ref left 'nodes))
          '("artifact/source" "claim/release" "decision/release"
-           "effect/deploy" "evidence/test" "obligation/verify"))))
+           "effect/deploy" "evidence/test" "obligation/verify"))
+        (let ((left-receipt
+               (assurance-invalidate
+                "invalidation/permutation-left" left '("artifact/source")))
+              (right-receipt
+               (assurance-invalidate
+                "invalidation/permutation-right" right '("artifact/source"))))
+          (check-equal?
+           (assurance-invalidation-receipt-ref left-receipt 'impacted)
+           (assurance-invalidation-receipt-ref right-receipt 'impacted))
+          (check-equal?
+           (assurance-invalidation-receipt-ref left-receipt 'witnesses)
+           (assurance-invalidation-receipt-ref right-receipt 'witnesses)))))
 
     (test-case "all revision and evidence bindings are canonical"
       (let ((left
@@ -166,7 +181,16 @@
       (let ((snapshot
              (software-snapshot (list claim) (list dependency))))
         (check-equal? (.ref snapshot 'state) 'unknown)
-        (check-equal? (.ref snapshot 'unresolved) '("artifact/source"))))
+        (check-equal? (.ref snapshot 'unresolved) '("artifact/source"))
+        (let (receipt
+              (assurance-invalidate
+               "invalidation/dangling" snapshot '("claim/release")))
+          (check-equal?
+           (assurance-invalidation-receipt-ref receipt 'impacted)
+           '("claim/release"))
+          (check-equal?
+           (assurance-invalidation-receipt-ref receipt 'unresolved)
+           '("artifact/source")))))
 
     (test-case "alternate evidence and temporal order grant no support"
       (check-equal?
@@ -258,4 +282,62 @@
                                     '("artifact/source"))))
         (check-equal?
          (assurance-invalidation-receipt-ref receipt 'impacted)
-         '("artifact/source"))))))
+         '("artifact/source"))))
+
+    (test-case "unknown change identities remain an unresolved frontier"
+      (let (receipt
+            (assurance-invalidate
+             "invalidation/unknown-change" full-software-snapshot
+             '("artifact/missing")))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'changed)
+         '("artifact/missing"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'impacted) '())
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'unresolved)
+         '("artifact/missing"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'release-authorized?) #f)))
+
+    (test-case "fixed-snapshot invalidation is monotone"
+      (let ((claim-change
+             (assurance-invalidate
+              "invalidation/claim" full-software-snapshot
+              '("claim/release")))
+            (artifact-change
+             (assurance-invalidate
+              "invalidation/artifact" full-software-snapshot
+              '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref claim-change 'impacted)
+         '("claim/release" "decision/release" "effect/deploy"
+           "evidence/test" "obligation/verify"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref artifact-change 'impacted)
+         (cons "artifact/source"
+               (assurance-invalidation-receipt-ref claim-change 'impacted)))))
+
+    (test-case "structural cycles have deterministic SCCs and witnesses"
+      (let* ((snapshot
+              (software-snapshot
+               (list artifact claim)
+               (list dependency reverse-dependency)))
+             (left
+              (assurance-invalidate
+               "invalidation/cycle-left" snapshot '("artifact/source")))
+             (right
+              (assurance-invalidate
+               "invalidation/cycle-right" snapshot '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'impacted)
+         '("artifact/source" "claim/release"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'cyclic-components)
+         '(("artifact/source" "claim/release")))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'witnesses)
+         (assurance-invalidation-receipt-ref right 'witnesses))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'strong-components)
+         (assurance-invalidation-receipt-ref right 'strong-components))))))

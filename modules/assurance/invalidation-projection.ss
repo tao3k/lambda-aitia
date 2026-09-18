@@ -42,9 +42,15 @@
       (cons (.ref relation 'source) (.ref relation 'target)))
      (else #f))))
 
+(def (known-direction? direction identities)
+  (and direction
+       (member (car direction) identities)
+       (member (cdr direction) identities)))
+
 (def (assurance-invalidation-graph snapshot)
   (unless (assurance-snapshot? snapshot) (error "invalid assurance snapshot"))
   (let* ((nodes (.ref snapshot 'nodes))
+         (identities (map (lambda (node) (.ref node 'identity)) nodes))
          (relations (.ref snapshot 'relations))
          (graph-nodes
           (map (lambda (node)
@@ -63,7 +69,8 @@
                     (.ref relation 'relation)
                     (list (cons 'relation-identity (.ref relation 'identity))
                           (cons 'relation-plane (.ref relation 'plane))))))
-               (filter (lambda (entry) (cdr entry))
+               (filter (lambda (entry)
+                         (known-direction? (cdr entry) identities))
                        (map (lambda (relation)
                               (cons relation (invalidation-direction relation)))
                             relations)))))

@@ -6,7 +6,7 @@
 
 :PROPERTIES:
 :ID:         lambda-aitia-rfc-0002
-:STATUS:     draft
+:STATUS:     active
 :DATE:       2026-09-17
 :PARENT_RFC: lambda-aitia-rfc-0001
 :IMPLEMENTS: lambda-aitia-rfc-0001
@@ -41,10 +41,12 @@ to dependent source.  Authority effects are traversed from an impacted decision
 to the effect target.  Temporal precedence is never promoted into causality and
 does not participate in structural invalidation.
 
-The current implementation returns deterministic impacted identities and exact
-relation witnesses.  The lifecycle stage graph now uses the POO Flow Graph/DAG
-substrate, but invalidation traversal still requires the reviewed Graph adapter
-plus SCC/path normalization before this RFC can be accepted.
+The current implementation projects the Aitia-owned relation directions into
+POO Flow Graph values and delegates reachability, relation trajectories and SCC
+analysis to the POO Flow structural-impact algorithms.  Aitia does not retain a
+second traversal engine.  Dangling relations remain in the snapshot frontier
+but are excluded from the executable Graph projection, so an incomplete
+snapshot produces an inert receipt rather than an invalid Graph.
 
 * Receipt contract
 
@@ -71,12 +73,18 @@ outcomes and evidence admission.  The Runtime Host owns effect execution.
 
 * Acceptance gates
 
-- replace the local traversal with a minimal reviewed POO Flow Graph adapter;
-- add deterministic SCC and complete witness-path behavior;
-- prove invalidation is monotone for a fixed snapshot;
-- prove stale evidence cannot support a current decision;
-- replay the bounded Software/SDLC change fixture from a clean checkout;
-- retain exact source, policy and evidence revision receipts.
+- [X] Replace the local traversal with a minimal reviewed POO Flow Graph
+  projection.
+- [X] Add deterministic SCC and complete witness-path behavior.
+- [X] Exercise monotone invalidation for the bounded fixed snapshot.
+- [X] Reject stale or revision-mismatched evidence before obligation discharge.
+- [ ] Generalize the monotonicity law in the Aitia-owned formal proof package.
+- [ ] Replay the bounded Software/SDLC change fixture from a clean checkout.
+- [X] Retain exact source, policy and evidence revision receipts.
+
+The RFC remains active until the general law and clean-checkout replay close.
+Passing the bounded executable fixture is evidence for the implementation, not
+a substitute for the planned Lean law.
 
 * Relationship to ADRs
 

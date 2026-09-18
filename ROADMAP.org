@@ -90,18 +90,18 @@ Exit gates:
 
 * Phase 2 — Assurance graph and invalidation kernel
 
-Status: =active=
+Status: =evidence-partial=
 
 Deliverables:
 
 1. [X] An =AssuranceSnapshot= that binds graph identity, source revisions, claim
    revisions and an immutable fact cut.
-2. Plane-specific indexes and reachability queries over the POO Flow Graph
+2. [X] Plane-specific projection and reachability queries over the POO Flow Graph
    substrate; Aitia does not create a second graph engine.
-3. Change admission and structural impact selection.
-4. Support-set invalidation from source/assumption changes to claims,
+3. [X] Change admission and structural impact selection.
+4. [X] Support-set invalidation from source/assumption changes to claims,
    obligations, evidence, decisions and effects.
-5. Explicit unresolved frontier, strongly connected component handling and
+5. [X] Explicit unresolved frontier, strongly connected component handling and
    deterministic witness paths.
 6. [X] An =InvalidationReceipt= that is inert: it never asserts temporal proof,
    release authorization or runtime execution.

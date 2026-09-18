@@ -245,8 +245,10 @@
          (known (map (lambda (node) (.ref node 'identity)) nodes))
          (unresolved
           (ordered-unique
-           (filter (lambda (identity) (not (identity-member? identity known)))
-                   changed-identities))))
+           (append
+            (.ref snapshot 'unresolved)
+            (filter (lambda (identity) (not (identity-member? identity known)))
+                    changed-identities)))))
     (let ((seeds (filter (lambda (identity)
                            (identity-member? identity known))
                          changed-identities)))
