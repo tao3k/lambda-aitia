@@ -20,6 +20,7 @@
     "modules/gitops/interface.ss"
     "modules/sdlc/interface.ss"
     "modules/sdlc/standards/interface.ss"
+    "user-interface/compositions/aitia.ss"
     "user-interface/profiles/github/actions.ss"
     "user-interface/profiles/gitops/dev.ss"
     "user-interface/profiles/gitops/staging.ss"
