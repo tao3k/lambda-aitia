@@ -2,7 +2,6 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/src/module-system/contribution/testing)
 (import :std/test :std/error
         :poo-flow/src/module-system/contribution/interface
         :poo-flow/lambda-aitia/modules/sdlc/interface
