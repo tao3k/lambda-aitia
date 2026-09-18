@@ -78,13 +78,14 @@ outcomes and evidence admission.  The Runtime Host owns effect execution.
 - [X] Add deterministic SCC and complete witness-path behavior.
 - [X] Exercise monotone invalidation for the bounded fixed snapshot.
 - [X] Reject stale or revision-mismatched evidence before obligation discharge.
-- [ ] Generalize the monotonicity law in the Aitia-owned formal proof package.
+- [X] Generalize the monotonicity law in the Aitia-owned formal proof package.
 - [ ] Replay the bounded Software/SDLC change fixture from a clean checkout.
 - [X] Retain exact source, policy and evidence revision receipts.
 
-The RFC remains active until the general law and clean-checkout replay close.
-Passing the bounded executable fixture is evidence for the implementation, not
-a substitute for the planned Lean law.
+The RFC remains active until the clean-checkout replay closes.  The bounded
+executable fixture validates the implementation, while
+=LambdaAitiaProof.Modules.Assurance.Invalidation= independently proves the
+general fixed-snapshot monotonicity law and the unresolved-frontier boundary.
 
 * Relationship to ADRs
 

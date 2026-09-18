@@ -47,6 +47,11 @@ check-semantic: build-scheme
     cd '{{ poo_flow_root }}' && just test-contribute lambda-aitia gitops
     cd '{{ poo_flow_root }}' && just test-contribute lambda-aitia modules
 
+# Build the Aitia-owned assurance laws independently of POO Flow's proof package.
+[group('check')]
+check-proof:
+    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof
+
 # POO Flow owns the integration environment; Aitia owns the consumed ABI/Python sources.
 [group('check')]
 check-native:
@@ -63,7 +68,7 @@ build-python-wheel native_library:
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-license-contract check-semantic test-integration check-native
+check: check-license-contract check-semantic check-proof test-integration check-native
 
 [group('check')]
 check-all: check

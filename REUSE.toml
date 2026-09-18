@@ -23,7 +23,7 @@ path = [
   "**/generated/**",
   "**/static/**",
   "modules/sdlc/standards/sources/*.html",
-  "packages/proof/lean/lean-toolchain",
+  "proof/lean/lean-toolchain",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 tao3k team and Contributors"

@@ -184,10 +184,11 @@ Exit gates:
 
 * Phase 5 — Assurance laws in Lean and lifecycle model in TLA+
 
-Status: =planned=
+Status: =evidence-partial=
 
 Lean owns general laws, including:
 
+- [X] fixed-snapshot invalidation monotonicity and unresolved-frontier closure;
 - evidence freshness and exact subject/revision binding;
 - no stale authority;
 - causal modality preservation;

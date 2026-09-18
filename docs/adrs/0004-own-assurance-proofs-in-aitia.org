@@ -39,9 +39,12 @@ Decision or Effect authority.
 
 * Confirmation
 
-- Aitia proof builds run from Aitia-owned source paths.
-- Imported POO Flow theorems name an exact package revision.
-- Negative fixtures show that a theorem or TLC success is not runtime authority.
+- [X] Aitia proof builds run from Aitia-owned source paths through
+  =just check-proof=.
+- [X] The initial proof package imports no POO Flow theorem; therefore no
+  cross-repository proof revision is currently admitted.
+- [X] The inert-receipt theorem keeps proof success separate from release
+  authority and runtime execution.
 
 * More Information
 
