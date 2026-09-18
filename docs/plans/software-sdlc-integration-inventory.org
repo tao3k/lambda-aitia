@@ -17,9 +17,12 @@ ontology surfaces.
 The software Architecture Decision Record module is also Aitia-owned and is
 published as =ADR=.  No lowercase compatibility module is retained.
 
-The source migration recorded here is complete.  This inventory now governs
-the post-migration boundary and prevents either repository from reintroducing
-compatibility aliases or duplicate semantic owners.
+The Aitia-side source migration and parity inventory are complete.  Publication
+cutover remains evidence-partial until Lambda Episteme publishes the deletion
+of ADR, GitOps and SDLC and POO Flow pins that clean child commit.  This
+inventory governs the intended post-migration boundary and prevents either
+repository from reintroducing compatibility aliases or duplicate semantic
+owners.
 
 Classification:
 
@@ -136,14 +139,14 @@ Required negative cases:
 1. Freeze the software fixture and negative contracts in Aitia.
 2. Implement relation-plane and status vocabulary without importing a concrete
    standard, provider or vertical domain.
-3. Implement snapshot and invalidation semantics over a minimal POO Flow Graph
-   adapter.
+3. Implement snapshot and invalidation semantics with the POO Flow Graph
+   library and reuse its impact, trajectory and SCC algorithms.
 4. Preserve the completed SDLC/GitOps ownership cutover with source-collection
    and negative namespace tests.
 5. Commit Aitia first, Episteme deletion second and parent gitlink/registry
    cutover last.
-6. Extend only Aitia's dedicated AOT C ABI and Aitia-owned Python package after
-   Scheme semantics and negative contracts close.
+6. Extend the already landed AOT/CFFI transport beyond GitOps only after each
+   corresponding Scheme semantic contract and negative matrix closes.
 
 * Evidence required for migration acceptance
 

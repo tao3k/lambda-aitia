@@ -12,18 +12,69 @@
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
-(def artifact (assurance-artifact "artifact/source" "r1" 'supported digest-a))
-(def claim (assurance-claim "claim/release" "r1" 'unknown digest-b))
+(def artifact
+  (assurance-artifact "artifact/source" "r1" 'supported digest-a
+                      owner: "lambda-aitia" media-kind: 'scheme-source
+                      provenance: '("source/repository")))
+(def claim
+  (assurance-claim "claim/release" "r1" 'unknown digest-b
+                   subject: "software/release" predicate: "release-ready"
+                   assumptions: '("assumption/toolchain")
+                   support-requirements: '("obligation/verify")
+                   scope: "repository" valid-from: "2026-09-17"))
 (def obligation
-  (assurance-obligation "obligation/verify" "r1" 'unknown digest-a))
+  (assurance-obligation
+   "obligation/verify" "r1" 'unknown digest-a
+   subject: "software/release" claim: "claim/release"
+   snapshot: "snapshot/software" evidence-kind: 'native-test
+   capability: 'gerbil-test scope: "repository"))
 (def evidence
-  (assurance-evidence "evidence/test" "r1" 'supported digest-b))
+  (assurance-evidence
+   "evidence/test" "r1" 'supported digest-b
+   producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
+   input-artifacts: '("artifact/source") obligation: "obligation/verify"
+   subject: "software/release" scope: "repository"
+   valid-from: "2026-09-17" admission-state: 'admitted))
+(def decision
+  (assurance-decision
+   "decision/release" "r1" 'unknown digest-a
+   subject: "software/release" snapshot: "snapshot/software"
+   policy: "policy/release" authority: "maintainer" outcome: 'unknown))
+(def effect
+  (assurance-effect
+   "effect/deploy" "r1" 'unknown digest-b
+   subject: "software/release" decision: "decision/release"
+   effect-kind: 'deploy effect-state: 'blocked))
 (def dependency
   (assurance-relation "relation/depends" 'structural 'depends-on
                       "claim/release" "artifact/source" 'declared))
 (def discharge
   (assurance-relation "relation/discharges" 'assurance 'discharges
                       "evidence/test" "obligation/verify" 'observed))
+(def obligation-support
+  (assurance-relation "relation/obligation-support" 'assurance 'supports
+                      "obligation/verify" "claim/release" 'declared))
+(def decision-dependency
+  (assurance-relation "relation/decision-dependency" 'structural 'depends-on
+                      "decision/release" "claim/release" 'declared))
+(def authorization
+  (assurance-relation "relation/authorization" 'authority 'authorizes
+                      "decision/release" "effect/deploy" 'declared))
+(def reverse-dependency
+  (assurance-relation "relation/reverse-dependency" 'structural 'implements
+                      "artifact/source" "claim/release" 'declared))
+
+(def (software-snapshot nodes relations (unresolved '()))
+  (assurance-snapshot
+   "snapshot/software" "r1" "graph/software"
+   '(("artifact/source" . "r1")) '(("claim/release" . "r1"))
+   "event-cut/1" "policy/release" "r1" nodes relations
+   evidence-identities: '("evidence/test") unresolved: unresolved))
+(def full-software-snapshot
+  (software-snapshot
+   (list artifact claim obligation evidence decision effect)
+   (list dependency discharge obligation-support
+         decision-dependency authorization)))
 
 (def assurance-kernel-test
   (test-suite "Aitia POO-native assurance kernel"
@@ -37,7 +88,17 @@
        #f)
       (check-equal? (assurance-artifact? (.o (:: @ artifact) kind: 'claim)) #f)
       (check-exception
-       (assurance-artifact "artifact/source" "" 'supported digest-a) Error?))
+       (assurance-artifact "artifact/source" "" 'supported digest-a
+                           owner: "lambda-aitia" media-kind: 'scheme-source)
+       Error?)
+      (check-exception
+       (assurance-evidence
+        "evidence/bad" "r1" 'supported digest-a
+        producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
+        input-artifacts: '("artifact/source") obligation: "obligation/verify"
+        subject: "software/release" scope: ""
+        valid-from: "2026-09-17" admission-state: 'admitted)
+       Error?))
 
     (test-case "relation kinds cannot cross their owned plane"
       (check-equal? (assurance-relation? dependency) #t)
@@ -50,40 +111,127 @@
 
     (test-case "canonical snapshots are stable under input permutation"
       (let ((left
-             (assurance-snapshot
-              "snapshot/software" "r1"
-              (list artifact claim obligation evidence)
-              (list dependency discharge)))
+             full-software-snapshot)
             (right
-             (assurance-snapshot
-              "snapshot/software" "r1"
-              (list evidence obligation claim artifact)
-              (list discharge dependency))))
+             (software-snapshot
+              (list effect decision evidence obligation claim artifact)
+              (list authorization decision-dependency obligation-support
+                    discharge dependency))))
         (check-equal? (.ref left 'digest) (.ref right 'digest))
-        (check-equal? (.ref left 'state) 'supported)
+        (check-equal? (.ref left 'state) 'unknown)
         (check-equal?
          (map (lambda (node) (.ref node 'identity)) (.ref left 'nodes))
-         '("artifact/source" "claim/release" "evidence/test"
-           "obligation/verify"))))
+         '("artifact/source" "claim/release" "decision/release"
+           "effect/deploy" "evidence/test" "obligation/verify"))
+        (let ((left-receipt
+               (assurance-invalidate
+                "invalidation/permutation-left" left '("artifact/source")))
+              (right-receipt
+               (assurance-invalidate
+                "invalidation/permutation-right" right '("artifact/source"))))
+          (check-equal?
+           (assurance-invalidation-receipt-ref left-receipt 'impacted)
+           (assurance-invalidation-receipt-ref right-receipt 'impacted))
+          (check-equal?
+           (assurance-invalidation-receipt-ref left-receipt 'witnesses)
+           (assurance-invalidation-receipt-ref right-receipt 'witnesses)))))
+
+    (test-case "all revision and evidence bindings are canonical"
+      (let ((left
+             (assurance-snapshot
+              "snapshot/bindings" "r1" "graph/software"
+              '(("z" . "r2") ("a" . "r1"))
+              '(("claim/z" . "r2") ("claim/a" . "r1"))
+              "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/z" "evidence/a")))
+            (right
+             (assurance-snapshot
+              "snapshot/bindings" "r1" "graph/software"
+              '(("a" . "r1") ("z" . "r2"))
+              '(("claim/a" . "r1") ("claim/z" . "r2"))
+              "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/a" "evidence/z"))))
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (.ref left 'source-revisions)
+                      '(("a" . "r1") ("z" . "r2")))
+        (check-equal? (.ref left 'evidence-identities)
+                      '("evidence/a" "evidence/z"))))
+
+    (test-case "conflicting revision bindings fail closed"
+      (let (snapshot
+            (assurance-snapshot
+             "snapshot/conflict" "r1" "graph/software"
+             '(("artifact/source" . "r1") ("artifact/source" . "r2"))
+             '() "event-cut/1" "policy/release" "r1" '() '()))
+        (check-equal? (.ref snapshot 'state) 'conflicted)
+        (check-equal? (.ref snapshot 'conflicts) '("artifact/source"))))
+
+    (test-case "snapshot bindings resolve exact node kinds and revisions"
+      (let ((missing
+             (assurance-snapshot
+              "snapshot/missing-binding" "r1" "graph/software"
+              '(("artifact/missing" . "r1")) '()
+              "event-cut/1" "policy/release" "r1" '() '()))
+            (wrong-revision
+             (assurance-snapshot
+              "snapshot/wrong-revision" "r1" "graph/software"
+              '(("artifact/source" . "r2")) '()
+              "event-cut/1" "policy/release" "r1" (list artifact) '()))
+            (wrong-kind
+             (assurance-snapshot
+              "snapshot/wrong-kind" "r1" "graph/software"
+              '(("claim/release" . "r1")) '()
+              "event-cut/1" "policy/release" "r1" (list claim) '())))
+        (check-equal? (.ref missing 'state) 'unknown)
+        (check-equal? (.ref missing 'unresolved) '("artifact/missing"))
+        (check-equal? (.ref wrong-revision 'state) 'conflicted)
+        (check-equal? (.ref wrong-revision 'conflicts) '("artifact/source"))
+        (check-equal? (.ref wrong-kind 'state) 'conflicted)
+        (check-equal? (.ref wrong-kind 'conflicts) '("claim/release"))))
+
+    (test-case "snapshot evidence identities require admitted evidence nodes"
+      (let ((missing
+             (assurance-snapshot
+              "snapshot/missing-evidence" "r1" "graph/software"
+              '() '() "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/missing")))
+            (candidate
+             (assurance-snapshot
+              "snapshot/candidate-evidence" "r1" "graph/software"
+              '() '() "event-cut/1" "policy/release" "r1"
+              (list (.o (:: @ evidence) admission-state: 'candidate)) '()
+              evidence-identities: '("evidence/test"))))
+        (check-equal? (.ref missing 'state) 'unknown)
+        (check-equal? (.ref missing 'unresolved) '("evidence/missing"))
+        (check-equal? (.ref candidate 'state) 'conflicted)
+        (check-equal? (.ref candidate 'conflicts) '("evidence/test"))))
 
     (test-case "unequal duplicate identity is conflicted, never overwritten"
       (let ((snapshot
-             (assurance-snapshot
-              "snapshot/conflict" "r1"
+             (software-snapshot
               (list artifact
                     (assurance-artifact
-                     "artifact/source" "r2" 'supported digest-b))
+                     "artifact/source" "r2" 'supported digest-b
+                     owner: "lambda-aitia" media-kind: 'scheme-source))
               '())))
         (check-equal? (.ref snapshot 'state) 'conflicted)
         (check-equal? (.ref snapshot 'conflicts) '("artifact/source"))))
 
-    (test-case "missing relation endpoints remain an unknown frontier"
+    (test-case "missing relation endpoints and declared evidence remain unknown"
       (let ((snapshot
-             (assurance-snapshot
-              "snapshot/unknown" "r1" (list claim)
-              (list dependency))))
+             (software-snapshot (list claim) (list dependency))))
         (check-equal? (.ref snapshot 'state) 'unknown)
-        (check-equal? (.ref snapshot 'unresolved) '("artifact/source"))))
+        (check-equal? (.ref snapshot 'unresolved)
+                      '("artifact/source" "evidence/test"))
+        (let (receipt
+              (assurance-invalidate
+               "invalidation/dangling" snapshot '("claim/release")))
+          (check-equal?
+           (assurance-invalidation-receipt-ref receipt 'impacted)
+           '("claim/release"))
+          (check-equal?
+           (assurance-invalidation-receipt-ref receipt 'unresolved)
+           '("artifact/source" "evidence/test")))))
 
     (test-case "alternate evidence and temporal order grant no support"
       (check-equal?
@@ -101,5 +249,136 @@
        (assurance-support-admissible?
         (assurance-relation "relation/precedes" 'causal 'precedes
                             "evidence/test" "obligation/verify" 'observed)
-        evidence obligation)
-       #f))))
+       evidence obligation)
+       #f))
+
+    (test-case "candidate or mismatched evidence cannot discharge an obligation"
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) admission-state: 'candidate) obligation)
+       #f)
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) obligation: "obligation/other") obligation)
+       #f)
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) revision: "r2") obligation)
+       #f))
+
+    (test-case "change invalidation is deterministic and never grants authority"
+      (let* ((receipt
+              (assurance-invalidate
+               "invalidation/requirement-r2" full-software-snapshot
+               '("artifact/source"))))
+        (check-equal? (assurance-invalidation-receipt? receipt) #t)
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'impacted)
+         '("artifact/source" "claim/release" "decision/release"
+           "effect/deploy" "evidence/test" "obligation/verify"))
+        (check-equal? (assurance-invalidation-receipt-ref
+                       receipt 'invalidated-evidence)
+                      '("evidence/test"))
+        (check-equal? (assurance-invalidation-receipt-ref
+                       receipt 'required-obligations)
+                      '("obligation/verify"))
+        (check-equal? (assurance-invalidation-receipt-ref
+                       receipt 'invalidated-decisions)
+                      '("decision/release"))
+        (check-equal? (assurance-invalidation-receipt-ref receipt 'blocked-effects)
+                      '("effect/deploy"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'witnesses)
+         '(("artifact/source" ("artifact/source") ())
+           ("claim/release"
+            ("artifact/source" "claim/release") ("depends-on"))
+           ("decision/release"
+            ("artifact/source" "claim/release" "decision/release")
+            ("depends-on" "depends-on"))
+           ("effect/deploy"
+            ("artifact/source" "claim/release" "decision/release"
+             "effect/deploy")
+            ("depends-on" "depends-on" "authorizes"))
+           ("evidence/test"
+            ("artifact/source" "claim/release" "obligation/verify"
+             "evidence/test")
+            ("depends-on" "supports" "discharges"))
+           ("obligation/verify"
+            ("artifact/source" "claim/release" "obligation/verify")
+            ("depends-on" "supports"))))
+        (check-equal? (assurance-invalidation-receipt-ref
+                       receipt 'cyclic-components) '())
+        (check-equal? (assurance-invalidation-receipt-ref receipt 'temporal-proven?) #f)
+        (check-equal? (assurance-invalidation-receipt-ref receipt 'release-authorized?) #f)
+        (check-equal? (assurance-invalidation-receipt-ref receipt 'runtime-executed?) #f)))
+
+    (test-case "causal relations never participate in structural invalidation"
+      (let* ((causal
+              (assurance-relation "relation/causal" 'causal 'enables
+                                  "artifact/source" "effect/deploy" 'declared))
+             (snapshot
+              (software-snapshot (list artifact effect) (list causal)))
+             (receipt
+              (assurance-invalidate "invalidation/causal" snapshot
+                                    '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'impacted)
+         '("artifact/source"))))
+
+    (test-case "unknown change identities remain an unresolved frontier"
+      (let (receipt
+            (assurance-invalidate
+             "invalidation/unknown-change" full-software-snapshot
+             '("artifact/missing")))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'changed)
+         '("artifact/missing"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'impacted) '())
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'unresolved)
+         '("artifact/missing"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'release-authorized?) #f)))
+
+    (test-case "fixed-snapshot invalidation is monotone"
+      (let ((claim-change
+             (assurance-invalidate
+              "invalidation/claim" full-software-snapshot
+              '("claim/release")))
+            (artifact-change
+             (assurance-invalidate
+              "invalidation/artifact" full-software-snapshot
+              '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref claim-change 'impacted)
+         '("claim/release" "decision/release" "effect/deploy"
+           "evidence/test" "obligation/verify"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref artifact-change 'impacted)
+         (cons "artifact/source"
+               (assurance-invalidation-receipt-ref claim-change 'impacted)))))
+
+    (test-case "structural cycles have deterministic SCCs and witnesses"
+      (let* ((snapshot
+              (software-snapshot
+               (list artifact claim)
+               (list dependency reverse-dependency)))
+             (left
+              (assurance-invalidate
+               "invalidation/cycle-left" snapshot '("artifact/source")))
+             (right
+              (assurance-invalidate
+               "invalidation/cycle-right" snapshot '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'impacted)
+         '("artifact/source" "claim/release"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'cyclic-components)
+         '(("artifact/source" "claim/release")))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'witnesses)
+         (assurance-invalidation-receipt-ref right 'witnesses))
+        (check-equal?
+         (assurance-invalidation-receipt-ref left 'strong-components)
+         (assurance-invalidation-receipt-ref right 'strong-components))))))

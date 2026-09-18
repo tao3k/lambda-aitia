@@ -5,7 +5,9 @@
 manifest.ss
 version.ss
 .gerbil/
+.cache/
 .bin/
+.lake/
 __pycache__/
 *.py[cod]
 *.so

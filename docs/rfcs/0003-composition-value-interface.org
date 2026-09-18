@@ -1,0 +1,220 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0003 — Composition Value Interface
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0003
+:STATUS:     active
+:DATE:       2026-09-18
+:PARENT_RFC: lambda-aitia-rfc-0001
+:IMPLEMENTS: lambda-aitia-rfc-0001
+:END:
+
+* Decision summary
+
+Lambda Aitia configuration has Jsonnet-style file-value semantics.  A downstream
+=aitia.ss= contains one root =use-composition= expression.  Evaluating the file
+returns one closed POO-native Case; the file is not a conventional Gerbil library
+module and the user does not write =import=, =export= or a result binding.
+
+The official root Composition is named =aitia=:
+
+#+begin_src scheme
+(use-composition aitia)
+#+end_src
+
+The official Composition carries a default Software Engineering Project Profile.
+That Profile composes the Aitia-owned SDLC, NASA NPR 7150.2D knowledge, GitOps,
+ADR/RFC, assurance and formal-method obligations, including TLA+ model checking.
+These Modules and Profiles are implicit in the ordinary user surface.  Selecting
+=aitia= does not require the downstream project to restate or import them.
+
+* User experience
+
+The common path exposes Project facts and named Composition slots rather than the
+POO meta-object protocol:
+
+#+begin_src scheme
+(use-composition aitia
+  (project
+    repository: "tao3k/example"
+    languages: '(rust python))
+  (delivery
+    provider: github))
+#+end_src
+
+The clauses are hygienic syntax projected onto ordinary POO-native objects and
+slot operations.  They are not an alist, JSON or directory-shaped runtime DSL.
+The resulting value remains a normal POO Flow Scenario Case.
+
+The default UI does not require knowledge of prototypes, C3 linearization,
+=.mix=, =super=, ExecutionPlan or Session.  A user who needs a non-default model
+may explicitly extend the default Project Profile with the reviewed POO-native
+override surface:
+
+#+begin_src scheme
+(use-composition aitia
+  (.def (project @ default-software-engineering-project)
+    (reviewers =>.+ '(security release))))
+#+end_src
+
+This is progressive disclosure: POO remains the implementation and extension
+model, but it is not prerequisite knowledge for selecting the maintained
+Composition and supplying ordinary Project facts.
+
+* File-value contract
+
+An =aitia.ss= input MUST contain exactly one root value expression.  The POO
+Flow Composition value loader expands that expression in a bounded prelude
+which supplies only the public Composition syntax, an explicitly provided
+official Composition catalog and the reviewed POO override operators.  Aitia
+contributes the =aitia= catalog entry; it does not own or wrap the loader.
+Loading MUST NOT depend on a user-written import or export and MUST NOT discover
+semantics by recursively importing a directory.
+
+The POO Flow loader MUST:
+
+1. read and expand the single root expression with source locations preserved;
+2. resolve its Composition identity from the Composition catalog;
+3. apply ordinary slot clauses and then explicit advanced POO overrides;
+4. recompute derived slots and reject unresolved conflicts;
+5. validate the closed object graph; and
+6. return exactly one Case without starting a Runtime Session or executing an
+   effect.
+
+=aitia doctor= consumes the same value path.  It may present effective values,
+linearization and per-slot provenance, but it does not create a second
+configuration representation.
+
+* Composition and Module namespaces
+
+Composition identities and Module identities are distinct typed namespaces.
+The public official Composition identity =aitia= is reserved to the Lambda Aitia
+project.  A user-authored Composition MUST declare a user-owned namespace and
+MUST NOT:
+
+- use =aitia= as its namespace;
+- equal any registered Module identity;
+- shadow an official Composition identity; or
+- rely on import order to select between a Composition and a Module.
+
+The expander rejects these conflicts before Case construction.  Catalog lookup
+never falls back from the Composition namespace to the Module namespace.
+
+The exact textual spelling of user-owned qualified identities is owned by the
+implementation slice, but the semantic identity MUST contain a namespace and a
+local name.  An unqualified identity is permitted only for an official reserved
+Composition such as =aitia=.
+
+* Official =aitia= Composition
+
+The official Composition is a maintained object graph, not an empty template.
+Its default Project Profile owns at least these slots:
+
+| Slot | Default owner | Meaning |
+|------+---------------+---------|
+| =project= | Lambda Aitia | Software Engineering Project facts and lifecycle |
+| =sdlc= | Lambda Aitia | SDLC structure and review obligations |
+| =standards= | Lambda Aitia | NASA NPR 7150.2D applicability knowledge |
+| =delivery= | Lambda Aitia | GitOps development, staging and production flow |
+| =decisions= | Lambda Aitia | ADR and RFC relationships |
+| =assurance= | Lambda Aitia | Claims, obligations, evidence and invalidation |
+| =formal-methods= | Lambda Aitia | TLA+ and Lean obligation projections |
+| =graph-policy= | POO Flow | Execution, impact and temporal graph projection |
+| =runtime-policy= | POO Flow | Case admission and fresh Session construction |
+
+The default does not claim universal NASA compliance, successful model checking,
+proof completion or release authority.  It installs the corresponding knowledge,
+obligations and gates.  Receipts establish what was actually evaluated.
+
+* Ownership boundaries
+
+Lambda Aitia owns the Software Engineering domain model, the official =aitia=
+Composition catalog entry, its default Project Profile and its qualification
+Scenarios.
+
+POO Flow owns =use-composition=, the single-expression value loader, typed
+Composition identities and catalog resolution, generic POO composition
+mechanisms, C3 behavior, Graph and ExecutionPlan projection, impact and temporal
+algorithms, Case admission, Session state and runtime receipts.  Aitia MUST
+reuse those public mechanisms and MUST NOT implement a second selector, loader,
+graph, planner or runtime engine.
+
+The Python project under =bindings/python= is a production SDLC Runtime consumer.
+It consumes the closed Case projections and C ABI receipts; it does not parse a
+parallel Python configuration model or redefine Composition semantics.
+
+* Scenario boundary
+
+=user-interface/scenarios/= contains Aitia-owned reference, qualification and
+regression assets.  Each Scenario invokes the same public Composition value path
+as downstream users and adds fixed inputs plus expected projections and receipts.
+It is not a directory contract copied into downstream projects.
+
+Downstream projects normally contain only =aitia.ss=.  Advanced users may split
+ordinary Scheme implementation files for their own maintenance, but the root
+configuration still evaluates to one value and directory shape does not acquire
+configuration semantics.
+
+* Slot resolution
+
+C3 determines deterministic prototype precedence.  Each public slot also owns a
+declared resolution policy; linearization alone does not imply merge behavior.
+The initial policies are:
+
+- scalar facts replace the inherited value;
+- ordered collections append with identity-based de-duplication;
+- keyed objects merge only through their owning POO protocol;
+- assurance obligations are monotone unless an explicit authority-governed
+  waiver object is admitted;
+- derived slots are recomputed after overrides and are not directly writable;
+- incompatible Profile selections fail closed.
+
+The resolved Case retains origin metadata sufficient for =aitia doctor= to show
+which official Profile or downstream override contributed an effective slot.
+
+* Implementation sequence
+
+1. POO Flow supplies a source-located single-expression value loader and changes
+   the downstream =use-composition= surface from declaration/export semantics to
+   expression semantics.  Existing internal Case builders remain the lowering
+   target.
+2. Lambda Aitia publishes the official =aitia= Composition and default Software
+   Engineering Project Profile with the implicit Module closure described above.
+3. Aitia qualification Scenarios exercise zero-override, ordinary-slot and
+   advanced-POO paths through the same loader.
+4. =aitia doctor= projects value, provenance, obligations and Plan summaries from
+   the closed Case.
+5. Python Runtime and C ABI consume the same canonical Case projections without
+   introducing another configuration source.
+
+There is no compatibility layer preserving directory discovery or explicit
+downstream export syntax.  Migration is direct because the former surface had
+not established the desired downstream contract.
+
+* Acceptance gates
+
+- [ ] An =aitia.ss= containing only =(use-composition aitia)= evaluates to one
+  admitted Case without explicit import, export or binding forms.
+- [ ] The zero-override Case includes GitOps, NASA SDLC, ADR/RFC, assurance and
+  formal-method obligation slots through the default Project Profile.
+- [ ] An ordinary Project clause lowers to POO-native slot operations.
+- [ ] An advanced POO override extends the same default Project Profile.
+- [ ] Composition/Module namespace collision and use of the reserved =aitia=
+  namespace by a user Composition fail at expansion.
+- [ ] Loading and =doctor= perform no Runtime effect.
+- [ ] Reference, qualification and regression Scenarios use the public value
+  path rather than private constructors.
+- [ ] Direct compilation, atomic behavior tests, a real Aitia Scenario and the
+  existing composition macro scale gate pass with exact receipts.
+
+* Relationship to other decisions
+
+- RFC 0001 defines the causal assurance vocabulary carried by the default
+  Composition.
+- RFC 0002 defines the immutable AssuranceSnapshot and invalidation boundary.
+- ADR 0007 keeps POO Flow as the public mechanism library consumed here.
+- ADR 0006 keeps Python as the production SDLC Runtime rather than a second
+  configuration authority.

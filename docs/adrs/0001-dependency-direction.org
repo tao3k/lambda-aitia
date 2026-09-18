@@ -2,13 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 #+title: ADR 0001 — Contribution Dependency Direction
-#+status: accepted
-#+date: 2026-09-17
-#+revision: r1
-#+decision-makers: tao3k maintainers
-#+consulted: POO Flow maintainers
-#+informed: contribution consumers
-#+rfc: RFC-0001
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0001
+:STATUS:          accepted
+:DATE:            2026-09-17
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
 
 * Context and Problem Statement
 
@@ -20,7 +24,8 @@ bindings and runtime transport also needs one explicit direction.
 
 - Preserve independent contribution ownership.
 - Prevent activation merely by mounting a Git submodule.
-- Keep Scheme as Aitia's semantic owner across the C ABI and Python binding.
+- Keep Scheme as Aitia's semantic owner across the C ABI and production Python
+  SDLC Runtime.
 - Keep generic runtime/lifecycle transport separate from domain semantics.
 
 * Considered Options

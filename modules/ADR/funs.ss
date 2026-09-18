@@ -115,4 +115,9 @@
      (string-append "ADR/" (.ref record 'identity))
      (.ref record 'revision)
      state
-     (assurance-canonical-digest (ADR-canonical record)))))
+     (assurance-canonical-digest (ADR-canonical record))
+     subject: (.ref record 'identity)
+     snapshot: "unbound"
+     policy: "ADR-selection-only"
+     authority: "unadmitted"
+     outcome: 'unknown)))

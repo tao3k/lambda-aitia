@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0006 — Maintain Python as the production SDLC runtime
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0006
+:STATUS:          accepted
+:DATE:            2026-09-18
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+Lambda Aitia needs a Python runtime for downstream production systems.  A
+binding presented as an example, or a Python implementation that duplicates
+Scheme lifecycle semantics, would make ownership ambiguous and allow the two
+implementations to drift.
+
+* Decision
+
+=bindings/python= is Lambda Aitia's production Python project.  Its public
+runtime covers the complete lifecycle vocabulary:
+
+#+begin_example
+change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
+#+end_example
+
+The responsibilities remain layered:
+
+- Lambda Aitia Scheme owns SDLC stages, assurance semantics, decisions and
+  attributable receipts.
+- POO Flow owns reusable Graph/DAG algorithms and generic runtime mechanisms.
+- The stable C ABI transfers owned JSON request and receipt bytes.
+- Python validates and materializes those receipts for production consumers;
+  it does not reproduce the semantic algorithms.
+
+The first admitted runtime operation is =SdlcRuntime.plan()=.  It obtains the
+canonical eight-stage DAG from Scheme through ABI revision 2.  The plan is
+inert and explicitly reports that it neither authorizes release nor proves
+runtime execution.
+
+* Consequences
+
+- Downstream users depend on =lambda-aitia= as a real uv-managed project.
+- Python API stability is a release concern, not example-code maintenance.
+- No stage may be presented as executed until its Scheme operation publishes a
+  source-bound receipt and the POO Flow runtime actually executes it.
+- The complete lifecycle remains the product boundary even while individual
+  executable stages are delivered incrementally.
+
+* Confirmation
+
+- Scheme tests prove stage order, owner fields and inert authority fields.
+- The pure-C harness resolves and calls the SDLC planning symbol.
+- Python tests construct the typed plan through the bundled native library.
+- Wheel verification imports and calls the installed production package
+  without a Gerbil runtime in the Python process.

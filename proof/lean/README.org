@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Lambda Aitia Assurance Proofs
+
+This is Lambda Aitia's source-owned Lean package.  It states laws over Aitia
+assurance vocabulary and does not import or copy POO Flow's generic proof
+package.
+
+Run the bounded proof target from the repository root:
+
+#+begin_src sh
+just check-proof
+#+end_src
+
+The repository aggregate is =LambdaAitiaProof=.  The independently selectable
+=LambdaAitiaModuleAssuranceProof= library mirrors =modules/assurance= and owns
+the =LambdaAitiaProof.Modules.Assurance= import closure.
+
+Its initial =LambdaAitiaProof.Modules.Assurance.Invalidation= module proves
+that impact is monotone when the changed set expands over one fixed
+reachability relation, that a non-empty unresolved frontier prevents closure,
+and that an inert invalidation receipt grants no release authority or runtime
+execution.
