@@ -47,5 +47,13 @@ Build the distributable wheel after producing the Scheme-native library:
 
 ```sh
 LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
-  env -u SDKROOT uv build --wheel
+  env -u SDKROOT uv sync --locked --extra test
+LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
+  env -u SDKROOT uv build --wheel --offline --no-build-isolation
 ```
+
+On Darwin, the repository `justfile` selects `/usr/bin/cc`, unsets `SDKROOT`
+for Gerbil invocations, and defaults `MACOSX_DEPLOYMENT_TARGET` to `26.0` to
+match the installed Gerbil/Gambit native objects. A lower deployment target is
+valid only when that complete toolchain closure has also been rebuilt for the
+same target.

@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import platform
 import re
 import shlex
 import subprocess
@@ -42,6 +43,33 @@ RUNTIME_MODULES = (
 )
 
 
+def configure_darwin_toolchain() -> None:
+    """Align every native phase with the installed Gerbil/Gambit objects."""
+
+    if sys.platform != "darwin":
+        return
+    product_version = platform.mac_ver()[0]
+    if not product_version:
+        raise RuntimeError("cannot determine the macOS deployment target")
+    host_major = product_version.split(".", 1)[0]
+    os.environ.setdefault("MACOSX_DEPLOYMENT_TARGET", f"{host_major}.0")
+    os.environ.setdefault("CC", "/usr/bin/cc")
+
+
+def verify_darwin_deployment_target(output: Path) -> None:
+    if sys.platform != "darwin":
+        return
+    load_commands = run(["otool", "-l", str(output)], cwd=output.parent, capture=True)
+    match = re.search(r"^\s*minos\s+([0-9.]+)$", load_commands, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("native library has no macOS deployment target")
+    expected = os.environ["MACOSX_DEPLOYMENT_TARGET"]
+    if match.group(1) != expected:
+        raise RuntimeError(
+            f"native deployment target {match.group(1)} does not match {expected}"
+        )
+
+
 def run(arguments: list[str], *, cwd: Path, capture: bool = False) -> str:
     result = subprocess.run(
         arguments,
@@ -66,6 +94,18 @@ def unique(paths: list[Path]) -> list[Path]:
         if resolved not in seen:
             seen.add(resolved)
             result.append(resolved)
+    return result
+
+
+def unique_link_flags(flags: list[str]) -> list[str]:
+    """Preserve linker order while removing repeated idempotent flags."""
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for flag in flags:
+        if flag not in seen:
+            seen.add(flag)
+            result.append(flag)
     return result
 
 
@@ -121,6 +161,7 @@ def generated_define(link_source: Path, name: str) -> str:
 
 
 def main() -> int:
+    configure_darwin_toolchain()
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args()
@@ -233,11 +274,15 @@ def main() -> int:
     ]
     if missing:
         raise RuntimeError(f"native closure object is absent: {missing[0]}")
-    link_flags = shlex.split(
-        (gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()")
+    link_flags = unique_link_flags(
+        shlex.split((gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()"))
     )
     shared_flags = (
-        ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"]
+        [
+            "-dynamiclib",
+            "-Wl,-undefined,dynamic_lookup",
+            "-Wl,-no_compact_unwind",
+        ]
         if sys.platform == "darwin"
         else ["-shared"]
     )
@@ -259,6 +304,7 @@ def main() -> int:
         ],
         cwd=project,
     )
+    verify_darwin_deployment_target(output)
     return 0
 
 

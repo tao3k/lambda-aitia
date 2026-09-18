@@ -52,17 +52,17 @@
      (list (cons 'semantic-owner 'lambda-aitia)
            (cons 'runtime-owner 'poo-flow)))))
 
-(def (sdlc-flow-plan lifecycle-id)
-  (let* ((graph-value (sdlc-flow-graph lifecycle-id))
-         (cycle-path (poo-flow-graph-cycle-path graph-value))
-         (order (and (not cycle-path)
+(def (sdlc-flow-plan lifecycle-identity)
+  (let* ((graph-value (sdlc-flow-graph lifecycle-identity))
+         (detected-cycle-path (poo-flow-graph-cycle-path graph-value))
+         (order (and (not detected-cycle-path)
                      (poo-flow-graph-topological-order graph-value))))
     (.o schema: 'lambda-aitia.sdlc-flow-plan
-        lifecycle-id: lifecycle-id
+        lifecycle-id: lifecycle-identity
         graph: graph-value
         stages: +sdlc-flow-stages+
         topological-order: order
-        cycle-path: cycle-path
+        cycle-path: detected-cycle-path
         accepted?: (and order #t)
         semantic-owner: 'lambda-aitia
         runtime-owner: 'poo-flow

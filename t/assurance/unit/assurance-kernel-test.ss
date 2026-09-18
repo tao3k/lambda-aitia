@@ -121,6 +121,36 @@
          '("artifact/source" "claim/release" "decision/release"
            "effect/deploy" "evidence/test" "obligation/verify"))))
 
+    (test-case "all revision and evidence bindings are canonical"
+      (let ((left
+             (assurance-snapshot
+              "snapshot/bindings" "r1" "graph/software"
+              '(("z" . "r2") ("a" . "r1"))
+              '(("claim/z" . "r2") ("claim/a" . "r1"))
+              "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/z" "evidence/a")))
+            (right
+             (assurance-snapshot
+              "snapshot/bindings" "r1" "graph/software"
+              '(("a" . "r1") ("z" . "r2"))
+              '(("claim/a" . "r1") ("claim/z" . "r2"))
+              "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/a" "evidence/z"))))
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (.ref left 'source-revisions)
+                      '(("a" . "r1") ("z" . "r2")))
+        (check-equal? (.ref left 'evidence-identities)
+                      '("evidence/a" "evidence/z"))))
+
+    (test-case "conflicting revision bindings fail closed"
+      (let (snapshot
+            (assurance-snapshot
+             "snapshot/conflict" "r1" "graph/software"
+             '(("artifact/source" . "r1") ("artifact/source" . "r2"))
+             '() "event-cut/1" "policy/release" "r1" '() '()))
+        (check-equal? (.ref snapshot 'state) 'conflicted)
+        (check-equal? (.ref snapshot 'conflicts) '("artifact/source"))))
+
     (test-case "unequal duplicate identity is conflicted, never overwritten"
       (let ((snapshot
              (software-snapshot
@@ -157,6 +187,20 @@
        evidence obligation)
        #f))
 
+    (test-case "candidate or mismatched evidence cannot discharge an obligation"
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) admission-state: 'candidate) obligation)
+       #f)
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) obligation: "obligation/other") obligation)
+       #f)
+      (check-equal?
+       (assurance-support-admissible?
+        discharge (.o (:: @ evidence) revision: "r2") obligation)
+       #f))
+
     (test-case "change invalidation is deterministic and never grants authority"
       (let* ((receipt
               (assurance-invalidate
@@ -178,6 +222,40 @@
                       '("decision/release"))
         (check-equal? (assurance-invalidation-receipt-ref receipt 'blocked-effects)
                       '("effect/deploy"))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'witnesses)
+         '(("artifact/source" ("artifact/source") ())
+           ("claim/release"
+            ("artifact/source" "claim/release") ("depends-on"))
+           ("decision/release"
+            ("artifact/source" "claim/release" "decision/release")
+            ("depends-on" "depends-on"))
+           ("effect/deploy"
+            ("artifact/source" "claim/release" "decision/release"
+             "effect/deploy")
+            ("depends-on" "depends-on" "authorizes"))
+           ("evidence/test"
+            ("artifact/source" "claim/release" "obligation/verify"
+             "evidence/test")
+            ("depends-on" "supports" "discharges"))
+           ("obligation/verify"
+            ("artifact/source" "claim/release" "obligation/verify")
+            ("depends-on" "supports"))))
+        (check-equal? (assurance-invalidation-receipt-ref
+                       receipt 'cyclic-components) '())
         (check-equal? (assurance-invalidation-receipt-ref receipt 'temporal-proven?) #f)
         (check-equal? (assurance-invalidation-receipt-ref receipt 'release-authorized?) #f)
-        (check-equal? (assurance-invalidation-receipt-ref receipt 'runtime-executed?) #f)))))
+        (check-equal? (assurance-invalidation-receipt-ref receipt 'runtime-executed?) #f)))
+
+    (test-case "causal relations never participate in structural invalidation"
+      (let* ((causal
+              (assurance-relation "relation/causal" 'causal 'enables
+                                  "artifact/source" "effect/deploy" 'declared))
+             (snapshot
+              (software-snapshot (list artifact effect) (list causal)))
+             (receipt
+              (assurance-invalidate "invalidation/causal" snapshot
+                                    '("artifact/source"))))
+        (check-equal?
+         (assurance-invalidation-receipt-ref receipt 'impacted)
+         '("artifact/source"))))))

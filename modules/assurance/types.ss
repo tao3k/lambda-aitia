@@ -222,6 +222,7 @@
 (defstruct assurance-invalidation-receipt-record
   (identity snapshot-digest changed impacted invalidated-evidence
    required-obligations invalidated-decisions blocked-effects witnesses unresolved
+   strong-components cyclic-components
    temporal-proven? release-authorized? runtime-executed?)
   transparent: #t)
 
@@ -288,6 +289,10 @@
      (assurance-invalidation-receipt-record-blocked-effects receipt))
     ((witnesses) (assurance-invalidation-receipt-record-witnesses receipt))
     ((unresolved) (assurance-invalidation-receipt-record-unresolved receipt))
+    ((strong-components)
+     (assurance-invalidation-receipt-record-strong-components receipt))
+    ((cyclic-components)
+     (assurance-invalidation-receipt-record-cyclic-components receipt))
     ((temporal-proven?)
      (assurance-invalidation-receipt-record-temporal-proven? receipt))
     ((release-authorized?)

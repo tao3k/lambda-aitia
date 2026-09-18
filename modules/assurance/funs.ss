@@ -9,11 +9,14 @@
         (only-in :std/srfi/1 every filter)
         (only-in :std/text/hex hex-encode)
         :poo-flow/src/module-system/contribution/model
-        :poo-flow/lambda-aitia/modules/assurance/types)
+        :poo-flow/lambda-aitia/modules/assurance/types
+        (only-in :poo-flow/lambda-aitia/modules/assurance/invalidation-projection
+                 assurance-invalidation-analysis assurance-invalidation-graph))
 
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
-        assurance-support-admissible? assurance-invalidate)
+        assurance-support-admissible? assurance-invalidation-graph
+        assurance-invalidate)
 
 (def (assurance-node-semantic-slots kind)
   (case kind
@@ -93,6 +96,26 @@
       (loop (cdr rest) previous result))
      (else (loop (cdr rest) (car rest) (cons (car rest) result))))))
 
+(def (canonical-bindings input-values)
+  (let loop ((rest (sort (map (lambda (binding) binding) input-values)
+                         (lambda (left right)
+                           (string<? (car left) (car right)))))
+             (seen '()) (result '()) (conflicts '()))
+    (if (null? rest)
+      (values (reverse result)
+              (ordered-unique-text conflicts))
+      (let* ((binding (car rest))
+             (identity (car binding))
+             (revision (cdr binding))
+             (previous (assoc identity seen)))
+        (cond
+         ((not previous)
+          (loop (cdr rest) (cons binding seen) (cons binding result) conflicts))
+         ((string=? revision (cdr previous))
+          (loop (cdr rest) seen result conflicts))
+         (else
+          (loop (cdr rest) seen result (cons identity conflicts))))))))
+
 (def (assurance-snapshot identity-value revision-value graph-identity-value
                          source-revision-values claim-revision-values
                          fact-cut-value policy-identity-value policy-revision-value
@@ -110,7 +133,11 @@
                 (deduplicate nodes assurance-node-canonical))
                ((unique-relations relation-conflicts)
                 (deduplicate relations assurance-relation-canonical)))
-    (let* ((identities (known-identities unique-nodes))
+    (let-values (((canonical-source-revisions source-revision-conflicts)
+                  (canonical-bindings source-revision-values)))
+      (let-values (((canonical-claim-revisions claim-revision-conflicts)
+                    (canonical-bindings claim-revision-values)))
+        (let* ((identities (known-identities unique-nodes))
            (missing
             (ordered-unique-text
              (append unresolved
@@ -121,6 +148,13 @@
            (conflicts-value
             (ordered-unique-text
              (append node-conflicts relation-conflicts)))
+           (binding-conflicts
+            (ordered-unique-text
+             (append source-revision-conflicts claim-revision-conflicts)))
+           (all-conflicts
+            (ordered-unique-text (append conflicts-value binding-conflicts)))
+           (canonical-evidence-identities
+            (ordered-unique-text evidence-identity-values))
            (ordered-nodes
             (sort unique-nodes
                   (lambda (left right)
@@ -131,7 +165,7 @@
                     (string<? (.ref left 'identity) (.ref right 'identity)))))
            (node-states (map (lambda (node) (.ref node 'state)) ordered-nodes))
            (snapshot-state
-            (cond ((pair? conflicts-value) 'conflicted)
+            (cond ((pair? all-conflicts) 'conflicted)
                   ((pair? missing) 'unknown)
                   ((memq 'violated node-states) 'violated)
                   ((memq 'stale node-states) 'stale)
@@ -141,26 +175,27 @@
                   (else 'supported)))
            (canonical
             (list 'lambda-aitia.assurance-snapshot identity-value revision-value
-                  graph-identity-value source-revision-values claim-revision-values
+                  graph-identity-value canonical-source-revisions
+                  canonical-claim-revisions
                   fact-cut-value policy-identity-value policy-revision-value
-                  evidence-identity-values
+                  canonical-evidence-identities
                   snapshot-state
                   (canonical-objects ordered-nodes assurance-node-canonical)
                   (canonical-objects ordered-relations assurance-relation-canonical)
-                  missing conflicts-value))
+                  missing all-conflicts))
            (snapshot-digest (assurance-canonical-digest canonical)))
       (poo-flow-check-model
        AssuranceSnapshot
        (.o (:: @ (poo-flow-model-prototype AssuranceSnapshot))
            identity: identity-value revision: revision-value
            graph-identity: graph-identity-value
-           source-revisions: source-revision-values
-           claim-revisions: claim-revision-values fact-cut: fact-cut-value
+           source-revisions: canonical-source-revisions
+           claim-revisions: canonical-claim-revisions fact-cut: fact-cut-value
            policy-identity: policy-identity-value policy-revision: policy-revision-value
-           evidence-identities: evidence-identity-values
+           evidence-identities: canonical-evidence-identities
            state: snapshot-state digest: snapshot-digest
            nodes: ordered-nodes relations: ordered-relations
-           unresolved: missing conflicts: conflicts-value)))))
+           unresolved: missing conflicts: all-conflicts)))))))
 
 ;;; Shape and a green-looking relation never grant support.  The exact
 ;;; evidence and obligation identities must match, and alternate modalities
@@ -173,8 +208,12 @@
        (memq (.ref relation 'relation) '(supports discharges))
        (equal? (.ref relation 'source) (.ref evidence 'identity))
        (equal? (.ref relation 'target) (.ref obligation 'identity))
-       (not (memq (.ref evidence 'state) '(hypothesized counterfactual stale
-                                            conflicted unknown violated)))
+       (equal? (.ref evidence 'obligation) (.ref obligation 'identity))
+       (equal? (.ref evidence 'subject) (.ref obligation 'subject))
+       (equal? (.ref evidence 'scope) (.ref obligation 'scope))
+       (equal? (.ref evidence 'revision) (.ref obligation 'revision))
+       (eq? (.ref evidence 'state) 'supported)
+       (eq? (.ref evidence 'admission-state) 'admitted)
        (not (memq (.ref relation 'modality) '(hypothesized counterfactual)))))
 
 (def (identity-member? identity values)
@@ -186,42 +225,6 @@
     (cond ((null? rest) #f)
           ((string=? (.ref (car rest) 'identity) identity) (car rest))
           (else (loop (cdr rest))))))
-(def (dependency-from relation current)
-  (let ((kind (.ref relation 'relation))
-        (source (.ref relation 'source))
-        (target (.ref relation 'target)))
-    (cond
-     ((and (memq kind '(depends-on implements tests refines supports discharges))
-           (string=? target current))
-      source)
-     ((and (memq kind '(invalidates defeats authorizes denies requires-review
-                        enables prevents causal-parent))
-           (string=? source current))
-      target)
-     (else #f))))
-(def (impact-closure relations seeds)
-  (let loop ((frontier (ordered-unique seeds))
-             (impacted (ordered-unique seeds))
-             (witnesses '()))
-    (if (null? frontier)
-      (values (ordered-unique impacted) (reverse witnesses))
-      (let ((current (car frontier)))
-        (let scan ((rest relations) (additions '()) (new-witnesses witnesses))
-          (if (null? rest)
-            (loop (append (cdr frontier) (reverse additions))
-                  (append additions impacted) new-witnesses)
-            (let* ((relation (car rest))
-                   (addition (dependency-from relation current)))
-              (if (and addition
-                       (not (identity-member? addition impacted))
-                       (not (identity-member? addition additions)))
-                (scan
-                 (cdr rest) (cons addition additions)
-                 (cons (list (.ref relation 'identity)
-                             (.ref relation 'source)
-                             (.ref relation 'target))
-                       new-witnesses))
-                (scan (cdr rest) additions new-witnesses)))))))))
 (def (impacted-kind-identities nodes impacted kind)
   (ordered-unique
    (map (lambda (node) (.ref node 'identity))
@@ -239,22 +242,22 @@
                (every assurance-text? changed-identities))
     (error "invalid assurance invalidation input"))
   (let* ((nodes (.ref snapshot 'nodes))
-         (relations (.ref snapshot 'relations))
          (known (map (lambda (node) (.ref node 'identity)) nodes))
          (unresolved
           (ordered-unique
            (filter (lambda (identity) (not (identity-member? identity known)))
                    changed-identities))))
-    (let-values (((impacted witnesses)
-                  (impact-closure relations
-                                  (filter (lambda (identity)
-                                            (identity-member? identity known))
-                                          changed-identities))))
-      (make-assurance-invalidation-receipt-record
-       receipt-identity (.ref snapshot 'digest)
-       (ordered-unique changed-identities) impacted
-       (impacted-kind-identities nodes impacted 'evidence)
-       (impacted-kind-identities nodes impacted 'obligation)
-       (impacted-kind-identities nodes impacted 'decision)
-       (impacted-kind-identities nodes impacted 'effect)
-       witnesses unresolved #f #f #f))))
+    (let ((seeds (filter (lambda (identity)
+                           (identity-member? identity known))
+                         changed-identities)))
+      (let-values (((impacted witnesses strong-components cyclic-components)
+                    (assurance-invalidation-analysis snapshot seeds)))
+        (make-assurance-invalidation-receipt-record
+         receipt-identity (.ref snapshot 'digest)
+         (ordered-unique changed-identities) impacted
+         (impacted-kind-identities nodes impacted 'evidence)
+         (impacted-kind-identities nodes impacted 'obligation)
+         (impacted-kind-identities nodes impacted 'decision)
+         (impacted-kind-identities nodes impacted 'effect)
+         witnesses unresolved strong-components cyclic-components
+         #f #f #f)))))

@@ -4,7 +4,7 @@
 
 import pytest
 
-from lambda_aitia import SdlcRuntime, descriptor, evaluate_gitops
+from lambda_aitia import GitOpsDecision, SdlcRuntime, descriptor, evaluate_gitops
 
 
 def test_descriptor_is_owned_by_lambda_aitia() -> None:
@@ -57,7 +57,10 @@ def test_python_delegates_gitops_decision_to_scheme() -> None:
             ],
         }
     )
-    assert decision["schema"] == "lambda-aitia.gitops-decision"
-    assert decision["accepted"] is True
-    assert decision["profile"] == "dev"
-    assert decision["revision"] == "0123456789abcdef"
+    assert isinstance(decision, GitOpsDecision)
+    assert decision.accepted is True
+    assert decision.profile == "dev"
+    assert decision.revision == "0123456789abcdef"
+    assert decision.authority_status == "not-evaluated"
+    assert decision.release_authorized is False
+    assert decision.runtime_executed is False

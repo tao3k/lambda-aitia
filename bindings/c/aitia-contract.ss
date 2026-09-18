@@ -67,6 +67,9 @@
 (def (symbols->json values)
   (list->vector (map symbol->string values)))
 
+(def (maybe-symbols->json values)
+  (and values (symbols->json values)))
+
 (def (aitia-sdlc-flow-plan-payload payload)
   (when (> (string-length payload) +aitia-max-input-bytes+)
     (error "Aitia input exceeds maximum bytes" (string-length payload)))
@@ -77,15 +80,14 @@
     (json-object->string
      (hash (schema +aitia-sdlc-flow-plan-schema+)
            (lifecycleId lifecycle-id)
-           (stages (symbols->json
-                    '(change invalidate plan verify admit decide authorize effect)))
-           (topologicalOrder (symbols->json topological-order))
-           (cyclePath #f)
-           (accepted #t)
-           (semanticOwner "lambda-aitia")
-           (runtimeOwner "poo-flow")
-           (releaseAuthorized #f)
-           (runtimeExecuted #f)))))
+           (stages (symbols->json (.ref plan 'stages)))
+           (topologicalOrder (maybe-symbols->json topological-order))
+           (cyclePath (maybe-symbols->json (.ref plan 'cycle-path)))
+           (accepted (.ref plan 'accepted?))
+           (semanticOwner (symbol->string (.ref plan 'semantic-owner)))
+           (runtimeOwner (symbol->string (.ref plan 'runtime-owner)))
+           (releaseAuthorized (.ref plan 'release-authorized?))
+           (runtimeExecuted (.ref plan 'runtime-executed?))))))
 
 (def (decision->json decision)
   (json-object->string
@@ -101,7 +103,12 @@
          (missingChecks (symbols->json (.ref decision 'missing-checks)))
          (failedChecks (symbols->json (.ref decision 'failed-checks)))
          (staleChecks (symbols->json (.ref decision 'stale-checks)))
-         (reasons (symbols->json (.ref decision 'reasons))))))
+         (reasons (symbols->json (.ref decision 'reasons)))
+         (semanticOwner "lambda-aitia")
+         (runtimeOwner "poo-flow")
+         (authorityStatus "not-evaluated")
+         (releaseAuthorized #f)
+         (runtimeExecuted #f))))
 
 (def (aitia-gitops-evaluate-payload payload)
   (when (> (string-length payload) +aitia-max-input-bytes+)

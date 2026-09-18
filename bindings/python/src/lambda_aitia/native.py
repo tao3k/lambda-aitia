@@ -88,7 +88,7 @@ def sdlc_flow_plan(lifecycle_id: str) -> dict[str, Any]:
     return _call("sdlc-flow-plan", payload)
 
 
-def evaluate_gitops(change: Mapping[str, Any]) -> dict[str, Any]:
+def _evaluate_gitops_payload(change: Mapping[str, Any]) -> dict[str, Any]:
     """Ask Scheme to evaluate one GitOps change and its check evidence."""
 
     payload = json.dumps(change, separators=(",", ":"), ensure_ascii=False).encode()
