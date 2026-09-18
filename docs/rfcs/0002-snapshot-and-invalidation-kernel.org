@@ -87,6 +87,14 @@ executable fixture validates the implementation, while
 =LambdaAitiaProof.Modules.Assurance.Invalidation= independently proves the
 general fixed-snapshot monotonicity law and the unresolved-frontier boundary.
 
+The isolated candidate replay recorded by
+=docs/receipts/2026-09-18-phase2-clean-candidate-replay.org= admits both the
+Assurance fixture and the modular Lean gate at exact commits.  It does not close
+the checkbox above: the full production build still depends on parent-owned
+POO Flow User Interface, POO CLOS, Sources Lock and Standards library entries
+that are not all present in the published parent revision.  Those mechanisms
+must be published by POO Flow before Aitia can claim a clean-clone closure.
+
 * Relationship to ADRs
 
 - ADR 0003 constrains POO Flow contracts used by the graph adapter.

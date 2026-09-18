@@ -1,0 +1,93 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Phase 2 isolated candidate replay receipt
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-phase2-clean-candidate-replay-2026-09-18
+:STATUS:     evidence-partial
+:DATE:       2026-09-18
+:RFC:        lambda-aitia-rfc-0002
+:END:
+
+* Exact source cut
+
+- POO Flow: =f4575d4abed2cf6ed605a57f193ddd522eeb3488=
+- Lambda Aitia: =46b6393185a8cde0251f5ee5820a0fc2531e6213=
+- Host: Darwin arm64
+- Build concurrency: =GERBIL_BUILD_CORES=12=
+- Darwin environment: =env -u SDKROOT=
+
+The replay used detached worktrees.  The POO Flow worktree contained only the
+expected Lambda Aitia gitlink difference plus temporary build products and one
+candidate build-spec addition making the already tracked
+=src/user-interface/config-discovery-syntax.ss= an installed public entry.
+The Lambda Aitia worktree was clean at the exact commit above.
+
+* Toolchain qualification
+
+The installed Homebrew Gambit was configured to invoke =gcc-16= on Darwin.  On
+arm64 that path failed with unresolved Darwin runtime symbols.  The replay used
+a temporary compiler adapter that preserved the native =gsc= invocation,
+delegated C compilation to Apple clang, removed GCC-only optimization options,
+and removed the deprecated =-ld_classic= option.  After that correction:
+
+- =just deps= completed from an empty project-local Gerbil environment;
+- =just build= completed with no linker warning;
+- no deployment-target downgrade or macOS-version compatibility path was used.
+
+This adapter is replay infrastructure, not yet a published POO Flow build
+contract.  The owning parent build must publish an equivalent Darwin arm64
+toolchain boundary before the clean-clone gate can close.
+
+* Passing bounded evidence
+
+The Phase 2 Assurance test was run with an isolated atomic-test =GERBIL_PATH=
+and an explicit source/load closure containing only the two detached worktrees
+and the freshly built POO Flow library.  It completed with all test cases and
+checks passing, including:
+
+- canonical snapshot stability under input permutation;
+- conflicted duplicate identities and unresolved relation endpoints;
+- stale, candidate and revision-mismatched evidence rejection;
+- structural versus causal separation;
+- unknown change frontier preservation;
+- fixed-snapshot monotonic invalidation;
+- deterministic SCC and witness behavior;
+- inert receipt fields for temporal proof, release authority and execution.
+
+The Aitia-owned modular Lean gate also completed:
+
+#+begin_example
+just check-proof
+lake build LambdaAitiaModuleAssuranceProof
+Build completed successfully (4 jobs).
+#+end_example
+
+* Remaining publication blocker
+
+The complete =just build-contribute lambda-aitia= replay is not green.  It
+first demonstrated that the tracked User Interface discovery module was absent
+from the published POO Flow build closure.  After the isolated candidate entry
+was added, the build advanced and then stopped at additional parent-owned
+dependencies that are present only in the dirty parent workspace:
+
+- the =poo-clos= interface is not in the published Module System facade/build
+  closure consumed by Aitia GitOps;
+- =feature-system/source-lock-feature.ss= is not committed at the replayed
+  parent revision;
+- the generic =modules/standards= library is not committed at the replayed
+  parent revision.
+
+These are POO Flow mechanism/library owners.  They must be reviewed, tested and
+published in POO Flow; copying them into Aitia would violate the established
+dependency direction.  Healthcare qualification material is unrelated to this
+Software/SDLC replay and is not part of the required Aitia closure.
+
+* Admission decision
+
+The bounded Phase 2 Scheme kernel and modular Lean proof are admitted for this
+exact source cut.  RFC 0002 remains =active= because the repository-wide clean
+checkout gate additionally requires a published POO Flow dependency revision
+whose installed library closes every direct Aitia production import.

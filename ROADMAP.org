@@ -48,6 +48,12 @@ Exit gates:
   parent state;
 - mounting the repository performs no activation or effect.
 
+Current evidence: the Phase 2 Assurance fixture and modular Lean library replay
+from isolated exact worktrees, but the complete production build still exposes
+unpublished parent-owned User Interface, POO CLOS, Sources Lock and Standards
+dependencies.  See
+=docs/receipts/2026-09-18-phase2-clean-candidate-replay.org=.
+
 * Phase 1 — SDLC ownership migration and POO-native semantic kernel
 
 Status: =evidence-partial=
