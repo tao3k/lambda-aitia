@@ -53,7 +53,8 @@ LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
 ```
 
 On Darwin, the repository `justfile` selects `/usr/bin/cc`, unsets `SDKROOT`
-for Gerbil invocations, and defaults `MACOSX_DEPLOYMENT_TARGET` to `26.0` to
-match the installed Gerbil/Gambit native objects. A lower deployment target is
-valid only when that complete toolchain closure has also been rebuilt for the
-same target.
+for Gerbil invocations, and keeps the deployment metadata consistent with the
+installed Gerbil/Gambit native objects. The large Gambit closure uses DWARF
+unwind on arm64 because its function offsets exceed compact-unwind encoding;
+this architecture-specific linker choice is not a macOS-version support
+boundary.

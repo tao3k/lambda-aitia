@@ -109,6 +109,18 @@ def unique_link_flags(flags: list[str]) -> list[str]:
     return result
 
 
+def shared_library_flags(*, system: str, machine: str) -> list[str]:
+    if system != "Darwin":
+        return ["-shared"]
+    flags = ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"]
+    # Gambit's complete static closure is large enough for arm64 compact-unwind
+    # function offsets to overflow ld's encoding. DWARF unwind remains present;
+    # this is an architecture-specific link layout choice, not a macOS floor.
+    if machine == "arm64":
+        flags.append("-Wl,-no_compact_unwind")
+    return flags
+
+
 def gerbil_home(project: Path) -> Path:
     value = run(
         ["gxi", "-e", "(displayln (gerbil-home))"], cwd=project, capture=True
@@ -277,14 +289,8 @@ def main() -> int:
     link_flags = unique_link_flags(
         shlex.split((gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()"))
     )
-    shared_flags = (
-        [
-            "-dynamiclib",
-            "-Wl,-undefined,dynamic_lookup",
-            "-Wl,-no_compact_unwind",
-        ]
-        if sys.platform == "darwin"
-        else ["-shared"]
+    shared_flags = shared_library_flags(
+        system=platform.system(), machine=platform.machine()
     )
     run(
         [

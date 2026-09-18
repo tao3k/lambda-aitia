@@ -35,6 +35,30 @@ class NativeLinkPolicyTest(unittest.TestCase):
             ["-L/runtime", "-lcrypto", "-lm"],
         )
 
+    def test_arm64_darwin_uses_dwarf_unwind_for_large_native_closure(self) -> None:
+        module = build_module()
+
+        self.assertEqual(
+            module.shared_library_flags(system="Darwin", machine="arm64"),
+            [
+                "-dynamiclib",
+                "-Wl,-undefined,dynamic_lookup",
+                "-Wl,-no_compact_unwind",
+            ],
+        )
+
+    def test_compact_unwind_is_not_disabled_on_other_architectures(self) -> None:
+        module = build_module()
+
+        self.assertEqual(
+            module.shared_library_flags(system="Darwin", machine="x86_64"),
+            ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"],
+        )
+        self.assertEqual(
+            module.shared_library_flags(system="Linux", machine="aarch64"),
+            ["-shared"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
