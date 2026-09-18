@@ -73,4 +73,10 @@
        (check-equal? (.ref case-value 'name) 'aitia)
        (check-equal? (length (.ref case-value 'profiles)) 1)
        (check-equal? (length (.ref case-value 'stages)) 1)
+       (check-equal?
+        (.ref (.ref (car (.ref case-value 'profiles)) 'project) 'repository)
+        "tao3k/lambda-aitia")
+       (check-equal?
+        (.ref (.ref (car (.ref case-value 'profiles)) 'delivery) 'provider)
+        'github)
        (check-equal? (.ref (.ref case-value 'admission) 'accepted?) #t)))))
