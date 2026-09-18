@@ -59,7 +59,9 @@ through named, checked functions that emit receipts.
 | Application | explicit selection, composition and policy | redefining source-owned semantics |
 
 Dependency rule: POO Flow core must remain usable without Lambda Aitia.
-Lambda Aitia may consume only reviewed stable POO Flow public contracts.
+Lambda Aitia consumes POO Flow as its public mechanism library and may use the
+complete reviewed public surface needed by Software/SDLC.  The constraint is
+one-way semantic ownership and public API stability, not a minimal dependency.
 Integration belongs to an application or an isolated contribution adapter;
 POO Flow core never imports Lambda Aitia, and the parent Git submodule causes no
 implicit activation.
@@ -320,8 +322,9 @@ LGPL-2.1-or-later=, matching POO Flow.  The former open decisions are closed by:
 
 1. ADR 0004: Aitia owns assurance-specific Lean/TLA+ sources and may consume a
    pinned POO Flow proof package for generic laws.
-2. ADR 0003: exact POO Flow mechanism owners form a reviewed allowlist; additions
-   require an ADR revision.
+2. ADR 0007 supersedes ADR 0003: POO Flow is Aitia's public mechanism library;
+   additions require a stable public owner, not an artificially small
+   allowlist.
 3. ADR 0005: canonical JSON snapshots are persistence projections, never
    semantic or effect authority.
 

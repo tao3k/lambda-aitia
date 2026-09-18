@@ -139,8 +139,8 @@ Required negative cases:
 1. Freeze the software fixture and negative contracts in Aitia.
 2. Implement relation-plane and status vocabulary without importing a concrete
    standard, provider or vertical domain.
-3. Implement snapshot and invalidation semantics over a minimal POO Flow Graph
-   adapter.
+3. Implement snapshot and invalidation semantics with the POO Flow Graph
+   library and reuse its impact, trajectory and SCC algorithms.
 4. Preserve the completed SDLC/GitOps ownership cutover with source-collection
    and negative namespace tests.
 5. Commit Aitia first, Episteme deletion second and parent gitlink/registry

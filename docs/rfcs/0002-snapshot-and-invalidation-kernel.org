@@ -73,8 +73,7 @@ outcomes and evidence admission.  The Runtime Host owns effect execution.
 
 * Acceptance gates
 
-- [X] Replace the local traversal with a minimal reviewed POO Flow Graph
-  projection.
+- [X] Replace the local traversal with the POO Flow Graph library projection.
 - [X] Add deterministic SCC and complete witness-path behavior.
 - [X] Exercise monotone invalidation for the bounded fixed snapshot.
 - [X] Reject stale or revision-mismatched evidence before obligation discharge.
@@ -91,12 +90,14 @@ The isolated candidate replay recorded by
 =docs/receipts/2026-09-18-phase2-clean-candidate-replay.org= admits both the
 Assurance fixture and the modular Lean gate at exact commits.  It does not close
 the checkbox above: the full production build still depends on parent-owned
-POO Flow User Interface, POO CLOS, Sources Lock and Standards library entries
-that are not all present in the published parent revision.  Those mechanisms
-must be published by POO Flow before Aitia can claim a clean-clone closure.
+the POO Flow public mechanism library, including User Interface, POO CLOS,
+Sources Lock and Standards entries that are not all present in the published
+parent revision.  Those mechanisms must be published by POO Flow before Aitia
+can claim a clean-clone closure; reducing Aitia's use of POO Flow is not the
+remedy.
 
 * Relationship to ADRs
 
-- ADR 0003 constrains POO Flow contracts used by the graph adapter.
+- ADR 0007 establishes POO Flow as Aitia's public mechanism library.
 - ADR 0004 assigns the general laws and lifecycle models to Aitia.
 - ADR 0005 defines persistence as a canonical non-authoritative projection.

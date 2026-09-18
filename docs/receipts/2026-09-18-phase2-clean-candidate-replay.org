@@ -85,6 +85,11 @@ published in POO Flow; copying them into Aitia would violate the established
 dependency direction.  Healthcare qualification material is unrelated to this
 Software/SDLC replay and is not part of the required Aitia closure.
 
+POO Flow is Aitia's public mechanism library.  This blocker does not justify
+minimizing Aitia's dependency or removing required mechanisms; it requires POO
+Flow to publish its complete reviewed public Library closure for the pinned
+Aitia revision.
+
 * Admission decision
 
 The bounded Phase 2 Scheme kernel and modular Lean proof are admitted for this

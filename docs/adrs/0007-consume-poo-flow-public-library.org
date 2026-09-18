@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0007 — Consume POO Flow as the mechanism library
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0007
+:STATUS:          accepted
+:DATE:            2026-09-18
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:SUPERSEDES:      lambda-aitia-adr-0003
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+Lambda Aitia is a Software/SDLC contribution built on POO Flow.  POO Flow is
+not an optional adapter from which Aitia should minimize imports; it is the
+project's public mechanism and library dependency.  Graph traversal, impact
+trajectories, POO composition, functional flow, source locks, Standards,
+module loading, verification handoff and generic Runtime mechanisms belong in
+POO Flow so every contribution can reuse them.
+
+The former exact-owner allowlist confused auditable ownership with minimizing
+the dependency surface.  It also encouraged Aitia to reason about individual
+POO Flow source paths instead of the public library contract POO Flow releases.
+
+* Decision Drivers
+
+- Reuse POO Flow's complete public mechanism library where Aitia needs it.
+- Keep generic mechanisms and high-quality algorithms in POO Flow rather than
+  duplicating them in Aitia.
+- Keep Software/SDLC semantics, assurance policy and the production Python SDLC
+  Runtime in Aitia.
+- Preserve the one-way dependency: POO Flow never imports Aitia.
+- Make public-library compatibility and clean installation executable release
+  gates.
+
+* Considered Options
+
+1. Keep an exact and intentionally small POO Flow owner allowlist.
+2. Copy required mechanisms into Aitia to reduce parent dependencies.
+3. Treat POO Flow as Aitia's public mechanism library and govern the ownership
+   direction plus public API stability.
+
+* Decision Outcome
+
+Choose option 3.  Lambda Aitia may consume any reviewed public POO Flow library
+needed by its implementation.  There is no architectural target to minimize
+that dependency.  POO Flow owns and publishes reusable mechanisms, including
+Graph/Impact Graph algorithms and trajectories, POO CLOS, functional flow,
+Sources Lock, Standards, User Interface discovery, verification adapters and
+generic Runtime/lifecycle infrastructure.
+
+Lambda Aitia owns Software/SDLC concepts, NASA software-engineering knowledge,
+ADR/RFC integration, assurance semantics, Aitia ABI projection and its
+production Python SDLC Runtime.  It does not fork or locally reproduce a POO
+Flow mechanism merely to avoid a dependency.
+
+Direct internal =:poo-flow/src/= paths remain migration debt.  POO Flow should
+publish cohesive Library facades; Aitia should consume those facades as they
+become available.  This is API stabilization, not dependency minimization.
+
+* Consequences
+
+- Good: shared mechanisms and optimized algorithms retain one POO Flow owner.
+- Good: Aitia can use the complete POO Flow feature set needed by production
+  Software/SDLC flows.
+- Good: review focuses on semantic ownership and public API stability.
+- Neutral: a POO Flow release becomes an explicit Aitia build dependency.
+- Bad: incompatible POO Flow public-library changes block Aitia until the two
+  repositories are advanced together.
+
+* Confirmation
+
+- A clean POO Flow installation exposes every public library imported by the
+  pinned Aitia revision.
+- Aitia production build, Scheme tests, native ABI and Python tests run against
+  that installation without dirty parent sources.
+- POO Flow source and import-policy checks continue to reject Aitia imports.
+- Graph, Sources Lock, Standards and Runtime mechanisms have no duplicate Aitia
+  implementation.
+
+* More Information
+
+- [[file:0001-dependency-direction.org][ADR 0001 — Contribution Dependency Direction]]
+- [[file:0003-review-poo-flow-contract-allowlist.org][ADR 0003 — Superseded owner allowlist]]
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]

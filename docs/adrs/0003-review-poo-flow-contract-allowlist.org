@@ -5,9 +5,10 @@
 
 :PROPERTIES:
 :ID:              lambda-aitia-adr-0003
-:STATUS:          accepted
+:STATUS:          superseded
 :DATE:            2026-09-17
-:REVISION:        r1
+:REVISION:        r2
+:SUPERSEDED_BY:   lambda-aitia-adr-0007
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
 :CONSULTED:       poo-flow-maintainers
@@ -68,3 +69,8 @@ change until POO Flow publishes a stable facade for it.
 
 - [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
 - [[file:0001-dependency-direction.org][ADR 0001 — Contribution Dependency Direction]]
+- [[file:0007-consume-poo-flow-public-library.org][ADR 0007 — Consume POO Flow as the mechanism library]]
+
+This decision was superseded because an exact owner allowlist incorrectly
+treated dependency count as an architectural objective.  The retained
+constraint is public-library ownership, not a minimal import surface.

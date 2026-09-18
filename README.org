@@ -42,8 +42,10 @@ POO Flow
 
 This is a conceptual flow, not permission to collapse repository ownership.
 POO Flow core never imports a concrete Lambda contribution.  Lambda Aitia may
-consume only reviewed stable POO Flow public contracts; applications own the
-explicit composition of Episteme, Aitia and POO Flow.  Mounting this Git
+consume the complete reviewed POO Flow public mechanism library needed by its
+Software/SDLC implementation; dependency minimization is not an architectural
+goal.  Applications own the explicit composition of Episteme, Aitia and POO
+Flow.  Mounting this Git
 submodule does not import a module, activate a Profile, run a verifier, grant a
 capability, authorize a decision or execute an effect.
 
@@ -100,6 +102,103 @@ assumption set, claim, obligation, producer identity, tool identity, artifact
 digest and validity interval.  Missing or conflicting facts remain explicit;
 they are never converted into an inferred success.
 
+* Agent RFC threat model and formal assurance stack
+
+Lambda Aitia treats an Agent RFC as an executable assurance subject, not just a
+design document.  The RFC states intended behavior and trust boundaries; ADRs
+close bounded choices; Aitia projects their claims, assumptions, dependencies,
+threats, obligations and evidence into a revision-bound Assurance Graph.  POO
+Flow supplies the reusable Governance, Graph/Impact Graph, Temporal Causality,
+verification-adapter, authorization-provider and Runtime mechanisms used to
+evaluate that model.
+
+** Thirty-second compression
+
+Spec-first Agent work asks an Agent to follow a better specification.  Specula
+uses Agents to derive and validate TLA+ models from system code so that deep
+concurrency bugs can be found and reproduced.  Lambda Aitia addresses the next
+system-level question: after RFCs, code, formal models, proofs, policies, tests
+and runtime observations all exist, which exact conclusion is still justified
+for the current revision, what change invalidated it, which obligations must be
+rerun, and why must an Agent effect remain blocked?
+
+Aitia therefore does not compete with Lean, TLA+, TLC, Cedar, Specula or POO
+Flow.  It binds their distinct artifacts into a causal-assurance lifecycle
+without pretending that one tool's success proves the others' propositions.
+
+** Related work and project-position matrix
+
+| Work or project | Primary object | Main strength | Boundary relative to Aitia | Relationship |
+|-----------------+----------------+---------------+----------------------------+--------------|
+| POO Flow Agentic Control Plane RFC suite | organization Bundle, Agent control plane, proof/evidence chain and effect token | establishes reusable mechanism, ownership and authority boundaries | intentionally does not own Aitia's Software/SDLC claims or assurance policy | POO Flow is the full public mechanism Library on which Aitia is built |
+| Agent RFC / specification-first Agent development | human-reviewed intent, constraints and implementation plan | gives Agents an explicit architecture and acceptance target instead of an ad hoc prompt | a document does not establish current evidence, invalidation closure, authorization or execution | Aitia turns RFC clauses and revisions into typed claims, threats and obligations |
+| [[https://specula.info/][Specula]] ([[https://arxiv.org/abs/2607.25333][paper]]) | code-derived TLA+ specification, invariants, traces and reproduced bugs | autonomous specification generation, model checking, trace alignment and concrete bug reproduction | concentrates on discovering implementation/model violations; it is not a cross-tool evidence, policy and effect-authority ledger | a Specula run can satisfy Aitia TLA+/replay obligations when its artifacts are identity-bound and admitted |
+| [[https://arxiv.org/abs/2605.02454][Causal Software Engineering]] | lifecycle-wide causal models, assumptions and counterfactual diagnosis | provides the broader research vision for causal reasoning throughout software engineering | a vision and roadmap do not by themselves define Aitia's POO objects, revision receipts or Runtime gate | Aitia is an executable contribution pursuing this direction with typed relation planes and invalidation |
+| Conventional CI/CD and test dashboards | jobs, statuses, logs and deployment stages | repeatable automation and immediate regression signals | a green result usually does not encode the complete subject, assumption, revision, causal support or downstream invalidation graph | Aitia consumes exact test/build receipts as evidence rather than treating green status as authority |
+| Lean, TLA+/TLC and Cedar used independently | theorem, checked state space or policy decision | strong, specialized reasoning inside a clearly defined formal boundary | none alone proves model-code alignment, evidence freshness, current authorization and effect completion | Aitia keeps the propositions separate and joins only digest-bound admitted receipts |
+
+The comparison is about responsibility rather than feature count.  Aitia's
+distinctive unit is the current, revision-bound justification of a conclusion
+and its invalidation trajectory across the whole SDLC.  Its value is the
+composition of specialized evidence with explicit unknown and authority
+boundaries, not a new theorem prover, model checker, policy engine or Graph
+implementation.
+
+The threat model covers failures that ordinary pass/fail CI cannot distinguish:
+
+- stale evidence is replayed after source, policy, assumption or tool changes;
+- a cached Agent decision survives invalidation or revocation;
+- an RFC claim, Lean statement, TLA+ model and Cedar policy refer to different
+  revisions of the supposed same subject;
+- tool exit success is admitted without exact input, environment and artifact
+  bindings;
+- a counterfactual or hypothesized trajectory is promoted into observed
+  history;
+- composition of independently valid components is assumed safe without a new
+  composition obligation;
+- an authorized intent is amplified, substituted or executed through an
+  out-of-band Runtime path;
+- an effect begins after revocation or is reported complete without an
+  execution receipt.
+
+No single formalism closes all of those threats.  The layers have deliberately
+different propositions and trusted boundaries:
+
+| Layer | Owns | Does not prove |
+|-------+------+----------------|
+| Agent RFC and ADR | intent, vocabulary, trust boundary, decisions and required obligations | that an implementation, policy or runtime matches the documents |
+| Aitia Assurance Graph | exact subject/revision bindings, typed support, invalidation, unresolved frontier and verification plan | temporal safety, authorization or effect execution |
+| Lean | general laws such as freshness, monotone invalidation, modality preservation, no stale authority and composition obligations | that the current deployment supplied fresh facts or executed an effect |
+| TLA+/TLC | bounded lifecycle transitions and adverse interleavings across change, invalidate, plan, verify, admit, decide, authorize and effect | universal theorem proof or production authorization |
+| Cedar | an allow/deny decision for one identity-bound principal, action, resource, context, policy and entity snapshot | evidence freshness, proof construction, runtime conformance or external success |
+| Runtime Host | one bounded execution attempt and its typed execution receipt | that missing proof or authorization may be inferred |
+
+The intended evidence flow is:
+
+#+begin_example
+Agent RFC / ADR / source revisions
+  -> Aitia snapshot and threat/impact graph
+  -> invalidation and typed verification obligations
+  -> Lean proof receipts + TLA+/TLC model-check receipts + test/replay evidence
+  -> evidence admission against the same snapshot
+  -> Cedar projection and identity-bound authorization decision
+  -> one bounded POO Flow Runtime execution
+  -> execution receipt and post-effect evidence
+#+end_example
+
+Every arrow is digest- and revision-bound.  Lean cannot replace Cedar, Cedar
+cannot replace TLA+, a TLC completion cannot replace runtime evidence, and a
+Runtime success cannot retroactively prove the RFC.  Unknown, conflicted,
+stale, mismatched or unavailable inputs fail closed and remain visible in the
+receipt graph.
+
+The current repository has executable snapshot/invalidation and modular Lean
+evidence.  The complete TLA+ lifecycle, Cedar admission and Runtime effect gate
+remain explicit roadmap phases; their absence is not represented as closure.
+See [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001]],
+[[file:docs/rfcs/0002-snapshot-and-invalidation-kernel.org][RFC 0002]] and
+[[file:docs/adrs/0004-own-assurance-proofs-in-aitia.org][ADR 0004]].
+
 * Project rules
 
 - Public extension APIs are POO-native.  Ordinary users compose objects,
@@ -131,6 +230,7 @@ The machine-readable declaration and complete texts are maintained in
   ownership boundaries.
 - [[file:docs/adrs/README.org][ADR contract and template]] defines standardized bounded decisions, lifecycle,
   RFC links and the non-authorizing assurance projection.
+- [[file:docs/adrs/0007-consume-poo-flow-public-library.org][ADR 0007]] establishes POO Flow as Aitia's reusable public mechanism library.
 - [[file:ROADMAP.org][ROADMAP]] defines phases, deliverables and completion gates.
 - [[file:docs/plans/software-sdlc-integration-inventory.org][Software/SDLC integration inventory]] classifies the existing implementation as
   keep, reference, generalize or later migrate.
