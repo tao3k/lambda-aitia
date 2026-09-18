@@ -66,13 +66,15 @@ Composition and supplying ordinary Project facts.
 
 * File-value contract
 
-An =aitia.ss= input MUST contain exactly one root value expression.  The Aitia
-loader expands that expression in a bounded prelude which supplies only the
-public Composition syntax, the official Composition catalog and the reviewed
-POO override operators.  Loading MUST NOT depend on a user-written import or
-export and MUST NOT discover semantics by recursively importing a directory.
+An =aitia.ss= input MUST contain exactly one root value expression.  The POO
+Flow Composition value loader expands that expression in a bounded prelude
+which supplies only the public Composition syntax, an explicitly provided
+official Composition catalog and the reviewed POO override operators.  Aitia
+contributes the =aitia= catalog entry; it does not own or wrap the loader.
+Loading MUST NOT depend on a user-written import or export and MUST NOT discover
+semantics by recursively importing a directory.
 
-The loader MUST:
+The POO Flow loader MUST:
 
 1. read and expand the single root expression with source locations preserved;
 2. resolve its Composition identity from the Composition catalog;
@@ -130,12 +132,15 @@ obligations and gates.  Receipts establish what was actually evaluated.
 * Ownership boundaries
 
 Lambda Aitia owns the Software Engineering domain model, the official =aitia=
-Composition, its default Project Profile and its qualification Scenarios.
+Composition catalog entry, its default Project Profile and its qualification
+Scenarios.
 
-POO Flow owns generic POO composition mechanisms, C3 behavior, Graph and
-ExecutionPlan projection, impact and temporal algorithms, Case admission,
-Session state and runtime receipts.  Aitia MUST reuse those public mechanisms
-and MUST NOT implement a second graph, planner or runtime engine.
+POO Flow owns =use-composition=, the single-expression value loader, typed
+Composition identities and catalog resolution, generic POO composition
+mechanisms, C3 behavior, Graph and ExecutionPlan projection, impact and temporal
+algorithms, Case admission, Session state and runtime receipts.  Aitia MUST
+reuse those public mechanisms and MUST NOT implement a second selector, loader,
+graph, planner or runtime engine.
 
 The Python project under =bindings/python= is a production SDLC Runtime consumer.
 It consumes the closed Case projections and C ABI receipts; it does not parse a
