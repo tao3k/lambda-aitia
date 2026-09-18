@@ -1,0 +1,93 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Phase 2 clean replay receipt
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-phase2-clean-replay-2026-09-18
+:STATUS:     admitted
+:DATE:       2026-09-18
+:RFC:        lambda-aitia-rfc-0002
+:SUPERSEDES: lambda-aitia-phase2-clean-candidate-replay-2026-09-18
+:END:
+
+* Exact source cut
+
+- POO Flow: =43bf47869c48b0944984b64aefec80846129c949=
+- Lambda Aitia: =d5d3c2cba1251069cca98d387034c833515505aa=
+- Host: Darwin arm64
+- Build concurrency: =GERBIL_BUILD_CORES=12=
+
+The replay started from an empty project-local =.gerbil= tree in an isolated
+clone.  It did not depend on the dirty shared POO Flow checkout or on a
+user-global Gerbil installation.
+
+* Toolchain boundary
+
+POO Flow now detects whether the active =gsc= is the Homebrew Gambit runtime.
+Only for that runtime, and only for each =just= child process, the build:
+
+- removes =SDKROOT=;
+- selects Apple clang through Gambit's documented =BUILD_*_CC_PARAM=
+  parameters;
+- suppresses the two GCC-option diagnostics emitted by Apple clang without
+  replacing module-specific compiler options; and
+- selects the native Darwin bundle linker contract through
+  =BUILD_DYN_LD_OPTIONS_PARAM=.
+
+No compiler wrapper is installed or maintained.  No shell profile, Homebrew
+package, global Gerbil configuration, deployment target or parent environment
+is changed.  If the active Gerbil runtime is not the Homebrew Cellar runtime,
+including a Nix-provided Gerbil/Gambit toolchain, the boundary evaluates to
+plain =env= and preserves the toolchain selected by Nix.
+
+* Published POO Flow library closure
+
+The replayed POO Flow revision publishes the mechanism owners consumed by
+Aitia rather than copying them into Aitia:
+
+- Graph types, algorithms and structural-impact trajectories;
+- Governance and Temporal Causality public interfaces;
+- contribution declarations, objects, model and verification projections;
+- module source selection and loader interfaces; and
+- the testing observability extension used by executable source admission.
+
+Aitia's retired test-only contribution import was removed.  No compatibility
+namespace or public version suffix was introduced.
+
+* Passing clean evidence
+
+The following gates passed at the exact source cut:
+
+#+begin_example
+just deps
+just build
+#+end_example
+
+Both commands completed from the empty project-local Gerbil environment with
+zero warnings and zero errors.
+
+The Aitia repository then passed:
+
+#+begin_example
+just check-semantic
+just check-license-contract
+just check-proof
+just test-integration
+just check-native
+#+end_example
+
+The semantic gate admitted Assurance, ADR, SDLC, GitOps and module sources with
+382 observations and zero diagnostics.  The Lean build completed four jobs.
+The native gate built and exercised the Scheme library, C header/dynamic
+harness, CFFI bindings, seven Python tests and the typed CPython wheel.  Python
+dependencies and caches remained repository-local under =.venv= and =.cache=.
+
+* Admission decision
+
+RFC 0002's clean-checkout acceptance gate is closed for this exact source cut.
+The receipt is evidence of reproducibility only: it grants no release
+authority, temporal proof or runtime execution authority.  Phase 0 remains
+evidence-partial until its independent CI/release lane and checked integration
+inventory are complete.

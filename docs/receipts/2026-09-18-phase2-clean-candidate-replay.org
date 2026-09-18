@@ -6,10 +6,16 @@
 
 :PROPERTIES:
 :ID:         lambda-aitia-phase2-clean-candidate-replay-2026-09-18
-:STATUS:     evidence-partial
+:STATUS:     superseded
 :DATE:       2026-09-18
 :RFC:        lambda-aitia-rfc-0002
+:SUPERSEDED_BY: lambda-aitia-phase2-clean-replay-2026-09-18
 :END:
+
+This is a historical candidate receipt.  Its temporary compiler adapter was
+rejected and is not a maintained project mechanism.  The final scoped
+toolchain contract and current evidence are recorded in
+=docs/receipts/2026-09-18-phase2-clean-replay.org=.
 
 * Exact source cut
 

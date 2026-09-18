@@ -48,11 +48,13 @@ Exit gates:
   parent state;
 - mounting the repository performs no activation or effect.
 
-Current evidence: the Phase 2 Assurance fixture and modular Lean library replay
-from isolated exact worktrees, but the complete production build still exposes
-unpublished parent-owned User Interface, POO CLOS, Sources Lock and Standards
-dependencies.  See
-=docs/receipts/2026-09-18-phase2-clean-candidate-replay.org=.
+Current evidence: the production dependency closure, Phase 2 Assurance fixture,
+modular Lean library, integration lane and native Scheme/C/Python package replay
+from an isolated checkout at exact revisions.  The Homebrew Darwin toolchain
+adaptation is child-process scoped and does not alter a Nix-selected toolchain
+or the parent environment.  See
+=docs/receipts/2026-09-18-phase2-clean-replay.org=.  The remaining Phase 0 work
+is the independent CI/release lane and checked integration inventory.
 
 * Phase 1 — SDLC ownership migration and POO-native semantic kernel
 
@@ -96,7 +98,7 @@ Exit gates:
 
 * Phase 2 — Assurance graph and invalidation kernel
 
-Status: =evidence-partial=
+Status: =complete=
 
 Deliverables:
 

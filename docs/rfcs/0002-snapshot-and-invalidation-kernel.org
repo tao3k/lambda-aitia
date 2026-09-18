@@ -6,7 +6,7 @@
 
 :PROPERTIES:
 :ID:         lambda-aitia-rfc-0002
-:STATUS:     active
+:STATUS:     accepted
 :DATE:       2026-09-17
 :PARENT_RFC: lambda-aitia-rfc-0001
 :IMPLEMENTS: lambda-aitia-rfc-0001
@@ -78,23 +78,19 @@ outcomes and evidence admission.  The Runtime Host owns effect execution.
 - [X] Exercise monotone invalidation for the bounded fixed snapshot.
 - [X] Reject stale or revision-mismatched evidence before obligation discharge.
 - [X] Generalize the monotonicity law in the Aitia-owned formal proof package.
-- [ ] Replay the bounded Software/SDLC change fixture from a clean checkout.
+- [X] Replay the bounded Software/SDLC change fixture from a clean checkout.
 - [X] Retain exact source, policy and evidence revision receipts.
 
-The RFC remains active until the clean-checkout replay closes.  The bounded
-executable fixture validates the implementation, while
+The bounded executable fixture validates the implementation, while
 =LambdaAitiaProof.Modules.Assurance.Invalidation= independently proves the
 general fixed-snapshot monotonicity law and the unresolved-frontier boundary.
 
-The isolated candidate replay recorded by
-=docs/receipts/2026-09-18-phase2-clean-candidate-replay.org= admits both the
-Assurance fixture and the modular Lean gate at exact commits.  It does not close
-the checkbox above: the full production build still depends on parent-owned
-the POO Flow public mechanism library, including User Interface, POO CLOS,
-Sources Lock and Standards entries that are not all present in the published
-parent revision.  Those mechanisms must be published by POO Flow before Aitia
-can claim a clean-clone closure; reducing Aitia's use of POO Flow is not the
-remedy.
+The isolated replay recorded by
+=docs/receipts/2026-09-18-phase2-clean-replay.org= admits the complete POO Flow
+library closure, Assurance fixture, modular Lean gate, integration lane and
+native Scheme/C/Python package at exact commits.  POO Flow remains Aitia's
+public mechanism library; the closure was achieved by publishing its mechanism
+owners, not by duplicating or minimizing them in Aitia.
 
 * Relationship to ADRs
 
