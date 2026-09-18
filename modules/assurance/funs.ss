@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :std/crypto/digest sha256)
         (only-in :std/sort sort)
-        (only-in :std/srfi/1 every filter)
+        (only-in :std/srfi/1 every filter find)
         (only-in :std/text/hex hex-encode)
         :poo-flow/src/module-system/contribution/model
         :poo-flow/lambda-aitia/modules/assurance/types
@@ -116,6 +116,43 @@
          (else
           (loop (cdr rest) seen result (cons identity conflicts))))))))
 
+(def (inventory-node nodes identity)
+  (find (lambda (node) (string=? (.ref node 'identity) identity)) nodes))
+
+;;; Snapshot bindings are semantic claims about the exact node inventory, not
+;;; free-standing metadata.  Missing identities retain an unknown frontier;
+;;; wrong kinds or revisions are contradictory and therefore conflicted.
+(def (binding-resolution bindings expected-kind nodes)
+  (let loop ((rest bindings) (missing '()) (conflicts '()))
+    (if (null? rest)
+      (values (ordered-unique-text missing) (ordered-unique-text conflicts))
+      (let* ((binding (car rest))
+             (identity (car binding))
+             (revision (cdr binding))
+             (node (inventory-node nodes identity)))
+        (cond
+         ((not node)
+          (loop (cdr rest) (cons identity missing) conflicts))
+         ((or (not (eq? (.ref node 'kind) expected-kind))
+              (not (string=? (.ref node 'revision) revision)))
+          (loop (cdr rest) missing (cons identity conflicts)))
+         (else (loop (cdr rest) missing conflicts)))))))
+
+(def (evidence-resolution identities nodes)
+  (let loop ((rest identities) (missing '()) (conflicts '()))
+    (if (null? rest)
+      (values (ordered-unique-text missing) (ordered-unique-text conflicts))
+      (let* ((identity (car rest))
+             (node (inventory-node nodes identity)))
+        (cond
+         ((not node)
+          (loop (cdr rest) (cons identity missing) conflicts))
+         ((or (not (eq? (.ref node 'kind) 'evidence))
+              (not (eq? (.ref node 'state) 'supported))
+              (not (eq? (.ref node 'admission-state) 'admitted)))
+          (loop (cdr rest) missing (cons identity conflicts)))
+         (else (loop (cdr rest) missing conflicts)))))))
+
 (def (assurance-snapshot identity-value revision-value graph-identity-value
                          source-revision-values claim-revision-values
                          fact-cut-value policy-identity-value policy-revision-value
@@ -137,10 +174,22 @@
                   (canonical-bindings source-revision-values)))
       (let-values (((canonical-claim-revisions claim-revision-conflicts)
                     (canonical-bindings claim-revision-values)))
+        (let ((canonical-evidence-identities
+               (ordered-unique-text evidence-identity-values)))
+          (let-values (((source-binding-missing source-binding-conflicts)
+                        (binding-resolution canonical-source-revisions
+                                            'artifact unique-nodes))
+                       ((claim-binding-missing claim-binding-conflicts)
+                        (binding-resolution canonical-claim-revisions
+                                            'claim unique-nodes))
+                       ((evidence-binding-missing evidence-binding-conflicts)
+                        (evidence-resolution canonical-evidence-identities
+                                             unique-nodes)))
         (let* ((identities (known-identities unique-nodes))
            (missing
             (ordered-unique-text
-             (append unresolved
+             (append unresolved source-binding-missing claim-binding-missing
+                     evidence-binding-missing
                      (apply append
                             (map (lambda (relation)
                                    (relation-unresolved relation identities))
@@ -150,11 +199,11 @@
              (append node-conflicts relation-conflicts)))
            (binding-conflicts
             (ordered-unique-text
-             (append source-revision-conflicts claim-revision-conflicts)))
+             (append source-revision-conflicts claim-revision-conflicts
+                     source-binding-conflicts claim-binding-conflicts
+                     evidence-binding-conflicts)))
            (all-conflicts
             (ordered-unique-text (append conflicts-value binding-conflicts)))
-           (canonical-evidence-identities
-            (ordered-unique-text evidence-identity-values))
            (ordered-nodes
             (sort unique-nodes
                   (lambda (left right)
@@ -195,7 +244,7 @@
            evidence-identities: canonical-evidence-identities
            state: snapshot-state digest: snapshot-digest
            nodes: ordered-nodes relations: ordered-relations
-           unresolved: missing conflicts: all-conflicts)))))))
+           unresolved: missing conflicts: all-conflicts)))))))))
 
 ;;; Shape and a green-looking relation never grant support.  The exact
 ;;; evidence and obligation identities must match, and alternate modalities

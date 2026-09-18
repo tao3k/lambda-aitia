@@ -73,6 +73,10 @@ class SdlcFlowPlan:
         )
         if plan.semantic_owner != "lambda-aitia" or plan.runtime_owner != "poo-flow":
             raise AitiaNativeError("unexpected SDLC flow-plan owner")
+        if plan.release_authorized or plan.runtime_executed:
+            raise AitiaNativeError(
+                "inert SDLC flow plan claimed authority or execution"
+            )
         return plan
 
 

@@ -166,6 +166,46 @@
         (check-equal? (.ref snapshot 'state) 'conflicted)
         (check-equal? (.ref snapshot 'conflicts) '("artifact/source"))))
 
+    (test-case "snapshot bindings resolve exact node kinds and revisions"
+      (let ((missing
+             (assurance-snapshot
+              "snapshot/missing-binding" "r1" "graph/software"
+              '(("artifact/missing" . "r1")) '()
+              "event-cut/1" "policy/release" "r1" '() '()))
+            (wrong-revision
+             (assurance-snapshot
+              "snapshot/wrong-revision" "r1" "graph/software"
+              '(("artifact/source" . "r2")) '()
+              "event-cut/1" "policy/release" "r1" (list artifact) '()))
+            (wrong-kind
+             (assurance-snapshot
+              "snapshot/wrong-kind" "r1" "graph/software"
+              '(("claim/release" . "r1")) '()
+              "event-cut/1" "policy/release" "r1" (list claim) '())))
+        (check-equal? (.ref missing 'state) 'unknown)
+        (check-equal? (.ref missing 'unresolved) '("artifact/missing"))
+        (check-equal? (.ref wrong-revision 'state) 'conflicted)
+        (check-equal? (.ref wrong-revision 'conflicts) '("artifact/source"))
+        (check-equal? (.ref wrong-kind 'state) 'conflicted)
+        (check-equal? (.ref wrong-kind 'conflicts) '("claim/release"))))
+
+    (test-case "snapshot evidence identities require admitted evidence nodes"
+      (let ((missing
+             (assurance-snapshot
+              "snapshot/missing-evidence" "r1" "graph/software"
+              '() '() "event-cut/1" "policy/release" "r1" '() '()
+              evidence-identities: '("evidence/missing")))
+            (candidate
+             (assurance-snapshot
+              "snapshot/candidate-evidence" "r1" "graph/software"
+              '() '() "event-cut/1" "policy/release" "r1"
+              (list (.o (:: @ evidence) admission-state: 'candidate)) '()
+              evidence-identities: '("evidence/test"))))
+        (check-equal? (.ref missing 'state) 'unknown)
+        (check-equal? (.ref missing 'unresolved) '("evidence/missing"))
+        (check-equal? (.ref candidate 'state) 'conflicted)
+        (check-equal? (.ref candidate 'conflicts) '("evidence/test"))))
+
     (test-case "unequal duplicate identity is conflicted, never overwritten"
       (let ((snapshot
              (software-snapshot
@@ -177,11 +217,12 @@
         (check-equal? (.ref snapshot 'state) 'conflicted)
         (check-equal? (.ref snapshot 'conflicts) '("artifact/source"))))
 
-    (test-case "missing relation endpoints remain an unknown frontier"
+    (test-case "missing relation endpoints and declared evidence remain unknown"
       (let ((snapshot
              (software-snapshot (list claim) (list dependency))))
         (check-equal? (.ref snapshot 'state) 'unknown)
-        (check-equal? (.ref snapshot 'unresolved) '("artifact/source"))
+        (check-equal? (.ref snapshot 'unresolved)
+                      '("artifact/source" "evidence/test"))
         (let (receipt
               (assurance-invalidate
                "invalidation/dangling" snapshot '("claim/release")))
@@ -190,7 +231,7 @@
            '("claim/release"))
           (check-equal?
            (assurance-invalidation-receipt-ref receipt 'unresolved)
-           '("artifact/source")))))
+           '("artifact/source" "evidence/test")))))
 
     (test-case "alternate evidence and temporal order grant no support"
       (check-equal?

@@ -5,6 +5,8 @@
 import pytest
 
 from lambda_aitia import GitOpsDecision, SdlcRuntime, descriptor, evaluate_gitops
+from lambda_aitia.native import AitiaNativeError
+from lambda_aitia.runtime import SdlcFlowPlan
 
 
 def test_descriptor_is_owned_by_lambda_aitia() -> None:
@@ -38,6 +40,26 @@ def test_production_runtime_materializes_scheme_owned_sdlc_plan() -> None:
 def test_runtime_rejects_invalid_lifecycle_before_native_dispatch() -> None:
     with pytest.raises(ValueError, match="non-empty"):
         SdlcRuntime().plan("")
+
+
+@pytest.mark.parametrize("field", ["releaseAuthorized", "runtimeExecuted"])
+def test_runtime_rejects_inert_plan_claiming_effect(field: str) -> None:
+    payload = {
+        "schema": "lambda-aitia.sdlc-flow-plan",
+        "lifecycleId": "release/forged",
+        "stages": ["change", "effect"],
+        "topologicalOrder": ["release/forged/change", "release/forged/effect"],
+        "cyclePath": None,
+        "accepted": True,
+        "semanticOwner": "lambda-aitia",
+        "runtimeOwner": "poo-flow",
+        "releaseAuthorized": False,
+        "runtimeExecuted": False,
+    }
+    payload[field] = True
+
+    with pytest.raises(AitiaNativeError, match="claimed authority or execution"):
+        SdlcFlowPlan.from_payload(payload)
 
 
 def test_python_delegates_gitops_decision_to_scheme() -> None:
