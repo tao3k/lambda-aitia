@@ -206,6 +206,10 @@ See [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001]],
   patch languages.
 - Functional transformations are values first.  Side effects live behind an
   explicit POO Flow verifier or runtime handoff.
+- Native Scheme tests are never heap-unbounded: the Aitia Testing Interface
+  defaults to 512 MiB, while complete NASA catalog and prepared-source-graph
+  tests declare a bounded 2 GiB POO memory profile. POO Flow's outer test
+  launcher enforces the 512 MiB pre-import boundary before this profile loads.
 - Relation planes remain disjoint and fail closed at their boundaries.
 - =supported=, =violated=, =unknown=, =stale=, =conflicted=,
   =hypothesized=, =counterfactual= and =not-applicable= are first-class states.

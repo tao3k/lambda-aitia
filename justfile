@@ -38,9 +38,12 @@ test-scheme-atomic module="sdlc" test_file="unit/nasa-certification-test.ss":
 test-integration:
     cd '{{ poo_flow_root }}' && just check-aitia-integration
 
-# Run the current Scheme semantic closure without widening into native delivery.
+# Reject POO slot self-reference before building or executing the contribution,
+# then run the current Scheme semantic closure without widening into native delivery.
 [group('check')]
-check-semantic: build-scheme
+check-semantic:
+    just test-scheme-atomic sdlc source-admission-test.ss
+    just build-scheme
     cd '{{ poo_flow_root }}' && just test-contribute lambda-aitia assurance
     cd '{{ poo_flow_root }}' && just test-contribute lambda-aitia ADR
     cd '{{ poo_flow_root }}' && just test-contribute lambda-aitia sdlc

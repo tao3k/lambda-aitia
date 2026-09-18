@@ -88,7 +88,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/poo-flow
-          ref: 6c0a47ff8cd51391bb61beec89a92aa58a5da53a
+          ref: 996c4f23c517e22e20c0a6bb015439172cf6fc3d
           path: poo-flow
           submodules: false
 
@@ -100,19 +100,31 @@ jobs:
       - name: Install Just
         uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3
 
-      - name: Set up project-local Gerbil capability
-        uses: tao3k/poo-flow/.github/actions/setup-native-gerbil@6c0a47ff8cd51391bb61beec89a92aa58a5da53a
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
         with:
-          project-root: poo-flow
+          bazelisk-cache: true
+          cache-save: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+          cache-version: 1
+          disk-cache: lambda-aitia-${{ runner.os }}-gerbil-release-v1
+          repository-cache: true
+
+      - name: Resolve immutable Gerbil release and module graph
+        working-directory: poo-flow
+        run: bazelisk mod deps --lockfile_mode=error
+
+      - name: Install declared Gerbil package dependencies
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:install_dependencies
 
       - name: Run Scheme semantic closure
-        working-directory: poo-flow/packages/lambda-aitia
-        run: just check-semantic
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-semantic'
 
       - name: Run SDLC and GitOps integration
-        working-directory: poo-flow/packages/lambda-aitia
-        run: just test-integration
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-integration'
 
       - name: Build and test native ABI and Python runtime
-        working-directory: poo-flow/packages/lambda-aitia
-        run: just check-native
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'
