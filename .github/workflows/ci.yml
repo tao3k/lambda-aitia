@@ -119,7 +119,7 @@ jobs:
 
       - name: Build POO Flow mechanism library
         working-directory: poo-flow
-        run: bazelisk run @local_gerbil//:native_scheme_env -- just build
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && just build'
 
       - name: Run Scheme semantic closure
         working-directory: poo-flow
