@@ -193,12 +193,15 @@ The graph runtime, general query evaluation and release authorization remain
 outside this contribution module.
 
 * Change impact
-=impact.ss= owns =sdlc-change-impact=: a pure, finite projection over explicitly
-supplied trace nodes/edges. Callers select changed node identities and relation
-names. Edges are traversed source-to-target only; this relation direction is a
-project modeling choice, not an automatic interpretation of every NASA relation.
-The algorithm returns deterministic shortest witness paths, affected identities
-and verification identities needing reassessment. It terminates on cycles.
+=impact.ss= owns the SDLC projection for =sdlc-change-impact= over explicitly
+supplied trace nodes/edges. POO Flow Graph owns traversal, cycle termination and
+shortest relation trajectories; Aitia projects revision-scoped SDLC facts into
+that mechanism and retains its POO-native relation trajectory witnesses. Callers select
+changed node identities and relation names. Edges are traversed source-to-target
+only; this relation direction is a project modeling choice, not an automatic
+interpretation of every NASA relation. The receipt returns deterministic shortest
+witness paths, affected identities and verification identities needing
+reassessment.
 
 All accepted nodes/edges bind the project's subject, revision and scope. Invalid
 current endpoints prevent a complete result, incomplete inventories retain a
