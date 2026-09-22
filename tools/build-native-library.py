@@ -5,9 +5,9 @@
 
 """Build the Aitia Gambit link unit as a real shared library.
 
-The four phases follow Gambit's embedding contract: discover the Gerbil runtime
-closure, generate a non-flat gsc link source, compile it with ``___LIBRARY``,
-then link the complete module/object set with libgambit.
+The four phases follow Gambit's embedding contract: ask the compiler for the
+Gerbil runtime closure, generate a non-flat gsc link source, compile it with
+``___LIBRARY``, then link the complete module/object set with libgambit.
 """
 
 from __future__ import annotations
@@ -20,28 +20,6 @@ import re
 import shlex
 import subprocess
 import sys
-
-RUNTIME_MODULES = (
-    "gerbil/runtime/gambit",
-    "gerbil/runtime/util",
-    "gerbil/runtime/table",
-    "gerbil/runtime/control",
-    "gerbil/runtime/system",
-    "gerbil/runtime/c3",
-    "gerbil/runtime/mop",
-    "gerbil/runtime/mop-system-classes",
-    "gerbil/runtime/error",
-    "gerbil/runtime/interface",
-    "gerbil/runtime/hash",
-    "gerbil/runtime/thread",
-    "gerbil/runtime/syntax",
-    "gerbil/runtime/eval",
-    "gerbil/runtime/repl",
-    "gerbil/runtime/loader",
-    "gerbil/runtime/init",
-    "gerbil/runtime",
-)
-
 
 def configure_darwin_toolchain() -> None:
     """Align every native phase with the installed Gerbil/Gambit objects."""
@@ -184,7 +162,6 @@ def main() -> int:
     build_dir.mkdir(parents=True, exist_ok=True)
     home = gerbil_home(project)
     gerbil_lib = home / "lib"
-    gerbil_static = gerbil_lib / "static"
     dependencies, root = module_closure(project)
 
     libgerbil_scm = [
@@ -193,11 +170,7 @@ def main() -> int:
         if (module_id.startswith("gerbil/") or module_id.startswith("std/"))
         and not module_id.startswith("gerbil/core")
     ]
-    runtime_scm = [
-        gerbil_static / f"{module.replace('/', '__')}.scm"
-        for module in RUNTIME_MODULES
-    ]
-    libgerbil_scm = unique(runtime_scm + libgerbil_scm)
+    libgerbil_scm = unique(libgerbil_scm)
     user_scm = unique(
         [
             path
