@@ -13,7 +13,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
-        (only-in :std/srfi/1 every any filter find delete-duplicates append-map take))
+        :std/list/list)
 (export nasa-stage-policy nasa-baseline-policy nasa-context-request nasa-evidence-request
         nasa-verifiable-evidence nasa-verification-adapter nasa-stage-gate nasa-inventory-request
         nasa-lifecycle-start nasa-lifecycle-rebase nasa-transition)
@@ -111,7 +111,7 @@
                                 (equal? (.ref e 'source-digest)
                                         (.ref (car (nasa-requirement-criteria (.ref e 'requirement))) 'source-digest)))) evidence))
          (unverified
-          (append-map
+          (concatenate (map
            (lambda (row)
              (if (eq? (.ref row 'status) 'evidence-present)
                (filter
@@ -124,7 +124,7 @@
                                (eq? (.ref e 'outcome) 'pass) (.slot? e 'artifact-digest)
                                (sha256? (.ref e 'artifact-digest))
                                (verified? admission (nasa-evidence-request e)))) evidence)))
-                (map (lambda (c) (.ref c 'identity)) (.ref row 'criteria))) '())) selected))
+                (map (lambda (c) (.ref c 'identity)) (.ref row 'criteria))) '())) selected)))
          (relieved?
           (lambda (row)
             (and
@@ -204,12 +204,16 @@
                         ((equal? (car names) target) n) (else (loop (cdr names) (+ n 1)))))))
     (unless (every (lambda (p) (eq? (.ref p 'assessment-scope) (.ref (car policies) 'assessment-scope))) policies)
       (error "lifecycle cannot mix project and institutional policies"))
-    (unless (= (length names) (length (delete-duplicates names equal?))) (error "duplicate lifecycle stage"))
+    (unless (= (length names) (length (delete-duplicates/hash names))) (error "duplicate lifecycle stage"))
     (unless (equal? (.ref previous 'stage) (if (= index 0) "unstarted" (list-ref names (- index 1))))
       (error "transition skips a configured stage"))
     ;; Recheck all preceding obligations too: a stale or forged stage label
     ;; cannot bypass earlier evidence requirements. Receipts are checked now.
-    (let* ((requirements (delete-duplicates (append-map (lambda (p) (.ref p 'requirements)) (take policies (+ index 1))) equal?))
+    (let* ((requirements
+            (delete-duplicates/hash
+             (concatenate
+              (map (lambda (p) (.ref p 'requirements))
+                   (take policies (+ index 1))))))
            (gate-value (nasa-stage-gate (nasa-stage-policy target requirements scope: (.ref (car policies) 'assessment-scope)) project class-value context evidence adapter receipts now tailorings: tailoring-values inventories: inventory-values)))
       (.o gate: gate-value advanced?: (.ref gate-value 'admitted?)
           state: (if (.ref gate-value 'admitted?) (make-state project target) previous)

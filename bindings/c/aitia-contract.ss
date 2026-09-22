@@ -4,9 +4,10 @@
 
 ;;; Pure Scheme contract behind the native transport. This module is directly
 ;;; testable; aitia-native.ss owns only C declarations and owned-byte transfer.
-(import (only-in :std/text/json json-object->string string->json-object)
+(import (only-in :std/encoding/json
+                 JSONReadOptions json->string string->json)
         (only-in :clan/poo/object .ref)
-        (only-in :gerbil/gambit call-with-output-string display-exception)
+        (only-in :gerbil/core call-with-output-string display-exception)
         (only-in :poo-flow/lambda-aitia/user-interface/config
                  github-gitops-sdlc)
         (only-in :poo-flow/lambda-aitia/modules/sdlc/funs
@@ -26,11 +27,15 @@
 (def +aitia-decision-schema+ "lambda-aitia.gitops-decision")
 (def +aitia-error-schema+ "lambda-aitia.native-error")
 (def +aitia-max-input-bytes+ (* 4 1024 1024))
+(def +aitia-json-read-options+
+  (JSONReadOptions key-as-symbol: #f
+                   array-as-vector: #f
+                   object-as-hash: #t))
 
 (def (aitia-abi-revision) +aitia-abi-revision+)
 
 (def (aitia-descriptor-payload)
-  (json-object->string
+  (json->string
    (hash (schema +aitia-descriptor-schema+)
          (abiRevision +aitia-abi-revision+)
          (maximumInputBytes +aitia-max-input-bytes+)
@@ -39,7 +44,7 @@
          (resultOwnership "caller-release"))))
 
 (def (aitia-error-payload exception)
-  (json-object->string
+  (json->string
    (hash (schema +aitia-error-schema+)
          (message
           (call-with-output-string
@@ -73,11 +78,11 @@
 (def (aitia-sdlc-flow-plan-payload payload)
   (when (> (string-length payload) +aitia-max-input-bytes+)
     (error "Aitia input exceeds maximum bytes" (string-length payload)))
-  (let* ((object (string->json-object payload))
+  (let* ((object (string->json payload +aitia-json-read-options+))
          (lifecycle-id (json-required object "lifecycle-id"))
          (plan (sdlc-flow-plan lifecycle-id))
          (topological-order (.ref plan 'topological-order)))
-    (json-object->string
+    (json->string
      (hash (schema +aitia-sdlc-flow-plan-schema+)
            (lifecycleId lifecycle-id)
            (stages (symbols->json (.ref plan 'stages)))
@@ -90,7 +95,7 @@
            (runtimeExecuted (.ref plan 'runtime-executed?))))))
 
 (def (decision->json decision)
-  (json-object->string
+  (json->string
    (hash (schema +aitia-decision-schema+)
          (repository (.ref decision 'repository))
          (revision (.ref decision 'revision))
@@ -113,7 +118,7 @@
 (def (aitia-gitops-evaluate-payload payload)
   (when (> (string-length payload) +aitia-max-input-bytes+)
     (error "Aitia input exceeds maximum bytes" (string-length payload)))
-  (let* ((object (string->json-object payload))
+  (let* ((object (string->json payload +aitia-json-read-options+))
          (repository (json-required object "repository"))
          (revision (json-required object "revision"))
          (change

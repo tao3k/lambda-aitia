@@ -8,7 +8,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        (only-in :std/srfi/1 filter))
+        :std/list/list)
 
 (export nasa-stage-policy nasa-baseline-policy)
 

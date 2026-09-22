@@ -5,10 +5,10 @@
 
 (import (only-in :clan/poo/object .o .ref)
         (only-in :std/error Error?)
-        (only-in :std/misc/path path-expand)
+        (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
         (only-in :std/test check-equal? check-exception test-case test-suite)
-        (only-in :std/srfi/13 string-suffix?)
+        (only-in :gerbil/core string-suffix?)
         (only-in :poo-flow/src/feature-system/interface
                  sources-lock-freeze
                  write-sources-lock-module)
@@ -45,7 +45,7 @@
     "declares all immutable NASA source facts through Sources Lock Feature"
     (check-equal? (.ref Nasa7150_2DSourcesLock 'feature-id) 'sources-lock)
     (check-equal? (.ref Nasa7150_2DSourcesLock 'entry-count) 6)
-    (check-equal? (.ref Nasa7150_2DSourcesLock 'byte-count) 198644))
+    (check-equal? (.ref Nasa7150_2DSourcesLock 'byte-count) 197510))
    (test-case
     "source.lock.ss is the deterministic product of declarations and bytes"
     (let* ((generated-lock
@@ -93,7 +93,7 @@
       (check-equal? (poo-flow-standard-resolution-receipt-valid? receipt) #t)
       (check-equal? (.ref bundle 'edition-count) 1)
       (check-equal? (.ref bundle 'artifact-count) 6)
-      (check-equal? (.ref bundle 'byte-count) 198644)
+      (check-equal? (.ref bundle 'byte-count) 197510)
       (check-equal? (.ref bundle 'runtime-executed?) #f)))
    (test-case
     "materializes exact checked-in NODIS bytes only on explicit demand"
@@ -110,7 +110,7 @@
               (map (lambda (receipt)
                      (.ref (.ref receipt 'load-receipt) 'loaded-bytes))
                    receipts))
-       198644)))
+       197510)))
    (test-case
     "rejects a changed source before artifact materialization"
     (let* ((source-provider-value

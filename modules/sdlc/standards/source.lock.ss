@@ -7,20 +7,29 @@
 ;;; Included by sources.ss after the public Feature prototypes.
 
 (def Nasa7150_2DSourcesLock
-  (.o (:: @ SourcesLock.)
-      lock-id: "lambda-aitia/nasa-npr-7150.2d/sources"
-      revision: "2022-03-08"
-      digest: "sha256:ce1f9cc53e6969ac93d0104e65f7c1fb8b58492c0a16cba3c7843ade0d702284"
-      entries:
+  (sources-lock-value
+      "lambda-aitia/nasa-npr-7150.2d/sources"
+      "2022-03-08"
+      "sha256:286dbc723fbad0e596ad07593d95ce56f7bbdf6526d30719ab3bebd29bc772bb"
       (list
+       (.o (:: @ SourceLockEntry.)
+           identity: "nasa/npr-7150.2d/appendix-c"
+           path: "modules/sdlc/standards/sources/appendix-c.html"
+           canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=AppendixC"
+           exact-version: "2022-03-08"
+           representation: 'html
+           digest: "sha256:43db1ee92db397ab03d7e1446641154c9cbcc3c47505c33acb1c1f4ba2c81570"
+           size-bytes: 71241
+           metadata: '((section . appendix-c))
+           )
        (.o (:: @ SourceLockEntry.)
            identity: "nasa/npr-7150.2d/chapter2"
            path: "modules/sdlc/standards/sources/chapter2.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter2"
            exact-version: "2022-03-08"
            representation: 'html
-           digest: "sha256:3ac3318f35fd258cfa0086bb688ae2c71ca53cb0625410b7798de5ef2e02f905"
-           size-bytes: 32607
+           digest: "sha256:da495cf1642bfbfff8b9b169b25d6e79f3a2c24009644dff2f9d37ca2f36ddfe"
+           size-bytes: 32418
            metadata: '((section . chapter-2))
            )
        (.o (:: @ SourceLockEntry.)
@@ -29,8 +38,8 @@
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter3"
            exact-version: "2022-03-08"
            representation: 'html
-           digest: "sha256:227b09e6b37d96f16584b7be94722b4faaacf03fb325a789150cc0b774649cd3"
-           size-bytes: 41236
+           digest: "sha256:3c7c43b491246e70ed626a8f5790ec2fc8dd00906be5da0a89009daa7ebcc896"
+           size-bytes: 41047
            metadata: '((section . chapter-3))
            )
        (.o (:: @ SourceLockEntry.)
@@ -39,8 +48,8 @@
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter4"
            exact-version: "2022-03-08"
            representation: 'html
-           digest: "sha256:c4a00b96984aec132e1618bf3bb08fcecb1fc2ecbef4e4a1eef3bb52d28a280e"
-           size-bytes: 24826
+           digest: "sha256:e6abc0f4df29a3b23d5c1a72be578654efd9f2d01aa4e79f3deb0a23970fa9ee"
+           size-bytes: 24637
            metadata: '((section . chapter-4))
            )
        (.o (:: @ SourceLockEntry.)
@@ -49,8 +58,8 @@
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter5"
            exact-version: "2022-03-08"
            representation: 'html
-           digest: "sha256:624ef44a5a748f31078309e4d518d1d446b5ca7e5268d576f0768c2b74b19d60"
-           size-bytes: 18439
+           digest: "sha256:45fbb7e92669103f91cad92624cd1322629cbdfb42b2d5290cd35c7974f8f919"
+           size-bytes: 18250
            metadata: '((section . chapter-5))
            )
        (.o (:: @ SourceLockEntry.)
@@ -59,18 +68,8 @@
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter6"
            exact-version: "2022-03-08"
            representation: 'html
-           digest: "sha256:bf0b7df106ed23ec83bc5a0f3d5ea738ca89e48d81078472ba23a1b6b39ac9c2"
-           size-bytes: 10106
+           digest: "sha256:0aa4d4e7b90b910f3a3d34e5c0443a1ff13828a148ed322cee7c05ad565fbde0"
+           size-bytes: 9917
            metadata: '((section . chapter-6))
-           )
-       (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/appendix-c"
-           path: "modules/sdlc/standards/sources/appendix-c.html"
-           canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=AppendixC"
-           exact-version: "2022-03-08"
-           representation: 'html
-           digest: "sha256:7851059bef3c6da3c5369716dde86cc20b92b541325b6340f3714bd93ee14ddc"
-           size-bytes: 71430
-           metadata: '((section . appendix-c))
            ))
-      metadata: '((authority . nasa-nodis) (standard . "NPR 7150.2D") (effective . "2022-03-08"))))
+      '((authority . nasa-nodis) (standard . "NPR 7150.2D") (effective . "2022-03-08"))))

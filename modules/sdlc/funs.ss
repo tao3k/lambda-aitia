@@ -10,7 +10,7 @@
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
         (only-in :poo-flow/src/modules/governance/funs
                  poo-flow-governance-contribution)
-        (only-in :std/srfi/1 every delete-duplicates))
+        :std/list/list)
 (import :poo-flow/lambda-aitia/modules/sdlc/types :poo-flow/lambda-aitia/modules/sdlc/objects)
 (export sdlc-with-standards sdlc-contribution sdlc-module
         +sdlc-flow-stages+ sdlc-flow-graph sdlc-flow-plan)
@@ -73,7 +73,7 @@
                (list? standard-values) (every standard-profile? standard-values))
     (error "invalid SDLC standard selection"))
   (let ((identities (map (lambda (standard) (.ref standard 'identity)) standard-values)))
-    (unless (= (length identities) (length (delete-duplicates identities equal?)))
+    (unless (= (length identities) (length (delete-duplicates/hash identities)))
       (error "duplicate SDLC standard identity")))
   (.o (:: @ profile-value) standards: standard-values))
 (def (sdlc-contribution profile-value)
@@ -83,13 +83,13 @@
    profile-value '(lifecycle-governance) '()))
 (def sdlc-module (sdlc-contribution SdlcProfile))
 
-(import (only-in :std/srfi/1 any filter find))
+(import :std/list/list)
 (export sdlc-trace-review)
 (def (trace-bound? value project)
   (every (lambda (slot) (equal? (.ref value slot) (.ref project slot))) '(subject revision scope)))
 (def (unique-identities? values)
   (let ((ids (map (lambda (v) (.ref v 'identity)) values)))
-    (= (length ids) (length (delete-duplicates ids equal?)))))
+    (= (length ids) (length (delete-duplicates/hash ids)))))
 (def (sdlc-trace-review project rule nodes edges)
   (unless (and (sdlc-project? project) (sdlc-trace-rule? rule)
                (list? nodes) (every sdlc-trace-node? nodes) (unique-identities? nodes)

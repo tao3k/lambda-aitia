@@ -6,8 +6,8 @@
         :poo-flow/src/module-system/contribution/model
         (only-in :poo-flow/src/modules/governance/types
                  poo-flow-governance-profile?)
-        (only-in :std/srfi/1 every)
-        (only-in :std/misc/list delete-duplicates/hash))
+        :std/list/list
+        :std/list/list)
 (export standard-profile? sdlc-profile? sdlc-text?
         SdlcStandard SdlcBoundFact SdlcProject SdlcObligation SdlcEvidence
         SdlcTailoringRequest SdlcTraceNode SdlcTraceEdge SdlcTraceRule

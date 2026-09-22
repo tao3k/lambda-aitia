@@ -12,7 +12,7 @@
                  testing-interface-add-profile
                  testing-interface-map-profile
                  testing-test-selector)
-        (only-in :std/srfi/1 foldl)
+        :std/list/list
         (only-in :poo-flow/src/module-system/observability/testing-extension
                  make-poo-flow-testing-observability-profile
                  poo-flow-testing-observability-extension))

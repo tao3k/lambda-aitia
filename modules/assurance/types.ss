@@ -5,7 +5,7 @@
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         :poo-flow/src/module-system/contribution/model
-        (only-in :std/srfi/1 every))
+        :std/list/list)
 
 (export assurance-text? assurance-digest?
         assurance-node-kind? assurance-state? assurance-relation-plane?

@@ -5,9 +5,9 @@
 
 (import (only-in :clan/poo/object .o .ref)
         (only-in :std/crypto/digest sha256)
-        (only-in :std/sort sort)
-        (only-in :std/srfi/1 every filter find)
-        (only-in :std/text/hex hex-encode)
+        (only-in :gerbil/core list-sort string->utf8)
+        :std/list/list
+        (only-in :std/encoding/hex hex-encode)
         :poo-flow/src/module-system/contribution/model
         :poo-flow/lambda-aitia/modules/assurance/types
         (only-in :poo-flow/lambda-aitia/modules/assurance/invalidation-projection
@@ -54,19 +54,20 @@
    "sha256:"
    (hex-encode
     (sha256
-     (call-with-output-string (lambda (port) (write value port)))))))
+     (string->utf8
+      (call-with-output-string (lambda (port) (write value port))))))))
 
 (def (canonical<? left right)
   (string<? (car left) (car right)))
 (def (canonical-objects input-values projection)
-  (sort (map projection input-values) canonical<?))
+  (list-sort canonical<? (map projection input-values)))
 
 ;;; Returns canonical unique objects and conflicting identities.  Equal
 ;;; duplicates collapse; unequal duplicates never use last-write-wins.
 (def (deduplicate input-values projection)
   (let loop ((rest input-values) (seen '()) (unique '()) (conflicts '()))
     (if (null? rest)
-      (values (reverse unique) (sort conflicts string<?))
+      (values (reverse unique) (list-sort string<? conflicts))
       (let* ((value (car rest))
              (canonical (projection value))
              (identity (car canonical))
@@ -89,7 +90,7 @@
     (append (if (member source identities) '() (list source))
             (if (member target identities) '() (list target)))))
 (def (ordered-unique-text input-values)
-  (let loop ((rest (sort input-values string<?)) (previous #f) (result '()))
+  (let loop ((rest (list-sort string<? input-values)) (previous #f) (result '()))
     (cond
      ((null? rest) (reverse result))
      ((and previous (string=? previous (car rest)))
@@ -97,9 +98,10 @@
      (else (loop (cdr rest) (car rest) (cons (car rest) result))))))
 
 (def (canonical-bindings input-values)
-  (let loop ((rest (sort (map (lambda (binding) binding) input-values)
-                         (lambda (left right)
-                           (string<? (car left) (car right)))))
+  (let loop ((rest (list-sort
+                    (lambda (left right)
+                      (string<? (car left) (car right)))
+                    (map (lambda (binding) binding) input-values)))
              (seen '()) (result '()) (conflicts '()))
     (if (null? rest)
       (values (reverse result)
@@ -190,10 +192,10 @@
             (ordered-unique-text
              (append unresolved source-binding-missing claim-binding-missing
                      evidence-binding-missing
-                     (apply append
-                            (map (lambda (relation)
-                                   (relation-unresolved relation identities))
-                                 unique-relations)))))
+                     (concatenate
+                      (map (lambda (relation)
+                             (relation-unresolved relation identities))
+                           unique-relations)))))
            (conflicts-value
             (ordered-unique-text
              (append node-conflicts relation-conflicts)))
@@ -205,13 +207,15 @@
            (all-conflicts
             (ordered-unique-text (append conflicts-value binding-conflicts)))
            (ordered-nodes
-            (sort unique-nodes
-                  (lambda (left right)
-                    (string<? (.ref left 'identity) (.ref right 'identity)))))
+            (list-sort
+             (lambda (left right)
+               (string<? (.ref left 'identity) (.ref right 'identity)))
+             unique-nodes))
            (ordered-relations
-            (sort unique-relations
-                  (lambda (left right)
-                    (string<? (.ref left 'identity) (.ref right 'identity)))))
+            (list-sort
+             (lambda (left right)
+               (string<? (.ref left 'identity) (.ref right 'identity)))
+             unique-relations))
            (node-states (map (lambda (node) (.ref node 'state)) ordered-nodes))
            (snapshot-state
             (cond ((pair? all-conflicts) 'conflicted)

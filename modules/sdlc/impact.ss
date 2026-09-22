@@ -5,8 +5,8 @@
 ;;; Finite source-inventory impact projection, not a graph runtime or approval.
 (import (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/sdlc/types
-        (only-in :std/srfi/1 every filter delete-duplicates)
-        :std/sort
+        :std/list/list
+        :gerbil/core
         (only-in :poo-flow/src/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
         (only-in :poo-flow/src/modules/temporal-causality/funs
@@ -16,7 +16,7 @@
   (every (lambda (slot) (equal? (.ref value slot) (.ref project slot))) '(subject revision scope)))
 (def (unique? values)
   (let ((ids (map (lambda (v) (.ref v 'identity)) values)))
-    (= (length ids) (length (delete-duplicates ids equal?)))))
+    (= (length ids) (length (delete-duplicates/hash ids)))))
 (def (impact-symbol value) (string->symbol value))
 (def (impact-text value) (symbol->string value))
 (def (sdlc-change-impact project nodes edges changed relations)
@@ -28,19 +28,21 @@
     (error "invalid change-impact inventory or selection"))
   (let* ((current (filter (lambda (n) (same-snapshot? n project)) nodes))
          (ids (map (lambda (n) (.ref n 'identity)) current))
-         (seeds (sort (delete-duplicates changed equal?) string<?))
+         (seeds (list-sort string<? (delete-duplicates/hash changed)))
          (selected-relation-values
-          (sort (delete-duplicates relations equal?) string<?))
-         (selected (sort
+          (list-sort string<? (delete-duplicates/hash relations)))
+         (selected (list-sort
+                    (lambda (a b)
+                      (string<? (.ref a 'identity) (.ref b 'identity)))
                     (filter (lambda (e) (and (same-snapshot? e project)
                                              (member (.ref e 'relation)
                                                      selected-relation-values)))
-                            edges)
-                    (lambda (a b)
-                      (string<? (.ref a 'identity) (.ref b 'identity)))))
-         (valid (sort (filter (lambda (e) (and (member (.ref e 'source) ids)
-                                              (member (.ref e 'target) ids))) selected)
-                      (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))))
+                            edges)))
+         (valid (list-sort
+                 (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))
+                 (filter (lambda (e) (and (member (.ref e 'source) ids)
+                                          (member (.ref e 'target) ids)))
+                         selected)))
          (unresolved (filter (lambda (e) (not (memq e valid))) selected)))
     (unless (every (lambda (id) (member id ids)) seeds)
       (error "changed object missing from selected snapshot"))
@@ -79,14 +81,16 @@
               scope: (.ref project 'scope) changed-identities: seeds
               affected-identities: affected witnesses: trajectories
               recheck-verifications:
-              (sort
+              (list-sort
+               string<?
                (map (lambda (n) (.ref n 'identity))
                     (filter (lambda (n)
                               (and (eq? (.ref n 'category) 'verification)
                                    (member (.ref n 'identity) affected)))
-                            current))
-               string<?)
-              unresolved-edges: (sort (map (lambda (e) (.ref e 'identity)) unresolved) string<?)
+                            current)))
+              unresolved-edges:
+              (list-sort string<?
+                         (map (lambda (e) (.ref e 'identity)) unresolved))
               selected-relations: selected-relation-values
               excluded-edges: (- (length edges) (length selected))
               evidence-action: 'reassessment-required

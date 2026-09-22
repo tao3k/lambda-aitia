@@ -4,21 +4,16 @@
 
 ;;; C receives copied UTF-8 JSON bytes only; no Gerbil object crosses the ABI
 ;;; and the caller releases every result. Pure semantics live in aitia-contract.
-(import (only-in :std/foreign begin-ffi c-define)
+(import (only-in :std/ffi
+                 C-declare C-ffi-macrology
+                 def-C-lambda def-C-type/pointer)
         :poo-flow/lambda-aitia/bindings/c/aitia-contract)
 
 (export aitia-c-round-trip)
 
-(begin-ffi
-  ((struct poo_flow_aitia_result status)
-   poo-flow-aitia-result-set-bytes!
-   poo-flow-aitia-abi-revision
-   poo-flow-aitia-descriptor
-   poo-flow-aitia-sdlc-flow-plan
-   poo-flow-aitia-gitops-evaluate
-   aitia-c-round-trip)
+(C-ffi-macrology)
 
-  (c-declare #<<END-C
+(C-declare #<<END-C
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,14 +84,20 @@ static int poo_flow_aitia_c_round_trip(void) {
   return 0;
 }
 END-C
-  )
+)
 
-  (define-c-struct poo_flow_aitia_result
-    ((status . int32))
-    #f #f #t)
+(def-C-type/pointer poo_flow_aitia_result "poo_flow_aitia_result")
 
-  (define-c-lambda poo-flow-aitia-result-set-bytes!
-    (poo_flow_aitia_result-borrowed-ptr* scheme-object) void
+(def-C-lambda poo_flow_aitia_result-status
+  (poo_flow_aitia_result*) int32
+  "___return (___arg1->status);")
+
+(def-C-lambda poo_flow_aitia_result-status-set!
+  (poo_flow_aitia_result* int32) void
+  "___arg1->status = ___arg2; ___return;")
+
+(def-C-lambda poo-flow-aitia-result-set-bytes!
+    (poo_flow_aitia_result* scheme-object) void
     #<<END-C
 free(___arg1->payload);
 ___arg1->payload = NULL;
@@ -113,17 +114,18 @@ if (___arg1->length > 0) {
 }
 ___return;
 END-C
-    )
+)
 
-  (define-c-lambda aitia-c-round-trip () int
-    "poo_flow_aitia_c_round_trip")
+(def-C-lambda aitia-c-round-trip () int
+  "poo_flow_aitia_c_round_trip")
 
+(begin-foreign
   (c-define (poo-flow-aitia-abi-revision)
     () unsigned-int32 "poo_flow_aitia_abi_revision" "extern"
     (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-abi-revision))
 
   (c-define (poo-flow-aitia-descriptor result)
-    (poo_flow_aitia_result-borrowed-ptr*) int32
+    (poo_flow_aitia_result*) int32
     "poo_flow_aitia_descriptor" "extern"
     (with-exception-catcher
      (lambda (exception)
@@ -141,7 +143,7 @@ END-C
        (poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-gitops-evaluate payload result)
-    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
+    (UTF-8-string poo_flow_aitia_result*) int32
     "poo_flow_aitia_gitops_evaluate" "extern"
     (with-exception-catcher
      (lambda (exception)
@@ -161,7 +163,7 @@ END-C
        (poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-sdlc-flow-plan payload result)
-    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
+    (UTF-8-string poo_flow_aitia_result*) int32
     "poo_flow_aitia_sdlc_flow_plan" "extern"
     (with-exception-catcher
      (lambda (exception)

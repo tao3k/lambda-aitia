@@ -14,8 +14,8 @@
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
         (only-in :poo-flow/src/modules/temporal-causality/funs
                  poo-flow-structural-impact-analyze)
-        (only-in :std/sort sort)
-        (only-in :std/srfi/1 filter)
+        (only-in :gerbil/core list-sort)
+        :std/list/list
         :poo-flow/lambda-aitia/modules/assurance/types)
 
 (export assurance-invalidation-graph assurance-invalidation-analysis)
@@ -108,11 +108,12 @@
                (and (null? (.ref snapshot 'unresolved))
                     (null? (.ref snapshot 'conflicts)))))
              (affected
-              (sort (map symbol->string (.ref impact 'affected-node-ids)) string<?))
+              (list-sort string<?
+                         (map symbol->string (.ref impact 'affected-node-ids))))
              (trajectories
-              (sort (map trajectory->projection
-                         (.ref impact 'relation-trajectories))
-                    trajectory-projection<?)))
+              (list-sort trajectory-projection<?
+                         (map trajectory->projection
+                              (.ref impact 'relation-trajectories)))))
         (values affected trajectories
                 (components->identities (.ref loop-analysis 'components))
                 (components->identities

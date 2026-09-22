@@ -8,7 +8,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
-        (only-in :std/srfi/1 every find))
+        :std/list/list)
 (def project (sdlc-project "flight" "r1" "software" #t))
 (def known-context
   (.o safety-critical?: #f mission-critical?: #f ivv-required?: #f ivv-performed?: #f

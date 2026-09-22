@@ -6,7 +6,7 @@
 ;;; Pure evaluator plus its checked default method bundle.
 (import (only-in :clan/poo/object .ref .slot?)
         (only-in :clan/poo/mop .new validate)
-        (only-in :std/srfi/1 every filter find)
+        :std/list/list
         (only-in :poo-flow/src/core/funcs
                  poo-flow-make-value-index poo-flow-value-index-put!
                  poo-flow-value-index-ref)

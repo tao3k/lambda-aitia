@@ -8,7 +8,8 @@
 
 (import (only-in :clan/poo/object .o)
         (only-in :poo-flow/src/feature-system/source-lock-feature
-                 SourceReference. SourceLockEntry. SourcesLock.))
+                 SourceReference. SourceLockEntry. SourcesLock.
+                 sources-lock-value))
 
 (export +nasa-7150-2d-edition-identity+
         +nasa-7150-2d-edition-canonical-uri+

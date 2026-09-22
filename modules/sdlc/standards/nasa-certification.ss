@@ -9,8 +9,8 @@
         :poo-flow/src/module-system/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        (only-in :std/srfi/1 every filter)
-        (only-in :std/misc/list delete-duplicates/hash)
+        :std/list/list
+        :std/list/list
         (only-in :gerbil/runtime/hash list->hash-table-string))
 
 (export SdlcComplianceDossier

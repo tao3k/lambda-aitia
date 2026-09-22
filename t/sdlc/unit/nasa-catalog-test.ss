@@ -5,14 +5,14 @@
 (import :std/test :std/error
         :poo-flow/src/module-system/contribution/interface
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        (only-in :std/srfi/1 delete-duplicates filter))
+        :std/list/list)
 (export nasa-catalog-test)
 (def nasa-catalog-test
   (test-suite "NASA source catalog and invocation matrix"
     (test-case "complete catalog retains unique edition-bound identities"
       (let ((rows (.ref Nasa7150_2D 'requirements)))
         (check-equal? (length rows) 130)
-        (check-equal? (length (delete-duplicates (map (lambda (r) (.ref r 'identity)) rows))) 130)
+        (check-equal? (length (delete-duplicates/hash (map (lambda (r) (.ref r 'identity)) rows))) 130)
         (check-equal? (length (filter (lambda (r) (.slot? r 'class-matrix)) rows)) 100)
         (for-each (lambda (r)
                     (check-equal? (.ref r 'standard) "nasa/npr-7150.2d")

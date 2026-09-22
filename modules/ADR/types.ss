@@ -4,7 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref .slot?)
-        (only-in :std/srfi/1 every filter)
+        :std/list/list
         :poo-flow/src/module-system/contribution/model
         (only-in :poo-flow/src/modules/governance/types
                  poo-flow-governance-profile?))

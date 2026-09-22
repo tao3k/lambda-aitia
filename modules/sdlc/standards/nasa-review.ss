@@ -9,7 +9,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        (only-in :std/srfi/1 every any filter delete-duplicates iota))
+        :std/list/list)
 (export nasa-requirement-criteria nasa-criterion-evidence nasa-assess-project
         nasa-tailoring-requirements nasa-safety-component nasa-safety-review)
 
@@ -36,7 +36,7 @@
         producer: producer-value outcome: outcome-value)))
 (def (unique-ids? values)
   (let (ids (map (lambda (v) (.ref v 'identity)) values))
-    (= (length ids) (length (delete-duplicates ids equal?)))))
+    (= (length ids) (length (delete-duplicates/hash ids)))))
 (def (bound? value project)
   (every (lambda (key) (equal? (.ref value key) (.ref project key))) '(subject revision scope)))
 (def (row-activity row)
@@ -106,10 +106,10 @@
          (cyber? (equal? (substring (.ref row 'section) 0 (min 4 (string-length (.ref row 'section)))) "3.11")))
     (unless (or (boolean? health) (eq? health 'unknown)) (error "invalid health/medical context"))
     (.o requirement: id software-class: class-value invocation: invocation-value
-        required-authorities: (delete-duplicates
+        required-authorities: (delete-duplicates/hash
           (append base (if cyber? '(saiso-or-designated-ciso) '())
                   (if (eq? health #t) '(chmo) '())
-                  (if (equal? id "SWE-141") '(hq-osma) '())) eq?)
+                  (if (equal? id "SWE-141") '(hq-osma) '())))
         context-review-required?: (eq? health 'unknown)
         required-records: '(rationale risk mitigations risk-acceptance authority-signatures archived-matrix)
         source-url: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter2"
