@@ -35,18 +35,14 @@
                  (list (cons 'semantic-owner 'lambda-aitia))))
               +sdlc-flow-stages+))
         (edges
-         (let loop ((stages +sdlc-flow-stages+) (result '()))
-           (if (or (null? stages) (null? (cdr stages)))
-             (reverse result)
-             (loop
-              (cdr stages)
-              (cons
-               (poo-flow-graph-edge
-                (sdlc-flow-node-id lifecycle-id (car stages))
-                (sdlc-flow-node-id lifecycle-id (cadr stages))
-                'sdlc-next
-                (list (cons 'semantic-owner 'lambda-aitia)))
-               result))))))
+         (map (lambda (source-stage target-stage)
+                (poo-flow-graph-edge
+                 (sdlc-flow-node-id lifecycle-id source-stage)
+                 (sdlc-flow-node-id lifecycle-id target-stage)
+                 'sdlc-next
+                 (list (cons 'semantic-owner 'lambda-aitia))))
+              +sdlc-flow-stages+
+              (cdr +sdlc-flow-stages+))))
     (poo-flow-graph
      lifecycle-id nodes edges
      (list (cons 'semantic-owner 'lambda-aitia)

@@ -101,18 +101,13 @@
 (def (ADR-record? value) (poo-flow-model? ADRRecord value))
 
 (def (unique-by? projection input-values)
-  (let loop ((rest input-values) (seen '()))
-    (cond
-     ((null? rest) #t)
-     ((member (projection (car rest)) seen) #f)
-     (else (loop (cdr rest) (cons (projection (car rest)) seen))))))
+  (length=? input-values
+            (delete-duplicates/hash input-values key: projection)))
 (def (link-key link)
   (cons (.ref link 'relation) (.ref link 'target)))
 (def (links-contain? record relation)
-  (let loop ((rest (.ref record 'links)))
-    (and (pair? rest)
-         (or (eq? (.ref (car rest) 'relation) relation)
-             (loop (cdr rest))))))
+  (any (lambda (link) (eq? (.ref link 'relation) relation))
+       (.ref record 'links)))
 (def (chosen-option-count record)
   (length
    (filter (lambda (option)

@@ -90,12 +90,7 @@
     (append (if (member source identities) '() (list source))
             (if (member target identities) '() (list target)))))
 (def (ordered-unique-text input-values)
-  (let loop ((rest (list-sort string<? input-values)) (previous #f) (result '()))
-    (cond
-     ((null? rest) (reverse result))
-     ((and previous (string=? previous (car rest)))
-      (loop (cdr rest) previous result))
-     (else (loop (cdr rest) (car rest) (cons (car rest) result))))))
+  (list-sort string<? (delete-duplicates/hash input-values)))
 
 (def (canonical-bindings input-values)
   (let loop ((rest (list-sort

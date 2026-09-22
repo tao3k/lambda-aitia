@@ -199,9 +199,10 @@
                (list? policies) (pair? policies) (every sdlc-stage-policy? policies))
     (error "invalid lifecycle transition"))
   (let* ((names (map (lambda (p) (.ref p 'identity)) policies))
-         (index (let loop ((names names) (n 0))
-                  (cond ((null? names) (error "unknown target stage" target))
-                        ((equal? (car names) target) n) (else (loop (cdr names) (+ n 1)))))))
+         (target-tail (member target names))
+         (index (if target-tail
+                  (- (length names) (length target-tail))
+                  (error "unknown target stage" target))))
     (unless (every (lambda (p) (eq? (.ref p 'assessment-scope) (.ref (car policies) 'assessment-scope))) policies)
       (error "lifecycle cannot mix project and institutional policies"))
     (unless (= (length names) (length (delete-duplicates/hash names))) (error "duplicate lifecycle stage"))
