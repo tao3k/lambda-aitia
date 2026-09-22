@@ -40,6 +40,11 @@ static int load_symbol(library_handle library, const char *name,
   return 1;
 }
 
+static void native_phase(const char *phase) {
+  (void)fprintf(stderr, "[lambda-aitia-native] phase=%s\n", phase);
+  (void)fflush(stderr);
+}
+
 int main(int argc, char **argv) {
   library_handle library;
   abi_revision_fn abi_revision;
@@ -53,6 +58,7 @@ int main(int argc, char **argv) {
   char plan_input[] = "{\"lifecycle-id\":\"release/42\"}";
 
   if (argc != 2) return 64;
+  native_phase("library-open-start");
   library = LIBRARY_OPEN(argv[1]);
   if (library == NULL) {
 #if defined(_WIN32)
@@ -62,6 +68,7 @@ int main(int argc, char **argv) {
 #endif
     return 1;
   }
+  native_phase("library-open-complete");
   if (!load_symbol(library, "poo_flow_aitia_runtime_init", &runtime_init,
                    sizeof(runtime_init)) ||
       !load_symbol(library, "poo_flow_aitia_runtime_shutdown",
@@ -79,15 +86,18 @@ int main(int argc, char **argv) {
     LIBRARY_CLOSE(library);
     return 2;
   }
+  native_phase("symbols-complete");
   if (runtime_init() != 0) {
     LIBRARY_CLOSE(library);
     return 3;
   }
+  native_phase("runtime-init-complete");
   if (abi_revision() != POO_FLOW_AITIA_ABI_REVISION) {
     runtime_shutdown();
     LIBRARY_CLOSE(library);
     return 4;
   }
+  native_phase("abi-revision-complete");
   result_init(&result);
   if (descriptor(&result) != 0 || result.status != 0 ||
       result.payload == NULL || result.length == 0 ||
@@ -98,12 +108,14 @@ int main(int argc, char **argv) {
     LIBRARY_CLOSE(library);
     return 5;
   }
+  native_phase("descriptor-complete");
   result_release(&result);
   if (result.payload != NULL || result.length != 0 || result.status != 0) {
     runtime_shutdown();
     LIBRARY_CLOSE(library);
     return 6;
   }
+  native_phase("descriptor-release-complete");
   if (sdlc_flow_plan(plan_input, &result) != 0 || result.status != 0 ||
       result.payload == NULL ||
       strstr((const char *)result.payload, "lambda-aitia.sdlc-flow-plan") ==
@@ -114,8 +126,12 @@ int main(int argc, char **argv) {
     LIBRARY_CLOSE(library);
     return 7;
   }
+  native_phase("sdlc-flow-plan-complete");
   result_release(&result);
+  native_phase("sdlc-flow-plan-release-complete");
   runtime_shutdown();
+  native_phase("runtime-shutdown-complete");
   LIBRARY_CLOSE(library);
+  native_phase("library-close-complete");
   return 0;
 }
