@@ -15,6 +15,7 @@
 
 (C-declare #<<END-C
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,6 +46,11 @@ int32_t poo_flow_aitia_sdlc_flow_plan(char *payload,
                                       poo_flow_aitia_result *result);
 int32_t poo_flow_aitia_gitops_evaluate(char *payload,
                                        poo_flow_aitia_result *result);
+
+static void poo_flow_aitia_native_phase(int32_t phase) {
+  fprintf(stderr, "[lambda-aitia-native] scheme-phase=%d\n", phase);
+  fflush(stderr);
+}
 
 static int poo_flow_aitia_c_round_trip(void) {
   static const char input[] =
@@ -96,6 +102,10 @@ END-C
   (poo_flow_aitia_result* int32) void
   "___arg1->status = ___arg2; ___return;")
 
+(def-C-lambda poo-flow-aitia-native-phase
+  (int32) void
+  "poo_flow_aitia_native_phase(___arg1); ___return;")
+
 (def-C-lambda poo-flow-aitia-result-set-bytes!
     (poo_flow_aitia_result* scheme-object) void
     #<<END-C
@@ -136,10 +146,16 @@ END-C
                  exception)))
        -1)
      (lambda ()
+       (poo-flow-aitia-native-phase 101)
        (poo_flow_aitia_result-status-set! result 0)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
-        result (string->utf8
-                (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-descriptor-payload)))
+       (let* ((payload
+               (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-descriptor-payload))
+              (_ (poo-flow-aitia-native-phase 102))
+              (bytes (string->utf8 payload)))
+         (poo-flow-aitia-native-phase 103)
+         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+          result bytes)
+         (poo-flow-aitia-native-phase 104))
        (poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-gitops-evaluate payload result)

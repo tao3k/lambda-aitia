@@ -99,6 +99,7 @@ int main(int argc, char **argv) {
   }
   native_phase("abi-revision-complete");
   result_init(&result);
+  native_phase("result-init-complete");
   if (descriptor(&result) != 0 || result.status != 0 ||
       result.payload == NULL || result.length == 0 ||
       strstr((const char *)result.payload, "lambda-aitia.native-descriptor") ==
