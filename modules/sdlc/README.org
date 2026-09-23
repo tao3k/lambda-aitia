@@ -13,6 +13,38 @@ Projects may select multiple standards. No standard is automatically activated.
 The activity vocabulary does not impose a waterfall sequence; projects own the
 ordering, iteration and release process.
 
+* Design contracts and replacement review
+
+=design.ss= adds POO-native component design declarations under the SDLC owner.
+A contract names its ADR decision, responsibilities, owned state, allowed
+effects, assumptions, guarantees and variation points. Each clause has an
+identity, revision and statement; a variation declares which guarantees its
+change may affect. These are engineering declarations, not executable logical
+predicates or admitted evidence. Accepting the named ADR does not establish a
+guarantee.
+
+=sdlc-design-replacement-review= compares two revisions of the same contract.
+Its intentionally narrow declaration-level rule permits only exact clause
+identity/revision/statement matches: a candidate may require no new assumption
+and may discard no old guarantee. Added effects, changed state ownership,
+responsibility, ADR decision or variation declarations remain visible blockers.
+The receipt lists changed identities and guarantees requiring fresh checking;
+it never admits evidence or grants release authority. An unchanged declaration
+at a new revision still requires re-verification. Textual similarity is not
+treated as logical implication, and a =declared-substitutable?= candidate is
+not a proof of implementation refinement.
+
+Consumers may feed =changed-identities= into the existing
+=sdlc-change-impact= projection, which delegates trajectory analysis to POO
+Flow Graph. The job-executor regression does this for a retry-policy change:
+only the explicitly affected unique-effect guarantee and its verification
+are selected by the declared graph. If a variation omits a necessary
+dependency, this slice cannot discover it; model-to-implementation conformance
+and independent acceptance remain further qualification work.
+An alternative local-deduplication candidate changes state ownership,
+responsibility and the ADR decision. It is therefore blocked for design review
+even though its guarantee statements have the same text as the original.
+
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
 models. Applications combine this module with POO Flow-owned workflow modules

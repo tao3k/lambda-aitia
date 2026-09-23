@@ -62,7 +62,8 @@ check-semantic:
 # Build the Aitia-owned assurance laws independently of POO Flow's proof package.
 [group('check')]
 check-proof:
-    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof
+    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
+    cd proof/lean && output="$(lake env lean AxiomAudit.lean)" && printf '%s\n' "$output" && ! grep -q 'sorryAx' <<< "$output"
 
 # Aitia owns its native ABI and Python Runtime checks.
 [group('check')]

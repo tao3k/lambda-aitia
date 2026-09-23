@@ -196,11 +196,11 @@ not established the desired downstream contract.
 
 * Acceptance gates
 
-- [ ] An =aitia.ss= containing only =(use-composition aitia)= evaluates to one
+- [X] An =aitia.ss= containing only =(use-composition aitia)= evaluates to one
   admitted Case without explicit import, export or binding forms.
 - [ ] The zero-override Case includes GitOps, NASA SDLC, ADR/RFC, assurance and
   formal-method obligation slots through the default Project Profile.
-- [ ] An ordinary Project clause lowers to POO-native slot operations.
+- [X] An ordinary Project clause lowers to POO-native slot operations.
 - [ ] An advanced POO override extends the same default Project Profile.
 - [ ] Composition/Module namespace collision and use of the reserved =aitia=
   namespace by a user Composition fail at expansion.
@@ -209,6 +209,12 @@ not established the desired downstream contract.
   path rather than private constructors.
 - [ ] Direct compilation, atomic behavior tests, a real Aitia Scenario and the
   existing composition macro scale gate pass with exact receipts.
+
+The checked items have direct behavior coverage in
+=t/modules/unit/composition-identity-test.ss= and POO Flow's
+=t/profile-composition-value-test.ss=. Other items remain open; the default
+Profile selecting five Modules is not yet evidence that every declared slot
+and downstream Scenario has been independently qualified.
 
 * Relationship to other decisions
 

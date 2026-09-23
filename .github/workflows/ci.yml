@@ -32,7 +32,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
   lean-proof:
-    name: Lean assurance laws
+    name: Lean assurance and SDLC design laws
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -63,9 +63,18 @@ jobs:
           echo "ELAN_HOME=$ELAN_HOME" >> "$GITHUB_ENV"
           echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Build assurance proof library
+      - name: Build assurance and SDLC proof libraries
         working-directory: proof/lean
-        run: lake build LambdaAitiaModuleAssuranceProof
+        run: lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
+
+      - name: Reject sorry axioms in exported laws
+        working-directory: proof/lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(lake env lean AxiomAudit.lean)"
+          printf '%s\n' "$output"
+          ! grep -q 'sorryAx' <<< "$output"
 
       - name: Save Lean cache
         if: steps.lean-cache.outputs.cache-hit != 'true'

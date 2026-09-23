@@ -79,4 +79,13 @@
        (check-equal?
         (.ref (.ref (car (.ref case-value 'profiles)) 'delivery) 'provider)
         'github)
+       (check-equal? (.ref (.ref case-value 'admission) 'accepted?) #t)))
+   (test-case "zero-override downstream value needs no imports"
+     (let (case-value
+           (poo-flow-load-composition-value
+            "t/fixtures/composition-value/aitia-default.ss"
+            aitia-composition-catalog))
+       (check-equal? (poo-flow-scenario-case? case-value) #t)
+       (check-equal? (.ref case-value 'name) 'aitia)
+       (check-equal? (length (.ref case-value 'profiles)) 1)
        (check-equal? (.ref (.ref case-value 'admission) 'accepted?) #t)))))
