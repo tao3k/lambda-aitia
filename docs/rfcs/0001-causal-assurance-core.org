@@ -265,10 +265,12 @@ before an =AssuranceEvidence= may become authoritative. Its caller-supplied
 =assurance-support-admissible?= is the sole public support-admission predicate.
 It checks structural relationships, the current snapshot, exact
 evidence/outcome bindings and a POO Flow verification seal over the complete
-semantic subject.  Only a Host-controlled adapter may issue that seal.  A
-copied receipt, modified presentation, expired interval or revoked receipt
-does not verify.  This boundary still does not authorize an effect; Cedar and
-Runtime Host remain separate.
+semantic subject. POO Flow rejects copied or forged adapter presentations as
+well as copied, modified, expired or revoked receipts. This proves issuance by
+the exact adapter instance, not that a caller-supplied adapter was installed
+by a trusted Host. Adapter selection and the evaluation clock must both be
+controlled at the execution boundary; caller-provided values cannot authorize
+an effect. Cedar and Runtime Host remain separate.
 Verifier choice explanation consumes the inert plan and an explicit catalog of
 POO-native candidate declarations.  Evidence-kind/capability compatibility and
 declared numeric priority determine a deterministic choice; every rejected

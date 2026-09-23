@@ -248,6 +248,20 @@
 
     (test-case "copied seal and presentation mutation cannot forge support"
       (check-equal?
+       (assurance-support-admissible?
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome
+        (.o identity: "host/native-test"
+            admits?: (lambda (receipt-value subject-value now-value) #t))
+        trusted-receipt 11)
+       #f)
+      (check-equal?
+       (assurance-support-admissible?
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome
+        (.o (:: @ trusted-adapter)) trusted-receipt 11)
+       #f)
+      (check-equal?
        (verified-support
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome

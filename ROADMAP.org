@@ -220,9 +220,11 @@ Deliverables:
 3. [~] Admission rules for successful, failed, timed-out, unavailable and
    indeterminate verifier outcomes. The current receipt reports structural
    eligibility only; it cannot promote evidence or authorize release.
-   The sole public support-admission entrypoint requires an exact Host-issued
-   POO Flow seal over the current semantic subject; no structural-only public
-   support predicate remains.
+   The sole public support-admission entrypoint requires an exact POO Flow
+   adapter-issued seal over the current semantic subject; no structural-only
+   public support predicate remains. A forged adapter presentation is rejected,
+   but proving that the adapter and evaluation clock belong to the trusted
+   Host remains open.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
