@@ -141,9 +141,11 @@ jobs:
             sudo apt-get install -y --no-install-recommends gdb
             gdb -batch \
               -ex 'set breakpoint pending on' \
-              -ex 'break ___throw_error' \
+              -ex 'break poo_flow_aitia_descriptor' \
               -ex run \
-              -ex 'info registers rdi rsi' \
+              -ex 'tbreak ___throw_error' \
+              -ex continue \
+              -ex 'info registers rdi' \
               -ex 'bt 12' \
               -ex 'frame 2' \
               -ex 'x/24i $pc-80' \
