@@ -5,6 +5,9 @@
 
 (import :std/test
         (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/src/module-system/contribution/verification
+                 poo-flow-verification-adapter poo-flow-verify
+                 poo-flow-revoke-verification!)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 
 (export evidence-admission-test)
@@ -43,6 +46,54 @@
    snapshot-context-digest: (.ref snapshot 'context-digest)
    inputs: (list (assurance-verifier-input artifact))
    output-digest: digest-b))
+(def trusted-evidence
+  (assurance-evidence
+   "evidence/test" "r1" 'supported digest-b
+   producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
+   input-artifacts: '("artifact/source") obligation: "obligation/test"
+   subject: "software/release" scope: "repository"
+   valid-from: "2026-09-23" admission-state: 'admitted))
+(def trusted-discharge
+  (assurance-relation "relation/discharge" 'assurance 'discharges
+                      "evidence/test" "obligation/test" 'observed))
+(def (make-trusted-snapshot obligation-value)
+  (assurance-snapshot
+   "snapshot/software" "r1" "graph/software"
+   '(("artifact/source" . "r1")) '(("claim/release" . "r1"))
+   "event-cut/1" "policy/release" "r1"
+   (list artifact claim obligation-value trusted-evidence)
+   (list trusted-discharge)
+   evidence-identities: '("evidence/test")))
+(def trusted-draft (make-trusted-snapshot obligation))
+(def trusted-obligation
+  (assurance-bind-obligation-to-snapshot obligation trusted-draft))
+(def trusted-snapshot (make-trusted-snapshot trusted-obligation))
+(def trusted-outcome
+  (.o (:: @ outcome)
+      snapshot-context-digest: (.ref trusted-snapshot 'context-digest)))
+(def trusted-adapter
+  (poo-flow-verification-adapter
+   "host/native-test"
+   (lambda (subject-value now until)
+     (and (eq? (.ref (.ref subject-value 'outcome) 'status) 'succeeded)
+          (equal? (.ref (.ref subject-value 'evidence) 'content-digest)
+                  digest-b)))
+   assurance-verification-subject-snapshot))
+(def trusted-subject
+  (assurance-verification-subject
+   trusted-snapshot trusted-obligation trusted-evidence trusted-outcome))
+(def trusted-receipt
+  (poo-flow-verify trusted-adapter trusted-subject 10 20))
+(def untrusted-adapter
+  (poo-flow-verification-adapter
+   "other/native-test"
+   (lambda (subject-value now until) #t)
+   assurance-verification-subject-snapshot))
+(def (verified-support relation-value evidence-value obligation-value
+                       snapshot-value outcome-value receipt-value now-value)
+  (assurance-verified-support-admissible?
+   relation-value evidence-value obligation-value snapshot-value outcome-value
+   trusted-adapter receipt-value now-value))
 (def (blocker snapshot-value obligation-value outcome-value)
   (.ref (assurance-evaluate-evidence-admission
          snapshot-value obligation-value outcome-value)
@@ -181,4 +232,67 @@
                   (.o (:: @ human-outcome)
                       accountable-authority: "maintainer"
                       review-scope: "repository"))
-         #f)))))
+         #f)))
+
+    (test-case "structural support is not a sealed execution receipt"
+      (check-equal?
+       (assurance-support-admissible?
+        trusted-discharge trusted-evidence trusted-obligation)
+       #t)
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome #f 11)
+       #f)
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome trusted-receipt 11)
+       #t))
+
+    (test-case "copied seal and presentation mutation cannot forge support"
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome
+        (.o (:: @ trusted-receipt)) 11)
+       #f)
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        (.o (:: @ trusted-snapshot) state: 'supported)
+        trusted-outcome trusted-receipt 11)
+       #f)
+      (check-equal?
+       (verified-support
+        trusted-discharge
+        (.o (:: @ trusted-evidence) tool-version: "v20")
+        trusted-obligation trusted-snapshot trusted-outcome
+        trusted-receipt 11)
+       #f)
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot
+        (.o (:: @ trusted-outcome) tool-version: "v20")
+        trusted-receipt 11)
+       #f)
+      (check-equal?
+       (assurance-verified-support-admissible?
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome untrusted-adapter
+        trusted-receipt 11)
+       #f))
+
+    (test-case "expiry and revocation remove verified support"
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome trusted-receipt 20)
+       #f)
+      (poo-flow-revoke-verification! trusted-adapter trusted-receipt)
+      (check-equal?
+       (verified-support
+        trusted-discharge trusted-evidence trusted-obligation
+        trusted-snapshot trusted-outcome trusted-receipt 11)
+       #f))))

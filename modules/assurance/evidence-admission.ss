@@ -6,14 +6,21 @@
 ;;; Pure structural eligibility only. The Host still owns adapter identity,
 ;;; execution attestation and the transition to admitted evidence.
 (import (only-in :clan/poo/object .o .ref)
+        (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
         :poo-flow/src/module-system/contribution/model
+        (only-in :poo-flow/src/module-system/contribution/verification
+                 poo-flow-verification-valid?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
-                 assurance-canonical-digest assurance-node-canonical)
+                 assurance-canonical-digest assurance-node-canonical
+                 assurance-relation-canonical assurance-support-admissible?)
         :poo-flow/lambda-aitia/modules/assurance/types)
 
 (export assurance-verifier-input assurance-verifier-outcome
-        assurance-evaluate-evidence-admission)
+        assurance-evaluate-evidence-admission
+        assurance-verification-subject
+        assurance-verification-subject-snapshot
+        assurance-verified-support-admissible?)
 
 (def (assurance-verifier-input artifact)
   (unless (assurance-artifact? artifact)
@@ -78,6 +85,92 @@
         (.ref reported-result 'output-digest)
         (.ref reported-result 'accountable-authority)
         (.ref reported-result 'review-scope)))
+
+(def (assurance-verification-subject snapshot-value obligation-value
+                                     evidence-value outcome-value)
+  (poo-flow-check-model
+   AssuranceVerificationSubject
+   (.o (:: @ (poo-flow-model-prototype AssuranceVerificationSubject))
+       snapshot: snapshot-value obligation: obligation-value
+       evidence: evidence-value outcome: outcome-value)))
+
+;;; POO Flow's adapter freezes this string before and after its host-trusted
+;;; operation. Recompute from every semantic field: mutating only a displayed
+;;; snapshot digest must not preserve an issued seal.
+(def (assurance-verification-subject-snapshot subject-value)
+  (unless (assurance-verification-subject? subject-value)
+    (error "invalid assurance verification subject"))
+  (let ((snapshot-value (.ref subject-value 'snapshot)))
+    (assurance-canonical-digest
+     (list 'lambda-aitia.verification-subject
+           (.ref snapshot-value 'identity)
+           (.ref snapshot-value 'revision)
+           (.ref snapshot-value 'graph-identity)
+           (.ref snapshot-value 'source-revisions)
+           (.ref snapshot-value 'claim-revisions)
+           (.ref snapshot-value 'fact-cut)
+           (.ref snapshot-value 'policy-identity)
+           (.ref snapshot-value 'policy-revision)
+           (.ref snapshot-value 'evidence-identities)
+           (.ref snapshot-value 'state)
+           (.ref snapshot-value 'context-digest)
+           (.ref snapshot-value 'digest)
+           (map assurance-node-canonical (.ref snapshot-value 'nodes))
+           (map assurance-relation-canonical
+                (.ref snapshot-value 'relations))
+           (.ref snapshot-value 'unresolved)
+           (.ref snapshot-value 'conflicts)
+           (assurance-node-canonical (.ref subject-value 'obligation))
+           (assurance-node-canonical (.ref subject-value 'evidence))
+           (outcome-canonical (.ref subject-value 'outcome))))))
+
+(def (snapshot-relation snapshot-value identity-value)
+  (find (lambda (relation)
+          (string=? (.ref relation 'identity) identity-value))
+        (.ref snapshot-value 'relations)))
+(def (same-text-inventory? left right)
+  (and (= (length left) (length right))
+       (equal? (list-sort string<? left) (list-sort string<? right))))
+
+;;; The older three-argument predicate checks structural support only. This
+;;; boundary additionally requires a currently issued, unrevoked POO Flow seal
+;;; over the complete semantic subject. The adapter itself is Host-owned; an
+;;; untrusted caller must never be allowed to install its operation.
+(def (assurance-verified-support-admissible?
+      relation evidence obligation snapshot outcome adapter issued-receipt now)
+  (and (assurance-support-admissible? relation evidence obligation)
+       (assurance-snapshot? snapshot)
+       (assurance-verifier-outcome? outcome)
+       (let ((current-evidence
+              (snapshot-node snapshot (.ref evidence 'identity)))
+             (current-relation
+              (snapshot-relation snapshot (.ref relation 'identity)))
+             (structural
+              (assurance-evaluate-evidence-admission
+               snapshot obligation outcome)))
+         (and current-evidence
+              (assurance-evidence? current-evidence)
+              (equal? (assurance-node-canonical current-evidence)
+                      (assurance-node-canonical evidence))
+              current-relation
+              (equal? (assurance-relation-canonical current-relation)
+                      (assurance-relation-canonical relation))
+              (.ref structural 'eligible?)
+              (equal? (.ref evidence 'content-digest)
+                      (.ref outcome 'output-digest))
+              (equal? (.ref evidence 'producer) (.ref outcome 'producer))
+              (equal? (.ref evidence 'tool) (.ref outcome 'tool))
+              (equal? (.ref evidence 'tool-version)
+                      (.ref outcome 'tool-version))
+              (same-text-inventory?
+               (.ref evidence 'input-artifacts)
+               (map (lambda (input) (.ref input 'identity))
+                    (.ref outcome 'inputs)))
+              (poo-flow-verification-valid?
+               adapter issued-receipt
+               (assurance-verification-subject
+                snapshot obligation evidence outcome)
+               now)))))
 
 (def (assurance-evaluate-evidence-admission snapshot obligation outcome)
   (unless (and (assurance-snapshot? snapshot)

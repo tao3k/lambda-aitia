@@ -17,12 +17,12 @@ ontology surfaces.
 The software Architecture Decision Record module is also Aitia-owned and is
 published as =ADR=.  No lowercase compatibility module is retained.
 
-The Aitia-side source migration and parity inventory are complete.  Publication
-cutover remains evidence-partial until Lambda Episteme publishes the deletion
-of ADR, GitOps and SDLC and POO Flow pins that clean child commit.  This
-inventory governs the intended post-migration boundary and prevents either
-repository from reintroducing compatibility aliases or duplicate semantic
-owners.
+The Aitia-side source migration and parity inventory are complete.  The
+Episteme deletion is published, and the POO Flow main gitlink already pins a
+clean Episteme cut.  The Aitia PR head is newer than the POO Flow main gitlink
+and requires a separate pin update after acceptance.  This inventory governs
+the post-migration boundary and prevents either repository from reintroducing
+compatibility aliases or duplicate semantic owners.
 
 Classification:
 

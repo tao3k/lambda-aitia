@@ -48,13 +48,15 @@ Exit gates:
   parent state;
 - mounting the repository performs no activation or effect.
 
-Current evidence: the production dependency closure, Phase 2 Assurance fixture,
-modular Lean library, integration lane and native Scheme/C/Python package replay
+Current evidence: the independent PR CI, production dependency closure, Phase 2
+Assurance fixture, modular Lean library, integration lane and native
+Scheme/C/Python package replay
 from an isolated checkout at exact revisions.  The Homebrew Darwin toolchain
 adaptation is child-process scoped and does not alter a Nix-selected toolchain
 or the parent environment.  See
 =docs/receipts/2026-09-18-phase2-clean-replay.org=.  The remaining Phase 0 work
-is the independent CI/release lane and checked integration inventory.
+is a release lane and executable integration-inventory acceptance. The PR CI
+does not by itself constitute a published release or complete Phase 0.
 
 * Phase 1 — SDLC ownership migration and POO-native semantic kernel
 
@@ -205,8 +207,9 @@ Exit gates:
 
 * Phase 4 — Verifier adapters and evidence admission
 
-Status: =in-progress= (typed reported outcomes and pure structural eligibility
-are implemented; trusted adapter execution and evidence promotion are open).
+Status: =in-progress= (typed reported outcomes, pure structural eligibility and
+sealed-support checks reuse POO Flow's verification adapter. The trusted Host
+operation, evidence promotion and effect gate remain open).
 
 Deliverables:
 
@@ -217,6 +220,9 @@ Deliverables:
 3. [~] Admission rules for successful, failed, timed-out, unavailable and
    indeterminate verifier outcomes. The current receipt reports structural
    eligibility only; it cannot promote evidence or authorize release.
+   Verified support additionally requires an exact Host-issued POO Flow seal;
+   the existing three-argument support predicate remains structural-only and
+   must never be used as an authorization gate.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
@@ -351,8 +357,9 @@ These are the next bounded changes after Phase 0 review:
 
 1. [X] Add the repository contribution policy under the confirmed license contract.
 2. [X] Record the exact SDLC source/test/tool/profile inventory and current receipts.
-3. Move the SDLC and GitOps owners into Aitia and close the published Episteme
-   deletion plus parent pin; Aitia-side source and parity are complete.
+3. [X] Move the SDLC and GitOps owners into Aitia and publish the Episteme
+   deletion plus parent pin at the already qualified ownership cut. A newer
+   Aitia PR head still needs its own parent gitlink update after acceptance.
 4. [X] Add the five-role =modules/assurance/= skeleton with declarations only.
 5. [X] Define the versioned vocabulary manifest and schema identifiers.
 6. [X] Implement relation-plane validation and its negative test matrix.

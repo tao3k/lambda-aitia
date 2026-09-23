@@ -25,7 +25,7 @@
         AssuranceVerificationPlan AssuranceVerifierCandidate
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
         AssuranceVerifierInput AssuranceVerifierOutcome
-        AssuranceEvidenceAdmissionReceipt
+        AssuranceEvidenceAdmissionReceipt AssuranceVerificationSubject
         AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
@@ -42,6 +42,7 @@
         assurance-verifier-choice? assurance-verifier-choice-receipt?
         assurance-verifier-input? assurance-verifier-outcome?
         assurance-evidence-admission-receipt?
+        assurance-verification-subject?
         assurance-composition-requirement?
         assurance-composition-derivation?)
 
@@ -481,6 +482,17 @@
           (enum-slot 'verifier-executed? (one-of '(#f)))
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
+;;; Exact subject for a Host-owned POO Flow verification adapter.  No
+;;; caller-authored presentation slot is an execution attestation by itself.
+(def AssuranceVerificationSubject
+  (poo-clos-class 'aitia/verification-subject
+    direct-slots:
+    (list (enum-slot 'snapshot (lambda (value) (assurance-snapshot? value)))
+          (enum-slot 'obligation (lambda (value) (assurance-obligation? value)))
+          (enum-slot 'evidence (lambda (value) (assurance-evidence? value)))
+          (enum-slot 'outcome
+                     (lambda (value) (assurance-verifier-outcome? value))))))
+
 ;;; A composition needs its own snapshot-bound obligation. Component support
 ;;; remains separate and cannot discharge this structural requirement.
 (def AssuranceCompositionRequirement
@@ -597,6 +609,8 @@
 (def (assurance-evidence-admission-receipt? value)
   (and (poo-flow-model? AssuranceEvidenceAdmissionReceipt value)
        (eq? (.ref value 'eligible?) (not (.ref value 'blocker)))))
+(def (assurance-verification-subject? value)
+  (poo-flow-model? AssuranceVerificationSubject value))
 (def (assurance-composition-requirement? value)
   (poo-flow-model? AssuranceCompositionRequirement value))
 (def (assurance-composition-derivation? value)
