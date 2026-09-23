@@ -7,15 +7,18 @@
 ;;; lease are private to the exact issued Host object; neither an editable POO
 ;;; presentation nor a per-call time argument selects authority.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
+        (only-in :std/list/list find every filter delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
+        :poo-flow/src/module-system/contribution/model
         (only-in :poo-flow/src/module-system/contribution/verification
                  poo-flow-verification-adapter poo-flow-verify
                  poo-flow-verification-valid?
                  poo-flow-revoke-verification!)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
-                 assurance-snapshot?)
+                 assurance-snapshot? assurance-claim? assurance-obligation?
+                 AssuranceRequiredSupport AssessmentRequiredSupport)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
-                 assurance-snapshot-canonical?)
+                 assurance-snapshot-canonical? assurance-node-canonical)
         (only-in :poo-flow/lambda-aitia/modules/assurance/evidence-admission
                  assurance-evaluate-evidence-admission
                  assurance-evidence-outcome-bound?
@@ -29,6 +32,7 @@
         assurance-host-sealed-support? assurance-host-revoke!
         assurance-host-admit assurance-host-admission-current?
         assurance-host-admitted-support?
+        assurance-host-required-support
         assurance-host-revoke-admission!)
 
 (def issued-hosts (make-hash-table-eq weak-keys: #t))
@@ -237,6 +241,141 @@
                 (assurance-candidate-support-structural?
                  relation (vector-ref issued 8) (vector-ref issued 7)
                  snapshot))))))
+
+(def (snapshot-node snapshot identity)
+  (find (lambda (node) (equal? (.ref node 'identity) identity))
+        (.ref snapshot 'nodes)))
+
+(def (required-support-link? snapshot obligation claim)
+  (find (lambda (relation)
+          (and (eq? (.ref relation 'plane) 'assurance)
+               (eq? (.ref relation 'relation) 'supports)
+               (equal? (.ref relation 'source) (.ref obligation 'identity))
+               (equal? (.ref relation 'target) (.ref claim 'identity))
+               (not (memq (.ref relation 'modality)
+                          '(hypothesized counterfactual)))))
+        (.ref snapshot 'relations)))
+
+(def (admitted-requirement-blocker host host-state snapshot obligation admissions)
+  (let* ((matching
+          (filter (lambda (admission)
+                    (let (issued (admission-entry host admission))
+                      (and issued
+                           (equal? (.ref (vector-ref issued 7) 'identity)
+                                   (.ref obligation 'identity)))))
+                  admissions)))
+    (if (null? matching)
+      'admission-missing
+      (let loop ((remaining matching) (saw-current? #f))
+        (if (null? remaining)
+          (if saw-current? 'evidence-link-missing 'admission-invalid)
+          (let* ((issued (admission-entry host (car remaining)))
+                 (current (current-admission-snapshot host-state issued)))
+            (if (and current
+                     (equal? (assurance-snapshot-semantic-digest current)
+                             (assurance-snapshot-semantic-digest snapshot)))
+              (if (find (lambda (relation)
+                          (assurance-candidate-support-structural?
+                           relation (vector-ref issued 8) obligation snapshot))
+                        (.ref snapshot 'relations))
+                #f
+                (loop (cdr remaining) #t))
+              (loop (cdr remaining) saw-current?))))))))
+
+(def (required-support-row host host-state snapshot claim-value identity admissions)
+  (let* ((obligation (snapshot-node snapshot identity))
+         (reason
+          (cond
+           ((not (and obligation (assurance-obligation? obligation)))
+            'obligation-missing)
+           ((or (not (equal? (.ref obligation 'claim) (.ref claim-value 'identity)))
+                (not (equal? (.ref obligation 'subject) (.ref claim-value 'subject)))
+                (not (equal? (.ref obligation 'scope) (.ref claim-value 'scope)))
+                (not (equal? (.ref obligation 'snapshot)
+                             (.ref snapshot 'identity)))
+                (not (equal? (.ref obligation 'snapshot-revision)
+                             (.ref snapshot 'revision)))
+                (not (equal? (.ref obligation 'snapshot-context-digest)
+                             (.ref snapshot 'context-digest)))
+                (memq (.ref obligation 'state)
+                      '(violated stale conflicted hypothesized counterfactual
+                        not-applicable)))
+            'obligation-stale)
+           ((not (required-support-link? snapshot obligation claim-value))
+            'support-link-missing)
+           (else
+            (admitted-requirement-blocker
+             host host-state snapshot obligation admissions)))))
+    (poo-flow-check-model
+     AssessmentRequiredSupport
+     (.o (:: @ (poo-flow-model-prototype AssessmentRequiredSupport))
+         obligation: identity supported?: (not reason) blocker: reason))))
+
+;;; Inert, explainable input for a later Decision evaluator. Completion means
+;;; only that every declared support requirement has a current Host witness;
+;;; it does not resolve policy, validity intervals or Runtime effect authority.
+(def (assurance-host-required-support host claim-value admissions)
+  (unless (and (assurance-claim? claim-value) (list? admissions))
+    (error "invalid required-support inputs"))
+  (let* ((host-state (required-host-entry host))
+         (snapshot (host-current-snapshot host-state))
+         (initial-epoch (vector-ref host-state 8))
+         (current-claim (snapshot-node snapshot (.ref claim-value 'identity)))
+         (required-identities (.ref claim-value 'support-requirements))
+         (rows
+          (map (lambda (identity)
+                 (required-support-row
+                  host host-state snapshot claim-value identity admissions))
+               required-identities))
+         (global-blockers
+          (append
+           (if (pair? (.ref snapshot 'conflicts)) '(snapshot-conflicted) '())
+           (if (pair? (.ref snapshot 'unresolved)) '(snapshot-unresolved) '())
+           (if (and current-claim (assurance-claim? current-claim)
+                    (equal? (assurance-node-canonical claim-value)
+                            (assurance-node-canonical current-claim))
+                    (member (cons (.ref claim-value 'identity)
+                                  (.ref claim-value 'revision))
+                            (.ref snapshot 'claim-revisions)))
+             '() '(claim-not-current))
+           (if (null? required-identities) '(no-requirements) '())
+           (if (= (length required-identities)
+                  (length (delete-duplicates/hash required-identities)))
+             '() '(duplicate-requirements))
+           (if (pair? (.ref claim-value 'assumptions))
+             '(assumptions-unresolved) '())
+           (if (pair? (.ref claim-value 'defeaters))
+             '(defeaters-unresolved) '())
+           (if (memq (.ref claim-value 'state)
+                     '(violated stale conflicted hypothesized counterfactual
+                       not-applicable))
+             '(claim-state-blocked) '())
+           (if (find (lambda (node)
+                       (and (memq (.ref node 'kind)
+                                  '(counterexample finding))
+                            (equal? (.ref node 'challenges)
+                                    (.ref claim-value 'identity))))
+                     (.ref snapshot 'nodes))
+             '(challenge-unresolved) '())))
+         (final-snapshot (host-current-snapshot host-state))
+         (final-blockers
+          (append global-blockers
+                  (if (and (= initial-epoch (vector-ref host-state 8))
+                           (equal?
+                            (assurance-snapshot-semantic-digest snapshot)
+                            (assurance-snapshot-semantic-digest final-snapshot)))
+                    '() '(source-changed)))))
+    (poo-flow-check-model
+     AssuranceRequiredSupport
+     (.o (:: @ (poo-flow-model-prototype AssuranceRequiredSupport))
+         schema: "lambda-aitia.required-support"
+         claim: (.ref claim-value 'identity)
+         snapshot-digest: (.ref snapshot 'digest)
+         requirements: rows blockers: final-blockers
+         complete?: (and (null? final-blockers)
+                         (pair? rows)
+                         (every (lambda (row) (.ref row 'supported?)) rows))
+         release-authorized?: #f))))
 
 (def (assurance-host-revoke-admission! host admission)
   (required-host-entry host)

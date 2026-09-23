@@ -213,8 +213,10 @@ sealed-support checks reuse POO Flow's verification adapter. A configured
 Scheme Host capability now owns adapter, clock, lease, current snapshot source,
 revocation and a separate candidate admission ledger. An exact current
 assurance-edge witness can consume that ledger without promoting the snapshot
-evidence slot. Full Decision closure, trusted deployment, Cedar policy and the
-Runtime effect gate remain open).
+evidence slot. A typed required-support receipt now checks all claim-declared
+obligations and both assurance links at the current Host cut, with explicit
+blockers and no release authority. Full Decision closure, trusted deployment,
+Cedar policy and the Runtime effect gate remain open).
 
 Deliverables:
 

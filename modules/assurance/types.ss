@@ -26,6 +26,7 @@
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
         AssuranceVerifierInput AssuranceVerifierOutcome
         AssuranceEvidenceAdmissionReceipt AssuranceVerificationSubject
+        AssuranceRequiredSupport AssessmentRequiredSupport
         AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
@@ -42,6 +43,7 @@
         assurance-verifier-choice? assurance-verifier-choice-receipt?
         assurance-verifier-input? assurance-verifier-outcome?
         assurance-evidence-admission-receipt?
+        assurance-required-support? assessment-required-support?
         assurance-verification-subject?
         assurance-composition-requirement?
         assurance-composition-derivation?)
@@ -493,6 +495,42 @@
           (enum-slot 'outcome
                      (lambda (value) (assurance-verifier-outcome? value))))))
 
+;;; Host-checked support inventory is an input to Decision evaluation, not a
+;;; Decision or an authority receipt. A POO presentation cannot grant release.
+(def (required-support-blocker? value)
+  (or (not value)
+      (memq value '(obligation-missing obligation-stale support-link-missing
+                    admission-missing admission-invalid
+                    evidence-link-missing))))
+(def AssessmentRequiredSupport
+  (poo-clos-class 'aitia/required-support-assessment
+    direct-slots:
+    (list (text-slot 'obligation)
+          (enum-slot 'supported? boolean?)
+          (enum-slot 'blocker required-support-blocker?))))
+(def (required-support-list? values)
+  (and (list? values) (every assessment-required-support? values)))
+(def (required-support-global-blocker? value)
+  (memq value '(snapshot-conflicted snapshot-unresolved claim-not-current
+                no-requirements duplicate-requirements
+                assumptions-unresolved defeaters-unresolved
+                claim-state-blocked challenge-unresolved source-changed)))
+(def (required-support-global-blockers? values)
+  (and (list? values)
+       (every required-support-global-blocker? values)))
+(def AssuranceRequiredSupport
+  (poo-clos-class 'aitia/required-support
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.required-support")))
+          (text-slot 'claim)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'requirements required-support-list?)
+          (enum-slot 'blockers required-support-global-blockers?)
+          (enum-slot 'complete? boolean?)
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 ;;; A composition needs its own snapshot-bound obligation. Component support
 ;;; remains separate and cannot discharge this structural requirement.
 (def AssuranceCompositionRequirement
@@ -609,6 +647,16 @@
 (def (assurance-evidence-admission-receipt? value)
   (and (poo-flow-model? AssuranceEvidenceAdmissionReceipt value)
        (eq? (.ref value 'eligible?) (not (.ref value 'blocker)))))
+(def (assessment-required-support? value)
+  (and (poo-flow-model? AssessmentRequiredSupport value)
+       (eq? (.ref value 'supported?) (not (.ref value 'blocker)))))
+(def (assurance-required-support? value)
+  (and (poo-flow-model? AssuranceRequiredSupport value)
+       (eq? (.ref value 'complete?)
+            (and (null? (.ref value 'blockers))
+                 (pair? (.ref value 'requirements))
+                 (every (lambda (item) (.ref item 'supported?))
+                        (.ref value 'requirements))))))
 (def (assurance-verification-subject? value)
   (poo-flow-model? AssuranceVerificationSubject value))
 (def (assurance-composition-requirement? value)

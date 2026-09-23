@@ -278,6 +278,14 @@ copied admissions, speculative modalities, expiration and source invalidation.
 This is one edge witness; it does not close all claim requirements or produce
 an =allow= Decision. Full closure, Cedar policy and Runtime effect gating remain
 separate steps.
+=assurance-host-required-support= now evaluates the claim-declared obligation
+inventory against the Host's current cut. Its typed POO receipt reports one
+blocker per required obligation, rejects missing obligation-to-claim and
+evidence-to-obligation links, and leaves empty/duplicate requirements,
+assumptions, defeaters, unresolved frontiers and challenges visibly blocked.
+Even =complete?= means only that the declared support inventory is witnessed;
+=release-authorized?= remains false. Validity intervals, policy evaluation and
+the actual Decision authority boundary are still separate work.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
