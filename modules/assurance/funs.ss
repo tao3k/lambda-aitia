@@ -23,7 +23,7 @@
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
         assurance-bind-obligation-to-snapshot
-        assurance-support-admissible? assurance-invalidation-graph
+        assurance-invalidation-graph
         assurance-invalidate assurance-derive-replacement-requirements
         assurance-declare-replacement-obligation
         assurance-plan-verification assurance-explain-verifier-choices
@@ -298,25 +298,6 @@
      (.o (:: @ obligation)
          snapshot-revision: bound-revision
          snapshot-context-digest: bound-context))))
-
-;;; Shape and a green-looking relation never grant support.  The exact
-;;; evidence and obligation identities must match, and alternate modalities
-;;; cannot discharge an observed-fact obligation.
-(def (assurance-support-admissible? relation evidence obligation)
-  (and (assurance-relation? relation)
-       (assurance-evidence? evidence)
-       (assurance-obligation? obligation)
-       (eq? (.ref relation 'plane) 'assurance)
-       (memq (.ref relation 'relation) '(supports discharges))
-       (equal? (.ref relation 'source) (.ref evidence 'identity))
-       (equal? (.ref relation 'target) (.ref obligation 'identity))
-       (equal? (.ref evidence 'obligation) (.ref obligation 'identity))
-       (equal? (.ref evidence 'subject) (.ref obligation 'subject))
-       (equal? (.ref evidence 'scope) (.ref obligation 'scope))
-       (equal? (.ref evidence 'revision) (.ref obligation 'revision))
-       (eq? (.ref evidence 'state) 'supported)
-       (eq? (.ref evidence 'admission-state) 'admitted)
-       (not (memq (.ref relation 'modality) '(hypothesized counterfactual)))))
 
 (def (identity-member? identity values)
   (if (member identity values) #t #f))

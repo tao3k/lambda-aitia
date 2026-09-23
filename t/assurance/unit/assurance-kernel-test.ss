@@ -7,6 +7,8 @@
         (only-in :std/error Error?)
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/src/module-system/contribution/verification
+                 poo-flow-verification-adapter poo-flow-verify)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 
 (export assurance-kernel-test)
@@ -108,6 +110,35 @@
    (list artifact claim obligation evidence decision effect)
    (list dependency discharge obligation-support
          decision-dependency authorization)))
+(def current-obligation
+  (find (lambda (node)
+          (and (assurance-obligation? node)
+               (equal? (.ref node 'identity) "obligation/verify")))
+        (.ref full-software-snapshot 'nodes)))
+(def support-outcome
+  (assurance-verifier-outcome
+   "outcome/kernel" 'succeeded
+   producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
+   obligation: "obligation/verify" subject: "software/release"
+   scope: "repository"
+   snapshot-revision: (.ref full-software-snapshot 'revision)
+   snapshot-context-digest: (.ref full-software-snapshot 'context-digest)
+   inputs: (list (assurance-verifier-input artifact))
+   output-digest: digest-b))
+(def support-adapter
+  (poo-flow-verification-adapter
+   "test/kernel-support" (lambda (subject-value now-value until-value) #t)
+   assurance-verification-subject-snapshot))
+(def support-receipt
+  (poo-flow-verify
+   support-adapter
+   (assurance-verification-subject
+    full-software-snapshot current-obligation evidence support-outcome)
+   10 20))
+(def (kernel-support? relation-value evidence-value)
+  (assurance-support-admissible?
+   relation-value evidence-value current-obligation full-software-snapshot
+   support-outcome support-adapter support-receipt 11))
 
 (def replacement-claim
   (assurance-claim
@@ -298,35 +329,35 @@
 
     (test-case "alternate evidence and temporal order grant no support"
       (check-equal?
-       (assurance-support-admissible? discharge evidence obligation) #t)
+       (kernel-support? discharge evidence) #t)
       (check-equal?
-       (assurance-support-admissible?
-        discharge (.o (:: @ evidence) state: 'hypothesized) obligation)
+       (kernel-support?
+        discharge (.o (:: @ evidence) state: 'hypothesized))
        #f)
       (check-equal?
-       (assurance-support-admissible?
+       (kernel-support?
         (.o (:: @ discharge) modality: 'counterfactual)
-        evidence obligation)
+        evidence)
        #f)
       (check-equal?
-       (assurance-support-admissible?
+       (kernel-support?
         (assurance-relation "relation/precedes" 'causal 'precedes
                             "evidence/test" "obligation/verify" 'observed)
-       evidence obligation)
+       evidence)
        #f))
 
     (test-case "candidate or mismatched evidence cannot discharge an obligation"
       (check-equal?
-       (assurance-support-admissible?
-        discharge (.o (:: @ evidence) admission-state: 'candidate) obligation)
+       (kernel-support?
+        discharge (.o (:: @ evidence) admission-state: 'candidate))
        #f)
       (check-equal?
-       (assurance-support-admissible?
-        discharge (.o (:: @ evidence) obligation: "obligation/other") obligation)
+       (kernel-support?
+        discharge (.o (:: @ evidence) obligation: "obligation/other"))
        #f)
       (check-equal?
-       (assurance-support-admissible?
-        discharge (.o (:: @ evidence) revision: "r2") obligation)
+       (kernel-support?
+        discharge (.o (:: @ evidence) revision: "r2"))
        #f))
 
     (test-case "change invalidation is deterministic and never grants authority"

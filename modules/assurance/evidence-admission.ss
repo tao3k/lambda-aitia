@@ -3,8 +3,8 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Pure structural eligibility only. The Host still owns adapter identity,
-;;; execution attestation and the transition to admitted evidence.
+;;; Pure eligibility and sealed support checks. The Host still owns adapter
+;;; identity, execution attestation and the transition to admitted evidence.
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
@@ -13,14 +13,14 @@
                  poo-flow-verification-valid?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest assurance-node-canonical
-                 assurance-relation-canonical assurance-support-admissible?)
+                 assurance-relation-canonical)
         :poo-flow/lambda-aitia/modules/assurance/types)
 
 (export assurance-verifier-input assurance-verifier-outcome
         assurance-evaluate-evidence-admission
         assurance-verification-subject
         assurance-verification-subject-snapshot
-        assurance-verified-support-admissible?)
+        assurance-support-admissible?)
 
 (def (assurance-verifier-input artifact)
   (unless (assurance-artifact? artifact)
@@ -132,13 +132,29 @@
   (and (= (length left) (length right))
        (equal? (list-sort string<? left) (list-sort string<? right))))
 
-;;; The older three-argument predicate checks structural support only. This
-;;; boundary additionally requires a currently issued, unrevoked POO Flow seal
-;;; over the complete semantic subject. The adapter itself is Host-owned; an
-;;; untrusted caller must never be allowed to install its operation.
-(def (assurance-verified-support-admissible?
+;;; Shape alone never grants support. This check is private to the sealed
+;;; admission boundary and cannot be used as a public authorization shortcut.
+(def (structural-support? relation evidence obligation)
+  (and (assurance-relation? relation)
+       (assurance-evidence? evidence)
+       (assurance-obligation? obligation)
+       (eq? (.ref relation 'plane) 'assurance)
+       (memq (.ref relation 'relation) '(supports discharges))
+       (equal? (.ref relation 'source) (.ref evidence 'identity))
+       (equal? (.ref relation 'target) (.ref obligation 'identity))
+       (equal? (.ref evidence 'obligation) (.ref obligation 'identity))
+       (equal? (.ref evidence 'subject) (.ref obligation 'subject))
+       (equal? (.ref evidence 'scope) (.ref obligation 'scope))
+       (equal? (.ref evidence 'revision) (.ref obligation 'revision))
+       (eq? (.ref evidence 'state) 'supported)
+       (eq? (.ref evidence 'admission-state) 'admitted)
+       (not (memq (.ref relation 'modality) '(hypothesized counterfactual)))))
+
+;;; Public support requires a currently issued, unrevoked POO Flow seal over
+;;; the complete semantic subject. The adapter itself remains Host-owned.
+(def (assurance-support-admissible?
       relation evidence obligation snapshot outcome adapter issued-receipt now)
-  (and (assurance-support-admissible? relation evidence obligation)
+  (and (structural-support? relation evidence obligation)
        (assurance-snapshot? snapshot)
        (assurance-verifier-outcome? outcome)
        (let ((current-evidence

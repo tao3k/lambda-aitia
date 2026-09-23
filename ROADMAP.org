@@ -220,9 +220,9 @@ Deliverables:
 3. [~] Admission rules for successful, failed, timed-out, unavailable and
    indeterminate verifier outcomes. The current receipt reports structural
    eligibility only; it cannot promote evidence or authorize release.
-   Verified support additionally requires an exact Host-issued POO Flow seal;
-   the existing three-argument support predicate remains structural-only and
-   must never be used as an authorization gate.
+   The sole public support-admission entrypoint requires an exact Host-issued
+   POO Flow seal over the current semantic subject; no structural-only public
+   support predicate remains.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,

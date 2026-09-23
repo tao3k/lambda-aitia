@@ -91,7 +91,7 @@
    assurance-verification-subject-snapshot))
 (def (verified-support relation-value evidence-value obligation-value
                        snapshot-value outcome-value receipt-value now-value)
-  (assurance-verified-support-admissible?
+  (assurance-support-admissible?
    relation-value evidence-value obligation-value snapshot-value outcome-value
    trusted-adapter receipt-value now-value))
 (def (blocker snapshot-value obligation-value outcome-value)
@@ -234,11 +234,7 @@
                       review-scope: "repository"))
          #f)))
 
-    (test-case "structural support is not a sealed execution receipt"
-      (check-equal?
-       (assurance-support-admissible?
-        trusted-discharge trusted-evidence trusted-obligation)
-       #t)
+    (test-case "support requires a sealed execution receipt"
       (check-equal?
        (verified-support
         trusted-discharge trusted-evidence trusted-obligation
@@ -278,7 +274,7 @@
         trusted-receipt 11)
        #f)
       (check-equal?
-       (assurance-verified-support-admissible?
+       (assurance-support-admissible?
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome untrusted-adapter
         trusted-receipt 11)
