@@ -22,6 +22,7 @@
         assurance-verification-subject
         assurance-snapshot-semantic-digest
         assurance-verification-subject-snapshot
+        assurance-candidate-support-structural?
         assurance-support-sealed-under-adapter?)
 
 (def (assurance-verifier-input artifact)
@@ -168,7 +169,7 @@
 
 ;;; Shape alone never grants support. This check is private to the sealed
 ;;; admission boundary and cannot be used as a public authorization shortcut.
-(def (structural-support? relation evidence obligation)
+(def (structural-support? relation evidence obligation admission-state)
   (and (assurance-relation? relation)
        (assurance-evidence? evidence)
        (assurance-obligation? obligation)
@@ -181,14 +182,26 @@
        (equal? (.ref evidence 'scope) (.ref obligation 'scope))
        (equal? (.ref evidence 'revision) (.ref obligation 'revision))
        (eq? (.ref evidence 'state) 'supported)
-       (eq? (.ref evidence 'admission-state) 'admitted)
+       (eq? (.ref evidence 'admission-state) admission-state)
        (not (memq (.ref relation 'modality) '(hypothesized counterfactual)))))
+
+;;; A relation is only a structural witness until a Host checks the separate
+;;; admission capability. The candidate state is never rewritten in the cut.
+(def (assurance-candidate-support-structural?
+      relation evidence obligation snapshot)
+  (and (structural-support? relation evidence obligation 'candidate)
+       (assurance-snapshot? snapshot)
+       (let (current
+             (snapshot-relation snapshot (.ref relation 'identity)))
+         (and current
+              (equal? (assurance-relation-canonical current)
+                      (assurance-relation-canonical relation))))))
 
 ;;; Conditional low-level check: this does not establish that the supplied
 ;;; adapter and clock belong to the application-configured Host.
 (def (assurance-support-sealed-under-adapter?
       relation evidence obligation snapshot outcome adapter issued-receipt now)
-  (and (structural-support? relation evidence obligation)
+  (and (structural-support? relation evidence obligation 'admitted)
        (assurance-snapshot? snapshot)
        (assurance-verifier-outcome? outcome)
        (let ((current-relation

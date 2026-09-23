@@ -467,6 +467,44 @@
           (check-equal?
            (assurance-host-admission-current? host admission) #f))))
 
+    (test-case "only the exact current assurance edge consumes a Host admission"
+      (let* ((now 11)
+             (current candidate-snapshot)
+             (host
+              (assurance-verification-host
+               "host/admitted-support-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () now) 9 (lambda () current)))
+             (other-host
+              (assurance-verification-host
+               "host/admitted-support-other"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () now) 9 (lambda () current)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal?
+         (assurance-host-admitted-support?
+          host trusted-discharge admission) #t)
+        (check-equal?
+         (assurance-host-admitted-support?
+          other-host trusted-discharge admission) #f)
+        (check-equal?
+         (assurance-host-admitted-support?
+          host trusted-discharge (.o (:: @ admission))) #f)
+        (check-equal?
+         (assurance-host-admitted-support?
+          host (.o (:: @ trusted-discharge) modality: 'hypothesized)
+          admission) #f)
+        (check-equal?
+         (assurance-host-admitted-support?
+          host (.o (:: @ trusted-discharge) target: "obligation/other")
+          admission) #f)
+        (set! now 20)
+        (check-equal?
+         (assurance-host-admitted-support?
+          host trusted-discharge admission) #f)))
+
     (test-case "semantic snapshot mutation with unchanged display digest revokes"
       (let* ((current candidate-snapshot)
              (host

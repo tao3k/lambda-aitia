@@ -211,8 +211,10 @@ Exit gates:
 Status: =in-progress= (typed reported outcomes, pure structural eligibility and
 sealed-support checks reuse POO Flow's verification adapter. A configured
 Scheme Host capability now owns adapter, clock, lease, current snapshot source,
-revocation and a separate candidate admission ledger. Trusted deployment,
-decision consumption and the Runtime effect gate remain open).
+revocation and a separate candidate admission ledger. An exact current
+assurance-edge witness can consume that ledger without promoting the snapshot
+evidence slot. Full Decision closure, trusted deployment, Cedar policy and the
+Runtime effect gate remain open).
 
 Deliverables:
 

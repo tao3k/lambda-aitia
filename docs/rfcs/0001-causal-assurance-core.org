@@ -271,6 +271,13 @@ Currentness is checked against the Host's configured snapshot source and clock;
 the Host reconstructs the source snapshot to reject stale displayed digests,
 and source changes invalidate earlier seals, including if the old cut reappears.
 This is a Host-local admission candidate, not a decision or effect grant.
+=assurance-host-admitted-support?= consumes that exact current admission with
+one current =supports=/=discharges= assurance relation to its bound obligation.
+It requires the relation to be present in the same Host snapshot and rejects
+copied admissions, speculative modalities, expiration and source invalidation.
+This is one edge witness; it does not close all claim requirements or produce
+an =allow= Decision. Full closure, Cedar policy and Runtime effect gating remain
+separate steps.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a

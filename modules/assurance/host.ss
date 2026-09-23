@@ -22,11 +22,13 @@
                  assurance-verification-subject
                  assurance-snapshot-semantic-digest
                  assurance-verification-subject-snapshot
+                 assurance-candidate-support-structural?
                  assurance-support-sealed-under-adapter?))
 
 (export assurance-verification-host assurance-host-verify
         assurance-host-sealed-support? assurance-host-revoke!
         assurance-host-admit assurance-host-admission-current?
+        assurance-host-admitted-support?
         assurance-host-revoke-admission!)
 
 (def issued-hosts (make-hash-table-eq weak-keys: #t))
@@ -192,33 +194,49 @@
          (equal? (.ref admission 'subject-digest) (vector-ref entry 6))
          entry)))
 
+(def (current-admission-snapshot host-state issued)
+  (and issued
+       (let* ((now (host-instant host-state))
+              (snapshot (host-current-snapshot host-state))
+              (obligation (vector-ref issued 7))
+              (evidence (vector-ref issued 8))
+              (outcome (vector-ref issued 9))
+              (eligibility
+               (assurance-evaluate-evidence-admission
+                snapshot obligation outcome))
+              (subject
+               (assurance-verification-subject
+                snapshot obligation evidence outcome)))
+         (and (= (vector-ref issued 10) (vector-ref host-state 8))
+              (<= (vector-ref issued 4) now)
+              (< now (vector-ref issued 5))
+              (.ref eligibility 'eligible?)
+              (assurance-evidence-outcome-bound?
+               snapshot evidence outcome)
+              (eq? (.ref evidence 'admission-state) 'candidate)
+              (equal? (assurance-verification-subject-snapshot subject)
+                      (vector-ref issued 6))
+              (poo-flow-verification-valid?
+               (vector-ref host-state 1) (vector-ref issued 1)
+               subject now)
+              snapshot))))
+
 (def (assurance-host-admission-current? host admission)
+  (let (host-state (required-host-entry host))
+    (and (current-admission-snapshot
+          host-state (admission-entry host admission)) #t)))
+
+;;; Consume an exact Host admission as one current assurance-edge witness.
+;;; This does not close the claim's full support set or authorize a Decision.
+(def (assurance-host-admitted-support? host relation admission)
   (let* ((host-state (required-host-entry host))
          (issued (admission-entry host admission)))
     (and issued
-         (let* ((now (host-instant host-state))
-                (snapshot (host-current-snapshot host-state))
-                (obligation (vector-ref issued 7))
-                (evidence (vector-ref issued 8))
-                (outcome (vector-ref issued 9))
-                (eligibility
-                 (assurance-evaluate-evidence-admission
-                  snapshot obligation outcome))
-                (subject
-                 (assurance-verification-subject
-                  snapshot obligation evidence outcome)))
-           (and (= (vector-ref issued 10) (vector-ref host-state 8))
-                (<= (vector-ref issued 4) now)
-                (< now (vector-ref issued 5))
-                (.ref eligibility 'eligible?)
-                (assurance-evidence-outcome-bound?
-                 snapshot evidence outcome)
-                (eq? (.ref evidence 'admission-state) 'candidate)
-                (equal? (assurance-verification-subject-snapshot subject)
-                        (vector-ref issued 6))
-                (poo-flow-verification-valid?
-                 (vector-ref host-state 1) (vector-ref issued 1)
-                 subject now))))))
+         (let (snapshot (current-admission-snapshot host-state issued))
+           (and snapshot
+                (assurance-candidate-support-structural?
+                 relation (vector-ref issued 8) (vector-ref issued 7)
+                 snapshot))))))
 
 (def (assurance-host-revoke-admission! host admission)
   (required-host-entry host)
