@@ -5,6 +5,7 @@
 
 (import :std/test
         (only-in :std/error Error?)
+        (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 
@@ -107,6 +108,30 @@
    (list artifact claim obligation evidence decision effect)
    (list dependency discharge obligation-support
          decision-dependency authorization)))
+
+(def replacement-claim
+  (assurance-claim
+   "claim/release" "r2" 'unknown digest-b
+   subject: "software/release" predicate: "release-ready-v2"
+   assumptions: '("assumption/toolchain")
+   support-requirements: '("obligation/verify-next")
+   scope: "repository" valid-from: "2026-09-17"))
+(def replacement-candidate
+  (assurance-obligation
+   "obligation/verify-next" "r2" 'unknown digest-a
+   subject: "software/release" claim: "claim/release"
+   snapshot: "snapshot/software" evidence-kind: 'native-test
+   capability: 'gerbil-test scope: "repository"))
+(def replacement-support
+  (assurance-relation
+   "relation/replacement-support" 'assurance 'supports
+   "obligation/verify-next" "claim/release" 'declared))
+(def (replacement-draft nodes relations)
+  (assurance-snapshot
+   "snapshot/software" "r2" "graph/software"
+   '(("artifact/source" . "r1")) '(("claim/release" . "r2"))
+   "event-cut/1" "policy/release" "r1"
+   nodes relations))
 
 (def assurance-kernel-test
   (test-suite "Aitia POO-native assurance kernel"
@@ -570,6 +595,141 @@
         (check-equal?
          (.ref (car (.ref foreign 'requirements)) 'blocker)
          'target-identity-changed)))
+
+    (test-case "an explicit fresh replacement binds without promoting old evidence"
+      (let* ((draft
+              (replacement-draft
+               (list artifact replacement-claim replacement-candidate)
+               (list dependency replacement-support)))
+             (permuted-draft
+              (replacement-draft
+               (list replacement-candidate artifact replacement-claim)
+               (list replacement-support dependency)))
+             (derivation
+              (assurance-derive-replacement-requirements
+               "replacement/explicit" full-software-snapshot draft
+               '("artifact/source")))
+             (permuted-derivation
+              (assurance-derive-replacement-requirements
+               "replacement/explicit" full-software-snapshot permuted-draft
+               '("artifact/source"))))
+        (check-equal? (.ref (car (.ref derivation 'requirements)) 'blocker)
+                      'claim-changed)
+        (let-values (((final receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/declaration" full-software-snapshot
+                       draft derivation "obligation/verify"
+                       "obligation/verify-next"))
+                     ((permuted-final permuted-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/declaration" full-software-snapshot
+                       permuted-draft permuted-derivation
+                       "obligation/verify" "obligation/verify-next")))
+          (let ((bound
+                 (find (lambda (node)
+                         (equal? (.ref node 'identity)
+                                 "obligation/verify-next"))
+                       (.ref final 'nodes))))
+            (check-equal? (assurance-replacement-declaration-receipt? receipt)
+                          #t)
+            (check-equal? (.ref receipt 'blocker) #f)
+            (check-equal? (.ref bound 'snapshot-revision) "r2")
+            (check-equal? (.ref bound 'snapshot-context-digest)
+                          (.ref final 'context-digest))
+            (check-equal? (.ref replacement-candidate 'snapshot-revision) #f)
+            (check-equal? (.ref receipt 'final-snapshot-digest)
+                          (.ref final 'digest))
+            (check-equal? (.ref receipt 'verifier-executed?) #f)
+            (check-equal? (.ref receipt 'release-authorized?) #f)
+            (check-equal? (.ref final 'digest) (.ref permuted-final 'digest))
+            (check-equal? (.ref receipt 'digest)
+                          (.ref permuted-receipt 'digest))
+            (check-equal?
+             (assurance-replacement-declaration-receipt?
+              (.o (:: @ receipt) release-authorized?: #t))
+             #f)))))
+
+    (test-case "replacement declaration rejects missing and hypothetical links"
+      (let* ((draft
+              (replacement-draft
+               (list artifact replacement-claim replacement-candidate)
+               (list dependency replacement-support)))
+             (derivation
+              (assurance-derive-replacement-requirements
+               "replacement/negative" full-software-snapshot draft
+               '("artifact/source")))
+             (missing-link
+              (replacement-draft
+               (list artifact replacement-claim replacement-candidate)
+               (list dependency)))
+             (hypothetical-link
+              (replacement-draft
+               (list artifact replacement-claim replacement-candidate)
+               (list dependency
+                     (.o (:: @ replacement-support)
+                         modality: 'hypothesized))))
+             (foreign-claim
+              (replacement-draft
+               (list artifact replacement-claim
+                     (.o (:: @ replacement-candidate)
+                         claim: "claim/foreign"))
+               (list dependency replacement-support)))
+             (forged-draft (.o (:: @ draft) digest: digest-a)))
+        (let-values (((missing-final missing-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/missing" full-software-snapshot
+                       missing-link
+                       (assurance-derive-replacement-requirements
+                        "replacement/missing-derivation"
+                        full-software-snapshot missing-link
+                        '("artifact/source"))
+                       "obligation/verify" "obligation/verify-next"))
+                     ((hypothetical-final hypothetical-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/hypothetical" full-software-snapshot
+                       hypothetical-link
+                       (assurance-derive-replacement-requirements
+                        "replacement/hypothetical-derivation"
+                        full-software-snapshot hypothetical-link
+                        '("artifact/source"))
+                       "obligation/verify" "obligation/verify-next"))
+                     ((stale-final stale-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/stale" full-software-snapshot
+                       hypothetical-link derivation
+                       "obligation/verify" "obligation/verify-next"))
+                     ((foreign-final foreign-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/foreign-claim" full-software-snapshot
+                       foreign-claim
+                       (assurance-derive-replacement-requirements
+                        "replacement/foreign-claim-derivation"
+                        full-software-snapshot foreign-claim
+                        '("artifact/source"))
+                       "obligation/verify" "obligation/verify-next"))
+                     ((forged-final forged-receipt)
+                      (assurance-declare-replacement-obligation
+                       "replacement/forged" full-software-snapshot
+                       forged-draft
+                       (assurance-derive-replacement-requirements
+                        "replacement/forged-derivation"
+                        full-software-snapshot forged-draft
+                        '("artifact/source"))
+                       "obligation/verify" "obligation/verify-next")))
+          (check-equal? missing-final #f)
+          (check-equal? (.ref missing-receipt 'blocker) 'support-link-missing)
+          (check-equal? hypothetical-final #f)
+          (check-equal? (.ref hypothetical-receipt 'blocker)
+                        'support-link-hypothetical)
+          (check-equal? stale-final #f)
+          (check-equal? (.ref stale-receipt 'blocker)
+                        'derivation-mismatch)
+          (check-equal? foreign-final #f)
+          (check-equal? (.ref foreign-receipt 'blocker)
+                        'candidate-claim-mismatch)
+          (check-equal? forged-final #f)
+          (check-equal? (.ref forged-receipt 'blocker)
+                        'derivation-mismatch))))
 
     (test-case "verification obligations have a closed evidence-kind vocabulary"
       (check-equal?

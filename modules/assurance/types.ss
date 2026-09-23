@@ -20,6 +20,7 @@
         AssuranceFinding AssuranceDecision AssuranceEffect
         AssuranceRelation AssuranceSnapshot
         AssuranceReplacementRequirement AssuranceReplacementDerivation
+        AssuranceReplacementDeclarationReceipt
         AssuranceVerificationPolicy AssuranceVerificationRequest
         AssuranceVerificationPlan AssuranceVerifierCandidate
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
@@ -32,6 +33,7 @@
         assurance-effect? assurance-relation? assurance-snapshot?
         assurance-replacement-requirement?
         assurance-replacement-derivation?
+        assurance-replacement-declaration-receipt?
         assurance-invalidation-receipt? assurance-invalidation-receipt-ref
         assurance-verification-policy? assurance-verification-request?
         assurance-verification-plan? assurance-verifier-candidate?
@@ -133,6 +135,15 @@
                     target-unchanged target-conflicted target-unresolved
                     target-identity-changed graph-changed
                     policy-changed claim-missing claim-changed))))
+(def (replacement-declaration-blocker? value)
+  (or (not value)
+      (memq value '(derivation-mismatch source-requirement-missing
+                    source-requirement-blocked target-frontier
+                    candidate-missing candidate-not-fresh candidate-not-unbound
+                    candidate-not-unknown candidate-claim-mismatch
+                    candidate-subject-mismatch candidate-scope-mismatch
+                    claim-not-declared support-link-missing
+                    support-link-hypothetical))))
 (def (revision-bindings? values)
   (and (list? values)
        (every (lambda (binding)
@@ -311,6 +322,26 @@
           (enum-slot 'verifier-executed? (one-of '(#f)))
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
+;;; A caller-authored target obligation is checked and bound, never invented.
+;;; This receipt is inert even when its blocker is false.
+(def AssuranceReplacementDeclarationReceipt
+  (poo-clos-class 'aitia/replacement-declaration-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.replacement-declaration")))
+          (text-slot 'identity)
+          (enum-slot 'derivation-digest assurance-digest?)
+          (enum-slot 'source-snapshot-digest assurance-digest?)
+          (enum-slot 'draft-snapshot-digest assurance-digest?)
+          (enum-slot 'final-snapshot-digest maybe-digest?)
+          (text-slot 'source-obligation)
+          (text-slot 'target-obligation)
+          (enum-slot 'blocker replacement-declaration-blocker?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 ;;; Public planning values remain POO-native and contain no executable hook.
 (def AssuranceVerificationPolicy
   (poo-clos-class 'aitia/verification-policy
@@ -478,6 +509,10 @@
   (poo-flow-model? AssuranceReplacementRequirement value))
 (def (assurance-replacement-derivation? value)
   (poo-flow-model? AssuranceReplacementDerivation value))
+(def (assurance-replacement-declaration-receipt? value)
+  (and (poo-flow-model? AssuranceReplacementDeclarationReceipt value)
+       (eq? (not (.ref value 'blocker))
+            (if (.ref value 'final-snapshot-digest) #t #f))))
 (def (assurance-verification-policy? value)
   (poo-flow-model? AssuranceVerificationPolicy value))
 (def (assurance-verification-request? value)

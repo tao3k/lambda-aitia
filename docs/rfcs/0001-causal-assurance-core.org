@@ -117,6 +117,12 @@ from an old snapshot, a target snapshot and a change set.  It names affected
 old obligations and their structural witnesses, and blocks automatic carryover
 when the source binding, target frontier, claim or policy is not current.
 It does not assign a new obligation identity or claim a replacement exists.
+An explicit second step may bind a caller-authored fresh obligation already
+declared in a target draft with the revised claim and =supports= edge.  It
+replays the derivation, rejects non-canonical or unresolved snapshots, and
+returns a final snapshot plus an inert declaration receipt.  A changed claim
+blocks automatic carryover but not this explicit declaration; a policy change
+still blocks it.  Neither step admits evidence or authorizes an effect.
 
 ** Evidence
 

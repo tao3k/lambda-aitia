@@ -134,7 +134,7 @@ Exit gates:
 * Phase 3 — Obligation derivation and verification planning
 
 Status: =active= (typed kinds, dependency-ordered selection, replacement and
-composition requirements; replacement declaration remains open)
+composition requirements, and explicit replacement declaration/binding)
 
 The first executable slice reuses the Phase 2 invalidation receipt to select
 snapshot-bound obligations.  A POO-native verification policy declares
@@ -164,8 +164,12 @@ The pure replacement-requirements receipt traces affected old obligations to
 a changed target snapshot and records blockers for unresolved changes, stale
 source bindings, revised claims or policy, and incomplete targets.  It derives
 the need for a new declaration without inventing a new obligation identity
-or copying an old evidence requirement across a changed claim.  Materializing
-and binding replacement obligations remain open.
+or copying an old evidence requirement across a changed claim.  The explicit
+declaration step accepts a caller-authored, unbound candidate in a target draft
+with a revised claim and support edge; it checks the source derivation and
+canonical snapshots, binds only that fresh candidate through the existing
+snapshot binder, reconstructs the final snapshot, and returns an inert receipt.
+It does not copy evidence, invoke a verifier or grant release authority.
 The explicit verifier-candidate catalog is a set of POO-native inert declarations
 with evidence kinds, capability and priority.  A pure explanation receipt
 records the chosen declaration, every rejected candidate and unassigned

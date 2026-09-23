@@ -25,6 +25,7 @@
         assurance-bind-obligation-to-snapshot
         assurance-support-admissible? assurance-invalidation-graph
         assurance-invalidate assurance-derive-replacement-requirements
+        assurance-declare-replacement-obligation
         assurance-plan-verification assurance-explain-verifier-choices
         assurance-derive-composition-requirements)
 
@@ -475,6 +476,141 @@
          unresolved: change-unresolved
          requirements: derived-requirements digest: derivation-digest
          verifier-executed?: #f release-authorized?: #f))))
+
+;;; The new obligation, revised claim and supports edge must already be present
+;;; in the caller's draft.  Only its snapshot binding is filled here.  The
+;;; derivation is replayed against exact source/draft digests so a forged or
+;;; unrelated receipt cannot be used to promote a candidate.
+(def (snapshot-canonical? snapshot)
+  (let ((rebuilt
+         (assurance-snapshot
+          (.ref snapshot 'identity) (.ref snapshot 'revision)
+          (.ref snapshot 'graph-identity)
+          (.ref snapshot 'source-revisions) (.ref snapshot 'claim-revisions)
+          (.ref snapshot 'fact-cut) (.ref snapshot 'policy-identity)
+          (.ref snapshot 'policy-revision)
+          (.ref snapshot 'nodes) (.ref snapshot 'relations)
+          evidence-identities: (.ref snapshot 'evidence-identities)
+          unresolved: (.ref snapshot 'unresolved))))
+    (and (equal? (.ref rebuilt 'digest) (.ref snapshot 'digest))
+         (equal? (.ref rebuilt 'context-digest)
+                 (.ref snapshot 'context-digest)))))
+
+(def (replacement-declaration-blocker derivation source draft
+                                      source-id candidate-id)
+  (let* ((expected
+          (assurance-derive-replacement-requirements
+           (.ref derivation 'identity) source draft (.ref derivation 'changed)))
+         (requirement
+          (find (lambda (item)
+                  (equal? (.ref item 'source-obligation) source-id))
+                (.ref derivation 'requirements)))
+         (candidate (node-by-identity (.ref draft 'nodes) candidate-id))
+         (claim (and (assurance-obligation? candidate)
+                     (node-by-identity (.ref draft 'nodes)
+                                       (.ref candidate 'claim))))
+         (support-links
+          (filter (lambda (relation)
+                    (and (eq? (.ref relation 'relation) 'supports)
+                         (equal? (.ref relation 'source) candidate-id)
+                         (assurance-obligation? candidate)
+                         (equal? (.ref relation 'target)
+                                 (.ref candidate 'claim))))
+                  (.ref draft 'relations))))
+    (cond
+     ((or (not (snapshot-canonical? source))
+          (not (snapshot-canonical? draft))
+          (not (equal? (.ref derivation 'source-snapshot-digest)
+                       (.ref source 'digest)))
+          (not (equal? (.ref derivation 'target-snapshot-digest)
+                       (.ref draft 'digest)))
+          (not (equal? (.ref derivation 'digest) (.ref expected 'digest))))
+      'derivation-mismatch)
+     ((not requirement) 'source-requirement-missing)
+     ((not (memq (.ref requirement 'blocker) '(#f claim-changed)))
+      'source-requirement-blocked)
+     ((or (pair? (.ref draft 'unresolved)) (pair? (.ref draft 'conflicts)))
+      'target-frontier)
+     ((not (assurance-obligation? candidate)) 'candidate-missing)
+     ((node-by-identity (.ref source 'nodes) candidate-id)
+      'candidate-not-fresh)
+     ((or (not (equal? (.ref candidate 'snapshot) (.ref draft 'identity)))
+          (.ref candidate 'snapshot-revision)
+          (.ref candidate 'snapshot-context-digest))
+      'candidate-not-unbound)
+     ((not (eq? (.ref candidate 'state) 'unknown)) 'candidate-not-unknown)
+     ((not (equal? (.ref candidate 'claim) (.ref requirement 'claim)))
+      'candidate-claim-mismatch)
+     ((not (assurance-claim? claim)) 'candidate-claim-mismatch)
+     ((not (equal? (.ref candidate 'subject) (.ref claim 'subject)))
+      'candidate-subject-mismatch)
+     ((not (equal? (.ref candidate 'scope) (.ref claim 'scope)))
+      'candidate-scope-mismatch)
+     ((not (member candidate-id (.ref claim 'support-requirements)))
+      'claim-not-declared)
+     ((null? support-links) 'support-link-missing)
+     ((not (find (lambda (relation)
+                   (memq (.ref relation 'modality)
+                         '(observed declared derived)))
+                 support-links))
+      'support-link-hypothetical)
+     (else #f))))
+
+(def (assurance-declare-replacement-obligation declaration-identity source draft derivation
+                                               source-id candidate-id)
+  (unless (and (assurance-text? declaration-identity)
+               (assurance-text? source-id) (assurance-text? candidate-id)
+               (assurance-snapshot? source) (assurance-snapshot? draft)
+               (assurance-replacement-derivation? derivation))
+    (error "invalid replacement declaration input"))
+  (let* ((declaration-blocker
+          (replacement-declaration-blocker
+           derivation source draft source-id candidate-id))
+         (final-snapshot
+          (and (not declaration-blocker)
+               (let* ((candidate
+                       (node-by-identity (.ref draft 'nodes) candidate-id))
+                      (bound
+                       (assurance-bind-obligation-to-snapshot candidate draft)))
+                 (assurance-snapshot
+                  (.ref draft 'identity) (.ref draft 'revision)
+                  (.ref draft 'graph-identity)
+                  (.ref draft 'source-revisions) (.ref draft 'claim-revisions)
+                  (.ref draft 'fact-cut) (.ref draft 'policy-identity)
+                  (.ref draft 'policy-revision)
+                  (map (lambda (node)
+                         (if (equal? (.ref node 'identity) candidate-id)
+                           bound node))
+                       (.ref draft 'nodes))
+                  (.ref draft 'relations)
+                  evidence-identities: (.ref draft 'evidence-identities)
+                  unresolved: (.ref draft 'unresolved)))))
+         (final-digest (and final-snapshot (.ref final-snapshot 'digest)))
+         (receipt-digest
+          (assurance-canonical-digest
+           (list "lambda-aitia.replacement-declaration" declaration-identity
+                 (.ref derivation 'digest) (.ref source 'digest)
+                 (.ref draft 'digest) final-digest
+                 source-id candidate-id declaration-blocker)))
+         (receipt
+          (poo-flow-check-model
+           AssuranceReplacementDeclarationReceipt
+           (.o (:: @ (poo-flow-model-prototype
+                     AssuranceReplacementDeclarationReceipt))
+               schema: "lambda-aitia.replacement-declaration"
+               identity: declaration-identity
+               derivation-digest: (.ref derivation 'digest)
+               source-snapshot-digest: (.ref source 'digest)
+               draft-snapshot-digest: (.ref draft 'digest)
+               final-snapshot-digest: final-digest
+               source-obligation: source-id target-obligation: candidate-id
+               blocker: declaration-blocker digest: receipt-digest
+               verifier-executed?: #f release-authorized?: #f))))
+    (when (and final-snapshot
+               (not (equal? (.ref final-snapshot 'context-digest)
+                            (.ref draft 'context-digest))))
+      (error "replacement binding changed snapshot context"))
+    (values final-snapshot receipt)))
 
 ;;; A structural 'composes edge declares a composite claim's components.
 ;;; Only an independent, explicitly linked and current obligation can answer

@@ -1,6 +1,6 @@
 {
   "manifestSchema": "lambda-aitia.vocabulary-manifest",
-  "revision": 3,
+  "revision": 4,
   "semanticOwner": "lambda-aitia",
   "nodeKinds": [
     "artifact",
@@ -67,6 +67,7 @@
     "lambda-aitia.invalidation-receipt",
     "lambda-aitia.planning-result",
     "lambda-aitia.replacement-requirements",
+    "lambda-aitia.replacement-declaration",
     "lambda-aitia.verifier-choices",
     "lambda-aitia.composition-requirements",
     "lambda-aitia.native-descriptor",
