@@ -306,7 +306,12 @@ evaluation, regardless of its value. This fail-closed check blocks accidental
 promotion of the official preflight path; it does not attest an edited request
 with the marker removed. A future Runtime-owned admission must independently
 bind the source cut at use, evaluate Cedar through both engines and gate the
-effect. The Scheme projection does none of these.
+effect. The Scheme Host now keeps a weak identity ledger for projected Cedar
+requests. =assurance-host-cedar-request-current?= rechecks the exact issued
+request and the current source cut, rejecting copied or edited presentations,
+revocation, source change and rollback. This is a source-owned predicate, not
+Runtime admission: no Runtime path calls it yet, and its truth cannot authorize
+an effect. The Scheme projection does not evaluate Cedar or gate an effect.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a

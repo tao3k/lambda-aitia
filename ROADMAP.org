@@ -315,7 +315,9 @@ Status: =active= (the Host Decision preflight can now project a current,
 undecided candidate into POO Flow's POO-native Cedar request family. The
 request is inert and editable; Cedar evaluation, independent Host source
 admission and Runtime effect gating have not landed. The generic Runtime
-boundary rejects its preflight-only marker before Cedar evaluation).
+boundary rejects its preflight-only marker before Cedar evaluation. The
+Scheme Host can recheck an exact issued request against its current source
+cut, but Runtime does not yet invoke that predicate).
 
 Deliverables:
 

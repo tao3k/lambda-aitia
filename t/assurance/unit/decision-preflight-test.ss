@@ -147,10 +147,20 @@
              (request
               (assurance-host-cedar-request
                host preflight "Release" digest-a handoff))
+             (other-host (make-host (lambda () snapshot-value)))
              (runtime-value
               (poo-flow-cedar-authorization-request->runtime request))
              (context-value (hash-get runtime-value "context")))
         (check-equal? (poo-flow-cedar-authorization-request? request) #t)
+        (check-equal? (assurance-host-cedar-request-current? host request) #t)
+        (check-equal?
+         (assurance-host-cedar-request-current?
+          host (.o (:: @ request))) #f)
+        (check-equal?
+         (assurance-host-cedar-request-current?
+          host (.o (:: @ request) action: "Deploy")) #f)
+        (check-equal?
+         (assurance-host-cedar-request-current? other-host request) #f)
         (check-equal? (hash-get runtime-value "principal") "maintainer")
         (check-equal? (hash-get runtime-value "resource") "software/release")
         (check-equal? (hash-get context-value "aitia_preflight")
@@ -166,6 +176,8 @@
           host preflight "Release" digest-a (.o)) Error?)
         (assurance-host-revoke-decision-preflight! host preflight)
         (check-equal?
+         (assurance-host-cedar-request-current? host request) #f)
+        (check-equal?
          (assurance-host-cedar-request
           host preflight "Release" digest-a handoff) #f)))
 
@@ -179,16 +191,25 @@
              (preflight
               (assurance-host-preflight-decision
                host decision claim (list admission)))
+             (request
+              (assurance-host-cedar-request
+               host preflight "Release" digest-a handoff))
              (old-cut current))
         (check-equal?
          (assurance-host-decision-preflight-current? host preflight) #t)
+        (check-equal?
+         (assurance-host-cedar-request-current? host request) #t)
         (set! current
               (construct (bound-obligation old-cut) relations "event-cut/2"))
         (check-equal?
          (assurance-host-decision-preflight-current? host preflight) #f)
+        (check-equal?
+         (assurance-host-cedar-request-current? host request) #f)
         (set! current old-cut)
         (check-equal?
-         (assurance-host-decision-preflight-current? host preflight) #f)))
+         (assurance-host-decision-preflight-current? host preflight) #f)
+        (check-equal?
+         (assurance-host-cedar-request-current? host request) #f)))
 
     (test-case "explicit preflight revocation is separate from evidence"
       (let* ((snapshot-value (bound-cut relations))

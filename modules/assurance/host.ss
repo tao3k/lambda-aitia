@@ -6,7 +6,7 @@
 ;;; An application-configured capability for verification. Adapter, clock and
 ;;; lease are private to the exact issued Host object; neither an editable POO
 ;;; presentation nor a per-call time argument selects authority.
-(import (only-in :clan/poo/object .o .ref .slot? object?)
+(import (only-in :clan/poo/object .o .ref .slot? .alist object?)
         (only-in :std/list/list find every filter delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
         :poo-flow/src/module-system/contribution/model
@@ -16,7 +16,8 @@
                  poo-flow-revoke-verification!)
         (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
                  poo-flow-cedar-runtime-handoff?
-                 poo-flow-cedar-authorization-request)
+                 poo-flow-cedar-authorization-request
+                 poo-flow-cedar-authorization-request?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
                  assurance-snapshot? assurance-claim? assurance-obligation?
                  assurance-decision? assurance-decision-preflight?
@@ -40,7 +41,7 @@
         assurance-host-required-support
         assurance-host-preflight-decision
         assurance-host-decision-preflight-current?
-        assurance-host-cedar-request
+        assurance-host-cedar-request assurance-host-cedar-request-current?
         assurance-host-revoke-decision-preflight!
         assurance-host-revoke-admission!)
 
@@ -48,6 +49,7 @@
 (def issued-host-receipts (make-hash-table-eq weak-keys: #t))
 (def issued-admissions (make-hash-table-eq weak-keys: #t))
 (def issued-decision-preflights (make-hash-table-eq weak-keys: #t))
+(def issued-cedar-requests (make-hash-table-eq weak-keys: #t))
 
 (def (host-entry host)
   (let (entry (hash-get issued-hosts host))
@@ -507,6 +509,11 @@
 ;;; Project a current preflight into POO Flow's inert Cedar request family.
 ;;; The request is editable input, not a Host seal, Cedar outcome or effect grant.
 ;;; The Runtime Host must independently validate the current source cut at use.
+(def (cedar-request-fingerprint request)
+  (list (.ref request 'principal) (.ref request 'action)
+        (.ref request 'resource) (.alist (.ref request 'context))
+        (.ref request 'intent) (.alist (.ref request 'handoff))))
+
 (def (assurance-host-cedar-request host preflight action-value intent-value
                                     handoff-value)
   (unless (poo-flow-cedar-runtime-handoff? handoff-value)
@@ -538,7 +545,28 @@
            (and (= epoch-value (vector-ref issued 7))
                 (same-host-cut? host-state snapshot-value epoch-value)
                 (assurance-host-decision-preflight-current? host preflight)
-                request)))))
+                (begin
+                  (hash-put! issued-cedar-requests request
+                             (vector host preflight epoch-value
+                                     (cedar-request-fingerprint request)))
+                  request))))))
+
+;;; Source-owned use-time check for the exact Host-issued request. This does
+;;; not evaluate Cedar or permit an effect. A future Runtime integration must
+;;; call it at use and retain authorization and effect-handoff ownership.
+(def (assurance-host-cedar-request-current? host request)
+  (let* ((host-state (required-host-entry host))
+         (issued (hash-get issued-cedar-requests request)))
+    (and issued
+         (eq? host (vector-ref issued 0))
+         (poo-flow-cedar-authorization-request? request)
+         (object? (.ref request 'context))
+         (poo-flow-cedar-runtime-handoff? (.ref request 'handoff))
+         (= (vector-ref issued 2) (vector-ref host-state 8))
+         (equal? (cedar-request-fingerprint request) (vector-ref issued 3))
+         (assurance-host-decision-preflight-current?
+          host (vector-ref issued 1))
+         (= (vector-ref issued 2) (vector-ref host-state 8)))))
 
 (def (assurance-host-revoke-decision-preflight! host preflight)
   (required-host-entry host)
