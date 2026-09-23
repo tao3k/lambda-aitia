@@ -29,6 +29,14 @@ Revoke == epoch < 2 /\ epoch' = epoch + 1 /\ verified' = 0 /\ admitted' = 0 /\ d
 Next == InstallAdapter \/ ReportSuccess \/ Plan \/ Verify \/ Admit \/ Decide \/ Authorize \/ StartEffect \/ ChangeSource \/ Tick \/ Revoke
 Spec == Init /\ [][Next]_vars
 
+(* Progress is conditional: no source change, clock tick or revocation occurs,
+   and the Host eventually schedules each continuously enabled stage. This
+   does not assert unconditional progress for a changing environment. *)
+StableNext == InstallAdapter \/ ReportSuccess \/ Plan \/ Verify \/ Admit \/ Decide \/ Authorize \/ StartEffect
+StableSpecNoFair == Init /\ [][StableNext]_vars
+StableSpec == Init /\ [][StableNext]_vars /\ WF_vars(InstallAdapter) /\ WF_vars(Plan) /\ WF_vars(Verify) /\ WF_vars(Admit) /\ WF_vars(Decide) /\ WF_vars(Authorize) /\ WF_vars(StartEffect)
+EventuallyEffect == <>effectStarted
+
 (* Deliberately unsafe mutant: a reported green result starts an effect without
    Host admission or grant. Its counterexample must be found by TLC. *)
 UnsafeStart == reportedSuccess /\ ~effectStarted /\ effectStarted' = TRUE /\ startSafe' = (admitted = revision /\ decided = revision /\ granted = revision /\ grantEpoch = epoch /\ clock < grantUntil) /\ UNCHANGED <<revision, planned, verified, admitted, decided, granted, grantEpoch, epoch, clock, sealUntil, grantUntil, adapterInstalled, reportedSuccess>>

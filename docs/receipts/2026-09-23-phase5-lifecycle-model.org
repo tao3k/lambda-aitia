@@ -13,12 +13,16 @@
 
 * Exact model cut
 
-- Aitia base commit: =611df233a21b78a35be43fbf814880fe4577a2be=;
-  the model and this receipt are the candidate change on top of that commit.
+- Aitia base commit: =608525c84e853ed5f5b156693c8f72fe58cfcf97=;
+  the progress extension and this updated
+  receipt are the candidate change on top of that commit.
 - =AssuranceLifecycle.tla= SHA-256:
-  =94e31fe4e68687f2deb261e50ae543d7e6434ef59afe2f869f63fb0d4267f861=.
+  =a2a12f2fe4723fe76a248a1eaeebdfd8130590e150bda82116f854f179dde9ab=.
 - Safe TLC configuration SHA-256:
   =984c59bc517d3ae0a4477e7cb578f4a5a553bd966aed577d202e513679df21e9=.
+- Progress and no-fairness configuration SHA-256:
+  =4940784d1a627de1642cef9f4df7714780345a66aa70b1421923e360558db21f= and
+  =67ed10ce6eb65ef8eb2998f8f3bfce0cb0984fea1747fd9cd867b15fb31de439=.
 - TLC2 2.19, single worker, =JAVA_TOOL_OPTIONS=-Xmx512m=, Darwin arm64.
 - Replay commands and the expected invariant for every configuration are in
   =proof/tla/README.org=. Each run used a separate =-metadir= under
@@ -29,6 +33,8 @@
 | Configuration | Expected | Observed |
 |---------------+----------+----------|
 | Safe | exit 0 | 7,468 generated; 2,202 distinct; queue empty |
+| Stable progress with weak fairness | exit 0 | 38 generated; 18 distinct; temporal property passed |
+| Stable progress without fairness | =EventuallyEffect= counterexample | exit 12; stuttering after authorization |
 | Reachable | =NoEffectStarted= counterexample | exit 12; valid effect trace |
 | Unsafe report-only effect | =NoUnsafeEffectStart= counterexample | exit 12 |
 | Late admission after change | =AdmissionIsCurrent= counterexample | exit 12 |
@@ -45,6 +51,6 @@ declared bounds was exhausted.
 This receipt supports a candidate dynamic lifecycle contract. It does not
 promote a reported result to admitted evidence, establish a trusted Host
 adapter/clock, cryptographically bind a Runtime grant, or close Phase 5.
-Progress/fairness, counterfactual transition authority, source-bound CI replay,
-and the executable Host handoff remain open. The existing POO Flow Cedar
+Unconditional progress, counterfactual transition authority, source-bound CI
+replay, and the executable Host handoff remain open. The existing POO Flow Cedar
 =governance_admitted= field is not an Aitia evidence-admission decision.

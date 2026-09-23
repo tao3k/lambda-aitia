@@ -71,7 +71,7 @@ POO Flow execution does not redefine Aitia reasoning.
 | =bindings/python= | Lambda Aitia | new | Aitia-owned CFFI consumer and wheel for the Scheme-native ABI | Python transports JSON and never duplicates Scheme decisions |
 | =packages/python-runtime= | POO Flow | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
 | =packages/proof/lean/PooFlowProof/Enterprise/EvidenceFreshness.lean= | POO Flow proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
-| SDLC/change lifecycle TLA+ model to be added | Aitia | new | invalidate, plan, reverify, decide and gate lifecycle | must be generic, with NASA supplied only as external facts |
+| =proof/tla/AssuranceLifecycle.tla= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
 | Cedar adapter and Runtime Host | POO Flow | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
 
 * Existing semantics to preserve

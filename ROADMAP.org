@@ -275,8 +275,13 @@ configurations demonstrate unsafe report-only effect start, stale admission,
 grant before re-verification and effect start after revocation; a reachability
 configuration demonstrates a valid effect path. This is local model evidence,
 not proof that the Runtime Host enforces the contract. Clock/adapter trust,
-counterfactual transition authority, liveness, and source-bound CI replay
+counterfactual transition authority, unconditional liveness and source-bound CI replay
 remain open.
+
+A separate stable-environment fairness configuration now checks eventual
+effect start; removing fairness produces a stuttering counterexample. This
+narrows the progress assumption but does not claim progress under source
+changes, clock expiry, revocation or an unavailable Host.
 
 Required model-checking counterexamples include stale cached decisions,
 evidence admitted after a source change, release before re-verification,

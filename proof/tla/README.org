@@ -20,6 +20,8 @@ From this directory, with =tlc= installed on =PATH=:
 
 #+begin_src sh
 JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycle.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleProgress.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleNoFair.cfg AssuranceLifecycle
 JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleReachable.cfg AssuranceLifecycle
 JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleUnsafe.cfg AssuranceLifecycle
 JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleLateAdmit.cfg AssuranceLifecycle
@@ -28,7 +30,10 @@ JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleAfterRevoke.
 #+end_src
 
 Use =-metadir= with a writable temporary directory when running these checks
-from a read-only checkout. The safe configuration must exit 0. The reachability
+from a read-only checkout. The safe and progress configurations must exit 0.
+Progress assumes a stable source and clock, no revocation, and weak fairness
+for each Host stage. The no-fairness configuration must violate
+=EventuallyEffect=: a possible path alone does not prove progress. The reachability
 configuration deliberately checks =NoEffectStarted= and must find a valid
 =StartEffect= trace. Each other mutant must violate its named invariant; a
 mutant passing TLC would be a failed negative contract, not a success.
@@ -36,5 +41,6 @@ mutant passing TLC would be a failed negative contract, not a success.
 This model does not prove a live adapter was installed by a trusted Host, a
 clock is actually trustworthy, a grant is cryptographically bound, or the
 Scheme/Python/Runtime path enforces the model. It does not yet model
-counterfactual promotion, concurrent effects, or liveness/fairness. Those
-remain separate Phase 4–6 exit gates.
+counterfactual promotion or concurrent effects. Conditional fairness does not
+establish progress when sources change, clocks advance, or grants are revoked.
+Those remain separate Phase 4–6 exit gates.

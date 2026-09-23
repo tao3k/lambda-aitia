@@ -308,6 +308,12 @@ The architecture requires executable formal statements of at least these laws:
 
 Lean proves general laws.  TLA+/TLC checks lifecycle interleavings such as a
 source change racing a cached decision or an effect beginning after revocation.
+The bounded lifecycle model additionally separates safety from progress:
+eventual effect start is required only when the source and clock remain stable,
+no revocation intervenes, and the Host weakly fairly schedules every enabled
+stage. Without that scheduling assumption, a stuttering behavior after a grant
+is a valid counterexample. Neither result substitutes for a trusted Host clock,
+adapter identity, or Runtime effect gate.
 
 * Public API direction
 
