@@ -25,6 +25,8 @@ int32_t poo_flow_aitia_runtime_init(void) {
   ___setup_params_reset(&setup_params);
   setup_params.version = ___VERSION;
   setup_params.linker = POO_FLOW_AITIA_LINKER;
+  /* Embedded callers must report uncaught Scheme errors without a REPL. */
+  setup_params.debug_settings = ___DEBUG_SETTINGS_INITIAL;
   status = ___setup(&setup_params);
   if (status != ___FIX(___NO_ERR)) return -1;
   poo_flow_aitia_runtime_initialized = 1;
