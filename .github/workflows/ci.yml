@@ -88,7 +88,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/poo-flow
-          ref: 7ce0fefc2a9c38c2b9afb6834cbaf7f80adff3c7
+          ref: da492eea00a7dab502cfb4c7586edefbba96bbec
           path: poo-flow
           submodules: false
 
@@ -134,4 +134,10 @@ jobs:
 
       - name: Build and test native ABI and Python runtime
         working-directory: poo-flow
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'
+        run: |
+          if ! bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'; then
+            if command -v gdb >/dev/null 2>&1; then
+              gdb -batch -ex run -ex 'bt 30' --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
+            fi
+            exit 1
+          fi
