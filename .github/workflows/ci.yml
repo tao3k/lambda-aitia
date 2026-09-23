@@ -83,7 +83,7 @@ jobs:
     env:
       GERBIL_BUILD_CORES: 12
       GERBIL_PATH: ${{ github.workspace }}/poo-flow/.gerbil
-      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
+      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow/packages/lambda-aitia:${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
     steps:
       - name: Checkout pinned POO Flow mechanism library
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

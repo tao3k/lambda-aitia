@@ -8,7 +8,7 @@ export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", "12")
 
 self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
-export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", GERBIL_PATH + "/lib")
+export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", self_root + ":" + GERBIL_PATH + "/lib")
 native_root := GERBIL_PATH + "/native"
 native_library := native_root + "/libpoo_flow_aitia.dylib"
 gerbil_env := if os() == "macos" { "env -u SDKROOT" } else { "env" }
