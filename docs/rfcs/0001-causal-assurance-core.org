@@ -295,6 +295,14 @@ This preflight carries =release-authorized? #f= and is not a Cedar result,
 an =allow= Decision or an effect token. The POO Flow Cedar Provider constructs
 inert inputs; the independent Runtime Host still owns policy evaluation and
 effect admission.
+=assurance-host-cedar-request= now rechecks that exact preflight and projects
+its Decision authority, claim subject, policy identity/revision and full
+semantic snapshot digest into POO Flow's POO-native Cedar request family.
+The application supplies the action, intent and POO Flow runtime handoff.
+The resulting request and its context are editable input, not a second Host
+seal; copying or changing them cannot establish Aitia admission. The Runtime
+Host must independently bind the source cut at use, evaluate Cedar through
+both engines and gate the effect. The Scheme projection does none of these.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a

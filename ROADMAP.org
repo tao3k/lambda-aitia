@@ -311,8 +311,10 @@ Exit gates:
 
 * Phase 6 — POO Flow integration and effect gate
 
-Status: =planned= (the Host Decision preflight is an inert input only; Cedar
-evaluation and Runtime effect admission have not landed).
+Status: =active= (the Host Decision preflight can now project a current,
+undecided candidate into POO Flow's POO-native Cedar request family. The
+request is inert and editable; Cedar evaluation, independent Host source
+admission and Runtime effect gating have not landed).
 
 Deliverables:
 
@@ -326,8 +328,10 @@ Deliverables:
    and returns typed
    projections.  POO Flow's Python runtime remains a separate generic runtime
    and lifecycle transport.
-5. Cedar projection from a current admitted Decision, with snapshot and
-   invalidation bindings.
+5. [~] Cedar request projection from a current Host preflight, with Decision,
+   claim, policy and snapshot bindings. This is not yet a projection from an
+   admitted =allow= Decision; the Runtime Host must independently validate
+   the source cut at use before any authority can be granted.
 6. Runtime Host rejection of stale, unknown, conflicted, revoked or incomplete
    assurance closures.
 

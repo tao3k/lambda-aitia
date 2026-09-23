@@ -14,6 +14,9 @@
                  poo-flow-verification-adapter poo-flow-verify
                  poo-flow-verification-valid?
                  poo-flow-revoke-verification!)
+        (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
+                 poo-flow-cedar-runtime-handoff?
+                 poo-flow-cedar-authorization-request)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
                  assurance-snapshot? assurance-claim? assurance-obligation?
                  assurance-decision? assurance-decision-preflight?
@@ -37,6 +40,7 @@
         assurance-host-required-support
         assurance-host-preflight-decision
         assurance-host-decision-preflight-current?
+        assurance-host-cedar-request
         assurance-host-revoke-decision-preflight!
         assurance-host-revoke-admission!)
 
@@ -499,6 +503,41 @@
                       'complete?)
                 (same-host-cut?
                  host-state snapshot-value (vector-ref issued 7)))))))
+
+;;; Project a current preflight into POO Flow's inert Cedar request family.
+;;; The request is editable input, not a Host seal, Cedar outcome or effect grant.
+;;; The Runtime Host must independently validate the current source cut at use.
+(def (assurance-host-cedar-request host preflight action-value intent-value
+                                    handoff-value)
+  (unless (poo-flow-cedar-runtime-handoff? handoff-value)
+    (error "Decision Cedar projection requires a POO Flow runtime handoff"))
+  (let* ((host-state (required-host-entry host))
+         (issued (decision-preflight-entry host preflight)))
+    (and issued
+         (assurance-host-decision-preflight-current? host preflight)
+         (let* ((snapshot-value (host-current-snapshot host-state))
+                (epoch-value (vector-ref host-state 8))
+                (decision-value (vector-ref issued 8))
+                (claim-value (vector-ref issued 9))
+                (context-value
+                 (.o aitia_schema: "lambda-aitia.cedar-preflight.v1"
+                     aitia_preflight: (vector-ref issued 1)
+                     aitia_decision: (vector-ref issued 3)
+                     aitia_claim: (vector-ref issued 4)
+                     aitia_snapshot_digest: (vector-ref issued 5)
+                     aitia_snapshot_semantic_digest: (vector-ref issued 6)
+                     aitia_policy: (.ref decision-value 'policy)
+                     aitia_policy_revision: (.ref snapshot-value 'policy-revision)
+                     aitia_preflight_only: #t))
+                (request
+                 (poo-flow-cedar-authorization-request
+                  (.ref decision-value 'authority) action-value
+                  (.ref claim-value 'subject) context-value intent-value
+                  handoff-value)))
+           (and (= epoch-value (vector-ref issued 7))
+                (same-host-cut? host-state snapshot-value epoch-value)
+                (assurance-host-decision-preflight-current? host preflight)
+                request)))))
 
 (def (assurance-host-revoke-decision-preflight! host preflight)
   (required-host-entry host)

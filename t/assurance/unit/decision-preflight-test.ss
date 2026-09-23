@@ -3,8 +3,12 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test
+(import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
+                 poo-flow-cedar-runtime-handoff
+                 poo-flow-cedar-authorization-request?
+                 poo-flow-cedar-authorization-request->runtime)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 
 (export decision-preflight-test)
@@ -78,6 +82,9 @@
    "host/decision-preflight"
    (lambda (subject-value issued-at expires-at) #t)
    (lambda () 11) 9 source))
+(def handoff
+  (poo-flow-cedar-runtime-handoff
+   1 #u8(1 2 3) digest-a digest-a digest-b digest-b))
 
 (def decision-preflight-test
   (test-suite "Host Decision preflight is not authorization"
@@ -126,6 +133,40 @@
         (check-equal?
          (assurance-host-preflight-decision
           host decision claim (list admission)) #f)))
+
+    (test-case "only a current Host preflight projects an inert Cedar request"
+      (let* ((snapshot-value (bound-cut relations))
+             (host (make-host (lambda () snapshot-value)))
+             (admission
+              (assurance-host-admit
+               host (bound-obligation snapshot-value) evidence
+               (reported-outcome snapshot-value)))
+             (preflight
+              (assurance-host-preflight-decision
+               host decision claim (list admission)))
+             (request
+              (assurance-host-cedar-request
+               host preflight "Release" digest-a handoff))
+             (runtime-value
+              (poo-flow-cedar-authorization-request->runtime request))
+             (context-value (hash-get runtime-value "context")))
+        (check-equal? (poo-flow-cedar-authorization-request? request) #t)
+        (check-equal? (hash-get runtime-value "principal") "maintainer")
+        (check-equal? (hash-get runtime-value "resource") "software/release")
+        (check-equal? (hash-get context-value "aitia_preflight")
+                      (.ref preflight 'identity))
+        (check-equal? (hash-get context-value "aitia_policy") "policy/release")
+        (check-equal? (hash-get context-value "aitia_preflight_only") #t)
+        (check-equal?
+         (assurance-host-cedar-request
+          host (.o (:: @ preflight)) "Release" digest-a handoff) #f)
+        (check-exception
+         (assurance-host-cedar-request
+          host preflight "Release" digest-a (.o)) Error?)
+        (assurance-host-revoke-decision-preflight! host preflight)
+        (check-equal?
+         (assurance-host-cedar-request
+          host preflight "Release" digest-a handoff) #f)))
 
     (test-case "source change and rollback cannot revive a preflight"
       (let* ((current (bound-cut relations))
