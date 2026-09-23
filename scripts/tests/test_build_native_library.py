@@ -7,8 +7,11 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +28,27 @@ def build_module():
 
 
 class NativeLinkPolicyTest(unittest.TestCase):
+    def test_gambit_compiler_uses_the_gerbil_release_not_path(self) -> None:
+        module = build_module()
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            (home / "bin").mkdir()
+            (home / "bin" / "gsc").touch()
+            with patch.dict(os.environ, {"GAMBOPT": "-:max-heap=512M"}):
+                self.assertEqual(
+                    module.configure_gambit_compiler(home), str(home / "bin" / "gsc")
+                )
+                self.assertEqual(
+                    os.environ["GAMBOPT"],
+                    f"-:max-heap=512M,~~={home},~~bin={home / 'bin'},~~lib={home / 'lib'}",
+                )
+
+    def test_missing_release_compiler_does_not_fall_back_to_path(self) -> None:
+        module = build_module()
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(RuntimeError, "no Gambit compiler"):
+                module.configure_gambit_compiler(Path(directory))
+
     def test_link_flags_are_deduplicated_without_reordering(self) -> None:
         module = build_module()
 

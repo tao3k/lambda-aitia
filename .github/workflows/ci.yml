@@ -117,9 +117,24 @@ jobs:
         working-directory: poo-flow
         run: bazelisk mod deps --lockfile_mode=error
 
+      - name: Restore pinned Gerbil package cache
+        id: gerbil-package-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: poo-flow/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+
       - name: Install declared Gerbil package dependencies
+        if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
         working-directory: poo-flow
         run: bazelisk run @local_gerbil//:install_dependencies
+
+      - name: Save pinned Gerbil package cache
+        if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: poo-flow/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
 
       - name: Build POO Flow mechanism library
         working-directory: poo-flow
@@ -135,20 +150,4 @@ jobs:
 
       - name: Build and test native ABI and Python runtime
         working-directory: poo-flow
-        run: |
-          if ! bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends gdb
-            gdb -batch \
-              -ex 'set breakpoint pending on' \
-              -ex 'break poo_flow_aitia_descriptor' \
-              -ex run \
-              -ex 'tbreak ___throw_error' \
-              -ex continue \
-              -ex 'info registers rdi' \
-              -ex 'bt 12' \
-              -ex 'frame 2' \
-              -ex 'x/24i $pc-80' \
-              --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
-            exit 1
-          fi
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'

@@ -106,6 +106,20 @@ def gerbil_home(project: Path) -> Path:
     return Path(value).resolve()
 
 
+def configure_gambit_compiler(home: Path) -> str:
+    """Use the Gambit compiler and runtime paths from the same Gerbil release."""
+
+    compiler = home / "bin" / "gsc"
+    if not compiler.is_file():
+        raise RuntimeError(f"Gerbil release has no Gambit compiler: {compiler}")
+    runtime_options = f"~~={home},~~bin={home / 'bin'},~~lib={home / 'lib'}"
+    existing = os.environ.get("GAMBOPT", "")
+    os.environ["GAMBOPT"] = (
+        f"{existing},{runtime_options}" if existing else runtime_options
+    )
+    return str(compiler)
+
+
 def module_closure(project: Path) -> tuple[list[tuple[str, Path]], Path]:
     expression = r'''(let* ((ctx (import-module "bindings/c/aitia-native.ss"))
                              (deps (gxc#find-runtime-module-deps ctx)))
@@ -161,6 +175,7 @@ def main() -> int:
     build_dir = output.parent
     build_dir.mkdir(parents=True, exist_ok=True)
     home = gerbil_home(project)
+    gsc = configure_gambit_compiler(home)
     gerbil_lib = home / "lib"
     dependencies, root = module_closure(project)
 
@@ -187,7 +202,7 @@ def main() -> int:
     runtime_object = build_dir / "aitia-runtime.o"
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-link",
@@ -201,7 +216,7 @@ def main() -> int:
     )
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-cc-options",
@@ -215,7 +230,7 @@ def main() -> int:
     )
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-cc-options",
@@ -249,7 +264,7 @@ def main() -> int:
             if not c_source.is_file():
                 raise RuntimeError(f"native closure C source is absent: {c_source}")
             run(
-                ["gsc", "-target", "C", "-obj", "-o", str(object_path), str(c_source)],
+                [gsc, "-target", "C", "-obj", "-o", str(object_path), str(c_source)],
                 cwd=project,
             )
     missing = [

@@ -142,61 +142,61 @@ END-C
     "poo_flow_aitia_descriptor" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo_flow_aitia_result-status-set! result -1)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
        (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
         result (string->utf8
                 (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo-flow-aitia-native-phase 101)
-       (poo_flow_aitia_result-status-set! result 0)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 101)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
        (let* ((payload
                (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-descriptor-payload))
-              (_ (poo-flow-aitia-native-phase 102))
+              (_ (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 102))
               (bytes (string->utf8 payload)))
-         (poo-flow-aitia-native-phase 103)
+         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 103)
          (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
           result bytes)
-         (poo-flow-aitia-native-phase 104))
-       (poo_flow_aitia_result-status result))))
+         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 104))
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-gitops-evaluate payload result)
     (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
     "poo_flow_aitia_gitops_evaluate" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo_flow_aitia_result-status-set! result -1)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
        (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
         result (string->utf8
                 (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo_flow_aitia_result-status-set! result 0)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
        (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
         result
         (string->utf8
          (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-gitops-evaluate-payload
           payload)))
-       (poo_flow_aitia_result-status result))))
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-sdlc-flow-plan payload result)
     (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
     "poo_flow_aitia_sdlc_flow_plan" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo_flow_aitia_result-status-set! result -1)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
        (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
         result (string->utf8
                 (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo_flow_aitia_result-status-set! result 0)
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
        (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
         result
         (string->utf8
          (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-sdlc-flow-plan-payload
           payload)))
-       (poo_flow_aitia_result-status result)))))
+       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result)))))
