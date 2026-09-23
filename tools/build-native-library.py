@@ -5,9 +5,9 @@
 
 """Build the Aitia Gambit link unit as a real shared library.
 
-The four phases follow Gambit's embedding contract: discover the Gerbil runtime
-closure, generate a non-flat gsc link source, compile it with ``___LIBRARY``,
-then link the complete module/object set with libgambit.
+The four phases follow Gambit's embedding contract: ask the compiler for the
+Gerbil runtime closure, generate a non-flat gsc link source, compile it with
+``___LIBRARY``, then link the complete module/object set with libgambit.
 """
 
 from __future__ import annotations
@@ -15,31 +15,37 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import platform
 import re
 import shlex
 import subprocess
 import sys
 
-RUNTIME_MODULES = (
-    "gerbil/runtime/gambit",
-    "gerbil/runtime/util",
-    "gerbil/runtime/table",
-    "gerbil/runtime/control",
-    "gerbil/runtime/system",
-    "gerbil/runtime/c3",
-    "gerbil/runtime/mop",
-    "gerbil/runtime/mop-system-classes",
-    "gerbil/runtime/error",
-    "gerbil/runtime/interface",
-    "gerbil/runtime/hash",
-    "gerbil/runtime/thread",
-    "gerbil/runtime/syntax",
-    "gerbil/runtime/eval",
-    "gerbil/runtime/repl",
-    "gerbil/runtime/loader",
-    "gerbil/runtime/init",
-    "gerbil/runtime",
-)
+def configure_darwin_toolchain() -> None:
+    """Align every native phase with the installed Gerbil/Gambit objects."""
+
+    if sys.platform != "darwin":
+        return
+    product_version = platform.mac_ver()[0]
+    if not product_version:
+        raise RuntimeError("cannot determine the macOS deployment target")
+    host_major = product_version.split(".", 1)[0]
+    os.environ.setdefault("MACOSX_DEPLOYMENT_TARGET", f"{host_major}.0")
+    os.environ.setdefault("CC", "/usr/bin/cc")
+
+
+def verify_darwin_deployment_target(output: Path) -> None:
+    if sys.platform != "darwin":
+        return
+    load_commands = run(["otool", "-l", str(output)], cwd=output.parent, capture=True)
+    match = re.search(r"^\s*minos\s+([0-9.]+)$", load_commands, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("native library has no macOS deployment target")
+    expected = os.environ["MACOSX_DEPLOYMENT_TARGET"]
+    if match.group(1) != expected:
+        raise RuntimeError(
+            f"native deployment target {match.group(1)} does not match {expected}"
+        )
 
 
 def run(arguments: list[str], *, cwd: Path, capture: bool = False) -> str:
@@ -69,11 +75,49 @@ def unique(paths: list[Path]) -> list[Path]:
     return result
 
 
+def unique_link_flags(flags: list[str]) -> list[str]:
+    """Preserve linker order while removing repeated idempotent flags."""
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for flag in flags:
+        if flag not in seen:
+            seen.add(flag)
+            result.append(flag)
+    return result
+
+
+def shared_library_flags(*, system: str, machine: str) -> list[str]:
+    if system != "Darwin":
+        return ["-shared"]
+    flags = ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"]
+    # Gambit's complete static closure is large enough for arm64 compact-unwind
+    # function offsets to overflow ld's encoding. DWARF unwind remains present;
+    # this is an architecture-specific link layout choice, not a macOS floor.
+    if machine == "arm64":
+        flags.append("-Wl,-no_compact_unwind")
+    return flags
+
+
 def gerbil_home(project: Path) -> Path:
     value = run(
         ["gxi", "-e", "(displayln (gerbil-home))"], cwd=project, capture=True
     ).strip()
     return Path(value).resolve()
+
+
+def configure_gambit_compiler(home: Path) -> str:
+    """Use the Gambit compiler and runtime paths from the same Gerbil release."""
+
+    compiler = home / "bin" / "gsc"
+    if not compiler.is_file():
+        raise RuntimeError(f"Gerbil release has no Gambit compiler: {compiler}")
+    runtime_options = f"~~={home},~~bin={home / 'bin'},~~lib={home / 'lib'}"
+    existing = os.environ.get("GAMBOPT", "")
+    os.environ["GAMBOPT"] = (
+        f"{existing},{runtime_options}" if existing else runtime_options
+    )
+    return str(compiler)
 
 
 def module_closure(project: Path) -> tuple[list[tuple[str, Path]], Path]:
@@ -121,6 +165,7 @@ def generated_define(link_source: Path, name: str) -> str:
 
 
 def main() -> int:
+    configure_darwin_toolchain()
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args()
@@ -130,8 +175,8 @@ def main() -> int:
     build_dir = output.parent
     build_dir.mkdir(parents=True, exist_ok=True)
     home = gerbil_home(project)
+    gsc = configure_gambit_compiler(home)
     gerbil_lib = home / "lib"
-    gerbil_static = gerbil_lib / "static"
     dependencies, root = module_closure(project)
 
     libgerbil_scm = [
@@ -140,11 +185,7 @@ def main() -> int:
         if (module_id.startswith("gerbil/") or module_id.startswith("std/"))
         and not module_id.startswith("gerbil/core")
     ]
-    runtime_scm = [
-        gerbil_static / f"{module.replace('/', '__')}.scm"
-        for module in RUNTIME_MODULES
-    ]
-    libgerbil_scm = unique(runtime_scm + libgerbil_scm)
+    libgerbil_scm = unique(libgerbil_scm)
     user_scm = unique(
         [
             path
@@ -161,7 +202,7 @@ def main() -> int:
     runtime_object = build_dir / "aitia-runtime.o"
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-link",
@@ -175,7 +216,7 @@ def main() -> int:
     )
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-cc-options",
@@ -189,7 +230,7 @@ def main() -> int:
     )
     run(
         [
-            "gsc",
+            gsc,
             "-target",
             "C",
             "-cc-options",
@@ -208,6 +249,24 @@ def main() -> int:
 
     module_objects = [replace_suffix(path, ".o") for path in user_scm]
     libgerbil_objects = [replace_suffix(path, ".o") for path in libgerbil_scm]
+    # Imported POO Flow modules may have a static Scheme/C projection without
+    # having been public native entry points in the parent build.  The Aitia
+    # production library owns its complete link closure, so materialize only
+    # those missing objects from the C sources generated by the link pass.
+    object_sources = [*user_scm, root, *libgerbil_scm]
+    for scheme_source in object_sources:
+        object_path = scheme_source.with_suffix(".o")
+        if (
+            not object_path.is_file()
+            or scheme_source.stat().st_mtime_ns > object_path.stat().st_mtime_ns
+        ):
+            c_source = object_path.with_suffix(".c")
+            if not c_source.is_file():
+                raise RuntimeError(f"native closure C source is absent: {c_source}")
+            run(
+                [gsc, "-target", "C", "-obj", "-o", str(object_path), str(c_source)],
+                cwd=project,
+            )
     missing = [
         path
         for path in [*module_objects, root.with_suffix(".o"), *libgerbil_objects]
@@ -215,13 +274,11 @@ def main() -> int:
     ]
     if missing:
         raise RuntimeError(f"native closure object is absent: {missing[0]}")
-    link_flags = shlex.split(
-        (gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()")
+    link_flags = unique_link_flags(
+        shlex.split((gerbil_lib / "libgerbil.ldd").read_text().strip().strip("()"))
     )
-    shared_flags = (
-        ["-dynamiclib", "-Wl,-undefined,dynamic_lookup"]
-        if sys.platform == "darwin"
-        else ["-shared"]
+    shared_flags = shared_library_flags(
+        system=platform.system(), machine=platform.machine()
     )
     run(
         [
@@ -241,6 +298,7 @@ def main() -> int:
         ],
         cwd=project,
     )
+    verify_darwin_deployment_target(output)
     return 0
 
 

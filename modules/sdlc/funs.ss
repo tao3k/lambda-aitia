@@ -3,17 +3,73 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/src/graph/algorithms
+                 poo-flow-graph-cycle-path
+                 poo-flow-graph-topological-order)
+        (only-in :poo-flow/src/graph/types
+                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
         (only-in :poo-flow/src/modules/governance/funs
                  poo-flow-governance-contribution)
-        (only-in :std/srfi/1 every delete-duplicates))
+        :std/list/list)
 (import :poo-flow/lambda-aitia/modules/sdlc/types :poo-flow/lambda-aitia/modules/sdlc/objects)
-(export sdlc-with-standards sdlc-contribution sdlc-module)
+(export sdlc-with-standards sdlc-contribution sdlc-module
+        +sdlc-flow-stages+ sdlc-flow-graph sdlc-flow-plan)
+
+;;; Aitia owns the SDLC phase vocabulary; POO Flow owns Graph and DAG analysis.
+;;; This projection is inert and does not execute a verifier or grant authority.
+(def +sdlc-flow-stages+
+  '(change invalidate plan verify admit decide authorize effect))
+
+(def (sdlc-flow-node-id lifecycle-id stage)
+  (string->symbol
+   (string-append lifecycle-id "/" (symbol->string stage))))
+
+(def (sdlc-flow-graph lifecycle-id)
+  (unless (sdlc-text? lifecycle-id)
+    (error "SDLC flow requires a non-empty lifecycle identity" lifecycle-id))
+  (let ((nodes
+         (map (lambda (stage)
+                (poo-flow-graph-node
+                 (sdlc-flow-node-id lifecycle-id stage)
+                 stage
+                 (list (cons 'semantic-owner 'lambda-aitia))))
+              +sdlc-flow-stages+))
+        (edges
+         (map (lambda (source-stage target-stage)
+                (poo-flow-graph-edge
+                 (sdlc-flow-node-id lifecycle-id source-stage)
+                 (sdlc-flow-node-id lifecycle-id target-stage)
+                 'sdlc-next
+                 (list (cons 'semantic-owner 'lambda-aitia))))
+              +sdlc-flow-stages+
+              (cdr +sdlc-flow-stages+))))
+    (poo-flow-graph
+     lifecycle-id nodes edges
+     (list (cons 'semantic-owner 'lambda-aitia)
+           (cons 'runtime-owner 'poo-flow)))))
+
+(def (sdlc-flow-plan lifecycle-identity)
+  (let* ((graph-value (sdlc-flow-graph lifecycle-identity))
+         (detected-cycle-path (poo-flow-graph-cycle-path graph-value))
+         (order (and (not detected-cycle-path)
+                     (poo-flow-graph-topological-order graph-value))))
+    (.o schema: 'lambda-aitia.sdlc-flow-plan
+        lifecycle-id: lifecycle-identity
+        graph: graph-value
+        stages: +sdlc-flow-stages+
+        topological-order: order
+        cycle-path: detected-cycle-path
+        accepted?: (and order #t)
+        semantic-owner: 'lambda-aitia
+        runtime-owner: 'poo-flow
+        release-authorized?: #f
+        runtime-executed?: #f)))
 (def (sdlc-with-standards profile-value standard-values)
   (unless (and (sdlc-profile? profile-value)
                (list? standard-values) (every standard-profile? standard-values))
     (error "invalid SDLC standard selection"))
   (let ((identities (map (lambda (standard) (.ref standard 'identity)) standard-values)))
-    (unless (= (length identities) (length (delete-duplicates identities equal?)))
+    (unless (= (length identities) (length (delete-duplicates/hash identities)))
       (error "duplicate SDLC standard identity")))
   (.o (:: @ profile-value) standards: standard-values))
 (def (sdlc-contribution profile-value)
@@ -23,13 +79,13 @@
    profile-value '(lifecycle-governance) '()))
 (def sdlc-module (sdlc-contribution SdlcProfile))
 
-(import (only-in :std/srfi/1 any filter find))
+(import :std/list/list)
 (export sdlc-trace-review)
 (def (trace-bound? value project)
   (every (lambda (slot) (equal? (.ref value slot) (.ref project slot))) '(subject revision scope)))
 (def (unique-identities? values)
   (let ((ids (map (lambda (v) (.ref v 'identity)) values)))
-    (= (length ids) (length (delete-duplicates ids equal?)))))
+    (= (length ids) (length (delete-duplicates/hash ids)))))
 (def (sdlc-trace-review project rule nodes edges)
   (unless (and (sdlc-project? project) (sdlc-trace-rule? rule)
                (list? nodes) (every sdlc-trace-node? nodes) (unique-identities? nodes)

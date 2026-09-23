@@ -9,7 +9,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/funs
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
-        (only-in :std/srfi/1 every filter))
+        :std/list/list)
 (export nasa-safety-inventory nasa-trace-inventory nasa-structured-requirement?
         nasa-inventory-for? nasa-inventory-snapshot nasa-structured-review)
 (def (bound? value project)

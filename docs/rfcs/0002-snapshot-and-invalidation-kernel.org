@@ -1,0 +1,99 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0002 — Snapshot and Invalidation Kernel
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0002
+:STATUS:     accepted
+:DATE:       2026-09-17
+:PARENT_RFC: lambda-aitia-rfc-0001
+:IMPLEMENTS: lambda-aitia-rfc-0001
+:END:
+
+* Decision summary
+
+An =AssuranceSnapshot= is an immutable, canonical fact cut binding graph,
+source, claim, policy and evidence revisions.  A change produces an inert
+=InvalidationReceipt= through pure traversal of typed relations.  The receipt
+selects affected current obligations, evidence, decisions and effects; it does
+not run a verifier, derive replacement obligations or authorize an effect.
+
+* Input contracts
+
+The initial kernel accepts:
+
+- type-specific POO-native Artifact, Claim, Assumption, Observation, Event,
+  Action, Obligation, Evidence, Counterexample, Finding, Decision and Effect;
+- typed relations whose kind has exactly one relation-plane owner;
+- graph identity, source and claim revision bindings, immutable fact cut,
+  policy identity/revision and admitted evidence identities;
+- a non-empty receipt identity and changed semantic identities.
+
+Duplicate identities with unequal canonical content are conflicts.  Missing
+relation endpoints and unknown change identities remain an unresolved frontier.
+
+* Traversal contract
+
+Structural and support relations are traversed from changed dependency target
+to dependent source.  Authority effects are traversed from an impacted decision
+to the effect target.  Temporal precedence is never promoted into causality and
+does not participate in structural invalidation.
+
+The current implementation projects the Aitia-owned relation directions into
+POO Flow Graph values and delegates reachability, relation trajectories and SCC
+analysis to the POO Flow structural-impact algorithms.  Aitia does not retain a
+second traversal engine.  Dangling relations remain in the snapshot frontier
+but are excluded from the executable Graph projection, so an incomplete
+snapshot produces an inert receipt rather than an invalid Graph.
+
+* Receipt contract
+
+The receipt contains changed and impacted identities, invalidated evidence,
+selected current obligations, invalidated decisions, blocked effects, witnesses
+and unresolved inputs.  These fields are always false in this phase:
+
+- =temporal-proven?=
+- =release-authorized?=
+- =runtime-executed?=
+
+Phase 3 owns derivation of replacement obligations.  Phase 4 owns verifier
+outcomes and evidence admission.  The Runtime Host owns effect execution.
+
+* Required negative contracts
+
+- a same-shaped non-nominal node is rejected;
+- a cross-plane relation is rejected;
+- hypothesized, counterfactual, stale or conflicted evidence cannot discharge
+  an observed obligation;
+- missing changed identities remain unresolved;
+- a receipt cannot set temporal proof, release authority or runtime execution;
+- input permutation cannot change snapshot or receipt identity order.
+
+* Acceptance gates
+
+- [X] Replace the local traversal with the POO Flow Graph library projection.
+- [X] Add deterministic SCC and complete witness-path behavior.
+- [X] Exercise monotone invalidation for the bounded fixed snapshot.
+- [X] Reject stale or revision-mismatched evidence before obligation discharge.
+- [X] Generalize the monotonicity law in the Aitia-owned formal proof package.
+- [X] Replay the bounded Software/SDLC change fixture from a clean checkout.
+- [X] Retain exact source, policy and evidence revision receipts.
+
+The bounded executable fixture validates the implementation, while
+=LambdaAitiaProof.Modules.Assurance.Invalidation= independently proves the
+general fixed-snapshot monotonicity law and the unresolved-frontier boundary.
+
+The isolated replay recorded by
+=docs/receipts/2026-09-18-phase2-clean-replay.org= admits the complete POO Flow
+library closure, Assurance fixture, modular Lean gate, integration lane and
+native Scheme/C/Python package at exact commits.  POO Flow remains Aitia's
+public mechanism library; the closure was achieved by publishing its mechanism
+owners, not by duplicating or minimizing them in Aitia.
+
+* Relationship to ADRs
+
+- ADR 0007 establishes POO Flow as Aitia's public mechanism library.
+- ADR 0004 assigns the general laws and lifecycle models to Aitia.
+- ADR 0005 defines persistence as a canonical non-authoritative projection.

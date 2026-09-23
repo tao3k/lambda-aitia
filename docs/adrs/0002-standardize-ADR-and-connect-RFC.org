@@ -2,13 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 #+title: ADR 0002 — Standardize ADR and connect it to RFC
-#+status: accepted
-#+date: 2026-09-17
-#+revision: r1
-#+decision-makers: tao3k maintainers
-#+consulted: POO Flow maintainers
-#+informed: Lambda Aitia consumers
-#+rfc: RFC-0001
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0002
+:STATUS:          accepted
+:DATE:            2026-09-17
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
 
 * Context and Problem Statement
 

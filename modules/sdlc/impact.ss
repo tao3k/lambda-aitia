@@ -5,14 +5,20 @@
 ;;; Finite source-inventory impact projection, not a graph runtime or approval.
 (import (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/sdlc/types
-        (only-in :std/srfi/1 every filter any find delete-duplicates)
-        :std/sort)
+        :std/list/list
+        :gerbil/core
+        (only-in :poo-flow/src/graph/types
+                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
+        (only-in :poo-flow/src/modules/temporal-causality/funs
+                 poo-flow-structural-impact-analyze))
 (export sdlc-change-impact)
 (def (same-snapshot? value project)
   (every (lambda (slot) (equal? (.ref value slot) (.ref project slot))) '(subject revision scope)))
 (def (unique? values)
   (let ((ids (map (lambda (v) (.ref v 'identity)) values)))
-    (= (length ids) (length (delete-duplicates ids equal?)))))
+    (= (length ids) (length (delete-duplicates/hash ids)))))
+(def (impact-symbol value) (string->symbol value))
+(def (impact-text value) (symbol->string value))
 (def (sdlc-change-impact project nodes edges changed relations)
   (unless (and (sdlc-project? project)
                (list? nodes) (every sdlc-trace-node? nodes) (unique? nodes)
@@ -22,48 +28,70 @@
     (error "invalid change-impact inventory or selection"))
   (let* ((current (filter (lambda (n) (same-snapshot? n project)) nodes))
          (ids (map (lambda (n) (.ref n 'identity)) current))
-         (seeds (sort (delete-duplicates changed equal?) string<?))
-         (selected (filter (lambda (e) (and (same-snapshot? e project)
-                                            (member (.ref e 'relation) relations))) edges))
-         (valid (sort (filter (lambda (e) (and (member (.ref e 'source) ids)
-                                              (member (.ref e 'target) ids))) selected)
-                      (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))))
+         (seeds (list-sort string<? (delete-duplicates/hash changed)))
+         (selected-relation-values
+          (list-sort string<? (delete-duplicates/hash relations)))
+         (selected (list-sort
+                    (lambda (a b)
+                      (string<? (.ref a 'identity) (.ref b 'identity)))
+                    (filter (lambda (e) (and (same-snapshot? e project)
+                                             (member (.ref e 'relation)
+                                                     selected-relation-values)))
+                            edges)))
+         (valid (list-sort
+                 (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))
+                 (filter (lambda (e) (and (member (.ref e 'source) ids)
+                                          (member (.ref e 'target) ids)))
+                         selected)))
          (unresolved (filter (lambda (e) (not (memq e valid))) selected)))
     (unless (every (lambda (id) (member id ids)) seeds)
       (error "changed object missing from selected snapshot"))
-    ;; Breadth-first paths terminate on cycles; sorted inputs give stable witnesses.
-    (let loop ((queue seeds)
-               (paths (map (lambda (id) (.o identity: id node-path: (list id) edge-path: '())) seeds)))
-      (if (pair? queue)
-        (let* ((id (car queue))
-               (parent (find (lambda (p) (equal? (.ref p 'identity) id)) paths))
-               (outgoing (filter (lambda (e) (equal? (.ref e 'source) id)) valid)))
-          (let visit ((rest outgoing) (next (cdr queue)) (known paths))
-            (if (null? rest) (loop next known)
-              (let* ((edge (car rest)) (target-id (.ref edge 'target)))
-                (if (any (lambda (p) (equal? (.ref p 'identity) target-id)) known)
-                  (visit (cdr rest) next known)
-                  (visit (cdr rest) (append next (list target-id))
-                         (append known
-                           (list (.o identity: target-id
-                                     node-path: (append (.ref parent 'node-path) (list target-id))
-                                     edge-path: (append (.ref parent 'edge-path) (list (.ref edge 'identity))))))))))))
-        (let* ((ordered (sort paths (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))))
-               (affected (map (lambda (p) (.ref p 'identity)) ordered))
+    ;; Traversal, cycle termination and shortest relation trajectories belong
+    ;; to POO Flow Graph. Aitia only projects its revision-scoped SDLC facts
+    ;; into that mechanism and retains its native trajectory witnesses.
+    (let* ((graph
+            (poo-flow-graph
+             (impact-symbol
+              (string-append (.ref project 'subject) "@"
+                             (.ref project 'revision) ":"
+                             (.ref project 'scope)))
+             (map (lambda (node)
+                    (poo-flow-graph-node
+                     (impact-symbol (.ref node 'identity))))
+                  current)
+             (map (lambda (edge)
+                    (poo-flow-graph-edge
+                     (impact-symbol (.ref edge 'source))
+                     (impact-symbol (.ref edge 'target))
+                     (impact-symbol (.ref edge 'relation))))
+                  selected)))
+           (structural
+            (poo-flow-structural-impact-analyze
+             graph (map impact-symbol seeds)
+             (map impact-symbol selected-relation-values)
+             'dependencies (.ref project 'complete?)))
+           (trajectories (.ref structural 'relation-trajectories))
+           (affected
+            (map impact-text (.ref structural 'affected-node-ids)))
                (status-value (cond ((not (.ref project 'complete?)) 'partial-impact)
                                    ((pair? unresolved) 'invalid-inventory)
                                    (else 'scoped-impact-complete))))
           (.o kind: 'sdlc.change-impact status: status-value
               subject: (.ref project 'subject) revision: (.ref project 'revision)
               scope: (.ref project 'scope) changed-identities: seeds
-              affected-identities: affected witnesses: ordered
+              affected-identities: affected witnesses: trajectories
               recheck-verifications:
-              (map (lambda (n) (.ref n 'identity))
-                   (sort (filter (lambda (n) (and (eq? (.ref n 'category) 'verification)
-                                                   (member (.ref n 'identity) affected))) current)
-                         (lambda (a b) (string<? (.ref a 'identity) (.ref b 'identity)))))
-              unresolved-edges: (sort (map (lambda (e) (.ref e 'identity)) unresolved) string<?)
-              selected-relations: (sort (delete-duplicates relations equal?) string<?)
+              (list-sort
+               string<?
+               (map (lambda (n) (.ref n 'identity))
+                    (filter (lambda (n)
+                              (and (eq? (.ref n 'category) 'verification)
+                                   (member (.ref n 'identity) affected)))
+                            current)))
+              unresolved-edges:
+              (list-sort string<?
+                         (map (lambda (e) (.ref e 'identity)) unresolved))
+              selected-relations: selected-relation-values
               excluded-edges: (- (length edges) (length selected))
               evidence-action: 'reassessment-required
-              release-authorized?: #f runtime-executed?: #f))))))
+              release-authorized?: #f runtime-executed?: #f))))

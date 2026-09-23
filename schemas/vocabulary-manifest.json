@@ -1,6 +1,6 @@
 {
   "manifestSchema": "lambda-aitia.vocabulary-manifest",
-  "revision": 1,
+  "revision": 2,
   "semanticOwner": "lambda-aitia",
   "nodeKinds": [
     "artifact",
@@ -26,6 +26,20 @@
     "counterfactual",
     "not-applicable"
   ],
+  "semanticBindings": {
+    "artifact": ["owner", "media-kind", "provenance"],
+    "claim": ["subject", "predicate", "assumptions", "defeaters", "support-requirements", "scope", "valid-from", "valid-until"],
+    "assumption": ["owner", "scope", "review-policy", "expires-at"],
+    "observation": ["subject", "source", "clock-role", "logical-position"],
+    "event": ["subject", "event-kind", "observation", "payload-digest", "modality", "commitment-state", "causal-parents"],
+    "action": ["subject", "action-kind", "requested-by", "scope"],
+    "obligation": ["subject", "claim", "snapshot", "evidence-kind", "capability", "scope"],
+    "evidence": ["producer", "tool", "tool-version", "input-artifacts", "obligation", "subject", "scope", "valid-from", "valid-until", "admission-state"],
+    "counterexample": ["subject", "challenges", "evidence", "details-digest"],
+    "finding": ["subject", "challenges", "evidence", "finding-kind"],
+    "decision": ["subject", "snapshot", "policy", "authority", "outcome"],
+    "effect": ["subject", "decision", "effect-kind", "effect-state"]
+  },
   "ADR": {
     "recordSchema": "lambda-aitia.ADR-record",
     "statuses": ["proposed", "accepted", "rejected", "deprecated", "superseded"],

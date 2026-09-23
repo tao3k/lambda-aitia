@@ -8,7 +8,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/funs
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
-        (only-in :std/srfi/1 every))
+        :std/list/list)
 (export sdlc-config sdlc-nasa-7150-profile)
 
 ;;; Module-owned base Profile for scenarios that explicitly select NASA

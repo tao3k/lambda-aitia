@@ -8,7 +8,7 @@
 ;;; Provider and are not read while the module, catalog, or Profile is loaded.
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        (only-in :std/misc/path path-expand)
+        (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
         (only-in :poo-flow/src/feature-system/source-lock-feature
                  require-source-lock-payload)

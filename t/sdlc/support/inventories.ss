@@ -8,11 +8,16 @@
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
-        (only-in :std/srfi/1 delete-duplicates append-map))
+        :std/list/list)
 (def (test-inventories project class-value digest-value)
   (let* ((rules (nasa-trace-rules class-value))
-         (categories (delete-duplicates
-                      (append-map (lambda (r) (list (.ref r 'source-category) (.ref r 'target-category))) rules)))
+         (categories
+          (delete-duplicates/hash
+           (concatenate
+            (map (lambda (r)
+                   (list (.ref r 'source-category)
+                         (.ref r 'target-category)))
+                 rules))))
          (nodes (map (lambda (kind) (sdlc-trace-node (symbol->string kind) kind project)) categories))
          (edges (map (lambda (r) (sdlc-trace-edge (.ref r 'identity) (.ref r 'identity)
                                                 (symbol->string (.ref r 'source-category))

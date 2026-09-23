@@ -10,7 +10,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-coverage
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-lifecycle
-        (only-in :std/srfi/1 every filter append-map))
+        :std/list/list)
 (include "../support/inventories.ss")
 (def project (sdlc-project "test-flight" "r1" "software" #t))
 (def context (.o safety-critical?: #f health-medical?: #f reaching-kdp-a?: #f category-1?: #f))
@@ -92,12 +92,12 @@
       (for-each
        (lambda (owner)
          (let* ((a (adapter)) (p (nasa-baseline-policy "baseline" scope: owner))
-                (records (append-map
+                (records (concatenate (map
                           (lambda (id)
                             (map (lambda (criterion)
                                    (nasa-verifiable-evidence
                                     (nasa-criterion-evidence (.ref criterion 'identity) project id (.ref criterion 'identity) "test-reviewer" 'pass) digest))
-                                 (nasa-requirement-criteria id))) (.ref p 'requirements)))
+                                 (nasa-requirement-criteria id))) (.ref p 'requirements))))
                 (c (poo-flow-verify a (nasa-context-request project 'a all-context) 10 20))
                 (inventory-values (if (eq? owner 'project) (test-inventories project 'a digest) '()))
                 (receipts (append (list c)

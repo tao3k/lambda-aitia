@@ -7,8 +7,8 @@
 (import (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        (only-in :std/srfi/1 every filter)
-        (only-in :std/srfi/13 string-contains))
+        :std/list/list
+        (only-in :gerbil/core string-contains))
 (export nasa-implementation-matrix nasa-implementation-summary)
 (def referenced-standards
   '("NASA-STD-8739.8" "NASA-STD-1006" "NASA-STD-7009" "NPR 7120.5"

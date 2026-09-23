@@ -1,0 +1,153 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  license-contract:
+    name: License contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Lambda Aitia
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Validate repository and package licenses
+        run: |
+          python3 scripts/check_license_contract.py
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+
+  lean-proof:
+    name: Lean assurance laws
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Lambda Aitia
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Restore Lean cache
+        id: lean-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .ci/home/.elan
+            proof/lean/.lake
+          key: lambda-aitia-lean-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('proof/lean/lean-toolchain', 'proof/lean/lakefile.lean', 'proof/lean/lake-manifest.json') }}
+
+      - name: Install project-local Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOME="$GITHUB_WORKSPACE/.ci/home"
+          export ELAN_HOME="$HOME/.elan"
+          mkdir -p "$HOME"
+          if [ ! -x "$ELAN_HOME/bin/lake" ]; then
+            curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+              | sh -s -- -y --default-toolchain none
+          fi
+          echo "HOME=$HOME" >> "$GITHUB_ENV"
+          echo "ELAN_HOME=$ELAN_HOME" >> "$GITHUB_ENV"
+          echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Build assurance proof library
+        working-directory: proof/lean
+        run: lake build LambdaAitiaModuleAssuranceProof
+
+      - name: Save Lean cache
+        if: steps.lean-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .ci/home/.elan
+            proof/lean/.lake
+          key: lambda-aitia-lean-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('proof/lean/lean-toolchain', 'proof/lean/lakefile.lean', 'proof/lean/lake-manifest.json') }}
+
+  scheme-runtime:
+    name: Scheme, integration and Python runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GERBIL_BUILD_CORES: 12
+      GERBIL_PATH: ${{ github.workspace }}/poo-flow/.gerbil
+      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow/packages/lambda-aitia:${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
+    steps:
+      - name: Checkout pinned POO Flow mechanism library
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: tao3k/poo-flow
+          ref: da492eea00a7dab502cfb4c7586edefbba96bbec
+          path: poo-flow
+          submodules: false
+
+      - name: Checkout Lambda Aitia under packages
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: poo-flow/packages/lambda-aitia
+
+      - name: Install Just
+        uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          cache-save: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+          cache-version: 1
+          disk-cache: lambda-aitia-${{ runner.os }}-gerbil-release-v1
+          repository-cache: true
+
+      - name: Resolve immutable Gerbil release and module graph
+        working-directory: poo-flow
+        run: bazelisk mod deps --lockfile_mode=error
+
+      - name: Restore pinned Gerbil package cache
+        id: gerbil-package-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: poo-flow/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+
+      - name: Install declared Gerbil package dependencies
+        if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:install_dependencies
+
+      - name: Save pinned Gerbil package cache
+        if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: poo-flow/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+
+      - name: Build POO Flow mechanism library
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && just build'
+
+      - name: Run Scheme semantic closure
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-semantic'
+
+      - name: Run SDLC and GitOps integration
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-integration'
+
+      - name: Build and test native ABI and Python runtime
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'

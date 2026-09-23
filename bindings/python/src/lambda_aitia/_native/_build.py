@@ -33,6 +33,14 @@ ffibuilder.set_source(
 )
 
 if __name__ == "__main__":
+    import sys
+
+    python_project = Path(__file__).resolve().parents[3]
+    if str(python_project) not in sys.path:
+        sys.path.insert(0, str(python_project))
+    from build_support import sanitize_python_linker_config
+
+    sanitize_python_linker_config()
     ffibuilder.compile(
         tmpdir=str(native_dir / "_build_temp"),
         target=str(native_dir / "_aitia_cffi.*"),

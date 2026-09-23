@@ -11,12 +11,14 @@
 #if defined(_WIN32)
 #include <windows.h>
 typedef HMODULE lambda_aitia_library;
+typedef FARPROC lambda_aitia_symbol;
 #define LAMBDA_AITIA_OPEN(path) LoadLibraryA(path)
 #define LAMBDA_AITIA_SYMBOL(handle, name) GetProcAddress(handle, name)
 #define LAMBDA_AITIA_CLOSE(handle) FreeLibrary(handle)
 #else
 #include <dlfcn.h>
 typedef void *lambda_aitia_library;
+typedef void *lambda_aitia_symbol;
 #define LAMBDA_AITIA_OPEN(path) dlopen(path, RTLD_NOW | RTLD_LOCAL)
 #define LAMBDA_AITIA_SYMBOL(handle, name) dlsym(handle, name)
 #define LAMBDA_AITIA_CLOSE(handle) dlclose(handle)
@@ -29,6 +31,15 @@ typedef void (*lambda_aitia_result_init_fn)(poo_flow_aitia_result *);
 typedef void (*lambda_aitia_result_release_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_descriptor_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_evaluate_fn)(char *, poo_flow_aitia_result *);
+
+static int lambda_aitia_load_symbol(lambda_aitia_library library,
+                                    const char *name, void *destination,
+                                    size_t destination_size) {
+  lambda_aitia_symbol symbol = LAMBDA_AITIA_SYMBOL(library, name);
+  if (symbol == NULL || destination_size != sizeof(symbol)) return 0;
+  memcpy(destination, &symbol, sizeof(symbol));
+  return 1;
+}
 
 static void lambda_aitia_write_error(char *error, size_t capacity,
                                      const char *message) {
@@ -59,6 +70,7 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
   lambda_aitia_result_init_fn result_init;
   lambda_aitia_result_release_fn result_release;
   lambda_aitia_descriptor_fn descriptor;
+  lambda_aitia_evaluate_fn sdlc_flow_plan;
   lambda_aitia_evaluate_fn evaluate;
   poo_flow_aitia_result result;
   char *input = NULL;
@@ -76,23 +88,23 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
     lambda_aitia_write_error(error, error_capacity, lambda_aitia_loader_error());
     return -101;
   }
-  revision = (lambda_aitia_revision_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_abi_revision");
-  runtime_init = (lambda_aitia_runtime_init_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_runtime_init");
-  runtime_shutdown = (lambda_aitia_runtime_shutdown_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_runtime_shutdown");
-  result_init = (lambda_aitia_result_init_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_result_init");
-  result_release = (lambda_aitia_result_release_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_result_release");
-  descriptor = (lambda_aitia_descriptor_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_descriptor");
-  evaluate = (lambda_aitia_evaluate_fn)LAMBDA_AITIA_SYMBOL(
-      library, "poo_flow_aitia_gitops_evaluate");
-  if (runtime_init == NULL || runtime_shutdown == NULL || revision == NULL ||
-      result_init == NULL || result_release == NULL || descriptor == NULL ||
-      evaluate == NULL) {
+  if (!lambda_aitia_load_symbol(library, "poo_flow_aitia_abi_revision",
+                                &revision, sizeof(revision)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_runtime_init",
+                                &runtime_init, sizeof(runtime_init)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_runtime_shutdown",
+                                &runtime_shutdown,
+                                sizeof(runtime_shutdown)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_result_init",
+                                &result_init, sizeof(result_init)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_result_release",
+                                &result_release, sizeof(result_release)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_descriptor",
+                                &descriptor, sizeof(descriptor)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_sdlc_flow_plan",
+                                &sdlc_flow_plan, sizeof(sdlc_flow_plan)) ||
+      !lambda_aitia_load_symbol(library, "poo_flow_aitia_gitops_evaluate",
+                                &evaluate, sizeof(evaluate))) {
     lambda_aitia_write_error(error, error_capacity,
                              "Lambda Aitia ABI symbol is absent");
     LAMBDA_AITIA_CLOSE(library);
@@ -114,10 +126,11 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
   result_init(&result);
   if (strcmp(operation, "descriptor") == 0) {
     status = descriptor(&result);
-  } else if (strcmp(operation, "gitops-evaluate") == 0) {
+  } else if (strcmp(operation, "sdlc-flow-plan") == 0 ||
+             strcmp(operation, "gitops-evaluate") == 0) {
     if (payload == NULL || payload_length == 0 || payload_length == SIZE_MAX) {
       lambda_aitia_write_error(error, error_capacity,
-                               "GitOps evaluation requires JSON input");
+                               "Aitia operation requires JSON input");
       result_release(&result);
       runtime_shutdown();
       LAMBDA_AITIA_CLOSE(library);
@@ -133,7 +146,9 @@ int lambda_aitia_python_call(const char *library_path, const char *operation,
     }
     memcpy(input, payload, payload_length);
     input[payload_length] = '\0';
-    status = evaluate(input, &result);
+    status = strcmp(operation, "sdlc-flow-plan") == 0
+                 ? sdlc_flow_plan(input, &result)
+                 : evaluate(input, &result);
     free(input);
   } else {
     lambda_aitia_write_error(error, error_capacity, "unknown Aitia operation");

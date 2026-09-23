@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Public names stay stable; negotiate this metadata before calling. */
-#define POO_FLOW_AITIA_ABI_REVISION 1u
+#define POO_FLOW_AITIA_ABI_REVISION 2u
 
 typedef struct {
   int32_t status;
@@ -28,6 +28,8 @@ void poo_flow_aitia_result_init(poo_flow_aitia_result *result);
 void poo_flow_aitia_result_release(poo_flow_aitia_result *result);
 uint32_t poo_flow_aitia_abi_revision(void);
 int32_t poo_flow_aitia_descriptor(poo_flow_aitia_result *result);
+int32_t poo_flow_aitia_sdlc_flow_plan(char *payload,
+                                      poo_flow_aitia_result *result);
 int32_t poo_flow_aitia_gitops_evaluate(char *payload,
                                        poo_flow_aitia_result *result);
 

@@ -2,7 +2,6 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/src/module-system/contribution/testing)
 (import :std/test :std/error
         :poo-flow/src/module-system/contribution/interface
         :poo-flow/lambda-aitia/modules/sdlc/interface
@@ -37,6 +36,29 @@
         (check-equal? (.ref result 'unresolved-edges) '("link")))
       (check-exception (review (list req req test) (list edge)) Error?)
       (check-exception (review (list req test) (list edge edge)) Error?))
+    (test-case "change impact delegates trajectories to POO Flow Graph"
+      (let (result
+            (sdlc-change-impact
+             project (list req test) (list edge)
+             '("req") '("SWE-052/verification")))
+        (check-equal? (.ref result 'status) 'scoped-impact-complete)
+        (check-equal? (.ref result 'affected-identities) '("req" "test"))
+        (check-equal? (length (.ref result 'witnesses)) 2)
+        (let (witness (cadr (.ref result 'witnesses)))
+          (check-equal? (.ref witness 'target-node-id) 'test)
+          (check-equal? (.ref witness 'node-path) '(req test))
+          (check-equal? (.ref witness 'relation-path)
+                        '(SWE-052/verification)))))
+    (test-case "change impact preserves unresolved SDLC edge identities"
+      (let (result
+            (sdlc-change-impact
+             project (list req test)
+             (list edge
+                   (sdlc-trace-edge "dangling" "SWE-052/verification"
+                                    "test" "missing" project))
+             '("req") '("SWE-052/verification")))
+        (check-equal? (.ref result 'status) 'invalid-inventory)
+        (check-equal? (.ref result 'unresolved-edges) '("dangling"))))
     (test-case "conditional clauses never infer missing facts or approve tailoring"
       (check-equal? (.ref (nasa-applicability "SWE-219" 'a (.o)) 'status) 'context-review-required)
       (check-equal? (.ref (nasa-applicability "SWE-219" 'a (.o safety-critical?: #t)) 'status) 'applicable)

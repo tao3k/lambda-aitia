@@ -8,7 +8,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/funs
-        (only-in :std/srfi/1 every filter any delete-duplicates))
+        :std/list/list)
 (export sdlc-project sdlc-obligation sdlc-evidence sdlc-tailoring-request
         sdlc-review)
 
@@ -21,7 +21,7 @@
                (list? requests) (every sdlc-tailoring-request? requests))
     (error "invalid SDLC review facts"))
   (let ((ids (map (lambda (e) (.ref e 'identity)) evidence)))
-    (unless (= (length ids) (length (delete-duplicates ids equal?)))
+    (unless (= (length ids) (length (delete-duplicates/hash ids)))
       (error "ambiguous SDLC evidence identity")))
   (let* ((known? (any (lambda (standard)
                        (and (equal? (.ref standard 'identity) (.ref obligation 'standard))

@@ -7,7 +7,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :gerbil/gambit
+(import :gerbil/core
         (only-in :clan/poo/object .cc .o .ref)
         (only-in :asp-gerbil-scheme/testing-api
                  +asp-testing-interface+

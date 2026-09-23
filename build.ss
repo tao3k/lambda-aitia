@@ -14,11 +14,15 @@
 
 (def +lambda-aitia-public-entry-modules+
   '("interface.ss"
+    "bindings/c/aitia-contract.ss"
     "modules/ADR/interface.ss"
     "modules/assurance/interface.ss"
+    "modules/formal-methods/interface.ss"
     "modules/gitops/interface.ss"
     "modules/sdlc/interface.ss"
     "modules/sdlc/standards/interface.ss"
+    "user-interface/compositions/aitia.ss"
+    "user-interface/profiles/software-engineering/project.ss"
     "user-interface/profiles/github/actions.ss"
     "user-interface/profiles/gitops/dev.ss"
     "user-interface/profiles/gitops/staging.ss"

@@ -9,7 +9,7 @@
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-lifecycle
-        (only-in :std/srfi/1 append-map))
+        :std/list/list)
 (export nasa-structured-test)
 (include "../support/inventories.ss")
 (def project (sdlc-project "structured-flight" "r1" "software" #t))
@@ -27,10 +27,16 @@
   (nasa-verification-adapter "structured-test-only"
     (lambda (r now until) (and (equal? (.ref r 'subject) "structured-flight") (= now 0) (= until 10)))))
 (def (evidence ids)
-  (append-map (lambda (id)
-                (map (lambda (c) (nasa-verifiable-evidence
-                                 (nasa-criterion-evidence (.ref c 'identity) project id (.ref c 'identity) "synthetic" 'pass) digest))
-                     (nasa-requirement-criteria id))) ids))
+  (concatenate
+   (map (lambda (id)
+          (map (lambda (c)
+                 (nasa-verifiable-evidence
+                  (nasa-criterion-evidence
+                   (.ref c 'identity) project id (.ref c 'identity)
+                   "synthetic" 'pass)
+                  digest))
+               (nasa-requirement-criteria id)))
+        ids)))
 (def (receipts adapter records inventory-values)
   (map (lambda (r) (poo-flow-verify adapter r 0 10))
        (append (list (nasa-context-request project 'a context))

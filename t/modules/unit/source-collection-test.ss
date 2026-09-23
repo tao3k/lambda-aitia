@@ -22,22 +22,23 @@
 
 (def lambda-aitia-source-collection-test
   (test-suite "Aitia module ownership and registered load path"
-    (test-case "Aitia discovers ADR, Assurance, GitOps and SDLC as its public modules"
+    (test-case "Aitia discovers its complete software engineering module set"
       (let (sources (poo-flow-load-modules lambda-aitia-module-source))
         (check-equal?
          (map poo-flow-module-source-ref-value sources)
          '("modules/ADR/interface.ss"
            "modules/assurance/interface.ss"
+           "modules/formal-methods/interface.ss"
            "modules/gitops/interface.ss"
            "modules/sdlc/interface.ss"))
         (check-equal?
          (map (lambda (source) (metadata-ref source 'module-key)) sources)
-         '((custom . ADR) (custom . assurance) (custom . gitops)
-           (custom . sdlc)))))
+         '((custom . ADR) (custom . assurance) (custom . formal-methods)
+           (custom . gitops) (custom . sdlc)))))
 
     (test-case "the package-local GitOps module retains Aitia ownership"
       (let* ((sources (poo-flow-load-modules lambda-aitia-module-source))
-             (source (caddr sources)))
+             (source (list-ref sources 3)))
         (check-equal? (metadata-ref source 'source-collection) 'lambda-aitia)
         (check-equal?
          (poo-flow-module-source-ref-value source)
