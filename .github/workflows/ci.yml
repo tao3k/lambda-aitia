@@ -82,7 +82,8 @@ jobs:
     timeout-minutes: 90
     env:
       GERBIL_BUILD_CORES: 12
-      POO_FLOW_ROOT: ${{ github.workspace }}/poo-flow
+      GERBIL_PATH: ${{ github.workspace }}/poo-flow/.gerbil
+      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
     steps:
       - name: Checkout pinned POO Flow mechanism library
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -139,6 +140,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends gdb
             gdb -batch \
+              -ex 'set breakpoint pending on' \
               -ex 'break ___throw_error' \
               -ex run \
               -ex 'info registers rdi rsi' \
