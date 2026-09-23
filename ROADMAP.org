@@ -205,7 +205,8 @@ Exit gates:
 
 * Phase 4 — Verifier adapters and evidence admission
 
-Status: =planned=
+Status: =in-progress= (typed reported outcomes and pure structural eligibility
+are implemented; trusted adapter execution and evidence promotion are open).
 
 Deliverables:
 
@@ -213,8 +214,9 @@ Deliverables:
    runtime replay and human review.
 2. Evidence envelopes binding producer, tool/version, input artifact digests,
    obligation, output digest, subject, revision, scope and validity interval.
-3. Admission rules for successful, failed, timed-out, unavailable and
-   indeterminate verifier outcomes.
+3. [~] Admission rules for successful, failed, timed-out, unavailable and
+   indeterminate verifier outcomes. The current receipt reports structural
+   eligibility only; it cannot promote evidence or authorize release.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,

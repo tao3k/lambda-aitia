@@ -24,6 +24,8 @@
         AssuranceVerificationPolicy AssuranceVerificationRequest
         AssuranceVerificationPlan AssuranceVerifierCandidate
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
+        AssuranceVerifierInput AssuranceVerifierOutcome
+        AssuranceEvidenceAdmissionReceipt
         AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
@@ -38,6 +40,8 @@
         assurance-verification-policy? assurance-verification-request?
         assurance-verification-plan? assurance-verifier-candidate?
         assurance-verifier-choice? assurance-verifier-choice-receipt?
+        assurance-verifier-input? assurance-verifier-outcome?
+        assurance-evidence-admission-receipt?
         assurance-composition-requirement?
         assurance-composition-derivation?)
 
@@ -430,6 +434,53 @@
           (enum-slot 'verifier-executed? (one-of '(#f)))
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
+;;; A reported tool result is not an admission. Input bindings carry both the
+;;; source revision and digest so a green exit cannot float across snapshots.
+(def AssuranceVerifierInput
+  (poo-clos-class 'aitia/verifier-input
+    direct-slots:
+    (list (text-slot 'identity) (text-slot 'revision)
+          (enum-slot 'digest assurance-digest?))))
+(def (verifier-input-list? values)
+  (and (list? values) (every assurance-verifier-input? values)))
+(def AssuranceVerifierOutcome
+  (poo-clos-class 'aitia/verifier-outcome
+    direct-slots:
+    (list (text-slot 'identity)
+          (enum-slot 'status
+                     (one-of '(succeeded failed timed-out unavailable indeterminate)))
+          (text-slot 'producer) (text-slot 'tool) (text-slot 'tool-version)
+          (text-slot 'obligation) (text-slot 'subject) (text-slot 'scope)
+          (text-slot 'snapshot-revision)
+          (enum-slot 'snapshot-context-digest assurance-digest?)
+          (enum-slot 'inputs verifier-input-list?)
+          (enum-slot 'output-digest maybe-digest?)
+          (enum-slot 'accountable-authority maybe-text?)
+          (enum-slot 'review-scope maybe-text?))))
+(def AssuranceEvidenceAdmissionReceipt
+  (poo-clos-class 'aitia/evidence-admission-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.evidence-admission")))
+          (text-slot 'outcome) (text-slot 'obligation)
+          (enum-slot 'outcome-digest assurance-digest?)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'eligible? boolean?)
+          (enum-slot 'blocker
+                     (lambda (value)
+                       (or (not value)
+                           (memq value
+                                 '(outcome-not-successful snapshot-conflicted
+                                   stale-obligation
+                                   outcome-binding-mismatch missing-output
+                                   missing-inputs duplicate-inputs
+                                   input-binding-mismatch
+                                   human-authority-missing)))))
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 ;;; A composition needs its own snapshot-bound obligation. Component support
 ;;; remains separate and cannot discharge this structural requirement.
 (def AssuranceCompositionRequirement
@@ -539,6 +590,13 @@
             (eq? (.ref value 'reason) 'chosen))))
 (def (assurance-verifier-choice-receipt? value)
   (poo-flow-model? AssuranceVerifierChoiceReceipt value))
+(def (assurance-verifier-input? value)
+  (poo-flow-model? AssuranceVerifierInput value))
+(def (assurance-verifier-outcome? value)
+  (poo-flow-model? AssuranceVerifierOutcome value))
+(def (assurance-evidence-admission-receipt? value)
+  (and (poo-flow-model? AssuranceEvidenceAdmissionReceipt value)
+       (eq? (.ref value 'eligible?) (not (.ref value 'blocker)))))
 (def (assurance-composition-requirement? value)
   (poo-flow-model? AssuranceCompositionRequirement value))
 (def (assurance-composition-derivation? value)

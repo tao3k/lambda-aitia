@@ -9,5 +9,7 @@
 (export (import: :poo-flow/lambda-aitia/modules/assurance/objects))
 (import :poo-flow/lambda-aitia/modules/assurance/funs)
 (export (import: :poo-flow/lambda-aitia/modules/assurance/funs))
+(import :poo-flow/lambda-aitia/modules/assurance/evidence-admission)
+(export (import: :poo-flow/lambda-aitia/modules/assurance/evidence-admission))
 (import :poo-flow/lambda-aitia/modules/assurance/config)
 (export (import: :poo-flow/lambda-aitia/modules/assurance/config))
