@@ -37,4 +37,10 @@
   '((gxc: "testing-interface")
     (gxc: "testing-observer"))))
 
-(defbuild-script (lambda-aitia-native-spec))
+(cond-expand
+ (darwin
+  ;; Gerbil v0.19's cross-module keyword specialization on Darwin can
+  ;; reference private __% procedures from POO CLOS .ssxi metadata.
+  (defbuild-script (lambda-aitia-native-spec) optimize: #f))
+ (else
+  (defbuild-script (lambda-aitia-native-spec))))
