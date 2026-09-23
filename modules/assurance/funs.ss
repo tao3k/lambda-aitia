@@ -10,6 +10,7 @@
         (only-in :std/encoding/hex hex-encode)
         (only-in :poo-flow/src/graph/algorithms
                  poo-flow-graph-cycle-path
+                 poo-flow-graph-loop-analysis-receipt
                  poo-flow-graph-reachable-ids
                  poo-flow-graph-topological-order)
         :poo-flow/src/module-system/contribution/model
@@ -366,12 +367,12 @@
 ;;; to the supplied snapshot. Deriving replacement revisions and invoking
 ;;; verifiers belong to later phases; neither can be inferred from a change.
 (def (verification-base-blocker obligation snapshot capabilities
-                                unresolved conflicts cycle-path
+                                unresolved conflicts cyclic-ids
                                 prerequisites planned-ids)
   (cond
    ((pair? conflicts) 'conflicted-snapshot)
    ((pair? unresolved) 'unresolved-frontier)
-   ((pair? cycle-path) 'dependency-cycle)
+   ((member (.ref obligation 'identity) cyclic-ids) 'dependency-cycle)
    ((or (not (string=? (.ref obligation 'snapshot)
                        (.ref snapshot 'identity)))
         (not (equal? (.ref obligation 'snapshot-revision)
@@ -419,10 +420,12 @@
                    snapshot obligation-ids)))
       (let* ((cycle-path
               (or (poo-flow-graph-cycle-path dependency-graph) '()))
-             (ordered-ids
-              (if (null? cycle-path)
-                (poo-flow-graph-topological-order dependency-graph)
-                obligation-ids))
+             (cyclic-ids
+              (concatenate
+               (.ref (poo-flow-graph-loop-analysis-receipt dependency-graph)
+                     'cyclic-components)))
+             (cycle-blocked
+              (poo-flow-graph-reachable-ids dependency-graph cyclic-ids))
              (base-blockers
               (map
                (lambda (obligation-id)
@@ -430,14 +433,29 @@
                   obligation-id
                   (verification-base-blocker
                    (node-by-identity (.ref snapshot 'nodes) obligation-id)
-                   snapshot capabilities unresolved conflicts cycle-path
+                   snapshot capabilities unresolved conflicts cyclic-ids
                    (cdr (assoc obligation-id prerequisites)) obligation-ids)))
-               ordered-ids))
+               obligation-ids))
              (blocked-closure
               (poo-flow-graph-reachable-ids
                dependency-graph
-               (map car (filter (lambda (entry) (cdr entry))
-                                base-blockers))))
+               (append cycle-blocked
+                       (map car (filter (lambda (entry) (cdr entry))
+                                        base-blockers)))))
+             (available-ids
+              (filter (lambda (id) (not (member id blocked-closure)))
+                      obligation-ids))
+             (available-order
+              (let-values (((available-graph _)
+                            (assurance-verification-dependency-graph
+                             snapshot available-ids)))
+                (poo-flow-graph-topological-order available-graph)))
+             (blocked-order
+              (filter (lambda (id) (member id blocked-closure))
+                      (if (null? cycle-path)
+                        (poo-flow-graph-topological-order dependency-graph)
+                        obligation-ids)))
+             (ordered-ids (append available-order blocked-order))
              (requests
               (map
                (lambda (obligation-id)

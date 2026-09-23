@@ -549,30 +549,36 @@
         (check-equal? (.ref (cadr (.ref plan 'requests)) 'blocker)
                       'dependency-blocked)))
 
-    (test-case "a dependency cycle has a witness and no executable order"
+    (test-case "a dependency cycle blocks its SCC but preserves an independent branch"
       (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
              (b (verification-obligation "obligation/b" 'gerbil-test))
+             (c (verification-obligation "obligation/c" 'gerbil-test))
+             (d (verification-obligation "obligation/d" 'gerbil-test))
              (snapshot
               (verification-snapshot
-               (list a b)
+               (list a b c d)
                (list (verification-support "obligation/a")
                      (verification-support "obligation/b")
+                     (verification-support "obligation/c")
+                     (verification-support "obligation/d")
                      (verification-dependency "obligation/a" "obligation/b")
-                     (verification-dependency "obligation/b" "obligation/a"))))
+                     (verification-dependency "obligation/b" "obligation/a")
+                     (verification-dependency "obligation/d" "obligation/a"))))
              (policy
               (assurance-verification-policy
                "policy/release" "r1" '(gerbil-test)))
              (plan
               (assurance-plan-verification
                "plan/cycle" snapshot '("artifact/source") policy)))
-        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref plan 'selected-obligations) '("obligation/c"))
         (check-equal? (.ref plan 'blocked-obligations)
-                      '("obligation/a" "obligation/b"))
+                      '("obligation/a" "obligation/b" "obligation/d"))
         (check-equal? (.ref plan 'cycle-path)
                       '("obligation/a" "obligation/b" "obligation/a"))
         (check-equal? (map (lambda (request) (.ref request 'blocker))
                            (.ref plan 'requests))
-                      '(dependency-cycle dependency-cycle))))
+                      '(#f dependency-cycle dependency-cycle
+                           dependency-blocked))))
 
     (test-case "missing capability remains an explained blocked obligation"
       (let* ((policy

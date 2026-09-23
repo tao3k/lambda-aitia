@@ -149,7 +149,9 @@ Within the affected obligation set, structural =depends-on= relations are
 projected into POO Flow Graph.  Its topological order becomes the selected
 request order; a blocked prerequisite blocks dependents, an unplanned
 prerequisite is never assumed discharged, and a dependency cycle records its
-path while withholding an executable order.  The plan still does not attest
+path while blocking only its strongly connected component and downstream
+dependents; an independent acyclic branch retains its own order.  The plan
+still does not attest
 that any prerequisite has been verified.
 An obligation bound to an older snapshot is blocked rather than silently
 promoted to a replacement obligation.  Selection compares snapshot identity,
