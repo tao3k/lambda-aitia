@@ -16,7 +16,9 @@
                  poo-flow-revoke-verification!)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
                  assurance-snapshot? assurance-claim? assurance-obligation?
-                 AssuranceRequiredSupport AssessmentRequiredSupport)
+                 assurance-decision? assurance-decision-preflight?
+                 AssuranceRequiredSupport AssessmentRequiredSupport
+                 AssuranceDecisionPreflight)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
                  assurance-snapshot-canonical? assurance-node-canonical)
         (only-in :poo-flow/lambda-aitia/modules/assurance/evidence-admission
@@ -33,11 +35,15 @@
         assurance-host-admit assurance-host-admission-current?
         assurance-host-admitted-support?
         assurance-host-required-support
+        assurance-host-preflight-decision
+        assurance-host-decision-preflight-current?
+        assurance-host-revoke-decision-preflight!
         assurance-host-revoke-admission!)
 
 (def issued-hosts (make-hash-table-eq weak-keys: #t))
 (def issued-host-receipts (make-hash-table-eq weak-keys: #t))
 (def issued-admissions (make-hash-table-eq weak-keys: #t))
+(def issued-decision-preflights (make-hash-table-eq weak-keys: #t))
 
 (def (host-entry host)
   (let (entry (hash-get issued-hosts host))
@@ -376,6 +382,129 @@
                          (pair? rows)
                          (every (lambda (row) (.ref row 'supported?)) rows))
          release-authorized?: #f))))
+
+(def (decision-depends-on-claim? snapshot decision-value claim-value)
+  (find (lambda (relation)
+          (and (eq? (.ref relation 'plane) 'structural)
+               (eq? (.ref relation 'relation) 'depends-on)
+               (equal? (.ref relation 'source)
+                       (.ref decision-value 'identity))
+               (equal? (.ref relation 'target)
+                       (.ref claim-value 'identity))
+               (not (memq (.ref relation 'modality)
+                          '(hypothesized counterfactual)))))
+        (.ref snapshot 'relations)))
+
+(def (decision-preflight-bound? snapshot decision-value claim-value)
+  (and (assurance-decision? decision-value)
+       (assurance-claim? claim-value)
+       (let ((current-decision
+              (snapshot-node snapshot (.ref decision-value 'identity)))
+             (current-claim
+              (snapshot-node snapshot (.ref claim-value 'identity))))
+         (and current-decision (assurance-decision? current-decision)
+              current-claim (assurance-claim? current-claim)
+              (equal? (assurance-node-canonical current-decision)
+                      (assurance-node-canonical decision-value))
+              (equal? (assurance-node-canonical current-claim)
+                      (assurance-node-canonical claim-value))))
+       (eq? (.ref decision-value 'outcome) 'unknown)
+       (eq? (.ref decision-value 'state) 'unknown)
+       (equal? (.ref decision-value 'subject)
+               (.ref claim-value 'subject))
+       (equal? (.ref decision-value 'snapshot)
+               (.ref snapshot 'identity))
+       (equal? (.ref decision-value 'policy)
+               (.ref snapshot 'policy-identity))
+       (decision-depends-on-claim? snapshot decision-value claim-value)))
+
+(def (same-host-cut? host-state snapshot-value epoch-value)
+  (and (= epoch-value (vector-ref host-state 8))
+       (equal? (assurance-snapshot-semantic-digest snapshot-value)
+               (assurance-snapshot-semantic-digest
+                (host-current-snapshot host-state)))
+       (= epoch-value (vector-ref host-state 8))))
+
+;;; This capability attests a currently bound *undecided* Decision candidate.
+;;; It cannot be projected as Cedar permit or Runtime effect authorization.
+(def (assurance-host-preflight-decision
+      host decision-value claim-value admissions)
+  (unless (list? admissions)
+    (error "Decision preflight requires an admission list"))
+  (let* ((host-state (required-host-entry host))
+         (snapshot-value (host-current-snapshot host-state))
+         (epoch-value (vector-ref host-state 8)))
+    (and (decision-preflight-bound?
+          snapshot-value decision-value claim-value)
+         (.ref (assurance-host-required-support
+                host claim-value admissions)
+               'complete?)
+         (same-host-cut? host-state snapshot-value epoch-value)
+         (let* ((next (+ (vector-ref host-state 6) 1))
+                (identity-value
+                 (string-append (vector-ref host-state 0) "/decision-preflight/"
+                                (number->string next)))
+                (issuer-value (vector-ref host-state 0))
+                (decision-identity-value (.ref decision-value 'identity))
+                (claim-identity-value (.ref claim-value 'identity))
+                (snapshot-digest-value (.ref snapshot-value 'digest))
+                (semantic-digest-value
+                 (assurance-snapshot-semantic-digest snapshot-value))
+                (preflight
+                 (poo-flow-check-model
+                  AssuranceDecisionPreflight
+                  (.o (:: @ (poo-flow-model-prototype
+                             AssuranceDecisionPreflight))
+                      schema: "lambda-aitia.decision-preflight"
+                      identity: identity-value issuer: issuer-value
+                      decision: decision-identity-value
+                      claim: claim-identity-value
+                      snapshot-digest: snapshot-digest-value
+                      release-authorized?: #f))))
+           (vector-set! host-state 6 next)
+           (hash-put! issued-decision-preflights preflight
+                      (vector host identity-value issuer-value
+                              decision-identity-value claim-identity-value
+                              snapshot-digest-value semantic-digest-value
+                              epoch-value decision-value claim-value
+                              admissions))
+           preflight))))
+
+(def (decision-preflight-entry host preflight)
+  (let (issued (hash-get issued-decision-preflights preflight))
+    (and issued (eq? host (vector-ref issued 0))
+         (assurance-decision-preflight? preflight)
+         (equal? (.ref preflight 'identity) (vector-ref issued 1))
+         (equal? (.ref preflight 'issuer) (vector-ref issued 2))
+         (equal? (.ref preflight 'decision) (vector-ref issued 3))
+         (equal? (.ref preflight 'claim) (vector-ref issued 4))
+         (equal? (.ref preflight 'snapshot-digest) (vector-ref issued 5))
+         issued)))
+
+(def (assurance-host-decision-preflight-current? host preflight)
+  (let* ((host-state (required-host-entry host))
+         (issued (decision-preflight-entry host preflight)))
+    (and issued
+         (= (vector-ref issued 7) (vector-ref host-state 8))
+         (let (snapshot-value (host-current-snapshot host-state))
+           (and (= (vector-ref issued 7) (vector-ref host-state 8))
+                (equal? (.ref snapshot-value 'digest)
+                        (vector-ref issued 5))
+                (equal? (assurance-snapshot-semantic-digest snapshot-value)
+                        (vector-ref issued 6))
+                (decision-preflight-bound?
+                 snapshot-value (vector-ref issued 8) (vector-ref issued 9))
+                (.ref (assurance-host-required-support
+                       host (vector-ref issued 9) (vector-ref issued 10))
+                      'complete?)
+                (same-host-cut?
+                 host-state snapshot-value (vector-ref issued 7)))))))
+
+(def (assurance-host-revoke-decision-preflight! host preflight)
+  (required-host-entry host)
+  (unless (decision-preflight-entry host preflight)
+    (error "unissued or modified assurance Decision preflight"))
+  (hash-remove! issued-decision-preflights preflight))
 
 (def (assurance-host-revoke-admission! host admission)
   (required-host-entry host)

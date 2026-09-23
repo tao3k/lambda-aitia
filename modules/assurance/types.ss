@@ -27,6 +27,7 @@
         AssuranceVerifierInput AssuranceVerifierOutcome
         AssuranceEvidenceAdmissionReceipt AssuranceVerificationSubject
         AssuranceRequiredSupport AssessmentRequiredSupport
+        AssuranceDecisionPreflight
         AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
@@ -44,6 +45,7 @@
         assurance-verifier-input? assurance-verifier-outcome?
         assurance-evidence-admission-receipt?
         assurance-required-support? assessment-required-support?
+        assurance-decision-preflight?
         assurance-verification-subject?
         assurance-composition-requirement?
         assurance-composition-derivation?)
@@ -531,6 +533,21 @@
           (enum-slot 'complete? boolean?)
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
+;;; A Host-issued preflight proves only that an undecided Decision and its
+;;; required support were current at issuance. Cedar/Runtime own authority.
+(def AssuranceDecisionPreflight
+  (poo-clos-class 'aitia/decision-preflight
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.decision-preflight")))
+          (text-slot 'identity)
+          (text-slot 'issuer)
+          (text-slot 'decision)
+          (text-slot 'claim)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 ;;; A composition needs its own snapshot-bound obligation. Component support
 ;;; remains separate and cannot discharge this structural requirement.
 (def AssuranceCompositionRequirement
@@ -657,6 +674,8 @@
                  (pair? (.ref value 'requirements))
                  (every (lambda (item) (.ref item 'supported?))
                         (.ref value 'requirements))))))
+(def (assurance-decision-preflight? value)
+  (poo-flow-model? AssuranceDecisionPreflight value))
 (def (assurance-verification-subject? value)
   (poo-flow-model? AssuranceVerificationSubject value))
 (def (assurance-composition-requirement? value)

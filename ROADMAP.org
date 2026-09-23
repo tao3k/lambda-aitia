@@ -216,7 +216,9 @@ assurance-edge witness can consume that ledger without promoting the snapshot
 evidence slot. A typed required-support receipt now checks all claim-declared
 obligations and both assurance links at the current Host cut, with explicit
 blockers and no release authority. Full Decision closure, trusted deployment,
-Cedar policy and the Runtime effect gate remain open).
+Cedar policy and the Runtime effect gate remain open. A Host-issued preflight
+can now bind an undecided Decision and its dependency edge to that support,
+but cannot produce =allow= or an effect token).
 
 Deliverables:
 
@@ -309,7 +311,8 @@ Exit gates:
 
 * Phase 6 — POO Flow integration and effect gate
 
-Status: =planned=
+Status: =planned= (the Host Decision preflight is an inert input only; Cedar
+evaluation and Runtime effect admission have not landed).
 
 Deliverables:
 

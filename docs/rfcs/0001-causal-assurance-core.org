@@ -286,6 +286,15 @@ assumptions, defeaters, unresolved frontiers and challenges visibly blocked.
 Even =complete?= means only that the declared support inventory is witnessed;
 =release-authorized?= remains false. Validity intervals, policy evaluation and
 the actual Decision authority boundary are still separate work.
+The Host may now issue a weak-key-indexed Decision preflight for an exact
+*undecided* Decision node already present in that cut. It checks the
+=depends-on= edge to the supported claim, policy/snapshot/subject bindings and
+current required support; currentness rechecks the Host source epoch and the
+admissions. Copies, revocation, source changes and rollback cannot reuse it.
+This preflight carries =release-authorized? #f= and is not a Cedar result,
+an =allow= Decision or an effect token. The POO Flow Cedar Provider constructs
+inert inputs; the independent Runtime Host still owns policy evaluation and
+effect admission.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
