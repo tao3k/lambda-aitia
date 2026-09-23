@@ -136,8 +136,8 @@ jobs:
         working-directory: poo-flow
         run: |
           if ! bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'; then
-            if command -v gdb >/dev/null 2>&1; then
-              gdb -batch -ex run -ex 'bt 30' --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
-            fi
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends gdb
+            gdb -batch -ex run -ex 'bt 30' --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
             exit 1
           fi
