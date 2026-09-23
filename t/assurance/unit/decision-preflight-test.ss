@@ -157,6 +157,7 @@
                       (.ref preflight 'identity))
         (check-equal? (hash-get context-value "aitia_policy") "policy/release")
         (check-equal? (hash-get context-value "aitia_preflight_only") #t)
+        (check-equal? (hash-get context-value "poo_flow_preflight_only") #t)
         (check-equal?
          (assurance-host-cedar-request
           host (.o (:: @ preflight)) "Release" digest-a handoff) #f)

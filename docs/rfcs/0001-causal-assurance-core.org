@@ -301,8 +301,12 @@ semantic snapshot digest into POO Flow's POO-native Cedar request family.
 The application supplies the action, intent and POO Flow runtime handoff.
 The resulting request and its context are editable input, not a second Host
 seal; copying or changing them cannot establish Aitia admission. The Runtime
-Host must independently bind the source cut at use, evaluate Cedar through
-both engines and gate the effect. The Scheme projection does none of these.
+Host rejects the projected =poo_flow_preflight_only= marker before policy
+evaluation, regardless of its value. This fail-closed check blocks accidental
+promotion of the official preflight path; it does not attest an edited request
+with the marker removed. A future Runtime-owned admission must independently
+bind the source cut at use, evaluate Cedar through both engines and gate the
+effect. The Scheme projection does none of these.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a

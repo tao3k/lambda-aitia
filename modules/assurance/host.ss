@@ -521,6 +521,7 @@
                 (claim-value (vector-ref issued 9))
                 (context-value
                  (.o aitia_schema: "lambda-aitia.cedar-preflight.v1"
+                     poo_flow_preflight_only: #t
                      aitia_preflight: (vector-ref issued 1)
                      aitia_decision: (vector-ref issued 3)
                      aitia_claim: (vector-ref issued 4)
