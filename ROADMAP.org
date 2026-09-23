@@ -269,6 +269,15 @@ TLA+ owns the dynamic lifecycle:
 change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
 #+end_example
 
+A bounded TLC model in =proof/tla/AssuranceLifecycle.tla= now checks current
+admission/decision/grant authority, expiry and revocation. Separate mutant
+configurations demonstrate unsafe report-only effect start, stale admission,
+grant before re-verification and effect start after revocation; a reachability
+configuration demonstrates a valid effect path. This is local model evidence,
+not proof that the Runtime Host enforces the contract. Clock/adapter trust,
+counterfactual transition authority, liveness, and source-bound CI replay
+remain open.
+
 Required model-checking counterexamples include stale cached decisions,
 evidence admitted after a source change, release before re-verification,
 counterfactual promotion without transition authority and effect execution
