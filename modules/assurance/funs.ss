@@ -8,10 +8,16 @@
         (only-in :gerbil/core list-sort string->utf8)
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
+        (only-in :poo-flow/src/graph/algorithms
+                 poo-flow-graph-cycle-path
+                 poo-flow-graph-reachable-ids
+                 poo-flow-graph-topological-order)
         :poo-flow/src/module-system/contribution/model
         :poo-flow/lambda-aitia/modules/assurance/types
         (only-in :poo-flow/lambda-aitia/modules/assurance/invalidation-projection
-                 assurance-invalidation-analysis assurance-invalidation-graph))
+                 assurance-invalidation-analysis assurance-invalidation-graph)
+        (only-in :poo-flow/lambda-aitia/modules/assurance/verification-projection
+                 assurance-verification-dependency-graph))
 
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
@@ -315,6 +321,21 @@
 ;;; Phase 3 selection boundary. This plan names only obligations already bound
 ;;; to the supplied snapshot. Deriving replacement revisions and invoking
 ;;; verifiers belong to later phases; neither can be inferred from a change.
+(def (verification-base-blocker obligation snapshot capabilities
+                                unresolved conflicts cycle-path
+                                prerequisites planned-ids)
+  (cond
+   ((pair? conflicts) 'conflicted-snapshot)
+   ((pair? unresolved) 'unresolved-frontier)
+   ((pair? cycle-path) 'dependency-cycle)
+   ((not (string=? (.ref obligation 'snapshot) (.ref snapshot 'identity)))
+    'stale-obligation)
+   ((not (memq (.ref obligation 'capability) capabilities))
+    'capability-unavailable)
+   ((find (lambda (id) (not (member id planned-ids))) prerequisites)
+    'dependency-unplanned)
+   (else #f)))
+
 (def (assurance-plan-verification identity snapshot changed-identities policy)
   (unless (and (assurance-text? identity)
                (assurance-snapshot? snapshot)
@@ -343,38 +364,59 @@
          (unresolved
           (assurance-invalidation-receipt-ref invalidation 'unresolved))
          (conflicts (.ref snapshot 'conflicts))
-         (capabilities (.ref policy 'capabilities))
-         (requests
-          (map
-           (lambda (obligation-id)
-             (let* ((obligation
-                     (node-by-identity (.ref snapshot 'nodes)
-                                       obligation-id))
-                    (reason
-                     (cond
-                      ((pair? conflicts) 'conflicted-snapshot)
-                      ((pair? unresolved) 'unresolved-frontier)
-                      ((not (string=? (.ref obligation 'snapshot)
-                                      (.ref snapshot 'identity)))
-                       'stale-obligation)
-                      ((not (memq (.ref obligation 'capability) capabilities))
-                       'capability-unavailable)
-                      (else #f)))
-                    (request-id obligation-id)
-                    (request-reason reason))
-               (poo-flow-check-model
-                AssuranceVerificationRequest
-                (.o (:: @ (poo-flow-model-prototype
-                           AssuranceVerificationRequest))
-                    obligation-identity: request-id
-                    subject: (.ref obligation 'subject)
-                    claim: (.ref obligation 'claim)
-                    snapshot-digest: (.ref snapshot 'digest)
-                    evidence-kind: (.ref obligation 'evidence-kind)
-                    capability: (.ref obligation 'capability)
-                    selected?: (not request-reason)
-                    blocker: request-reason))))
-           obligation-ids))
+         (capabilities (.ref policy 'capabilities)))
+    (let-values (((dependency-graph prerequisites)
+                  (assurance-verification-dependency-graph
+                   snapshot obligation-ids)))
+      (let* ((cycle-path
+              (or (poo-flow-graph-cycle-path dependency-graph) '()))
+             (ordered-ids
+              (if (null? cycle-path)
+                (poo-flow-graph-topological-order dependency-graph)
+                obligation-ids))
+             (base-blockers
+              (map
+               (lambda (obligation-id)
+                 (cons
+                  obligation-id
+                  (verification-base-blocker
+                   (node-by-identity (.ref snapshot 'nodes) obligation-id)
+                   snapshot capabilities unresolved conflicts cycle-path
+                   (cdr (assoc obligation-id prerequisites)) obligation-ids)))
+               ordered-ids))
+             (blocked-closure
+              (poo-flow-graph-reachable-ids
+               dependency-graph
+               (map car (filter (lambda (entry) (cdr entry))
+                                base-blockers))))
+             (requests
+              (map
+               (lambda (obligation-id)
+                 (let* ((obligation
+                         (node-by-identity (.ref snapshot 'nodes)
+                                           obligation-id))
+                        (base-reason (cdr (assoc obligation-id base-blockers)))
+                        (request-reason
+                         (or base-reason
+                             (and (member obligation-id blocked-closure)
+                                  'dependency-blocked)))
+                        (request-id obligation-id)
+                        (request-dependencies
+                         (cdr (assoc obligation-id prerequisites))))
+                   (poo-flow-check-model
+                    AssuranceVerificationRequest
+                    (.o (:: @ (poo-flow-model-prototype
+                               AssuranceVerificationRequest))
+                        obligation-identity: request-id
+                        subject: (.ref obligation 'subject)
+                        claim: (.ref obligation 'claim)
+                        snapshot-digest: (.ref snapshot 'digest)
+                        evidence-kind: (.ref obligation 'evidence-kind)
+                        capability: (.ref obligation 'capability)
+                        dependencies: request-dependencies
+                        selected?: (not request-reason)
+                        blocker: request-reason))))
+               ordered-ids))
          (blocked
           (map (lambda (request) (.ref request 'obligation-identity))
                (filter (lambda (request) (not (.ref request 'selected?)))
@@ -389,6 +431,7 @@
                        (.ref request 'subject) (.ref request 'claim)
                        (.ref request 'evidence-kind)
                        (.ref request 'capability)
+                       (.ref request 'dependencies)
                        (.ref request 'selected?) (.ref request 'blocker)))
                requests))
          (digest
@@ -398,6 +441,7 @@
                  (.ref policy 'identity) (.ref policy 'revision)
                  (.ref policy 'capabilities)
                  changed impacted blocked-effects witnesses
+                 cycle-path
                  selected blocked request-projection
                  unresolved conflicts))))
     (let ((plan-identity identity)
@@ -407,6 +451,7 @@
           (plan-changed changed)
           (plan-impacted impacted)
           (plan-blocked-effects blocked-effects)
+          (plan-cycle-path cycle-path)
           (plan-witnesses witnesses)
           (plan-requests requests)
           (plan-unresolved unresolved)
@@ -423,8 +468,9 @@
            blocked-obligations: plan-blocked
            changed: plan-changed impacted: plan-impacted
            blocked-effects: plan-blocked-effects
+           cycle-path: plan-cycle-path
            witnesses: plan-witnesses
            requests: plan-requests
            unresolved: plan-unresolved conflicts: plan-conflicts
            verifier-executed?: #f release-authorized?: #f
-           runtime-executed?: #f)))))
+           runtime-executed?: #f)))))))

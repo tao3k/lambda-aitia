@@ -133,7 +133,7 @@ Exit gates:
 
 * Phase 3 — Obligation derivation and verification planning
 
-Status: =active= (typed kinds and selection evidence; replacement derivation remains open)
+Status: =active= (typed kinds and dependency-ordered selection; replacement derivation remains open)
 
 The first executable slice reuses the Phase 2 invalidation receipt to select
 snapshot-bound obligations.  A POO-native verification policy declares
@@ -145,10 +145,16 @@ execution.
 Obligation evidence kinds are closed to proof, model checking, replay,
 unit/integration/native tests, static analysis, authorization differential and
 human review; an unknown kind is rejected at the model boundary.
+Within the affected obligation set, structural =depends-on= relations are
+projected into POO Flow Graph.  Its topological order becomes the selected
+request order; a blocked prerequisite blocks dependents, an unplanned
+prerequisite is never assumed discharged, and a dependency cycle records its
+path while withholding an executable order.  The plan still does not attest
+that any prerequisite has been verified.
 An obligation bound to an older snapshot is blocked rather than silently
 promoted to a replacement obligation.  This slice does not implement the
-ordered dependency plan, replacement-obligation derivation, verifier choice
-receipts or composition obligations below.
+replacement-obligation derivation, verifier choice receipts or composition
+obligations below.
 
 Deliverables:
 

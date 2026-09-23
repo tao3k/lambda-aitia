@@ -64,6 +64,25 @@
   (assurance-relation "relation/reverse-dependency" 'structural 'implements
                       "artifact/source" "claim/release" 'declared))
 
+(def (verification-obligation id capability)
+  (assurance-obligation
+   id "r1" 'unknown digest-a
+   subject: "software/release" claim: "claim/release"
+   snapshot: "snapshot/software" evidence-kind: 'native-test
+   capability: capability scope: "repository"))
+(def (verification-support id)
+  (assurance-relation
+   (string-append "relation/support/" id) 'assurance 'supports
+   id "claim/release" 'declared))
+(def (verification-dependency source target)
+  (assurance-relation
+   (string-append "relation/depends/" source "/" target)
+   'structural 'depends-on source target 'declared))
+(def (verification-snapshot obligations relations)
+  (software-snapshot
+   (append (list artifact claim evidence) obligations)
+   (append (list dependency) relations)))
+
 (def (software-snapshot nodes relations (unresolved '()))
   (assurance-snapshot
    "snapshot/software" "r1" "graph/software"
@@ -431,6 +450,109 @@
         snapshot: "snapshot/software" evidence-kind: 'arbitrary-pass
         capability: 'verifier scope: "repository")
        Error?))
+
+    (test-case "POO Graph orders affected prerequisites before dependents"
+      (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
+             (b (verification-obligation "obligation/b" 'gerbil-test))
+             (c (verification-obligation "obligation/c" 'gerbil-test))
+             (relations
+              (list (verification-support "obligation/a")
+                    (verification-support "obligation/b")
+                    (verification-support "obligation/c")
+                    (verification-dependency "obligation/a" "obligation/b")
+                    (verification-dependency "obligation/b" "obligation/c")))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (left
+              (assurance-plan-verification
+               "plan/ordered"
+               (verification-snapshot (list a b c) relations)
+               '("artifact/source") policy))
+             (right
+              (assurance-plan-verification
+               "plan/ordered"
+               (verification-snapshot (list c a b) (reverse relations))
+               '("artifact/source") policy)))
+        (check-equal? (.ref left 'selected-obligations)
+                      '("obligation/c" "obligation/b" "obligation/a"))
+        (check-equal? (.ref left 'blocked-obligations) '())
+        (check-equal? (.ref left 'cycle-path) '())
+        (check-equal? (.ref (car (.ref left 'requests)) 'dependencies) '())
+        (check-equal? (.ref (cadr (.ref left 'requests)) 'dependencies)
+                      '("obligation/c"))
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (.ref left 'verifier-executed?) #f)))
+
+    (test-case "an unplanned prerequisite blocks its dependent"
+      (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
+             (b (verification-obligation "obligation/b" 'gerbil-test))
+             (snapshot
+              (verification-snapshot
+               (list a b)
+               (list (verification-support "obligation/a")
+                     (verification-dependency "obligation/a" "obligation/b"))))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (plan
+              (assurance-plan-verification
+               "plan/unplanned" snapshot '("artifact/source") policy)))
+        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref plan 'blocked-obligations) '("obligation/a"))
+        (check-equal? (.ref (car (.ref plan 'requests)) 'dependencies)
+                      '("obligation/b"))
+        (check-equal? (.ref (car (.ref plan 'requests)) 'blocker)
+                      'dependency-unplanned)))
+
+    (test-case "a blocked prerequisite propagates along POO Graph reachability"
+      (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
+             (b (verification-obligation "obligation/b" 'lean))
+             (snapshot
+              (verification-snapshot
+               (list a b)
+               (list (verification-support "obligation/a")
+                     (verification-support "obligation/b")
+                     (verification-dependency "obligation/a" "obligation/b"))))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (plan
+              (assurance-plan-verification
+               "plan/blocked-prerequisite" snapshot
+               '("artifact/source") policy)))
+        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref plan 'blocked-obligations)
+                      '("obligation/b" "obligation/a"))
+        (check-equal? (.ref (car (.ref plan 'requests)) 'blocker)
+                      'capability-unavailable)
+        (check-equal? (.ref (cadr (.ref plan 'requests)) 'blocker)
+                      'dependency-blocked)))
+
+    (test-case "a dependency cycle has a witness and no executable order"
+      (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
+             (b (verification-obligation "obligation/b" 'gerbil-test))
+             (snapshot
+              (verification-snapshot
+               (list a b)
+               (list (verification-support "obligation/a")
+                     (verification-support "obligation/b")
+                     (verification-dependency "obligation/a" "obligation/b")
+                     (verification-dependency "obligation/b" "obligation/a"))))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (plan
+              (assurance-plan-verification
+               "plan/cycle" snapshot '("artifact/source") policy)))
+        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref plan 'blocked-obligations)
+                      '("obligation/a" "obligation/b"))
+        (check-equal? (.ref plan 'cycle-path)
+                      '("obligation/a" "obligation/b" "obligation/a"))
+        (check-equal? (map (lambda (request) (.ref request 'blocker))
+                           (.ref plan 'requests))
+                      '(dependency-cycle dependency-cycle))))
 
     (test-case "missing capability remains an explained blocked obligation"
       (let* ((policy

@@ -101,7 +101,9 @@
 (def (verification-blocker? value)
   (or (not value)
       (memq value '(conflicted-snapshot unresolved-frontier
-                    capability-unavailable stale-obligation))))
+                    capability-unavailable stale-obligation
+                    dependency-unplanned dependency-blocked
+                    dependency-cycle))))
 (def (revision-bindings? values)
   (and (list? values)
        (every (lambda (binding)
@@ -263,6 +265,7 @@
           (enum-slot 'snapshot-digest assurance-digest?)
           (enum-slot 'evidence-kind assurance-evidence-kind?)
           (enum-slot 'capability symbol?)
+          (enum-slot 'dependencies text-list?)
           (enum-slot 'selected? boolean?)
           (enum-slot 'blocker verification-blocker?))))
 (def (verification-request-list? values)
@@ -286,6 +289,7 @@
           (enum-slot 'changed text-list?)
           (enum-slot 'impacted text-list?)
           (enum-slot 'blocked-effects text-list?)
+          (enum-slot 'cycle-path text-list?)
           (enum-slot 'witnesses invalidation-trajectories?)
           (enum-slot 'requests verification-request-list?)
           (enum-slot 'unresolved text-list?)
