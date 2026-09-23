@@ -16,7 +16,7 @@
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
         assurance-support-admissible? assurance-invalidation-graph
-        assurance-invalidate)
+        assurance-invalidate assurance-plan-verification)
 
 (def (assurance-node-semantic-slots kind)
   (case kind
@@ -311,3 +311,120 @@
          (impacted-kind-identities nodes impacted 'effect)
          witnesses unresolved strong-components cyclic-components
          #f #f #f)))))
+
+;;; Phase 3 selection boundary. This plan names only obligations already bound
+;;; to the supplied snapshot. Deriving replacement revisions and invoking
+;;; verifiers belong to later phases; neither can be inferred from a change.
+(def (assurance-plan-verification identity snapshot changed-identities policy)
+  (unless (and (assurance-text? identity)
+               (assurance-snapshot? snapshot)
+               (assurance-verification-policy? policy))
+    (error "invalid assurance verification planning input"))
+  (unless (and (string=? (.ref policy 'identity)
+                          (.ref snapshot 'policy-identity))
+               (string=? (.ref policy 'revision)
+                          (.ref snapshot 'policy-revision)))
+    (error "verification policy does not match the snapshot"))
+  (let* ((invalidation
+          (assurance-invalidate
+           (string-append identity "/invalidation")
+           snapshot changed-identities))
+         (obligation-ids
+          (assurance-invalidation-receipt-ref
+           invalidation 'required-obligations))
+         (changed
+          (assurance-invalidation-receipt-ref invalidation 'changed))
+         (impacted
+          (assurance-invalidation-receipt-ref invalidation 'impacted))
+         (blocked-effects
+          (assurance-invalidation-receipt-ref invalidation 'blocked-effects))
+         (witnesses
+          (assurance-invalidation-receipt-ref invalidation 'witnesses))
+         (unresolved
+          (assurance-invalidation-receipt-ref invalidation 'unresolved))
+         (conflicts (.ref snapshot 'conflicts))
+         (capabilities (.ref policy 'capabilities))
+         (requests
+          (map
+           (lambda (obligation-id)
+             (let* ((obligation
+                     (node-by-identity (.ref snapshot 'nodes)
+                                       obligation-id))
+                    (reason
+                     (cond
+                      ((pair? conflicts) 'conflicted-snapshot)
+                      ((pair? unresolved) 'unresolved-frontier)
+                      ((not (string=? (.ref obligation 'snapshot)
+                                      (.ref snapshot 'identity)))
+                       'stale-obligation)
+                      ((not (memq (.ref obligation 'capability) capabilities))
+                       'capability-unavailable)
+                      (else #f)))
+                    (request-id obligation-id)
+                    (request-reason reason))
+               (poo-flow-check-model
+                AssuranceVerificationRequest
+                (.o (:: @ (poo-flow-model-prototype
+                           AssuranceVerificationRequest))
+                    obligation-identity: request-id
+                    subject: (.ref obligation 'subject)
+                    claim: (.ref obligation 'claim)
+                    snapshot-digest: (.ref snapshot 'digest)
+                    evidence-kind: (.ref obligation 'evidence-kind)
+                    capability: (.ref obligation 'capability)
+                    selected?: (not request-reason)
+                    blocker: request-reason))))
+           obligation-ids))
+         (blocked
+          (map (lambda (request) (.ref request 'obligation-identity))
+               (filter (lambda (request) (not (.ref request 'selected?)))
+                       requests)))
+         (selected
+          (map (lambda (request) (.ref request 'obligation-identity))
+               (filter (lambda (request) (.ref request 'selected?))
+                       requests)))
+         (request-projection
+          (map (lambda (request)
+                 (list (.ref request 'obligation-identity)
+                       (.ref request 'subject) (.ref request 'claim)
+                       (.ref request 'evidence-kind)
+                       (.ref request 'capability)
+                       (.ref request 'selected?) (.ref request 'blocker)))
+               requests))
+         (digest
+          (assurance-canonical-digest
+           (list "lambda-aitia.planning-result" identity
+                 (.ref snapshot 'digest)
+                 (.ref policy 'identity) (.ref policy 'revision)
+                 (.ref policy 'capabilities)
+                 changed impacted blocked-effects witnesses
+                 selected blocked request-projection
+                 unresolved conflicts))))
+    (let ((plan-identity identity)
+          (plan-digest digest)
+          (plan-selected selected)
+          (plan-blocked blocked)
+          (plan-changed changed)
+          (plan-impacted impacted)
+          (plan-blocked-effects blocked-effects)
+          (plan-witnesses witnesses)
+          (plan-requests requests)
+          (plan-unresolved unresolved)
+          (plan-conflicts conflicts))
+      (poo-flow-check-model
+       AssuranceVerificationPlan
+       (.o (:: @ (poo-flow-model-prototype AssuranceVerificationPlan))
+           schema: "lambda-aitia.planning-result"
+           identity: plan-identity snapshot-digest: (.ref snapshot 'digest)
+           policy-identity: (.ref policy 'identity)
+           policy-revision: (.ref policy 'revision)
+           digest: plan-digest
+           selected-obligations: plan-selected
+           blocked-obligations: plan-blocked
+           changed: plan-changed impacted: plan-impacted
+           blocked-effects: plan-blocked-effects
+           witnesses: plan-witnesses
+           requests: plan-requests
+           unresolved: plan-unresolved conflicts: plan-conflicts
+           verifier-executed?: #f release-authorized?: #f
+           runtime-executed?: #f)))))

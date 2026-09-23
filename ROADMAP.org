@@ -133,7 +133,19 @@ Exit gates:
 
 * Phase 3 — Obligation derivation and verification planning
 
-Status: =planned=
+Status: =active= (selection evidence only; replacement derivation remains open)
+
+The first executable slice reuses the Phase 2 invalidation receipt to select
+snapshot-bound obligations.  A POO-native verification policy declares
+available capabilities, and the resulting POO-native plan records selected
+obligations, capability requirements, separate unknown/conflicted blockers and
+the underlying invalidation witnesses.  It is deterministic under inventory
+permutation and cannot claim verifier execution, release authority or runtime
+execution.
+An obligation bound to an older snapshot is blocked rather than silently
+promoted to a replacement obligation.  This slice does not implement the
+ordered dependency plan, replacement-obligation derivation, verifier choice
+receipts or composition obligations below.
 
 Deliverables:
 

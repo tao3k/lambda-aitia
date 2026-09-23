@@ -359,6 +359,138 @@
          (cons "artifact/source"
                (assurance-invalidation-receipt-ref claim-change 'impacted)))))
 
+    (test-case "verification selection is pure and permutation-stable"
+      (let* ((policy
+             (assurance-verification-policy
+               "policy/release" "r1" '(lean gerbil-test gerbil-test)))
+             (permuted-policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test lean)))
+             (permuted
+              (software-snapshot
+               (list effect decision evidence obligation claim artifact)
+               (list authorization decision-dependency obligation-support
+                     discharge dependency)))
+             (left
+              (assurance-plan-verification
+               "plan/release" full-software-snapshot
+               '("artifact/source") policy))
+             (right
+              (assurance-plan-verification
+               "plan/release" permuted
+               '("artifact/source") permuted-policy)))
+        (check-equal? (assurance-verification-policy? policy) #t)
+        (check-equal? (.ref policy 'capabilities) '(gerbil-test lean))
+        (check-equal? (assurance-verification-plan? left) #t)
+        (check-equal? (.ref left 'schema) "lambda-aitia.planning-result")
+        (check-equal? (.ref left 'selected-obligations)
+                      '("obligation/verify"))
+        (check-equal? (.ref left 'blocked-obligations) '())
+        (check-equal?
+         (assurance-verification-request? (car (.ref left 'requests))) #t)
+        (check-equal? (.ref (car (.ref left 'requests)) 'capability)
+                      'gerbil-test)
+        (check-equal? (.ref (car (.ref left 'requests)) 'selected?) #t)
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (.ref left 'verifier-executed?) #f)
+        (check-equal? (.ref left 'release-authorized?) #f)
+        (check-equal? (.ref left 'runtime-executed?) #f)
+        (check-equal? (.ref left 'blocked-effects) '("effect/deploy"))
+        (check-equal? (car (.ref left 'witnesses))
+                      '("artifact/source" ("artifact/source") ()))
+        (check-equal?
+         (assurance-verification-request?
+          (.o (:: @ (car (.ref left 'requests)))
+              blocker: 'capability-unavailable))
+         #f)
+        (check-equal?
+         (assurance-verification-plan?
+          (.o (:: @ left) release-authorized?: #t))
+         #f)))
+
+    (test-case "missing capability remains an explained blocked obligation"
+      (let* ((policy
+              (assurance-verification-policy "policy/release" "r1" '()))
+             (plan
+              (assurance-plan-verification
+               "plan/no-capability" full-software-snapshot
+               '("artifact/source") policy)))
+        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref plan 'blocked-obligations)
+                      '("obligation/verify"))
+        (check-equal? (.ref (car (.ref plan 'requests)) 'blocker)
+                      'capability-unavailable)
+        (check-equal? (.ref plan 'release-authorized?) #f)))
+
+    (test-case "unresolved inputs and old obligation snapshots fail closed"
+      (let* ((policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (unresolved-snapshot
+              (software-snapshot
+               (list artifact claim obligation evidence decision effect)
+               (list dependency discharge obligation-support
+                     decision-dependency authorization)
+               '("artifact/missing")))
+             (unresolved-plan
+              (assurance-plan-verification
+               "plan/unresolved" unresolved-snapshot
+               '("artifact/source") policy))
+             (old-obligation
+              (.o (:: @ obligation) snapshot: "snapshot/old"))
+             (old-snapshot
+              (software-snapshot
+               (list artifact claim old-obligation evidence decision effect)
+               (list dependency discharge obligation-support
+                     decision-dependency authorization)))
+             (old-plan
+              (assurance-plan-verification
+               "plan/old" old-snapshot '("artifact/source") policy)))
+        (check-equal? (.ref unresolved-plan 'selected-obligations) '())
+        (check-equal? (.ref unresolved-plan 'unresolved)
+                      '("artifact/missing"))
+        (check-equal?
+         (.ref (car (.ref unresolved-plan 'requests)) 'blocker)
+         'unresolved-frontier)
+        (check-equal? (.ref old-plan 'selected-obligations) '())
+        (check-equal? (.ref (car (.ref old-plan 'requests)) 'blocker)
+                      'stale-obligation)))
+
+    (test-case "conflicted snapshot remains distinct from unknown frontier"
+      (let* ((snapshot
+              (assurance-snapshot
+               "snapshot/software" "r1" "graph/software"
+               '(("artifact/source" . "r2"))
+               '(("claim/release" . "r1"))
+               "event-cut/1" "policy/release" "r1"
+               (list artifact claim obligation evidence decision effect)
+               (list dependency discharge obligation-support
+                     decision-dependency authorization)
+               evidence-identities: '("evidence/test")))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (plan
+              (assurance-plan-verification
+               "plan/conflict" snapshot '("artifact/source") policy)))
+        (check-equal? (.ref plan 'conflicts) '("artifact/source"))
+        (check-equal? (.ref plan 'unresolved) '())
+        (check-equal? (.ref plan 'selected-obligations) '())
+        (check-equal? (.ref (car (.ref plan 'requests)) 'blocker)
+                      'conflicted-snapshot)))
+
+    (test-case "verification policy cannot silently change snapshot authority"
+      (check-exception
+       (assurance-verification-policy "policy/release" "r1" '("gerbil-test"))
+       Error?)
+      (check-exception
+       (assurance-plan-verification
+        "plan/wrong-policy" full-software-snapshot
+        '("artifact/source")
+        (assurance-verification-policy
+         "policy/other" "r1" '(gerbil-test)))
+       Error?))
+
     (test-case "structural cycles have deterministic SCCs and witnesses"
       (let* ((snapshot
               (software-snapshot

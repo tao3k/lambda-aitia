@@ -18,13 +18,17 @@
         AssuranceObligation AssuranceEvidence AssuranceCounterexample
         AssuranceFinding AssuranceDecision AssuranceEffect
         AssuranceRelation AssuranceSnapshot
+        AssuranceVerificationPolicy AssuranceVerificationRequest
+        AssuranceVerificationPlan
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
         assurance-assumption? assurance-observation? assurance-event?
         assurance-action? assurance-obligation? assurance-evidence?
         assurance-counterexample? assurance-finding? assurance-decision?
         assurance-effect? assurance-relation? assurance-snapshot?
-        assurance-invalidation-receipt? assurance-invalidation-receipt-ref)
+        assurance-invalidation-receipt? assurance-invalidation-receipt-ref
+        assurance-verification-policy? assurance-verification-request?
+        assurance-verification-plan?)
 
 (def +assurance-node-kinds+
   '(artifact claim assumption observation event action obligation evidence
@@ -86,6 +90,12 @@
 (def (maybe-text? value) (or (not value) (assurance-text? value)))
 (def (text-list? values)
   (and (list? values) (every assurance-text? values)))
+(def (symbol-list? values)
+  (and (list? values) (every symbol? values)))
+(def (verification-blocker? value)
+  (or (not value)
+      (memq value '(conflicted-snapshot unresolved-frontier
+                    capability-unavailable stale-obligation))))
 (def (revision-bindings? values)
   (and (list? values)
        (every (lambda (binding)
@@ -95,6 +105,15 @@
               values)))
 (def (witness-list? values)
   (and (list? values) (every text-list? values)))
+(def (invalidation-trajectories? values)
+  (and (list? values)
+       (every (lambda (entry)
+                (and (list? entry)
+                     (= (length entry) 3)
+                     (assurance-text? (car entry))
+                     (text-list? (cadr entry))
+                     (text-list? (caddr entry))))
+              values)))
 (def (nonnegative-integer? value)
   (and (integer? value) (>= value 0)))
 (def (one-of values)
@@ -219,6 +238,55 @@
           (enum-slot 'unresolved text-list?)
           (enum-slot 'conflicts text-list?))))
 
+;;; Public planning values remain POO-native and contain no executable hook.
+(def AssuranceVerificationPolicy
+  (poo-clos-class 'aitia/verification-policy
+    direct-slots:
+    (list (text-slot 'identity)
+          (text-slot 'revision)
+          (enum-slot 'capabilities symbol-list?)
+          (enum-slot 'planner-executes? (one-of '(#f)))
+          (enum-slot 'grants-authority? (one-of '(#f))))))
+(def AssuranceVerificationRequest
+  (poo-clos-class 'aitia/verification-request
+    direct-slots:
+    (list (text-slot 'obligation-identity)
+          (text-slot 'subject)
+          (text-slot 'claim)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'evidence-kind symbol?)
+          (enum-slot 'capability symbol?)
+          (enum-slot 'selected? boolean?)
+          (enum-slot 'blocker verification-blocker?))))
+(def (verification-request-list? values)
+  (and (list? values)
+       (every (lambda (value)
+                (assurance-verification-request? value))
+              values)))
+(def AssuranceVerificationPlan
+  (poo-clos-class 'aitia/verification-plan
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.planning-result")))
+          (text-slot 'identity)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (text-slot 'policy-identity)
+          (text-slot 'policy-revision)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'selected-obligations text-list?)
+          (enum-slot 'blocked-obligations text-list?)
+          (enum-slot 'changed text-list?)
+          (enum-slot 'impacted text-list?)
+          (enum-slot 'blocked-effects text-list?)
+          (enum-slot 'witnesses invalidation-trajectories?)
+          (enum-slot 'requests verification-request-list?)
+          (enum-slot 'unresolved text-list?)
+          (enum-slot 'conflicts text-list?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f)))
+          (enum-slot 'runtime-executed? (one-of '(#f))))))
+
 (defstruct assurance-invalidation-receipt-record
   (identity snapshot-digest changed impacted invalidated-evidence
    required-obligations invalidated-decisions blocked-effects witnesses unresolved
@@ -268,6 +336,24 @@
        (eq? (.ref value 'plane)
             (assurance-relation-kind-plane (.ref value 'relation)))))
 (def (assurance-snapshot? value) (poo-flow-model? AssuranceSnapshot value))
+(def (assurance-verification-policy? value)
+  (poo-flow-model? AssuranceVerificationPolicy value))
+(def (assurance-verification-request? value)
+  (and (poo-flow-model? AssuranceVerificationRequest value)
+       (eq? (.ref value 'selected?)
+            (not (.ref value 'blocker)))))
+(def (assurance-verification-plan? value)
+  (and (poo-flow-model? AssuranceVerificationPlan value)
+       (equal?
+        (.ref value 'selected-obligations)
+        (map (lambda (request) (.ref request 'obligation-identity))
+             (filter (lambda (request) (.ref request 'selected?))
+                     (.ref value 'requests))))
+       (equal?
+        (.ref value 'blocked-obligations)
+        (map (lambda (request) (.ref request 'obligation-identity))
+             (filter (lambda (request) (not (.ref request 'selected?)))
+                     (.ref value 'requests))))))
 (def (assurance-invalidation-receipt? value)
   (assurance-invalidation-receipt-record? value))
 (def (assurance-invalidation-receipt-ref receipt name)
