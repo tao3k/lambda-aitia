@@ -498,6 +498,7 @@
                       '("obligation/c" "obligation/b" "obligation/a"))
         (check-equal? (.ref left 'blocked-obligations) '())
         (check-equal? (.ref left 'cycle-path) '())
+        (check-equal? (.ref left 'cyclic-components) '())
         (check-equal? (.ref (car (.ref left 'requests)) 'dependencies) '())
         (check-equal? (.ref (cadr (.ref left 'requests)) 'dependencies)
                       '("obligation/c"))
@@ -575,10 +576,52 @@
                       '("obligation/a" "obligation/b" "obligation/d"))
         (check-equal? (.ref plan 'cycle-path)
                       '("obligation/a" "obligation/b" "obligation/a"))
+        (check-equal? (.ref plan 'cyclic-components)
+                      '(("obligation/a" "obligation/b")))
         (check-equal? (map (lambda (request) (.ref request 'blocker))
                            (.ref plan 'requests))
                       '(#f dependency-cycle dependency-cycle
                            dependency-blocked))))
+
+    (test-case "every independent dependency cycle is explained"
+      (let* ((ids '("obligation/a" "obligation/b" "obligation/c"
+                    "obligation/d" "obligation/e" "obligation/f"
+                    "obligation/g"))
+             (nodes (map (lambda (id)
+                           (verification-obligation id 'gerbil-test))
+                         ids))
+             (relations
+              (append
+               (map verification-support ids)
+               (list (verification-dependency "obligation/a" "obligation/b")
+                     (verification-dependency "obligation/b" "obligation/a")
+                     (verification-dependency "obligation/d" "obligation/a")
+                     (verification-dependency "obligation/e" "obligation/f")
+                     (verification-dependency "obligation/f" "obligation/e")
+                     (verification-dependency "obligation/g" "obligation/e"))))
+             (policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (left
+              (assurance-plan-verification
+               "plan/two-cycles"
+               (verification-snapshot nodes relations)
+               '("artifact/source") policy))
+             (right
+              (assurance-plan-verification
+               "plan/two-cycles"
+               (verification-snapshot (reverse nodes) (reverse relations))
+               '("artifact/source") policy)))
+        (check-equal? (.ref left 'selected-obligations) '("obligation/c"))
+        (check-equal? (.ref left 'blocked-obligations)
+                      '("obligation/a" "obligation/b" "obligation/d"
+                        "obligation/e" "obligation/f" "obligation/g"))
+        (check-equal? (.ref left 'cyclic-components)
+                      '(("obligation/a" "obligation/b")
+                        ("obligation/e" "obligation/f")))
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (.ref left 'cyclic-components)
+                      (.ref right 'cyclic-components))))
 
     (test-case "missing capability remains an explained blocked obligation"
       (let* ((policy

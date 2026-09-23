@@ -420,10 +420,10 @@
                    snapshot obligation-ids)))
       (let* ((cycle-path
               (or (poo-flow-graph-cycle-path dependency-graph) '()))
-             (cyclic-ids
-              (concatenate
-               (.ref (poo-flow-graph-loop-analysis-receipt dependency-graph)
-                     'cyclic-components)))
+             (cyclic-components
+              (.ref (poo-flow-graph-loop-analysis-receipt dependency-graph)
+                    'cyclic-components))
+             (cyclic-ids (concatenate cyclic-components))
              (cycle-blocked
               (poo-flow-graph-reachable-ids dependency-graph cyclic-ids))
              (base-blockers
@@ -508,7 +508,7 @@
                  (.ref policy 'identity) (.ref policy 'revision)
                  (.ref policy 'capabilities)
                  changed impacted blocked-effects witnesses
-                 cycle-path
+                 cycle-path cyclic-components
                  selected blocked request-projection
                  unresolved conflicts))))
     (let ((plan-identity identity)
@@ -519,6 +519,7 @@
           (plan-impacted impacted)
           (plan-blocked-effects blocked-effects)
           (plan-cycle-path cycle-path)
+          (plan-cyclic-components cyclic-components)
           (plan-witnesses witnesses)
           (plan-requests requests)
           (plan-unresolved unresolved)
@@ -536,6 +537,7 @@
            changed: plan-changed impacted: plan-impacted
            blocked-effects: plan-blocked-effects
            cycle-path: plan-cycle-path
+           cyclic-components: plan-cyclic-components
            witnesses: plan-witnesses
            requests: plan-requests
            unresolved: plan-unresolved conflicts: plan-conflicts

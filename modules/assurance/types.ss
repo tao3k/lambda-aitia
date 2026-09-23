@@ -294,6 +294,7 @@
           (enum-slot 'impacted text-list?)
           (enum-slot 'blocked-effects text-list?)
           (enum-slot 'cycle-path text-list?)
+          (enum-slot 'cyclic-components witness-list?)
           (enum-slot 'witnesses invalidation-trajectories?)
           (enum-slot 'requests verification-request-list?)
           (enum-slot 'unresolved text-list?)
