@@ -138,6 +138,13 @@ jobs:
           if ! bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'; then
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends gdb
-            gdb -batch -ex run -ex 'bt 30' --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
+            gdb -batch \
+              -ex 'break ___throw_error' \
+              -ex run \
+              -ex 'info registers rdi rsi' \
+              -ex 'bt 12' \
+              -ex 'frame 2' \
+              -ex 'x/24i $pc-80' \
+              --args .gerbil/native/aitia_dynamic_harness .gerbil/native/libpoo_flow_aitia.dylib
             exit 1
           fi
