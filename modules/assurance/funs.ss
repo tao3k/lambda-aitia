@@ -25,7 +25,8 @@
         assurance-bind-obligation-to-snapshot
         assurance-support-admissible? assurance-invalidation-graph
         assurance-invalidate assurance-derive-replacement-requirements
-        assurance-plan-verification assurance-explain-verifier-choices)
+        assurance-plan-verification assurance-explain-verifier-choices
+        assurance-derive-composition-requirements)
 
 (def (assurance-node-semantic-slots kind)
   (case kind
@@ -473,6 +474,134 @@
          witnesses: change-witnesses
          unresolved: change-unresolved
          requirements: derived-requirements digest: derivation-digest
+         verifier-executed?: #f release-authorized?: #f))))
+
+;;; A structural 'composes edge declares a composite claim's components.
+;;; Only an independent, explicitly linked and current obligation can answer
+;;; its composition question; this receipt never discharges that obligation.
+(def (composition-component-ids snapshot composition-id)
+  (ordered-unique-text
+   (map (lambda (relation) (.ref relation 'target))
+        (filter (lambda (relation)
+                  (and (eq? (.ref relation 'relation) 'composes)
+                       (equal? (.ref relation 'source) composition-id)))
+                (.ref snapshot 'relations)))))
+
+(def (composition-direct-obligations snapshot composition-id claim-node)
+  (if (not (assurance-claim? claim-node))
+    '()
+    (ordered-unique-text
+     (map
+      (lambda (obligation) (.ref obligation 'identity))
+      (filter
+       (lambda (obligation)
+         (and (assurance-obligation? obligation)
+              (equal? (.ref obligation 'claim) composition-id)
+              (equal? (.ref obligation 'subject)
+                      (.ref claim-node 'subject))
+              (equal? (.ref obligation 'scope)
+                      (.ref claim-node 'scope))
+              (member (.ref obligation 'identity)
+                      (.ref claim-node 'support-requirements))
+              (find
+               (lambda (relation)
+                 (and (eq? (.ref relation 'relation) 'supports)
+                      (eq? (.ref relation 'plane) 'assurance)
+                      (memq (.ref relation 'modality)
+                            '(declared observed derived))
+                      (equal? (.ref relation 'source)
+                              (.ref obligation 'identity))
+                      (equal? (.ref relation 'target) composition-id)))
+               (.ref snapshot 'relations))))
+       (.ref snapshot 'nodes))))))
+
+(def (composition-current-obligation? snapshot obligation-id)
+  (let ((obligation (node-by-identity (.ref snapshot 'nodes) obligation-id)))
+    (and (assurance-obligation? obligation)
+         (equal? (.ref obligation 'snapshot) (.ref snapshot 'identity))
+         (equal? (.ref obligation 'snapshot-revision)
+                 (.ref snapshot 'revision))
+         (equal? (.ref obligation 'snapshot-context-digest)
+                 (.ref snapshot 'context-digest)))))
+
+(def (composition-requirement-blocker snapshot composition-claim
+                                      component-ids direct-ids current-ids)
+  (cond
+   ((pair? (.ref snapshot 'conflicts)) 'conflicted-snapshot)
+   ((pair? (.ref snapshot 'unresolved)) 'unresolved-frontier)
+   ((not (assurance-claim? composition-claim))
+    'invalid-composition-claim)
+   ((< (length component-ids) 2) 'insufficient-components)
+   ((find (lambda (component-id)
+            (not (assurance-claim?
+                  (node-by-identity (.ref snapshot 'nodes) component-id))))
+          component-ids)
+    'invalid-component-claim)
+   ((pair? current-ids) #f)
+   ((pair? direct-ids) 'stale-direct-obligation)
+   (else 'missing-direct-obligation)))
+
+(def (assurance-derive-composition-requirements derivation-identity snapshot)
+  (unless (and (assurance-text? derivation-identity)
+               (assurance-snapshot? snapshot))
+    (error "invalid composition derivation input"))
+  (let* ((composition-ids
+          (ordered-unique-text
+           (map (lambda (relation) (.ref relation 'source))
+                (filter
+                 (lambda (relation)
+                   (eq? (.ref relation 'relation) 'composes))
+                 (.ref snapshot 'relations)))))
+         (derived-requirements
+          (map
+           (lambda (composition-id)
+             (let* ((composition-claim
+                     (node-by-identity (.ref snapshot 'nodes)
+                                       composition-id))
+                    (component-ids
+                     (composition-component-ids snapshot composition-id))
+                    (direct-ids
+                     (composition-direct-obligations
+                      snapshot composition-id composition-claim))
+                    (current-ids
+                     (filter
+                      (lambda (obligation-id)
+                        (composition-current-obligation?
+                         snapshot obligation-id))
+                      direct-ids))
+                    (blocker-value
+                     (composition-requirement-blocker
+                      snapshot composition-claim component-ids
+                      direct-ids current-ids)))
+               (poo-flow-check-model
+                AssuranceCompositionRequirement
+                (.o (:: @ (poo-flow-model-prototype
+                           AssuranceCompositionRequirement))
+                    composition-claim: composition-id
+                    component-claims: component-ids
+                    direct-obligations: direct-ids
+                    current-obligations: current-ids
+                    blocker: blocker-value))))
+           composition-ids))
+         (derivation-digest
+          (assurance-canonical-digest
+           (list "lambda-aitia.composition-requirements"
+                 derivation-identity (.ref snapshot 'digest)
+                 (map (lambda (requirement)
+                        (list (.ref requirement 'composition-claim)
+                              (.ref requirement 'component-claims)
+                              (.ref requirement 'direct-obligations)
+                              (.ref requirement 'current-obligations)
+                              (.ref requirement 'blocker)))
+                      derived-requirements)))))
+    (poo-flow-check-model
+     AssuranceCompositionDerivation
+     (.o (:: @ (poo-flow-model-prototype AssuranceCompositionDerivation))
+         schema: "lambda-aitia.composition-requirements"
+         identity: derivation-identity
+         snapshot-digest: (.ref snapshot 'digest)
+         requirements: derived-requirements
+         digest: derivation-digest
          verifier-executed?: #f release-authorized?: #f))))
 
 ;;; Phase 3 selection boundary. This plan names only obligations already bound

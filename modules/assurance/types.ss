@@ -23,6 +23,7 @@
         AssuranceVerificationPolicy AssuranceVerificationRequest
         AssuranceVerificationPlan AssuranceVerifierCandidate
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
+        AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
         assurance-assumption? assurance-observation? assurance-event?
@@ -34,7 +35,9 @@
         assurance-invalidation-receipt? assurance-invalidation-receipt-ref
         assurance-verification-policy? assurance-verification-request?
         assurance-verification-plan? assurance-verifier-candidate?
-        assurance-verifier-choice? assurance-verifier-choice-receipt?)
+        assurance-verifier-choice? assurance-verifier-choice-receipt?
+        assurance-composition-requirement?
+        assurance-composition-derivation?)
 
 (def +assurance-node-kinds+
   '(artifact claim assumption observation event action obligation evidence
@@ -56,6 +59,7 @@
     (cites . provenance)
     (used . provenance)
     (depends-on . structural)
+    (composes . structural)
     (implements . structural)
     (tests . structural)
     (refines . structural)
@@ -110,6 +114,12 @@
 (def (verifier-choice-reason? value)
   (memq value '(chosen request-blocked evidence-kind-unsupported
                 capability-mismatch lower-priority)))
+(def (composition-blocker? value)
+  (or (not value)
+      (memq value '(conflicted-snapshot unresolved-frontier
+                    invalid-composition-claim insufficient-components
+                    invalid-component-claim missing-direct-obligation
+                    stale-direct-obligation))))
 (def (verification-blocker? value)
   (or (not value)
       (memq value '(conflicted-snapshot unresolved-frontier
@@ -389,6 +399,32 @@
           (enum-slot 'verifier-executed? (one-of '(#f)))
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
+;;; A composition needs its own snapshot-bound obligation. Component support
+;;; remains separate and cannot discharge this structural requirement.
+(def AssuranceCompositionRequirement
+  (poo-clos-class 'aitia/composition-requirement
+    direct-slots:
+    (list (text-slot 'composition-claim)
+          (enum-slot 'component-claims text-list?)
+          (enum-slot 'direct-obligations text-list?)
+          (enum-slot 'current-obligations text-list?)
+          (enum-slot 'blocker composition-blocker?))))
+(def (composition-requirement-list? values)
+  (and (list? values)
+       (every assurance-composition-requirement? values)))
+(def AssuranceCompositionDerivation
+  (poo-clos-class 'aitia/composition-derivation
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.composition-requirements")))
+          (text-slot 'identity)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'requirements composition-requirement-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 (defstruct assurance-invalidation-receipt-record
   (identity snapshot-digest changed impacted invalidated-evidence
    required-obligations invalidated-decisions blocked-effects witnesses unresolved
@@ -468,6 +504,10 @@
             (eq? (.ref value 'reason) 'chosen))))
 (def (assurance-verifier-choice-receipt? value)
   (poo-flow-model? AssuranceVerifierChoiceReceipt value))
+(def (assurance-composition-requirement? value)
+  (poo-flow-model? AssuranceCompositionRequirement value))
+(def (assurance-composition-derivation? value)
+  (poo-flow-model? AssuranceCompositionDerivation value))
 (def (assurance-invalidation-receipt? value)
   (assurance-invalidation-receipt-record? value))
 (def (assurance-invalidation-receipt-ref receipt name)

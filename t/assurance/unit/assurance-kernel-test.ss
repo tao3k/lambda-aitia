@@ -134,6 +134,12 @@
 
     (test-case "relation kinds cannot cross their owned plane"
       (check-equal? (assurance-relation? dependency) #t)
+      (check-equal?
+       (assurance-relation?
+        (assurance-relation
+         "relation/composes" 'structural 'composes
+         "claim/composite" "claim/component-a" 'declared))
+       #t)
       (check-exception
        (assurance-relation "bad" 'causal 'depends-on
                            "claim/release" "artifact/source" 'declared)
@@ -667,6 +673,123 @@
          (assurance-verifier-candidate
           "candidate/unknown" "r1" 0 '(arbitrary-pass) 'gerbil-test)
          Error?)))
+
+    (test-case "component support never supplies a composition obligation"
+      (let* ((component-a
+              (assurance-claim
+               "claim/component-a" "r1" 'supported digest-a
+               subject: "software/component-a" predicate: "ready"
+               scope: "repository" valid-from: "2026-09-17"))
+             (component-b
+              (assurance-claim
+               "claim/component-b" "r1" 'supported digest-a
+               subject: "software/component-b" predicate: "ready"
+               scope: "repository" valid-from: "2026-09-17"))
+             (composite
+              (assurance-claim
+               "claim/composite" "r1" 'unknown digest-b
+               subject: "software/composite" predicate: "composition-safe"
+               support-requirements: '("obligation/composition")
+               scope: "repository" valid-from: "2026-09-17"))
+             (candidate-obligation
+              (assurance-obligation
+               "obligation/composition" "r1" 'unknown digest-a
+               subject: "software/composite" claim: "claim/composite"
+               snapshot: "snapshot/composition"
+               evidence-kind: 'integration-test
+               capability: 'composition-test scope: "repository"))
+             (components
+              (list (assurance-relation
+                     "relation/composes/a" 'structural 'composes
+                     "claim/composite" "claim/component-a" 'declared)
+                    (assurance-relation
+                     "relation/composes/b" 'structural 'composes
+                     "claim/composite" "claim/component-b" 'declared)))
+             (direct-support
+              (assurance-relation
+               "relation/support/composition" 'assurance 'supports
+               "obligation/composition" "claim/composite" 'declared)))
+        (def (construct nodes relations)
+          (assurance-snapshot
+           "snapshot/composition" "r1" "graph/composition"
+           '() '(("claim/component-a" . "r1")
+                 ("claim/component-b" . "r1")
+                 ("claim/composite" . "r1"))
+           "event-cut/1" "policy/composition" "r1"
+           nodes relations))
+        (let* ((missing-snapshot
+                (construct (list component-a component-b composite)
+                           components))
+               (missing
+                (assurance-derive-composition-requirements
+                 "composition/missing" missing-snapshot))
+               (permuted
+                (assurance-derive-composition-requirements
+                 "composition/missing"
+                 (construct (list composite component-b component-a)
+                            (reverse components))))
+               (candidate
+                (construct
+                 (list component-a component-b composite candidate-obligation)
+                 (cons direct-support components)))
+               (stale-obligation
+                (assurance-obligation
+                 "obligation/composition" "r1" 'unknown digest-a
+                 subject: "software/composite" claim: "claim/composite"
+                 snapshot: "snapshot/composition"
+                 evidence-kind: 'integration-test
+                 capability: 'composition-test scope: "repository"
+                 snapshot-revision: "r0"
+                 snapshot-context-digest: digest-a))
+               (stale
+                (assurance-derive-composition-requirements
+                 "composition/stale"
+                 (construct
+                  (list component-a component-b composite stale-obligation)
+                  (cons direct-support components))))
+               (bound-obligation
+                (assurance-bind-obligation-to-snapshot
+                 candidate-obligation candidate))
+               (bound-snapshot
+                (construct
+                 (list component-a component-b composite bound-obligation)
+                 (cons direct-support components)))
+               (declared
+                (assurance-derive-composition-requirements
+                 "composition/declared" bound-snapshot))
+               (changed
+                (assurance-invalidate
+                 "composition/changed" bound-snapshot
+                 '("claim/component-a"))))
+          (check-equal? (assurance-composition-derivation? missing) #t)
+          (check-equal? (.ref missing 'digest) (.ref permuted 'digest))
+          (check-equal?
+           (.ref (car (.ref missing 'requirements)) 'component-claims)
+           '("claim/component-a" "claim/component-b"))
+          (check-equal?
+           (.ref (car (.ref missing 'requirements)) 'blocker)
+           'missing-direct-obligation)
+          (check-equal?
+           (.ref (car (.ref stale 'requirements)) 'direct-obligations)
+           '("obligation/composition"))
+          (check-equal?
+           (.ref (car (.ref stale 'requirements)) 'current-obligations) '())
+          (check-equal?
+           (.ref (car (.ref stale 'requirements)) 'blocker)
+           'stale-direct-obligation)
+          (check-equal?
+           (.ref (car (.ref declared 'requirements)) 'direct-obligations)
+           '("obligation/composition"))
+          (check-equal?
+           (.ref (car (.ref declared 'requirements)) 'current-obligations)
+           '("obligation/composition"))
+          (check-equal?
+           (.ref (car (.ref declared 'requirements)) 'blocker) #f)
+          (check-equal? (.ref declared 'verifier-executed?) #f)
+          (check-equal? (.ref declared 'release-authorized?) #f)
+          (check-equal?
+           (assurance-invalidation-receipt-ref changed 'required-obligations)
+           '("obligation/composition")))))
 
     (test-case "POO Graph orders affected prerequisites before dependents"
       (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
