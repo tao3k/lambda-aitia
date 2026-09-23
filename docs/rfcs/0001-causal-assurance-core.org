@@ -248,6 +248,11 @@ PlanningResult contains ordered obligations, capability requirements,
 dependency constraints, rejected alternatives and blockers.  Tool invocation
 is outside this function.  An adapter later consumes one obligation and returns
 a typed execution outcome; evidence admission is another separate function.
+Verifier choice explanation consumes the inert plan and an explicit catalog of
+POO-native candidate declarations.  Evidence-kind/capability compatibility and
+declared numeric priority determine a deterministic choice; every rejected
+candidate and unassigned planned obligation remains visible.  A chosen
+declaration is not proof that an adapter is installed, executable or trusted.
 
 The first verifier kinds are Lean proof, TLA+/TLC model check, runtime replay,
 unit test, integration test, Cedar differential, static analysis and human

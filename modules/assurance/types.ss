@@ -21,7 +21,8 @@
         AssuranceRelation AssuranceSnapshot
         AssuranceReplacementRequirement AssuranceReplacementDerivation
         AssuranceVerificationPolicy AssuranceVerificationRequest
-        AssuranceVerificationPlan
+        AssuranceVerificationPlan AssuranceVerifierCandidate
+        AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
         assurance-assumption? assurance-observation? assurance-event?
@@ -32,7 +33,8 @@
         assurance-replacement-derivation?
         assurance-invalidation-receipt? assurance-invalidation-receipt-ref
         assurance-verification-policy? assurance-verification-request?
-        assurance-verification-plan?)
+        assurance-verification-plan? assurance-verifier-candidate?
+        assurance-verifier-choice? assurance-verifier-choice-receipt?)
 
 (def +assurance-node-kinds+
   '(artifact claim assumption observation event action obligation evidence
@@ -102,6 +104,12 @@
   (and (list? values) (every assurance-text? values)))
 (def (symbol-list? values)
   (and (list? values) (every symbol? values)))
+(def (evidence-kind-list? values)
+  (and (list? values) (pair? values)
+       (every assurance-evidence-kind? values)))
+(def (verifier-choice-reason? value)
+  (memq value '(chosen request-blocked evidence-kind-unsupported
+                capability-mismatch lower-priority)))
 (def (verification-blocker? value)
   (or (not value)
       (memq value '(conflicted-snapshot unresolved-frontier
@@ -345,6 +353,42 @@
           (enum-slot 'release-authorized? (one-of '(#f)))
           (enum-slot 'runtime-executed? (one-of '(#f))))))
 
+;;; These are declared candidates and inert explanation values, never adapter
+;;; handles or execution receipts.
+(def AssuranceVerifierCandidate
+  (poo-clos-class 'aitia/verifier-candidate
+    direct-slots:
+    (list (text-slot 'identity)
+          (text-slot 'revision)
+          (enum-slot 'priority nonnegative-integer?)
+          (enum-slot 'evidence-kinds evidence-kind-list?)
+          (enum-slot 'capability symbol?))))
+(def (verifier-candidate-list? values)
+  (and (list? values) (every assurance-verifier-candidate? values)))
+(def AssuranceVerifierChoice
+  (poo-clos-class 'aitia/verifier-choice
+    direct-slots:
+    (list (text-slot 'obligation-identity)
+          (text-slot 'candidate-identity)
+          (enum-slot 'selected? boolean?)
+          (enum-slot 'reason verifier-choice-reason?))))
+(def (verifier-choice-list? values)
+  (and (list? values) (every assurance-verifier-choice? values)))
+(def AssuranceVerifierChoiceReceipt
+  (poo-clos-class 'aitia/verifier-choice-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.verifier-choices")))
+          (text-slot 'identity)
+          (enum-slot 'plan-digest assurance-digest?)
+          (enum-slot 'candidates verifier-candidate-list?)
+          (enum-slot 'choices verifier-choice-list?)
+          (enum-slot 'unassigned-obligations text-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 (defstruct assurance-invalidation-receipt-record
   (identity snapshot-digest changed impacted invalidated-evidence
    required-obligations invalidated-decisions blocked-effects witnesses unresolved
@@ -416,6 +460,14 @@
         (map (lambda (request) (.ref request 'obligation-identity))
              (filter (lambda (request) (not (.ref request 'selected?)))
                      (.ref value 'requests))))))
+(def (assurance-verifier-candidate? value)
+  (poo-flow-model? AssuranceVerifierCandidate value))
+(def (assurance-verifier-choice? value)
+  (and (poo-flow-model? AssuranceVerifierChoice value)
+       (eq? (.ref value 'selected?)
+            (eq? (.ref value 'reason) 'chosen))))
+(def (assurance-verifier-choice-receipt? value)
+  (poo-flow-model? AssuranceVerifierChoiceReceipt value))
 (def (assurance-invalidation-receipt? value)
   (assurance-invalidation-receipt-record? value))
 (def (assurance-invalidation-receipt-ref receipt name)

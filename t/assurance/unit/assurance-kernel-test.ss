@@ -589,6 +589,85 @@
         capability: 'verifier scope: "repository")
        Error?))
 
+    (test-case "verifier choices explain matching and rejected declarations"
+      (let* ((policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (plan
+              (assurance-plan-verification
+               "plan/verifier-choice" full-software-snapshot
+               '("artifact/source") policy))
+             (kind-mismatch
+              (assurance-verifier-candidate
+               "candidate/a" "r1" 0 '(proof) 'gerbil-test))
+             (capability-mismatch
+              (assurance-verifier-candidate
+               "candidate/b" "r1" 1 '(native-test) 'lean))
+             (chosen
+              (assurance-verifier-candidate
+               "candidate/z" "r1" 2 '(native-test unit-test) 'gerbil-test))
+             (alternative
+              (assurance-verifier-candidate
+               "candidate/c" "r1" 3 '(native-test) 'gerbil-test))
+             (catalog
+              (list alternative kind-mismatch chosen capability-mismatch))
+             (left
+              (assurance-explain-verifier-choices
+               "choices/release" plan catalog))
+             (right
+              (assurance-explain-verifier-choices
+               "choices/release" plan (reverse catalog)))
+             (revised
+              (assurance-explain-verifier-choices
+               "choices/release" plan
+               (list alternative kind-mismatch capability-mismatch
+                     (assurance-verifier-candidate
+                      "candidate/z" "r2" 2 '(native-test unit-test)
+                      'gerbil-test))))
+             (missing
+              (assurance-explain-verifier-choices
+               "choices/missing" plan (list kind-mismatch)))
+             (blocked-plan
+              (assurance-plan-verification
+               "plan/no-verifier" full-software-snapshot
+               '("artifact/source")
+               (assurance-verification-policy
+                "policy/release" "r1" '())))
+             (blocked
+              (assurance-explain-verifier-choices
+               "choices/blocked" blocked-plan (list chosen))))
+        (check-equal? (assurance-verifier-choice-receipt? left) #t)
+        (check-equal? (map (lambda (candidate) (.ref candidate 'identity))
+                           (.ref left 'candidates))
+                      '("candidate/a" "candidate/b" "candidate/z"
+                        "candidate/c"))
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (equal? (.ref left 'digest) (.ref revised 'digest))
+                      #f)
+        (check-equal? (map (lambda (choice) (.ref choice 'reason))
+                           (.ref left 'choices))
+                      '(evidence-kind-unsupported capability-mismatch
+                        chosen lower-priority))
+        (check-equal? (map (lambda (choice) (.ref choice 'selected?))
+                           (.ref left 'choices))
+                      '(#f #f #t #f))
+        (check-equal? (.ref left 'unassigned-obligations) '())
+        (check-equal? (.ref missing 'unassigned-obligations)
+                      '("obligation/verify"))
+        (check-equal? (.ref (car (.ref blocked 'choices)) 'reason)
+                      'request-blocked)
+        (check-equal? (.ref blocked 'unassigned-obligations) '())
+        (check-equal? (.ref left 'verifier-executed?) #f)
+        (check-equal? (.ref left 'release-authorized?) #f)
+        (check-exception
+         (assurance-explain-verifier-choices
+          "choices/duplicate" plan (list chosen chosen))
+         Error?)
+        (check-exception
+         (assurance-verifier-candidate
+          "candidate/unknown" "r1" 0 '(arbitrary-pass) 'gerbil-test)
+         Error?)))
+
     (test-case "POO Graph orders affected prerequisites before dependents"
       (let* ((a (verification-obligation "obligation/a" 'gerbil-test))
              (b (verification-obligation "obligation/b" 'gerbil-test))

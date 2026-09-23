@@ -25,7 +25,7 @@
         assurance-bind-obligation-to-snapshot
         assurance-support-admissible? assurance-invalidation-graph
         assurance-invalidate assurance-derive-replacement-requirements
-        assurance-plan-verification)
+        assurance-plan-verification assurance-explain-verifier-choices)
 
 (def (assurance-node-semantic-slots kind)
   (case kind
@@ -655,3 +655,114 @@
            unresolved: plan-unresolved conflicts: plan-conflicts
            verifier-executed?: #f release-authorized?: #f
            runtime-executed?: #f)))))))
+
+;;; Candidate selection is a pure explanation over explicit declarations.
+;;; It does not establish that an adapter is installed, runnable or trusted.
+(def (verifier-candidate-matches? candidate request)
+  (and (memq (.ref request 'evidence-kind)
+             (.ref candidate 'evidence-kinds))
+       (eq? (.ref request 'capability) (.ref candidate 'capability))))
+
+(def (verifier-choice-reason candidate request selected-candidate)
+  (cond
+   ((not (.ref request 'selected?)) 'request-blocked)
+   ((not (memq (.ref request 'evidence-kind)
+               (.ref candidate 'evidence-kinds)))
+    'evidence-kind-unsupported)
+   ((not (eq? (.ref request 'capability)
+              (.ref candidate 'capability)))
+    'capability-mismatch)
+   ((and selected-candidate
+         (equal? (.ref candidate 'identity)
+                 (.ref selected-candidate 'identity)))
+    'chosen)
+   (else 'lower-priority)))
+
+(def (assurance-explain-verifier-choices explanation-identity plan candidates)
+  (unless (and (assurance-text? explanation-identity)
+               (assurance-verification-plan? plan)
+               (list? candidates)
+               (every assurance-verifier-candidate? candidates))
+    (error "invalid verifier choice input"))
+  (let* ((ordered-candidates
+         (list-sort
+           (lambda (left right)
+             (or (< (.ref left 'priority) (.ref right 'priority))
+                 (and (= (.ref left 'priority) (.ref right 'priority))
+                      (string<? (.ref left 'identity)
+                                (.ref right 'identity)))))
+           candidates))
+         (candidate-ids (map (lambda (candidate)
+                               (.ref candidate 'identity))
+                             ordered-candidates)))
+    (unless (= (length candidate-ids)
+               (length (delete-duplicates/hash candidate-ids)))
+      (error "duplicate verifier candidate identity" candidate-ids))
+    (let* ((requests (.ref plan 'requests))
+           (candidate-choices
+            (concatenate
+             (map
+              (lambda (request)
+                (let ((selected-candidate
+                       (and (.ref request 'selected?)
+                            (find (lambda (candidate)
+                                    (verifier-candidate-matches?
+                                     candidate request))
+                                  ordered-candidates))))
+                  (map
+                   (lambda (candidate)
+                     (let ((choice-reason
+                            (verifier-choice-reason
+                             candidate request selected-candidate)))
+                       (poo-flow-check-model
+                        AssuranceVerifierChoice
+                        (.o (:: @ (poo-flow-model-prototype
+                                   AssuranceVerifierChoice))
+                            obligation-identity:
+                            (.ref request 'obligation-identity)
+                            candidate-identity: (.ref candidate 'identity)
+                            selected?: (eq? choice-reason 'chosen)
+                            reason: choice-reason))))
+                   ordered-candidates)))
+              requests)))
+           (unassigned-ids
+            (map
+             (lambda (request) (.ref request 'obligation-identity))
+             (filter
+              (lambda (request)
+                (and (.ref request 'selected?)
+                     (not (find
+                           (lambda (candidate)
+                             (verifier-candidate-matches?
+                              candidate request))
+                           ordered-candidates))))
+              requests)))
+           (explanation-digest
+            (assurance-canonical-digest
+             (list "lambda-aitia.verifier-choices"
+                   explanation-identity (.ref plan 'digest)
+                   (map (lambda (candidate)
+                          (list (.ref candidate 'identity)
+                                (.ref candidate 'revision)
+                                (.ref candidate 'priority)
+                                (.ref candidate 'evidence-kinds)
+                                (.ref candidate 'capability)))
+                        ordered-candidates)
+                   (map (lambda (choice)
+                          (list (.ref choice 'obligation-identity)
+                                (.ref choice 'candidate-identity)
+                                (.ref choice 'selected?)
+                                (.ref choice 'reason)))
+                        candidate-choices)
+                   unassigned-ids))))
+      (poo-flow-check-model
+       AssuranceVerifierChoiceReceipt
+       (.o (:: @ (poo-flow-model-prototype AssuranceVerifierChoiceReceipt))
+           schema: "lambda-aitia.verifier-choices"
+           identity: explanation-identity
+           plan-digest: (.ref plan 'digest)
+           candidates: ordered-candidates
+           choices: candidate-choices
+           unassigned-obligations: unassigned-ids
+           digest: explanation-digest
+           verifier-executed?: #f release-authorized?: #f)))))

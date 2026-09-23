@@ -165,8 +165,13 @@ a changed target snapshot and records blockers for unresolved changes, stale
 source bindings, revised claims or policy, and incomplete targets.  It derives
 the need for a new declaration without inventing a new obligation identity
 or copying an old evidence requirement across a changed claim.  Materializing
-and binding replacement obligations, verifier choice receipts and composition
-obligations remain open.
+and binding replacement obligations and composition obligations remain open.
+The explicit verifier-candidate catalog is a set of POO-native inert declarations
+with evidence kinds, capability and priority.  A pure explanation receipt
+records the chosen declaration, every rejected candidate and unassigned
+planned obligations; ties use candidate identity only after explicit priority.
+This is declared suitability, not adapter installation, execution or evidence
+admission.
 
 Deliverables:
 
