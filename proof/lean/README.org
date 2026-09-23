@@ -22,3 +22,11 @@ that impact is monotone when the changed set expands over one fixed
 reachability relation, that a non-empty unresolved frontier prevents closure,
 and that an inert invalidation receipt grants no release authority or runtime
 execution.
+
+=LambdaAitiaProof.Modules.Assurance.Composition= proves a separate admission
+law: current evidence belonging only to component obligations cannot support
+the composite claim.  Any admitted composite has a current discharged direct
+obligation distinct from each component obligation.  These theorems assume the
+explicit =Contract= fields; the Scheme acceptance tests check that the
+runtime projection observes the same boundary, rather than treating a Lean
+theorem as runtime authority.

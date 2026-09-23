@@ -245,7 +245,7 @@ Lean owns general laws, including:
 - no stale authority;
 - causal modality preservation;
 - counterfactual isolation;
-- composition creates a new obligation;
+- [X] composition requires a current, independent direct obligation;
 - unknown or conflicted support cannot grant authority.
 
 TLA+ owns the dynamic lifecycle:
