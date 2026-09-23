@@ -312,6 +312,12 @@ request and the current source cut, rejecting copied or edited presentations,
 revocation, source change and rollback. This is a source-owned predicate, not
 Runtime admission: no Runtime path calls it yet, and its truth cannot authorize
 an effect. The Scheme projection does not evaluate Cedar or gate an effect.
+The POO Flow Cedar capability may require Runtime-owned source admission for
+an action independently of caller context. Aitia's eventual release action
+must use that administrative requirement, and the unmarked request path must
+remain closed until an admitted =allow= Decision and exact current source are
+checked at issue and effect consumption. The present preflight is undecided
+and cannot satisfy that requirement.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a

@@ -317,7 +317,10 @@ request is inert and editable; Cedar evaluation, independent Host source
 admission and Runtime effect gating have not landed. The generic Runtime
 boundary rejects its preflight-only marker before Cedar evaluation. The
 Scheme Host can recheck an exact issued request against its current source
-cut, but Runtime does not yet invoke that predicate).
+cut, but Runtime does not yet invoke that predicate. POO Flow can now declare
+an action source-admission-required in the administrative Cedar capability;
+request editing cannot remove that requirement. No Aitia admitted =allow=
+Decision or trusted Runtime source-admission path exists yet).
 
 Deliverables:
 
