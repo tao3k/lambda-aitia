@@ -80,12 +80,16 @@
 (def (assurance-obligation identity-value revision-value state-value digest-value
                            subject: subject-value claim: claim-value
                            snapshot: snapshot-value evidence-kind: evidence-kind-value
-                           capability: capability-value scope: scope-value)
+                           capability: capability-value scope: scope-value
+                           snapshot-revision: (snapshot-revision-value #f)
+                           snapshot-context-digest: (snapshot-context-value #f))
   (poo-flow-check-model AssuranceObligation
     (.o (:: @ (poo-flow-model-prototype AssuranceObligation))
         identity: identity-value kind: 'obligation revision: revision-value
         state: state-value content-digest: digest-value subject: subject-value
         claim: claim-value snapshot: snapshot-value evidence-kind: evidence-kind-value
+        snapshot-revision: snapshot-revision-value
+        snapshot-context-digest: snapshot-context-value
         capability: capability-value scope: scope-value)))
 (def (assurance-evidence identity-value revision-value state-value digest-value
                          producer: producer-value tool: tool-value

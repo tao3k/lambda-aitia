@@ -94,6 +94,7 @@
 (def (enum-slot name predicate)
   (poo-clos-direct-slot-definition name type-predicate: predicate))
 (def (maybe-text? value) (or (not value) (assurance-text? value)))
+(def (maybe-digest? value) (or (not value) (assurance-digest? value)))
 (def (text-list? values)
   (and (list? values) (every assurance-text? values)))
 (def (symbol-list? values)
@@ -178,6 +179,8 @@
   (semantic-node-class
    'aitia/obligation
    (list (text-slot 'subject) (text-slot 'claim) (text-slot 'snapshot)
+         (enum-slot 'snapshot-revision maybe-text?)
+         (enum-slot 'snapshot-context-digest maybe-digest?)
          (enum-slot 'evidence-kind assurance-evidence-kind?)
          (enum-slot 'capability symbol?)
          (text-slot 'scope))))
@@ -241,6 +244,7 @@
           (text-slot 'policy-revision)
           (enum-slot 'evidence-identities text-list?)
           (enum-slot 'state assurance-state?)
+          (enum-slot 'context-digest assurance-digest?)
           (enum-slot 'digest assurance-digest?)
           (enum-slot 'nodes node-list?)
           (enum-slot 'relations relation-list?)

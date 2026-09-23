@@ -106,7 +106,12 @@ commitment state and declared causal parents.
 
 A question that must be discharged for a claim or decision at an exact
 snapshot.  The obligation states the required evidence kind and capability;
-it does not select or invoke a tool by itself.
+it does not select or invoke a tool by itself.  A candidate obligation is
+explicitly bound to the snapshot identity, revision and canonical context
+digest before selection.  That context digest excludes only the obligations'
+own binding fields to avoid a self-referential hash; the final snapshot digest
+includes the complete bound obligations.  Rebinding an old obligation is not
+replacement-obligation derivation and is rejected.
 
 ** Evidence
 

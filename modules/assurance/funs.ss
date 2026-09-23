@@ -21,6 +21,7 @@
 
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
+        assurance-bind-obligation-to-snapshot
         assurance-support-admissible? assurance-invalidation-graph
         assurance-invalidate assurance-plan-verification)
 
@@ -34,7 +35,8 @@
     ((event) '(subject event-kind observation payload-digest modality
                commitment-state causal-parents))
     ((action) '(subject action-kind requested-by scope))
-    ((obligation) '(subject claim snapshot evidence-kind capability scope))
+    ((obligation) '(subject claim snapshot snapshot-revision
+                    snapshot-context-digest evidence-kind capability scope))
     ((evidence) '(producer tool tool-version input-artifacts obligation subject
                   scope valid-from valid-until admission-state))
     ((counterexample) '(subject challenges evidence details-digest))
@@ -49,6 +51,16 @@
         (.ref node 'state) (.ref node 'content-digest)
         (map (lambda (name) (list name (.ref node name)))
              (assurance-node-semantic-slots (.ref node 'kind)))))
+;;; The context projection excludes only the obligation's own binding slots.
+;;; Every other semantic change, including another obligation or relation,
+;;; changes the context digest without creating a self-referential hash.
+(def (assurance-node-context-canonical node)
+  (if (assurance-obligation? node)
+    (list (.ref node 'identity) (.ref node 'kind) (.ref node 'revision)
+          (.ref node 'state) (.ref node 'content-digest)
+          (map (lambda (name) (list name (.ref node name)))
+               '(subject claim snapshot evidence-kind capability scope)))
+    (assurance-node-canonical node)))
 (def (assurance-relation-canonical relation)
   (unless (assurance-relation? relation)
     (error "invalid assurance relation" relation))
@@ -227,13 +239,26 @@
                        (memq 'hypothesized node-states)
                        (memq 'counterfactual node-states)) 'unknown)
                   (else 'supported)))
+           (context-canonical
+            (list 'lambda-aitia.assurance-snapshot-context
+                  identity-value revision-value graph-identity-value
+                  canonical-source-revisions canonical-claim-revisions
+                  fact-cut-value policy-identity-value policy-revision-value
+                  canonical-evidence-identities snapshot-state
+                  (canonical-objects ordered-nodes
+                                     assurance-node-context-canonical)
+                  (canonical-objects ordered-relations
+                                     assurance-relation-canonical)
+                  missing all-conflicts))
+           (snapshot-context-digest
+            (assurance-canonical-digest context-canonical))
            (canonical
             (list 'lambda-aitia.assurance-snapshot identity-value revision-value
                   graph-identity-value canonical-source-revisions
                   canonical-claim-revisions
                   fact-cut-value policy-identity-value policy-revision-value
                   canonical-evidence-identities
-                  snapshot-state
+                  snapshot-state snapshot-context-digest
                   (canonical-objects ordered-nodes assurance-node-canonical)
                   (canonical-objects ordered-relations assurance-relation-canonical)
                   missing all-conflicts))
@@ -247,9 +272,28 @@
            claim-revisions: canonical-claim-revisions fact-cut: fact-cut-value
            policy-identity: policy-identity-value policy-revision: policy-revision-value
            evidence-identities: canonical-evidence-identities
-           state: snapshot-state digest: snapshot-digest
+           state: snapshot-state context-digest: snapshot-context-digest
+           digest: snapshot-digest
            nodes: ordered-nodes relations: ordered-relations
            unresolved: missing conflicts: all-conflicts)))))))))
+
+;;; Binding is explicit: snapshot construction never silently upgrades an old
+;;; obligation. The caller must reconstruct the final snapshot with this value;
+;;; planning then compares both revision and non-circular context digest.
+(def (assurance-bind-obligation-to-snapshot obligation snapshot)
+  (unless (and (assurance-obligation? obligation)
+               (assurance-snapshot? snapshot)
+               (string=? (.ref obligation 'snapshot) (.ref snapshot 'identity))
+               (not (.ref obligation 'snapshot-revision))
+               (not (.ref obligation 'snapshot-context-digest)))
+    (error "obligation cannot bind to this snapshot"))
+  (let ((bound-revision (.ref snapshot 'revision))
+        (bound-context (.ref snapshot 'context-digest)))
+    (poo-flow-check-model
+     AssuranceObligation
+     (.o (:: @ obligation)
+         snapshot-revision: bound-revision
+         snapshot-context-digest: bound-context))))
 
 ;;; Shape and a green-looking relation never grant support.  The exact
 ;;; evidence and obligation identities must match, and alternate modalities
@@ -328,7 +372,12 @@
    ((pair? conflicts) 'conflicted-snapshot)
    ((pair? unresolved) 'unresolved-frontier)
    ((pair? cycle-path) 'dependency-cycle)
-   ((not (string=? (.ref obligation 'snapshot) (.ref snapshot 'identity)))
+   ((or (not (string=? (.ref obligation 'snapshot)
+                       (.ref snapshot 'identity)))
+        (not (equal? (.ref obligation 'snapshot-revision)
+                     (.ref snapshot 'revision)))
+        (not (equal? (.ref obligation 'snapshot-context-digest)
+                     (.ref snapshot 'context-digest))))
     'stale-obligation)
    ((not (memq (.ref obligation 'capability) capabilities))
     'capability-unavailable)

@@ -152,7 +152,12 @@ prerequisite is never assumed discharged, and a dependency cycle records its
 path while withholding an executable order.  The plan still does not attest
 that any prerequisite has been verified.
 An obligation bound to an older snapshot is blocked rather than silently
-promoted to a replacement obligation.  This slice does not implement the
+promoted to a replacement obligation.  Selection compares snapshot identity,
+revision and a non-circular context digest.  The context digest covers the
+canonical snapshot while excluding only obligation binding fields; the final
+snapshot digest still covers those fields.  Binding an unbound candidate is an
+explicit pure step, and a previously bound obligation cannot be rebound.
+This slice does not implement the
 replacement-obligation derivation, verifier choice receipts or composition
 obligations below.
 

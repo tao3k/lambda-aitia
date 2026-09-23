@@ -83,12 +83,25 @@
    (append (list artifact claim evidence) obligations)
    (append (list dependency) relations)))
 
-(def (software-snapshot nodes relations (unresolved '()))
-  (assurance-snapshot
-   "snapshot/software" "r1" "graph/software"
-   '(("artifact/source" . "r1")) '(("claim/release" . "r1"))
-   "event-cut/1" "policy/release" "r1" nodes relations
-   evidence-identities: '("evidence/test") unresolved: unresolved))
+(def (software-snapshot nodes relations (unresolved '()) (revision "r1"))
+  (def (construct values)
+    (assurance-snapshot
+     "snapshot/software" revision "graph/software"
+     '(("artifact/source" . "r1")) '(("claim/release" . "r1"))
+     "event-cut/1" "policy/release" "r1" values relations
+     evidence-identities: '("evidence/test") unresolved: unresolved))
+  (let* ((candidate (construct nodes))
+         (bound-nodes
+          (map (lambda (node)
+                 (if (and (assurance-obligation? node)
+                          (string=? (.ref node 'snapshot)
+                                    (.ref candidate 'identity))
+                          (not (.ref node 'snapshot-revision))
+                          (not (.ref node 'snapshot-context-digest)))
+                   (assurance-bind-obligation-to-snapshot node candidate)
+                   node))
+               nodes)))
+    (construct bound-nodes)))
 (def full-software-snapshot
   (software-snapshot
    (list artifact claim obligation evidence decision effect)
@@ -402,6 +415,13 @@
         (check-equal? (.ref policy 'capabilities) '(gerbil-test lean))
         (check-equal? (assurance-verification-plan? left) #t)
         (check-equal? (.ref left 'schema) "lambda-aitia.planning-result")
+        (check-equal?
+         (.ref obligation 'snapshot-context-digest) #f)
+        (check-equal?
+         (.ref (car (filter assurance-obligation?
+                            (.ref full-software-snapshot 'nodes)))
+               'snapshot-context-digest)
+         (.ref full-software-snapshot 'context-digest))
         (check-equal? (.ref left 'selected-obligations)
                       '("obligation/verify"))
         (check-equal? (.ref left 'blocked-obligations) '())
@@ -601,6 +621,47 @@
         (check-equal? (.ref old-plan 'selected-obligations) '())
         (check-equal? (.ref (car (.ref old-plan 'requests)) 'blocker)
                       'stale-obligation)))
+
+    (test-case "same-identity snapshot revisions and contents cannot reuse old obligations"
+      (let* ((policy
+              (assurance-verification-policy
+               "policy/release" "r1" '(gerbil-test)))
+             (nodes (.ref full-software-snapshot 'nodes))
+             (relations (.ref full-software-snapshot 'relations))
+             (new-revision
+              (software-snapshot nodes relations '() "r2"))
+             (changed-content
+              (software-snapshot
+               (map (lambda (node)
+                      (if (equal? (.ref node 'identity) "claim/release")
+                        (.o (:: @ node) predicate: "release-ready-v2")
+                        node))
+                    nodes)
+               relations))
+             (revision-plan
+              (assurance-plan-verification
+               "plan/new-revision" new-revision
+               '("artifact/source") policy))
+             (content-plan
+              (assurance-plan-verification
+               "plan/changed-content" changed-content
+               '("artifact/source") policy)))
+        (check-equal? (.ref new-revision 'identity)
+                      (.ref full-software-snapshot 'identity))
+        (check-equal? (.ref changed-content 'revision)
+                      (.ref full-software-snapshot 'revision))
+        (check-equal? (.ref revision-plan 'selected-obligations) '())
+        (check-equal? (.ref content-plan 'selected-obligations) '())
+        (check-equal? (.ref (car (.ref revision-plan 'requests)) 'blocker)
+                      'stale-obligation)
+        (check-equal? (.ref (car (.ref content-plan 'requests)) 'blocker)
+                      'stale-obligation)
+        (check-equal? (.ref revision-plan 'verifier-executed?) #f)
+        (check-equal? (.ref content-plan 'release-authorized?) #f)
+        (check-exception
+         (assurance-bind-obligation-to-snapshot
+          (car (filter assurance-obligation? nodes)) new-revision)
+         Error?)))
 
     (test-case "conflicted snapshot remains distinct from unknown frontier"
       (let* ((snapshot
