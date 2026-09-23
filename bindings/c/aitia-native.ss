@@ -6,7 +6,7 @@
 ;;; and the caller releases every result. Pure semantics live in aitia-contract.
 (import (only-in :std/ffi
                  C-declare C-ffi-macrology
-                 def-C-lambda def-C-type/pointer)
+                 def-C-lambda def-C-type)
         :poo-flow/lambda-aitia/bindings/c/aitia-contract)
 
 (export aitia-c-round-trip)
@@ -92,14 +92,17 @@ static int poo_flow_aitia_c_round_trip(void) {
 END-C
 )
 
-(def-C-type/pointer poo_flow_aitia_result "poo_flow_aitia_result")
+(def-C-type poo_flow_aitia_result "poo_flow_aitia_result")
+(def-C-type poo_flow_aitia_result-borrowed-ptr*
+  (pointer poo_flow_aitia_result
+           (poo_flow_aitia_result-borrowed-ptr*)))
 
 (def-C-lambda poo_flow_aitia_result-status
-  (poo_flow_aitia_result*) int32
+  (poo_flow_aitia_result-borrowed-ptr*) int32
   "___return (___arg1->status);")
 
 (def-C-lambda poo_flow_aitia_result-status-set!
-  (poo_flow_aitia_result* int32) void
+  (poo_flow_aitia_result-borrowed-ptr* int32) void
   "___arg1->status = ___arg2; ___return;")
 
 (def-C-lambda poo-flow-aitia-native-phase
@@ -107,7 +110,7 @@ END-C
   "poo_flow_aitia_native_phase(___arg1); ___return;")
 
 (def-C-lambda poo-flow-aitia-result-set-bytes!
-    (poo_flow_aitia_result* scheme-object) void
+    (poo_flow_aitia_result-borrowed-ptr* scheme-object) void
     #<<END-C
 free(___arg1->payload);
 ___arg1->payload = NULL;
@@ -135,7 +138,7 @@ END-C
     (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-abi-revision))
 
   (c-define (poo-flow-aitia-descriptor result)
-    (poo_flow_aitia_result*) int32
+    (poo_flow_aitia_result-borrowed-ptr*) int32
     "poo_flow_aitia_descriptor" "extern"
     (with-exception-catcher
      (lambda (exception)
@@ -159,7 +162,7 @@ END-C
        (poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-gitops-evaluate payload result)
-    (UTF-8-string poo_flow_aitia_result*) int32
+    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
     "poo_flow_aitia_gitops_evaluate" "extern"
     (with-exception-catcher
      (lambda (exception)
@@ -179,7 +182,7 @@ END-C
        (poo_flow_aitia_result-status result))))
 
   (c-define (poo-flow-aitia-sdlc-flow-plan payload result)
-    (UTF-8-string poo_flow_aitia_result*) int32
+    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
     "poo_flow_aitia_sdlc_flow_plan" "extern"
     (with-exception-catcher
      (lambda (exception)
