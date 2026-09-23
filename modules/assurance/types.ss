@@ -19,6 +19,7 @@
         AssuranceObligation AssuranceEvidence AssuranceCounterexample
         AssuranceFinding AssuranceDecision AssuranceEffect
         AssuranceRelation AssuranceSnapshot
+        AssuranceReplacementRequirement AssuranceReplacementDerivation
         AssuranceVerificationPolicy AssuranceVerificationRequest
         AssuranceVerificationPlan
         make-assurance-invalidation-receipt-record
@@ -27,6 +28,8 @@
         assurance-action? assurance-obligation? assurance-evidence?
         assurance-counterexample? assurance-finding? assurance-decision?
         assurance-effect? assurance-relation? assurance-snapshot?
+        assurance-replacement-requirement?
+        assurance-replacement-derivation?
         assurance-invalidation-receipt? assurance-invalidation-receipt-ref
         assurance-verification-policy? assurance-verification-request?
         assurance-verification-plan?)
@@ -105,6 +108,13 @@
                     capability-unavailable stale-obligation
                     dependency-unplanned dependency-blocked
                     dependency-cycle))))
+(def (replacement-blocker? value)
+  (or (not value)
+      (memq value '(source-conflicted source-unresolved change-unresolved
+                    stale-source
+                    target-unchanged target-conflicted target-unresolved
+                    target-identity-changed graph-changed
+                    policy-changed claim-missing claim-changed))))
 (def (revision-bindings? values)
   (and (list? values)
        (every (lambda (binding)
@@ -251,6 +261,38 @@
           (enum-slot 'unresolved text-list?)
           (enum-slot 'conflicts text-list?))))
 
+;;; A derivation names questions requiring a fresh declaration; it does not
+;;; construct, bind, discharge or authorize a replacement obligation.
+(def AssuranceReplacementRequirement
+  (poo-clos-class 'aitia/replacement-requirement
+    direct-slots:
+    (list (text-slot 'source-obligation)
+          (text-slot 'source-revision)
+          (text-slot 'claim)
+          (text-slot 'subject)
+          (enum-slot 'evidence-kind assurance-evidence-kind?)
+          (enum-slot 'capability symbol?)
+          (text-slot 'scope)
+          (enum-slot 'blocker replacement-blocker?))))
+(def (replacement-requirement-list? values)
+  (and (list? values) (every assurance-replacement-requirement? values)))
+(def AssuranceReplacementDerivation
+  (poo-clos-class 'aitia/replacement-derivation
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.replacement-requirements")))
+          (text-slot 'identity)
+          (enum-slot 'source-snapshot-digest assurance-digest?)
+          (enum-slot 'target-snapshot-digest assurance-digest?)
+          (enum-slot 'changed text-list?)
+          (enum-slot 'witnesses invalidation-trajectories?)
+          (enum-slot 'unresolved text-list?)
+          (enum-slot 'requirements replacement-requirement-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
 ;;; Public planning values remain POO-native and contain no executable hook.
 (def AssuranceVerificationPolicy
   (poo-clos-class 'aitia/verification-policy
@@ -352,6 +394,10 @@
        (eq? (.ref value 'plane)
             (assurance-relation-kind-plane (.ref value 'relation)))))
 (def (assurance-snapshot? value) (poo-flow-model? AssuranceSnapshot value))
+(def (assurance-replacement-requirement? value)
+  (poo-flow-model? AssuranceReplacementRequirement value))
+(def (assurance-replacement-derivation? value)
+  (poo-flow-model? AssuranceReplacementDerivation value))
 (def (assurance-verification-policy? value)
   (poo-flow-model? AssuranceVerificationPolicy value))
 (def (assurance-verification-request? value)

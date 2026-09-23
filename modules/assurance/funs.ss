@@ -24,7 +24,8 @@
         assurance-canonical-digest assurance-snapshot
         assurance-bind-obligation-to-snapshot
         assurance-support-admissible? assurance-invalidation-graph
-        assurance-invalidate assurance-plan-verification)
+        assurance-invalidate assurance-derive-replacement-requirements
+        assurance-plan-verification)
 
 (def (assurance-node-semantic-slots kind)
   (case kind
@@ -362,6 +363,117 @@
          (impacted-kind-identities nodes impacted 'effect)
          witnesses unresolved strong-components cyclic-components
          #f #f #f)))))
+
+;;; This derives the need for fresh declarations from the old snapshot's
+;;; invalidation closure. It deliberately does not make a new obligation: a
+;;; revised claim or policy may require a different question or evidence kind,
+;;; and inserting an obligation would change the target snapshot context.
+(def (replacement-requirement-blocker source-obligation source target
+                                      change-unresolved)
+  (let ((source-claim
+         (node-by-identity (.ref source 'nodes)
+                           (.ref source-obligation 'claim)))
+        (target-claim
+         (node-by-identity (.ref target 'nodes)
+                           (.ref source-obligation 'claim))))
+    (cond
+     ((pair? (.ref source 'conflicts)) 'source-conflicted)
+     ((pair? (.ref source 'unresolved)) 'source-unresolved)
+     ((pair? change-unresolved) 'change-unresolved)
+     ((or (not (equal? (.ref source-obligation 'snapshot)
+                       (.ref source 'identity)))
+          (not (equal? (.ref source-obligation 'snapshot-revision)
+                       (.ref source 'revision)))
+          (not (equal? (.ref source-obligation 'snapshot-context-digest)
+                       (.ref source 'context-digest))))
+      'stale-source)
+     ((equal? (.ref source 'digest) (.ref target 'digest)) 'target-unchanged)
+     ((pair? (.ref target 'conflicts)) 'target-conflicted)
+     ((pair? (.ref target 'unresolved)) 'target-unresolved)
+     ((not (equal? (.ref source 'identity) (.ref target 'identity)))
+      'target-identity-changed)
+     ((not (equal? (.ref source 'graph-identity)
+                   (.ref target 'graph-identity)))
+      'graph-changed)
+     ((or (not (equal? (.ref source 'policy-identity)
+                       (.ref target 'policy-identity)))
+          (not (equal? (.ref source 'policy-revision)
+                       (.ref target 'policy-revision))))
+      'policy-changed)
+     ((not (assurance-claim? target-claim)) 'claim-missing)
+     ((or (not (assurance-claim? source-claim))
+          (not (equal? (assurance-node-canonical source-claim)
+                       (assurance-node-canonical target-claim))))
+      'claim-changed)
+     (else #f))))
+
+(def (assurance-derive-replacement-requirements derivation-identity source target
+                                                changed-identities)
+  (unless (and (assurance-text? derivation-identity)
+               (assurance-snapshot? source)
+               (assurance-snapshot? target))
+    (error "invalid replacement derivation input"))
+  (let* ((invalidation
+          (assurance-invalidate
+           (string-append derivation-identity "/invalidation")
+           source changed-identities))
+         (changed-values
+          (assurance-invalidation-receipt-ref invalidation 'changed))
+         (change-witnesses
+          (assurance-invalidation-receipt-ref invalidation 'witnesses))
+         (change-unresolved
+          (assurance-invalidation-receipt-ref invalidation 'unresolved))
+         (obligation-ids
+          (assurance-invalidation-receipt-ref
+           invalidation 'required-obligations))
+         (derived-requirements
+          (map
+           (lambda (obligation-id)
+             (let ((obligation
+                    (node-by-identity (.ref source 'nodes) obligation-id)))
+               (poo-flow-check-model
+                AssuranceReplacementRequirement
+                (.o (:: @ (poo-flow-model-prototype
+                           AssuranceReplacementRequirement))
+                    source-obligation: obligation-id
+                    source-revision: (.ref obligation 'revision)
+                    claim: (.ref obligation 'claim)
+                    subject: (.ref obligation 'subject)
+                    evidence-kind: (.ref obligation 'evidence-kind)
+                    capability: (.ref obligation 'capability)
+                    scope: (.ref obligation 'scope)
+                    blocker:
+                    (replacement-requirement-blocker
+                     obligation source target change-unresolved)))))
+           obligation-ids))
+         (derivation-digest
+          (assurance-canonical-digest
+           (list "lambda-aitia.replacement-requirements"
+                 derivation-identity
+                 (.ref source 'digest) (.ref target 'digest)
+                 changed-values change-witnesses change-unresolved
+                 (map (lambda (requirement)
+                        (list (.ref requirement 'source-obligation)
+                              (.ref requirement 'source-revision)
+                              (.ref requirement 'claim)
+                              (.ref requirement 'subject)
+                              (.ref requirement 'evidence-kind)
+                              (.ref requirement 'capability)
+                              (.ref requirement 'scope)
+                              (.ref requirement 'blocker)))
+                      derived-requirements)))))
+    (poo-flow-check-model
+     AssuranceReplacementDerivation
+     (.o (:: @ (poo-flow-model-prototype AssuranceReplacementDerivation))
+         schema: "lambda-aitia.replacement-requirements"
+         identity: derivation-identity
+         source-snapshot-digest: (.ref source 'digest)
+         target-snapshot-digest: (.ref target 'digest)
+         changed: changed-values
+         witnesses: change-witnesses
+         unresolved: change-unresolved
+         requirements: derived-requirements digest: derivation-digest
+         verifier-executed?: #f release-authorized?: #f))))
 
 ;;; Phase 3 selection boundary. This plan names only obligations already bound
 ;;; to the supplied snapshot. Deriving replacement revisions and invoking

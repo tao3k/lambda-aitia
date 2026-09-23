@@ -447,6 +447,124 @@
          (.o (:: @ left) release-authorized?: #t))
          #f)))
 
+    (test-case "replacement requirements never silently rebind an old obligation"
+      (let* ((target
+              (software-snapshot
+               (list artifact claim evidence) (list dependency) '() "r2"))
+             (permuted-source
+              (software-snapshot
+               (list effect decision evidence obligation claim artifact)
+               (list authorization decision-dependency obligation-support
+                     discharge dependency)))
+             (left
+              (assurance-derive-replacement-requirements
+               "replacement/source" full-software-snapshot target
+               '("artifact/source")))
+             (right
+              (assurance-derive-replacement-requirements
+               "replacement/source" permuted-source target
+               '("artifact/source")))
+             (requirement (car (.ref left 'requirements)))
+             (unchanged
+              (assurance-derive-replacement-requirements
+               "replacement/unchanged" full-software-snapshot
+               full-software-snapshot '("artifact/source")))
+             (unknown-change
+              (assurance-derive-replacement-requirements
+               "replacement/unknown-change" full-software-snapshot
+               target '("artifact/source" "artifact/unknown")))
+             (unknown-only
+              (assurance-derive-replacement-requirements
+               "replacement/unknown-only" full-software-snapshot
+               target '("artifact/unknown")))
+             (stale-source
+              (software-snapshot
+               (list artifact claim evidence decision effect
+                     (assurance-obligation
+                      "obligation/verify" "r1" 'unknown digest-a
+                      subject: "software/release" claim: "claim/release"
+                      snapshot: "snapshot/software" evidence-kind: 'native-test
+                      capability: 'gerbil-test scope: "repository"
+                      snapshot-revision: "r0"
+                      snapshot-context-digest: digest-a))
+               (list dependency discharge obligation-support
+                     decision-dependency authorization)))
+             (stale
+              (assurance-derive-replacement-requirements
+               "replacement/stale-source" stale-source target
+               '("artifact/source"))))
+        (check-equal? (assurance-replacement-derivation? left) #t)
+        (check-equal? (.ref left 'digest) (.ref right 'digest))
+        (check-equal? (length (.ref left 'requirements)) 1)
+        (check-equal? (assurance-replacement-requirement? requirement) #t)
+        (check-equal? (.ref requirement 'source-obligation)
+                      "obligation/verify")
+        (check-equal? (.ref requirement 'evidence-kind) 'native-test)
+        (check-equal? (.ref requirement 'blocker) #f)
+        (check-equal? (car (.ref left 'witnesses))
+                      '("artifact/source" ("artifact/source") ()))
+        (check-equal? (.ref (car (.ref unchanged 'requirements)) 'blocker)
+                      'target-unchanged)
+        (check-equal?
+         (.ref (car (.ref unknown-change 'requirements)) 'blocker)
+         'change-unresolved)
+        (check-equal? (.ref unknown-only 'requirements) '())
+        (check-equal? (.ref unknown-only 'unresolved)
+                      '("artifact/unknown"))
+        (check-equal? (.ref (car (.ref stale 'requirements)) 'blocker)
+                      'stale-source)
+        (check-equal? (.ref left 'verifier-executed?) #f)
+        (check-equal? (.ref left 'release-authorized?) #f)
+        (check-equal?
+         (filter assurance-obligation? (.ref target 'nodes)) '())))
+
+    (test-case "revised claims and unknown targets block automatic replacement"
+      (let* ((revised-claim
+              (assurance-claim
+               "claim/release" "r2" 'unknown digest-a
+               subject: "software/release" predicate: "release-ready-v2"
+               assumptions: '("assumption/toolchain")
+               support-requirements: '("obligation/verify")
+               scope: "repository" valid-from: "2026-09-17"))
+             (changed-claim-target
+              (assurance-snapshot
+               "snapshot/software" "r2" "graph/software"
+               '(("artifact/source" . "r1")) '(("claim/release" . "r2"))
+               "event-cut/1" "policy/release" "r1"
+               (list artifact revised-claim)
+               (list dependency)))
+             (unknown-target
+              (software-snapshot
+               (list artifact claim evidence) (list dependency)
+               '("artifact/unresolved") "r2"))
+             (foreign-target
+              (assurance-snapshot
+               "snapshot/other" "r2" "graph/software"
+               '(("artifact/source" . "r1")) '(("claim/release" . "r1"))
+               "event-cut/1" "policy/release" "r1"
+               (list artifact claim) (list dependency)))
+             (changed-claim
+              (assurance-derive-replacement-requirements
+               "replacement/changed-claim" full-software-snapshot
+               changed-claim-target '("artifact/source")))
+             (unknown
+              (assurance-derive-replacement-requirements
+               "replacement/unknown" full-software-snapshot
+               unknown-target '("artifact/source")))
+             (foreign
+              (assurance-derive-replacement-requirements
+               "replacement/foreign" full-software-snapshot
+               foreign-target '("artifact/source"))))
+        (check-equal?
+         (.ref (car (.ref changed-claim 'requirements)) 'blocker)
+         'claim-changed)
+        (check-equal?
+         (.ref (car (.ref unknown 'requirements)) 'blocker)
+         'target-unresolved)
+        (check-equal?
+         (.ref (car (.ref foreign 'requirements)) 'blocker)
+         'target-identity-changed)))
+
     (test-case "verification obligations have a closed evidence-kind vocabulary"
       (check-equal?
        +assurance-evidence-kinds+

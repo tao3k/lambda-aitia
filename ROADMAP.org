@@ -133,7 +133,8 @@ Exit gates:
 
 * Phase 3 — Obligation derivation and verification planning
 
-Status: =active= (typed kinds and dependency-ordered selection; replacement derivation remains open)
+Status: =active= (typed kinds, dependency-ordered selection and replacement
+requirements; replacement declaration remains open)
 
 The first executable slice reuses the Phase 2 invalidation receipt to select
 snapshot-bound obligations.  A POO-native verification policy declares
@@ -159,9 +160,13 @@ revision and a non-circular context digest.  The context digest covers the
 canonical snapshot while excluding only obligation binding fields; the final
 snapshot digest still covers those fields.  Binding an unbound candidate is an
 explicit pure step, and a previously bound obligation cannot be rebound.
-This slice does not implement the
-replacement-obligation derivation, verifier choice receipts or composition
-obligations below.
+The pure replacement-requirements receipt traces affected old obligations to
+a changed target snapshot and records blockers for unresolved changes, stale
+source bindings, revised claims or policy, and incomplete targets.  It derives
+the need for a new declaration without inventing a new obligation identity
+or copying an old evidence requirement across a changed claim.  Materializing
+and binding replacement obligations, verifier choice receipts and composition
+obligations remain open.
 
 Deliverables:
 
