@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/poo-flow
-          ref: 13fd70bec1c3f835c41d61bffbf218f8209d839e
+          ref: 5c55eef6743b310f7fbf37f9555580fc9b3498cf
           path: poo-flow
           submodules: false
 
