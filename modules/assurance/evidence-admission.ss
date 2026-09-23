@@ -20,6 +20,7 @@
         assurance-evaluate-evidence-admission
         assurance-evidence-outcome-bound?
         assurance-verification-subject
+        assurance-snapshot-semantic-digest
         assurance-verification-subject-snapshot
         assurance-support-sealed-under-adapter?)
 
@@ -95,16 +96,8 @@
        snapshot: snapshot-value obligation: obligation-value
        evidence: evidence-value outcome: outcome-value)))
 
-;;; POO Flow's adapter freezes this string before and after its host-trusted
-;;; operation. Recompute from every semantic field: mutating only a displayed
-;;; snapshot digest must not preserve an issued seal.
-(def (assurance-verification-subject-snapshot subject-value)
-  (unless (assurance-verification-subject? subject-value)
-    (error "invalid assurance verification subject"))
-  (let ((snapshot-value (.ref subject-value 'snapshot)))
-    (assurance-canonical-digest
-     (list 'lambda-aitia.verification-subject
-           (.ref snapshot-value 'identity)
+(def (snapshot-semantic-fields snapshot-value)
+  (list (.ref snapshot-value 'identity)
            (.ref snapshot-value 'revision)
            (.ref snapshot-value 'graph-identity)
            (.ref snapshot-value 'source-revisions)
@@ -120,10 +113,30 @@
            (map assurance-relation-canonical
                 (.ref snapshot-value 'relations))
            (.ref snapshot-value 'unresolved)
-           (.ref snapshot-value 'conflicts)
-           (assurance-node-canonical (.ref subject-value 'obligation))
-           (assurance-node-canonical (.ref subject-value 'evidence))
-           (outcome-canonical (.ref subject-value 'outcome))))))
+           (.ref snapshot-value 'conflicts)))
+
+;;; Use the entire semantic snapshot, not its editable displayed digest slot,
+;;; when the Host detects a change and advances its invalidation epoch.
+(def (assurance-snapshot-semantic-digest snapshot-value)
+  (unless (assurance-snapshot? snapshot-value)
+    (error "invalid assurance snapshot"))
+  (assurance-canonical-digest
+   (cons 'lambda-aitia.snapshot-semantic
+         (snapshot-semantic-fields snapshot-value))))
+
+;;; POO Flow's adapter freezes this string before and after its host-trusted
+;;; operation. Recompute from every semantic field: mutating only a displayed
+;;; snapshot digest must not preserve an issued seal.
+(def (assurance-verification-subject-snapshot subject-value)
+  (unless (assurance-verification-subject? subject-value)
+    (error "invalid assurance verification subject"))
+  (assurance-canonical-digest
+   (append
+    (cons 'lambda-aitia.verification-subject
+          (snapshot-semantic-fields (.ref subject-value 'snapshot)))
+    (list (assurance-node-canonical (.ref subject-value 'obligation))
+          (assurance-node-canonical (.ref subject-value 'evidence))
+          (outcome-canonical (.ref subject-value 'outcome))))))
 
 (def (snapshot-relation snapshot-value identity-value)
   (find (lambda (relation)

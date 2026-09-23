@@ -210,8 +210,9 @@ Exit gates:
 
 Status: =in-progress= (typed reported outcomes, pure structural eligibility and
 sealed-support checks reuse POO Flow's verification adapter. A configured
-Scheme Host capability now owns adapter, clock, lease and revocation for its
-checks. Trusted deployment, evidence promotion and effect gate remain open).
+Scheme Host capability now owns adapter, clock, lease, current snapshot source,
+revocation and a separate candidate admission ledger. Trusted deployment,
+decision consumption and the Runtime effect gate remain open).
 
 Deliverables:
 
@@ -220,14 +221,19 @@ Deliverables:
 2. Evidence envelopes binding producer, tool/version, input artifact digests,
    obligation, output digest, subject, revision, scope and validity interval.
 3. [~] Admission rules for successful, failed, timed-out, unavailable and
-   indeterminate verifier outcomes. The current receipt reports structural
-   eligibility only; it cannot promote evidence or authorize release.
+   indeterminate verifier outcomes. The pure eligibility receipt remains
+   inert. A configured Host may now issue a separate admission for candidate
+   evidence after its verifier succeeds over the exact current snapshot;
+   changing =admission-state= in a node is not the promotion operation.
+   Admission remains subject to Host clock, source invalidation and revocation
+   and cannot authorize release.
    The normal Host support entrypoint requires an exact POO Flow adapter-issued
    seal over the current semantic subject; no structural-only public support
    predicate remains. The low-level under-adapter check is explicitly
    conditional, not an authorization path. A forged adapter or Host
    presentation is rejected; proving that application configuration installed
-   the intended Host and that its clock is trusted remains open.
+   the intended Host and that its clock and snapshot source are trusted remains
+   open.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,

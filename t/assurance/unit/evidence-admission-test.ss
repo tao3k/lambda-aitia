@@ -72,6 +72,25 @@
 (def trusted-outcome
   (.o (:: @ outcome)
       snapshot-context-digest: (.ref trusted-snapshot 'context-digest)))
+(def candidate-evidence
+  (.o (:: @ trusted-evidence) admission-state: 'candidate))
+(def (make-candidate-snapshot source-value obligation-value revision-value)
+  (assurance-snapshot
+   "snapshot/software" revision-value "graph/software"
+   (list (cons "artifact/source" (.ref source-value 'revision)))
+   '(("claim/release" . "r1"))
+   "event-cut/1" "policy/release" "r1"
+   (list source-value claim obligation-value candidate-evidence)
+   (list trusted-discharge)))
+(def candidate-draft
+  (make-candidate-snapshot artifact obligation "r1"))
+(def candidate-obligation
+  (assurance-bind-obligation-to-snapshot obligation candidate-draft))
+(def candidate-snapshot
+  (make-candidate-snapshot artifact candidate-obligation "r1"))
+(def candidate-outcome
+  (.o (:: @ outcome)
+      snapshot-context-digest: (.ref candidate-snapshot 'context-digest)))
 (def trusted-adapter
   (poo-flow-verification-adapter
    "host/native-test"
@@ -306,7 +325,7 @@
                       (equal? (.ref (.ref subject-value 'evidence)
                                     'content-digest)
                               digest-b)))
-               (lambda () now) 9))
+               (lambda () now) 9 (lambda () trusted-snapshot)))
              (receipt
               (assurance-host-verify
                host trusted-snapshot trusted-obligation trusted-evidence
@@ -355,7 +374,7 @@
               (assurance-verification-host
                "host/revocation-test"
                (lambda (subject-value issued-at expires-at) #t)
-               (lambda () 11) 9))
+               (lambda () 11) 9 (lambda () trusted-snapshot)))
              (receipt
               (assurance-host-verify
                host trusted-snapshot trusted-obligation trusted-evidence
@@ -377,11 +396,148 @@
             (assurance-verification-host
              "host/refusal-test"
              (lambda (subject-value issued-at expires-at) #f)
-             (lambda () 11) 9))
+             (lambda () 11) 9 (lambda () trusted-snapshot)))
         (check-equal?
          (assurance-host-verify
           host trusted-snapshot trusted-obligation trusted-evidence
-          trusted-outcome)
+         trusted-outcome)
+         #f)))
+
+    (test-case "old Host seal stays invalid after a source cut returns"
+      (let* ((current trusted-snapshot)
+             (host
+              (assurance-verification-host
+               "host/seal-cut-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9 (lambda () current)))
+             (receipt
+              (assurance-host-verify
+               host trusted-snapshot trusted-obligation trusted-evidence
+               trusted-outcome)))
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         #t)
+        (set! current (.o (:: @ trusted-snapshot) fact-cut: "event-cut/2"))
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         #f)
+        (set! current trusted-snapshot)
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         #f)))
+
+    (test-case "Host admission binds candidate evidence to an immutable cut"
+      (let* ((current candidate-snapshot)
+             (host
+              (assurance-verification-host
+               "host/admission-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9 (lambda () current)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal? (if admission #t #f) #t)
+        (check-equal? (.ref candidate-evidence 'admission-state) 'candidate)
+        (check-equal? (assurance-host-admission-current? host admission) #t)
+        (check-equal?
+         (assurance-host-admission-current? host (.o (:: @ admission))) #f)
+        (check-equal?
+         (assurance-host-admission-current?
+          host (.o identity: (.ref admission 'identity))) #f)
+        (check-equal?
+         (assurance-host-admit
+          host candidate-obligation
+          (.o (:: @ candidate-evidence) tool-version: "v20")
+          candidate-outcome)
+         #f)
+        (let* ((new-source
+                (.o (:: @ artifact) revision: "r2" content-digest: digest-b))
+               (new-snapshot
+                (make-candidate-snapshot new-source obligation "r2")))
+          (set! current new-snapshot)
+          (check-equal?
+           (assurance-host-admission-current? host admission) #f)
+          (set! current candidate-snapshot)
+          (check-equal?
+           (assurance-host-admission-current? host admission) #f))))
+
+    (test-case "semantic snapshot mutation with unchanged display digest revokes"
+      (let* ((current candidate-snapshot)
+             (host
+              (assurance-verification-host
+               "host/semantic-cut-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9 (lambda () current)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal? (assurance-host-admission-current? host admission) #t)
+        (set! current
+              (.o (:: @ candidate-snapshot) fact-cut: "event-cut/2"))
+        (check-equal? (.ref current 'digest)
+                      (.ref candidate-snapshot 'digest))
+        (check-equal? (assurance-host-admission-current? host admission) #f)
+        (set! current candidate-snapshot)
+        (check-equal? (assurance-host-admission-current? host admission) #f)))
+
+    (test-case "invalid Host snapshot source cannot revive an old admission"
+      (let* ((current candidate-snapshot)
+             (host
+              (assurance-verification-host
+               "host/invalid-source-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9 (lambda () current)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal? (assurance-host-admission-current? host admission) #t)
+        (set! current #f)
+        (check-exception
+         (assurance-host-admission-current? host admission) Error?)
+        (set! current candidate-snapshot)
+        (check-equal? (assurance-host-admission-current? host admission) #f)))
+
+    (test-case "Host admission expires, revokes and refuses failed verification"
+      (let* ((now 11)
+             (host
+              (assurance-verification-host
+               "host/admission-expiry"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () now) 9 (lambda () candidate-snapshot)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal? (assurance-host-admission-current? host admission) #t)
+        (set! now 20)
+        (check-equal? (assurance-host-admission-current? host admission) #f)
+        (set! now 11)
+        (check-exception
+         (assurance-host-admission-current? host admission) Error?))
+      (let* ((host
+              (assurance-verification-host
+               "host/admission-revocation"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9 (lambda () candidate-snapshot)))
+             (admission
+              (assurance-host-admit
+               host candidate-obligation candidate-evidence candidate-outcome)))
+        (check-equal? (assurance-host-admission-current? host admission) #t)
+        (assurance-host-revoke-admission! host admission)
+        (check-equal? (assurance-host-admission-current? host admission) #f))
+      (let (host
+            (assurance-verification-host
+             "host/admission-refusal"
+             (lambda (subject-value issued-at expires-at) #f)
+             (lambda () 11) 9 (lambda () candidate-snapshot)))
+        (check-equal?
+         (assurance-host-admit
+          host candidate-obligation candidate-evidence candidate-outcome)
          #f)))
 
     (test-case "expiry and revocation remove verified support"

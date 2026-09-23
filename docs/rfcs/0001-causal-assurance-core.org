@@ -261,7 +261,15 @@ digest bindings and emits an inert structural eligibility receipt. A reported
 success, even when structurally eligible, is not a trusted execution
 attestation. Host-owned adapter identity and effectful admission are required
 before an =AssuranceEvidence= may become authoritative. Its caller-supplied
-=admission-state= is currently metadata, not proof of that transition.
+=admission-state= is metadata, not proof of that transition. Changing that
+slot after verification would alter the snapshot context and invalidate the
+outcome's original binding. A configured Host therefore issues a separate
+admission object over candidate evidence without editing the snapshot. Its
+private issuance record binds the verifier seal, obligation, evidence, outcome,
+full semantic snapshot, validity interval and source-invalidation epoch.
+Currentness is checked against the Host's configured snapshot source and clock;
+source changes revoke earlier seals, including if the old cut reappears.
+This is a Host-local admission candidate, not a decision or effect grant.
 =assurance-host-sealed-support?= is the configured Host seal predicate, not a
 promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
