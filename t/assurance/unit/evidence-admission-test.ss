@@ -420,11 +420,11 @@
           trusted-snapshot trusted-outcome receipt)
          #t)
         (set! current (.o (:: @ trusted-snapshot) fact-cut: "event-cut/2"))
-        (check-equal?
+        (check-exception
          (assurance-host-sealed-support?
           host trusted-discharge trusted-evidence trusted-obligation
           trusted-snapshot trusted-outcome receipt)
-         #f)
+         Error?)
         (set! current trusted-snapshot)
         (check-equal?
          (assurance-host-sealed-support?
@@ -482,7 +482,8 @@
               (.o (:: @ candidate-snapshot) fact-cut: "event-cut/2"))
         (check-equal? (.ref current 'digest)
                       (.ref candidate-snapshot 'digest))
-        (check-equal? (assurance-host-admission-current? host admission) #f)
+        (check-exception
+         (assurance-host-admission-current? host admission) Error?)
         (set! current candidate-snapshot)
         (check-equal? (assurance-host-admission-current? host admission) #f)))
 

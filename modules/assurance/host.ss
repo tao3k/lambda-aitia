@@ -14,6 +14,8 @@
                  poo-flow-revoke-verification!)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
                  assurance-snapshot?)
+        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+                 assurance-snapshot-canonical?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/evidence-admission
                  assurance-evaluate-evidence-admission
                  assurance-evidence-outcome-bound?
@@ -57,9 +59,10 @@
 
 (def (host-current-snapshot entry)
   (let (snapshot ((vector-ref entry 5)))
-    (unless (assurance-snapshot? snapshot)
+    (unless (and (assurance-snapshot? snapshot)
+                 (assurance-snapshot-canonical? snapshot))
       (invalidate-host-cut! entry)
-      (error "assurance Host snapshot source returned an invalid snapshot"))
+      (error "assurance Host snapshot source returned a noncanonical snapshot"))
     (let ((current-digest (assurance-snapshot-semantic-digest snapshot))
           (previous-digest (vector-ref entry 7)))
       (when (and previous-digest

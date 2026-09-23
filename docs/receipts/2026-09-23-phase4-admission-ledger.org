@@ -26,7 +26,10 @@ checks candidate evidence and an exactly bound successful outcome, executes
 the configured POO Flow verifier, then issues a private-indexed POO admission.
 It does not alter =AssuranceEvidence.admission-state= or the source snapshot.
 Currentness rechecks the full semantic snapshot, Host epoch, verifier seal,
-candidate evidence, outcome binding and lease.
+candidate evidence, outcome binding and lease. The Host also reconstructs each
+snapshot through =assurance-snapshot= before use, rejecting a POO presentation
+whose displayed digest, context, state or conflict fields disagree with the
+canonical inventory.
 
 =t/assurance/unit/evidence-admission-test.ss= checks that copied or fabricated
 admissions fail; changed source, same displayed digest with changed semantic

@@ -22,6 +22,7 @@
 
 (export assurance-node-canonical assurance-relation-canonical
         assurance-canonical-digest assurance-snapshot
+        assurance-snapshot-canonical?
         assurance-bind-obligation-to-snapshot
         assurance-invalidation-graph
         assurance-invalidate assurance-derive-replacement-requirements
@@ -280,6 +281,30 @@
            digest: snapshot-digest
            nodes: ordered-nodes relations: ordered-relations
            unresolved: missing conflicts: all-conflicts)))))))))
+
+;;; A Host source must supply a self-consistent snapshot, not an editable POO
+;;; presentation whose displayed digest/context no longer match its inventory.
+(def (assurance-snapshot-canonical? snapshot)
+  (and (assurance-snapshot? snapshot)
+       (let (rebuilt
+             (assurance-snapshot
+              (.ref snapshot 'identity) (.ref snapshot 'revision)
+              (.ref snapshot 'graph-identity)
+              (.ref snapshot 'source-revisions)
+              (.ref snapshot 'claim-revisions)
+              (.ref snapshot 'fact-cut)
+              (.ref snapshot 'policy-identity)
+              (.ref snapshot 'policy-revision)
+              (.ref snapshot 'nodes) (.ref snapshot 'relations)
+              evidence-identities: (.ref snapshot 'evidence-identities)
+              unresolved: (.ref snapshot 'unresolved)))
+         (and (equal? (.ref snapshot 'digest) (.ref rebuilt 'digest))
+              (equal? (.ref snapshot 'context-digest)
+                      (.ref rebuilt 'context-digest))
+              (eq? (.ref snapshot 'state) (.ref rebuilt 'state))
+              (equal? (.ref snapshot 'conflicts) (.ref rebuilt 'conflicts))
+              (equal? (.ref snapshot 'unresolved)
+                      (.ref rebuilt 'unresolved))))))
 
 ;;; Binding is explicit: snapshot construction never silently upgrades an old
 ;;; obligation. The caller must reconstruct the final snapshot with this value;
