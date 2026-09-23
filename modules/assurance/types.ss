@@ -10,9 +10,10 @@
 (export assurance-text? assurance-digest?
         assurance-node-kind? assurance-state? assurance-relation-plane?
         assurance-relation-kind? assurance-relation-kind-plane
-        assurance-modality?
+        assurance-modality? assurance-evidence-kind?
         +assurance-node-kinds+ +assurance-states+
         +assurance-relation-planes+ +assurance-modalities+
+        +assurance-evidence-kinds+
         AssuranceNode AssuranceArtifact AssuranceClaim AssuranceAssumption
         AssuranceObservation AssuranceEvent AssuranceAction
         AssuranceObligation AssuranceEvidence AssuranceCounterexample
@@ -40,6 +41,9 @@
   '(provenance structural causal assurance authority))
 (def +assurance-modalities+
   '(observed declared derived hypothesized counterfactual))
+(def +assurance-evidence-kinds+
+  '(proof model-check replay unit-test integration-test native-test
+    static-analysis authorization-differential human-review))
 
 (def +assurance-relation-kind-planes+
   '((derived-from . provenance)
@@ -77,6 +81,8 @@
 (def (assurance-relation-plane? value)
   (if (memq value +assurance-relation-planes+) #t #f))
 (def (assurance-modality? value) (if (memq value +assurance-modalities+) #t #f))
+(def (assurance-evidence-kind? value)
+  (if (memq value +assurance-evidence-kinds+) #t #f))
 (def (assurance-relation-kind-plane value)
   (let ((entry (assq value +assurance-relation-kind-planes+)))
     (and entry (cdr entry))))
@@ -170,7 +176,8 @@
   (semantic-node-class
    'aitia/obligation
    (list (text-slot 'subject) (text-slot 'claim) (text-slot 'snapshot)
-         (enum-slot 'evidence-kind symbol?) (enum-slot 'capability symbol?)
+         (enum-slot 'evidence-kind assurance-evidence-kind?)
+         (enum-slot 'capability symbol?)
          (text-slot 'scope))))
 (def AssuranceEvidence
   (semantic-node-class
@@ -254,7 +261,7 @@
           (text-slot 'subject)
           (text-slot 'claim)
           (enum-slot 'snapshot-digest assurance-digest?)
-          (enum-slot 'evidence-kind symbol?)
+          (enum-slot 'evidence-kind assurance-evidence-kind?)
           (enum-slot 'capability symbol?)
           (enum-slot 'selected? boolean?)
           (enum-slot 'blocker verification-blocker?))))

@@ -405,8 +405,32 @@
          #f)
         (check-equal?
          (assurance-verification-plan?
-          (.o (:: @ left) release-authorized?: #t))
+         (.o (:: @ left) release-authorized?: #t))
          #f)))
+
+    (test-case "verification obligations have a closed evidence-kind vocabulary"
+      (check-equal?
+       +assurance-evidence-kinds+
+       '(proof model-check replay unit-test integration-test native-test
+         static-analysis authorization-differential human-review))
+      (for-each
+       (lambda (kind)
+         (check-equal?
+          (assurance-obligation?
+           (assurance-obligation
+            "obligation/kind" "r1" 'unknown digest-a
+            subject: "software/release" claim: "claim/release"
+            snapshot: "snapshot/software" evidence-kind: kind
+            capability: 'verifier scope: "repository"))
+          #t))
+       +assurance-evidence-kinds+)
+      (check-exception
+       (assurance-obligation
+        "obligation/invalid-kind" "r1" 'unknown digest-a
+        subject: "software/release" claim: "claim/release"
+        snapshot: "snapshot/software" evidence-kind: 'arbitrary-pass
+        capability: 'verifier scope: "repository")
+       Error?))
 
     (test-case "missing capability remains an explained blocked obligation"
       (let* ((policy
