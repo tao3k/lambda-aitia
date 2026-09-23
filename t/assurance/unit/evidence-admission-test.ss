@@ -4,6 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test
+        (only-in :std/error Error?)
         (only-in :clan/poo/object .o .ref)
         (only-in :poo-flow/src/module-system/contribution/verification
                  poo-flow-verification-adapter poo-flow-verify
@@ -91,7 +92,7 @@
    assurance-verification-subject-snapshot))
 (def (verified-support relation-value evidence-value obligation-value
                        snapshot-value outcome-value receipt-value now-value)
-  (assurance-support-admissible?
+  (assurance-support-sealed-under-adapter?
    relation-value evidence-value obligation-value snapshot-value outcome-value
    trusted-adapter receipt-value now-value))
 (def (blocker snapshot-value obligation-value outcome-value)
@@ -248,7 +249,7 @@
 
     (test-case "copied seal and presentation mutation cannot forge support"
       (check-equal?
-       (assurance-support-admissible?
+       (assurance-support-sealed-under-adapter?
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome
         (.o identity: "host/native-test"
@@ -256,7 +257,7 @@
         trusted-receipt 11)
        #f)
       (check-equal?
-       (assurance-support-admissible?
+       (assurance-support-sealed-under-adapter?
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome
         (.o (:: @ trusted-adapter)) trusted-receipt 11)
@@ -288,11 +289,100 @@
         trusted-receipt 11)
        #f)
       (check-equal?
-       (assurance-support-admissible?
+       (assurance-support-sealed-under-adapter?
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome untrusted-adapter
-        trusted-receipt 11)
+       trusted-receipt 11)
        #f))
+
+    (test-case "configured Host owns adapter, clock and revocation"
+      (let* ((now 11)
+             (host
+              (assurance-verification-host
+               "host/assurance-test"
+               (lambda (subject-value issued-at expires-at)
+                 (and (eq? (.ref (.ref subject-value 'outcome) 'status)
+                           'succeeded)
+                      (equal? (.ref (.ref subject-value 'evidence)
+                                    'content-digest)
+                              digest-b)))
+               (lambda () now) 9))
+             (receipt
+              (assurance-host-verify
+               host trusted-snapshot trusted-obligation trusted-evidence
+               trusted-outcome)))
+        (check-equal? (if receipt #t #f) #t)
+        (check-equal?
+         (assurance-host-verify
+          host trusted-snapshot trusted-obligation
+          (.o (:: @ trusted-evidence) tool-version: "v20")
+          trusted-outcome)
+         #f)
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+         trusted-snapshot trusted-outcome receipt)
+         #t)
+        (check-exception
+         (assurance-host-sealed-support?
+          (.o (:: @ host)) trusted-discharge trusted-evidence
+          trusted-obligation trusted-snapshot trusted-outcome receipt)
+         Error?)
+        (check-exception
+         (assurance-host-sealed-support?
+          (.o identity: "host/assurance-test")
+          trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         Error?)
+        (check-equal?
+         (assurance-host-verify
+          host trusted-snapshot trusted-obligation trusted-evidence
+          (.o (:: @ trusted-outcome) status: 'failed))
+         #f)
+        (set! now 20)
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         #f)
+        (set! now 11)
+        (check-exception
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         Error?))
+      (let* ((host
+              (assurance-verification-host
+               "host/revocation-test"
+               (lambda (subject-value issued-at expires-at) #t)
+               (lambda () 11) 9))
+             (receipt
+              (assurance-host-verify
+               host trusted-snapshot trusted-obligation trusted-evidence
+               trusted-outcome)))
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+          trusted-snapshot trusted-outcome receipt)
+         #t)
+        (assurance-host-revoke! host receipt)
+        (check-equal?
+         (assurance-host-sealed-support?
+          host trusted-discharge trusted-evidence trusted-obligation
+         trusted-snapshot trusted-outcome receipt)
+         #f)))
+
+    (test-case "configured verifier refusal never issues a seal"
+      (let (host
+            (assurance-verification-host
+             "host/refusal-test"
+             (lambda (subject-value issued-at expires-at) #f)
+             (lambda () 11) 9))
+        (check-equal?
+         (assurance-host-verify
+          host trusted-snapshot trusted-obligation trusted-evidence
+          trusted-outcome)
+         #f)))
 
     (test-case "expiry and revocation remove verified support"
       (check-equal?

@@ -18,9 +18,10 @@
 
 (export assurance-verifier-input assurance-verifier-outcome
         assurance-evaluate-evidence-admission
+        assurance-evidence-outcome-bound?
         assurance-verification-subject
         assurance-verification-subject-snapshot
-        assurance-support-admissible?)
+        assurance-support-sealed-under-adapter?)
 
 (def (assurance-verifier-input artifact)
   (unless (assurance-artifact? artifact)
@@ -132,6 +133,26 @@
   (and (= (length left) (length right))
        (equal? (list-sort string<? left) (list-sort string<? right))))
 
+(def (assurance-evidence-outcome-bound? snapshot evidence outcome)
+  (and (assurance-snapshot? snapshot)
+       (assurance-evidence? evidence)
+       (assurance-verifier-outcome? outcome)
+       (let (current-evidence
+             (snapshot-node snapshot (.ref evidence 'identity)))
+         (and current-evidence (assurance-evidence? current-evidence)
+              (equal? (assurance-node-canonical current-evidence)
+                      (assurance-node-canonical evidence))
+              (equal? (.ref evidence 'content-digest)
+                      (.ref outcome 'output-digest))
+              (equal? (.ref evidence 'producer) (.ref outcome 'producer))
+              (equal? (.ref evidence 'tool) (.ref outcome 'tool))
+              (equal? (.ref evidence 'tool-version)
+                      (.ref outcome 'tool-version))
+              (same-text-inventory?
+               (.ref evidence 'input-artifacts)
+               (map (lambda (input) (.ref input 'identity))
+                    (.ref outcome 'inputs)))))))
+
 ;;; Shape alone never grants support. This check is private to the sealed
 ;;; admission boundary and cannot be used as a public authorization shortcut.
 (def (structural-support? relation evidence obligation)
@@ -150,38 +171,23 @@
        (eq? (.ref evidence 'admission-state) 'admitted)
        (not (memq (.ref relation 'modality) '(hypothesized counterfactual)))))
 
-;;; Public support requires a currently issued, unrevoked POO Flow seal over
-;;; the complete semantic subject. The adapter itself remains Host-owned.
-(def (assurance-support-admissible?
+;;; Conditional low-level check: this does not establish that the supplied
+;;; adapter and clock belong to the application-configured Host.
+(def (assurance-support-sealed-under-adapter?
       relation evidence obligation snapshot outcome adapter issued-receipt now)
   (and (structural-support? relation evidence obligation)
        (assurance-snapshot? snapshot)
        (assurance-verifier-outcome? outcome)
-       (let ((current-evidence
-              (snapshot-node snapshot (.ref evidence 'identity)))
-             (current-relation
+       (let ((current-relation
               (snapshot-relation snapshot (.ref relation 'identity)))
              (structural
               (assurance-evaluate-evidence-admission
                snapshot obligation outcome)))
-         (and current-evidence
-              (assurance-evidence? current-evidence)
-              (equal? (assurance-node-canonical current-evidence)
-                      (assurance-node-canonical evidence))
+         (and (assurance-evidence-outcome-bound? snapshot evidence outcome)
               current-relation
               (equal? (assurance-relation-canonical current-relation)
                       (assurance-relation-canonical relation))
               (.ref structural 'eligible?)
-              (equal? (.ref evidence 'content-digest)
-                      (.ref outcome 'output-digest))
-              (equal? (.ref evidence 'producer) (.ref outcome 'producer))
-              (equal? (.ref evidence 'tool) (.ref outcome 'tool))
-              (equal? (.ref evidence 'tool-version)
-                      (.ref outcome 'tool-version))
-              (same-text-inventory?
-               (.ref evidence 'input-artifacts)
-               (map (lambda (input) (.ref input 'identity))
-                    (.ref outcome 'inputs)))
               (poo-flow-verification-valid?
                adapter issued-receipt
                (assurance-verification-subject

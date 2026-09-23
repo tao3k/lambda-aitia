@@ -136,7 +136,7 @@
     full-software-snapshot current-obligation evidence support-outcome)
    10 20))
 (def (kernel-support? relation-value evidence-value)
-  (assurance-support-admissible?
+  (assurance-support-sealed-under-adapter?
    relation-value evidence-value current-obligation full-software-snapshot
    support-outcome support-adapter support-receipt 11))
 

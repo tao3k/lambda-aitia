@@ -262,7 +262,10 @@ success, even when structurally eligible, is not a trusted execution
 attestation. Host-owned adapter identity and effectful admission are required
 before an =AssuranceEvidence= may become authoritative. Its caller-supplied
 =admission-state= is currently metadata, not proof of that transition.
-=assurance-support-admissible?= is the sole public support-admission predicate.
+=assurance-host-sealed-support?= is the configured Host seal predicate, not a
+promotion transition.
+The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
+caller-supplied adapter and time; it is not an authority or effect gate.
 It checks structural relationships, the current snapshot, exact
 evidence/outcome bindings and a POO Flow verification seal over the complete
 semantic subject. POO Flow rejects copied or forged adapter presentations as

@@ -209,8 +209,9 @@ Exit gates:
 * Phase 4 — Verifier adapters and evidence admission
 
 Status: =in-progress= (typed reported outcomes, pure structural eligibility and
-sealed-support checks reuse POO Flow's verification adapter. The trusted Host
-operation, evidence promotion and effect gate remain open).
+sealed-support checks reuse POO Flow's verification adapter. A configured
+Scheme Host capability now owns adapter, clock, lease and revocation for its
+checks. Trusted deployment, evidence promotion and effect gate remain open).
 
 Deliverables:
 
@@ -221,11 +222,12 @@ Deliverables:
 3. [~] Admission rules for successful, failed, timed-out, unavailable and
    indeterminate verifier outcomes. The current receipt reports structural
    eligibility only; it cannot promote evidence or authorize release.
-   The sole public support-admission entrypoint requires an exact POO Flow
-   adapter-issued seal over the current semantic subject; no structural-only
-   public support predicate remains. A forged adapter presentation is rejected,
-   but proving that the adapter and evaluation clock belong to the trusted
-   Host remains open.
+   The normal Host support entrypoint requires an exact POO Flow adapter-issued
+   seal over the current semantic subject; no structural-only public support
+   predicate remains. The low-level under-adapter check is explicitly
+   conditional, not an authorization path. A forged adapter or Host
+   presentation is rejected; proving that application configuration installed
+   the intended Host and that its clock is trusted remains open.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,

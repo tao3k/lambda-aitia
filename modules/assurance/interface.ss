@@ -11,5 +11,7 @@
 (export (import: :poo-flow/lambda-aitia/modules/assurance/funs))
 (import :poo-flow/lambda-aitia/modules/assurance/evidence-admission)
 (export (import: :poo-flow/lambda-aitia/modules/assurance/evidence-admission))
+(import :poo-flow/lambda-aitia/modules/assurance/host)
+(export (import: :poo-flow/lambda-aitia/modules/assurance/host))
 (import :poo-flow/lambda-aitia/modules/assurance/config)
 (export (import: :poo-flow/lambda-aitia/modules/assurance/config))
