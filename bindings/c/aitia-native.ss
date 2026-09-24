@@ -7,6 +7,9 @@
 (import (only-in :std/ffi
                  C-declare C-ffi-macrology
                  def-C-lambda def-C-type)
+        ;; Orgize owns the Scheme implementation and public C symbols.  Keep
+        ;; this module in Aitia's native link closure without copying its ABI.
+        :orgize/bindings/c/orgize-native
         :poo-flow/lambda-aitia/bindings/c/aitia-contract)
 
 (export aitia-c-round-trip)

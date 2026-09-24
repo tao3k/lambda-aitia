@@ -19,6 +19,10 @@ source, claim, policy and evidence revisions.  A change produces an inert
 =InvalidationReceipt= through pure traversal of typed relations.  The receipt
 selects affected current obligations, evidence, decisions and effects; it does
 not run a verifier, derive replacement obligations or authorize an effect.
+The snapshot also exposes a non-circular context digest used by Phase 3
+obligation binding.  Unlike the final snapshot digest, it omits only each
+obligation's own snapshot-binding slots; it retains all other node, relation,
+revision, policy and frontier content.
 
 * Input contracts
 

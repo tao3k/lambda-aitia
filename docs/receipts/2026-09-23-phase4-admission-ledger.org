@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Phase 4 Host admission ledger candidate
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-phase4-admission-ledger-2026-09-23
+:STATUS:     evidence-partial
+:DATE:       2026-09-23
+:RFC:        lambda-aitia-rfc-0001
+:END:
+
+* Source cut
+
+- Aitia base: =9ea6385de909bcde784132532e1e3db7a99a53e4=.
+- POO Flow verification owner: =90d1c79f474f89a4f975b282611de55662301b74=.
+- Isolated Darwin arm64 checkouts; the Aitia load path selected that exact
+  POO Flow source before the older installed library. Child tests retained
+  the runner's =-:max-heap=512M= limit; no global environment was modified.
+
+* Evidence and negative contracts
+
+=assurance-host-admit= reads the Host-configured current snapshot and clock,
+checks candidate evidence and an exactly bound successful outcome, executes
+the configured POO Flow verifier, then issues a private-indexed POO admission.
+It does not alter =AssuranceEvidence.admission-state= or the source snapshot.
+Currentness rechecks the full semantic snapshot, Host epoch, verifier seal,
+candidate evidence, outcome binding and lease. The Host also reconstructs each
+snapshot through =assurance-snapshot= before use, rejecting a POO presentation
+whose displayed digest, context, state or conflict fields disagree with the
+canonical inventory.
+
+=t/assurance/unit/evidence-admission-test.ss= checks that copied or fabricated
+admissions fail; changed source, same displayed digest with changed semantic
+content, invalid snapshot source, expiry, clock rollback, explicit revocation
+and verifier refusal cannot provide current admission. A source cut returning
+to an older value does not revive its earlier admission or Host seal.
+
+Local =just build-scheme= and =just check-semantic= passed, including the
+assurance, ADR, SDLC, GitOps and composition test groups. POO Flow's focused
+verification test passed with its weak-key issued-receipt registry and a GC
+case proving a live indexed admission retains its receipt.
+
+* Limits
+
+This is Host-local issuance and validity, not proof that a deployment installed
+a trusted verifier, clock or snapshot source. It is not yet consumed by an
+assurance Decision, Cedar projection or Runtime effect gate. The older
+snapshot-node =admission-state= remains metadata; no release authority follows
+from a Host admission object alone. CI for this candidate cut is separate
+from the local replay and must be reported independently.

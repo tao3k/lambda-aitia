@@ -3,17 +3,31 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test
+        (only-in :std/list/list find)
         (only-in :clan/poo/object .ref)
         :poo-flow/src/module-system/profile-composition/interface
         :poo-flow/lambda-aitia/user-interface/config
+        :poo-flow/lambda-aitia/user-interface/profiles/nasa/sdlc
         :poo-flow/lambda-aitia/user-interface/scenarios/github-gitops)
 (export github-workflow-test)
 
 (def repository "tao3k/poo-flow")
 (def revision "0123456789abcdef")
+(def nasa-standard (car (.ref nasa-sdlc-npr7150_2 'standards)))
+(def (nasa-check (edition (.ref nasa-standard 'edition))
+                 (digest (.ref nasa-standard 'source-lock-digest)))
+  (github-check 'nasa/sdlc/npr-7150.2 repository revision 'success
+                standard-edition: edition source-lock-digest: digest))
 (def (successful-checks names (at-revision revision))
-  (map (lambda (name) (github-check name repository at-revision 'success)) names))
-(def dev-checks '(commit-policy build unit-test nasa-7150-2d))
+  (map (lambda (name)
+         (if (eq? name 'nasa/sdlc/npr-7150.2)
+           (github-check name repository at-revision 'success
+                         standard-edition: (.ref nasa-standard 'edition)
+                         source-lock-digest:
+                         (.ref nasa-standard 'source-lock-digest))
+           (github-check name repository at-revision 'success)))
+       names))
+(def dev-checks '(commit-policy build unit-test nasa/sdlc/npr-7150.2))
 (def (run-github-gitops change checks)
   (github-run-gitops github-gitops-sdlc change checks))
 
@@ -24,10 +38,21 @@
                     'github-gitops-sdlc)
       (check-equal? (map (lambda (profile) (.ref profile 'name))
                          (poo-flow-scenario-case-profiles github-gitops-sdlc))
-                    '(actions dev staging production nasa-7150-2d))
+                    '(actions dev staging production nasa/sdlc/npr-7150.2))
       (check-equal? (map (lambda (standard) (.ref standard 'identity))
-                         (.ref nasa-7150-2d 'standards))
-                    '("nasa/npr-7150.2d")))
+                         (.ref nasa-sdlc-npr7150_2 'standards))
+                    '("nasa/sdlc/npr-7150.2"))
+      (check-equal? (map (lambda (standard) (.ref standard 'edition))
+                         (.ref nasa-sdlc-npr7150_2 'standards))
+                    '("D"))
+      (let* ((proof
+              (find (lambda (value)
+                      (eq? (.ref value 'profile-identity) 'npr-7150.2))
+                    (.ref github-gitops-sdlc 'selection-proofs)))
+             (module-id (.ref proof 'module-definition)))
+        (check-equal? (.ref module-id 'namespace) 'nasa)
+        (check-equal? (.ref module-id 'name) 'sdlc)
+        (check-equal? (.ref proof 'profile-identity) 'npr-7150.2)))
     (test-case "PR into develop advances Dev only with current checks and Standard assessment"
       (let* ((change (github-change 'pull-request repository revision
                                     "feature/gitops" "develop" 42))
@@ -36,7 +61,7 @@
         (check-equal? (.ref decision 'environment) 'dev)
         (check-equal? (.ref decision 'accepted) #t)
         (check-equal? (.ref decision 'next-profile) 'staging)
-        (check-equal? (.ref decision 'standards) '(nasa-7150-2d))))
+        (check-equal? (.ref decision 'standards) '(nasa/sdlc/npr-7150.2))))
     (test-case "missing NASA assessment fails closed"
       (let (decision
             (run-github-gitops
@@ -44,7 +69,34 @@
                             "feature/gitops" "develop" 42)
              (successful-checks '(commit-policy build unit-test))))
         (check-equal? (.ref decision 'accepted) #f)
-        (check-equal? (.ref decision 'missing-checks) '(nasa-7150-2d))))
+        (check-equal? (.ref decision 'missing-checks) '(nasa/sdlc/npr-7150.2))))
+    (test-case "same-name green check without an edition-bound source lock fails closed"
+      (let (decision
+            (run-github-gitops
+             (github-change 'pull-request repository revision
+                            "feature/gitops" "develop" 42)
+             (append (successful-checks '(commit-policy build unit-test))
+                     (list (github-check 'nasa/sdlc/npr-7150.2
+                                         repository revision 'success)))))
+        (check-equal? (.ref decision 'accepted) #f)
+        (check-equal? (.ref decision 'stale-checks) '(nasa/sdlc/npr-7150.2))
+        (check-equal? (.ref decision 'reasons)
+                      '(standard-assessment-mismatch))))
+    (test-case "wrong NASA edition or source lock cannot authorize promotion"
+      (for-each
+       (lambda (check)
+         (let (decision
+               (run-github-gitops
+                (github-change 'pull-request repository revision
+                               "feature/gitops" "develop" 42)
+                (append (successful-checks '(commit-policy build unit-test))
+                        (list check))))
+           (check-equal? (.ref decision 'accepted) #f)
+           (check-equal? (.ref decision 'reasons)
+                         '(standard-assessment-mismatch))))
+       (list (nasa-check "C") (nasa-check
+                               (.ref nasa-standard 'edition)
+                               "sha256:wrong-lock"))))
     (test-case "checks for another Git revision cannot authorize promotion"
       (let (decision
             (run-github-gitops
@@ -58,13 +110,13 @@
               (run-github-gitops
                (github-change 'push repository revision "develop" "develop" #f)
                (successful-checks
-                '(integration-test security-review nasa-7150-2d))))
+                '(integration-test security-review nasa/sdlc/npr-7150.2))))
              (production-decision
               (run-github-gitops
                (github-change 'workflow-dispatch repository revision
                               "develop" "production" #f)
                (successful-checks
-                '(release-authority signed-provenance nasa-7150-2d)))))
+                '(release-authority signed-provenance nasa/sdlc/npr-7150.2)))))
         (check-equal? (.ref staging-decision 'profile) 'staging)
         (check-equal? (.ref staging-decision 'next-profile) 'production)
         (check-equal? (.ref production-decision 'profile) 'production)

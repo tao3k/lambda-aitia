@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from .native import AitiaNativeError, sdlc_flow_plan
+from .native import AitiaNativeError, AitiaNativeSession, sdlc_flow_plan
 
 
 def _string(value: Any, field: str) -> str:
@@ -87,9 +87,14 @@ class SdlcRuntime:
     complete until every Scheme-owned stage publishes an attributable receipt.
     """
 
+    def __init__(self, *, session: AitiaNativeSession | None = None) -> None:
+        self._session = session
+
     def plan(self, lifecycle_id: str) -> SdlcFlowPlan:
         """Build and validate the canonical POO Flow DAG for a lifecycle."""
 
         if not isinstance(lifecycle_id, str) or not lifecycle_id:
             raise ValueError("lifecycle_id must be a non-empty string")
-        return SdlcFlowPlan.from_payload(sdlc_flow_plan(lifecycle_id))
+        return SdlcFlowPlan.from_payload(
+            sdlc_flow_plan(lifecycle_id, session=self._session)
+        )

@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Bounded assurance lifecycle model
+
+This model describes one obligation and one source revision change. It is a
+contract for a future trusted Host handoff, not an implementation of that Host.
+In particular, =ReportSuccess= is untrusted: it cannot verify, admit, decide,
+authorize, or start an effect. =InstallAdapter= merely makes a verifier
+available. Admission requires a current verification seal; authorization
+requires current admission and decision; starting an effect also requires a
+non-expired grant issued in the current revocation epoch.
+
+The bounded domains are two source revisions, four clock values, and three
+revocation epochs. TLC exhaustively checks the safe model within those bounds.
+The =Unsafe*= actions are deliberate mutations; they are not implementation
+paths. A nonzero TLC exit for each mutant is the expected counterexample.
+
+The repository gate is =just check-tla= with =TLA_TOOLS_JAR= set to the
+v1.7.2 release JAR (SHA-256
+=fa18543e44ed5974a85bd2c60c0dc16620ae117680ea8e693d2691999ed90b22=).
+It runs all eight configurations with a 512 MiB Java heap, checks the exact
+expected property for each negative case, and rejects missing tools, parser
+errors and timeouts. The CI job downloads and verifies that release asset.
+
+For manual inspection from this directory, with =tlc= installed on =PATH=:
+
+#+begin_src sh
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycle.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleProgress.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleNoFair.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleReachable.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleUnsafe.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleLateAdmit.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleEarlyGrant.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleAfterRevoke.cfg AssuranceLifecycle
+#+end_src
+
+Use =-metadir= with a writable temporary directory when running these checks
+from a read-only checkout. The safe and progress configurations must exit 0.
+Progress assumes a stable source and clock, no revocation, and weak fairness
+for each Host stage. The no-fairness configuration must violate
+=EventuallyEffect=: a possible path alone does not prove progress. The reachability
+configuration deliberately checks =NoEffectStarted= and must find a valid
+=StartEffect= trace. Each other mutant must violate its named invariant; a
+mutant passing TLC would be a failed negative contract, not a success.
+
+This model does not prove a live adapter was installed by a trusted Host, a
+clock is actually trustworthy, a grant is cryptographically bound, or the
+Scheme/Python/Runtime path enforces the model. It does not yet model
+counterfactual promotion or concurrent effects. Conditional fairness does not
+establish progress when sources change, clocks advance, or grants are revoked.
+Those remain separate Phase 4–6 exit gates.

@@ -125,7 +125,7 @@
                              ((eq? condition-value #t) 'applicable)
                              ((eq? condition-value #f) 'condition-not-triggered)
                              (else 'context-review-required))))
-    (.o kind: 'sdlc.applicability standard: "nasa/npr-7150.2d" requirement: identity-value
+    (.o kind: 'sdlc.applicability standard: "nasa/sdlc/npr-7150.2" requirement: identity-value
         software-class: class-value status: status-value invocation: invocation-value
         source-url: (.ref row 'source-url) section: (.ref row 'section)
         tailoring: 'not-approved assessment: 'not-evaluated)))

@@ -1,14 +1,18 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+title: Lambda Aitia — causal assurance as executable knowledge
+#+title: Lambda Aitia — causal assurance across the software lifecycle
 #+startup: overview
 
 * Purpose
 
-Lambda Aitia is the software and SDLC causal-assurance contribution for the POO
-Flow ecosystem.  It also owns the software Architecture Decision Record (ADR)
-module migrated from Lambda Episteme.  It answers five questions about an
+Lambda Aitia organizes software engineering around the complete SDLC:
+requirements, design, algorithms and implementation strategies, verification
+and testing, delivery, operation, maintenance and retirement. Causal Assurance
+connects the justification of engineering decisions across that lifecycle.
+POO Flow supplies the reusable composition, temporal/causal and runtime
+mechanisms. Aitia also owns the software Architecture Decision Record (ADR)
+module migrated from Lambda Episteme. It answers five questions about an
 engineering conclusion:
 
 1. What exactly is claimed?
@@ -18,27 +22,30 @@ engineering conclusion:
 5. Which decisions and real effects must remain blocked until the resulting
    obligations are discharged again?
 
-The project manages the justification and invalidation of conclusions.  It is
-not a database of green verification results and it is not a generic knowledge
-graph.
+The project helps form, compare and revise design decisions, then retains the
+evidence explaining why their guarantees remain applicable. Requirements lead
+to explicit assumptions, design alternatives, responsibilities, state ownership
+and conditional guarantees. Algorithm choices and code implement those
+decisions; tests and runtime observations can challenge them and reopen design.
+
+System behavior trajectories and design/assurance evolution trajectories are
+linked through evidence. Observed executions, model traces, hypotheses and
+counterfactual alternatives preserve their distinct scope. Temporal order and
+graph reachability alone cannot establish a causal explanation.
+[[file:docs/rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] defines this lifecycle design and its pending acceptance gates.
 
 * Place in the ecosystem
 
-#+begin_example
-lambda-aitia
-  Software/SDLC, ADR, NASA and GitOps sources
-  claims, assumptions, typed relations, obligations, evidence,
-  invalidation and assurance planning
-          ^
-          |
-lambda-episteme
-  optional non-SDLC vertical knowledge and decision-kind/ontology sources
-          |
-          v
-POO Flow
-  POO-native composition, functional flow, graph substrate,
-  verifier/runtime handoff and effect boundary
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    App["Application<br/>explicit composition"] --> A["Lambda Aitia<br/>SDLC, design and Causal Assurance"]
+    App --> E["Lambda Episteme<br/>optional vertical knowledge"]
+    E -->|source facts when composed| A
+    A -->|consumes public library| P["POO Flow<br/>composition, graph, temporal / causal mechanisms and Runtime"]
+    E -->|consumes public library| P
+    A --> Py["Aitia Python Runtime<br/>owned-byte C ABI, tools and observations"]
+    Py -->|uses owned runtime boundaries| P
+#+end_export
 
 This is a conceptual flow, not permission to collapse repository ownership.
 POO Flow core never imports a concrete Lambda contribution.  Lambda Aitia may
@@ -49,23 +56,26 @@ Flow.  Mounting this Git
 submodule does not import a module, activate a Profile, run a verifier, grant a
 capability, authorize a decision or execute an effect.
 
-The production Python SDLC Runtime is maintained entirely under
+The production Aitia Python Runtime is maintained entirely under
 =bindings/python= in this repository; it is not an example.  POO Flow's
 =packages/python-runtime= remains the generic graph execution and lifecycle
 mechanism and does not own Aitia semantics.  Aitia Scheme is compiled AOT
 behind an owned-byte C ABI.  The Python project validates typed lifecycle
 receipts and exposes them to downstream systems without reimplementing Scheme
-decisions.
+decisions. The Python Runtime serves Aitia capabilities throughout the SDLC;
+the existing =SdlcRuntime.plan()= is one implemented assurance-flow projection.
+AnyIO is declared as its runtime-wide concurrency foundation; async execution
+and Host admission remain separate implementation gates. Generic Graph/DAG and
+FunFlow execution mechanisms remain owned by POO Flow. MRR relation-query and
+lineage integration is a later design direction, outside the current Python
+implementation stage.
 
 * Core model
 
 The initial semantic vocabulary is deliberately small:
 
-#+begin_example
-Artifact       Claim          Assumption      Observation
-Event          Action         Obligation      Evidence
-Counterexample Finding        Decision        Effect
-#+end_example
+=Artifact=, =Claim=, =Assumption=, =Observation=, =Event=, =Action=,
+=Obligation=, =Evidence=, =Counterexample=, =Finding=, =Decision= and =Effect=.
 
 Relations are typed by plane.  A generic =edge(from, to)= is not part of the
 public model.
@@ -87,15 +97,14 @@ authority.
 
 The first vertical slice is one fail-closed lifecycle:
 
-#+begin_example
-source revision changes
-  -> structural impact is computed
-  -> affected assumptions and claims are selected
-  -> dependent evidence becomes stale
-  -> new obligations are planned
-  -> the old decision loses authority
-  -> the associated effect remains blocked
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    C["Source revision<br/>changed"] --> I["Structural impact<br/>affected assumptions and claims identified"]
+    I --> S["Dependent support<br/>stale"]
+    S --> O["New obligations<br/>pending"]
+    S --> D["Old decision<br/>invalid for the changed closure"]
+    D --> E["Associated effect<br/>blocked"]
+#+end_export
 
 The slice succeeds only when receipts bind the subject, source revision,
 assumption set, claim, obligation, producer identity, tool identity, artifact
@@ -114,17 +123,18 @@ evaluate that model.
 
 ** Thirty-second compression
 
-Spec-first Agent work asks an Agent to follow a better specification.  Specula
-uses Agents to derive and validate TLA+ models from system code so that deep
-concurrency bugs can be found and reproduced.  Lambda Aitia addresses the next
-system-level question: after RFCs, code, formal models, proofs, policies, tests
-and runtime observations all exist, which exact conclusion is still justified
-for the current revision, what change invalidated it, which obligations must be
-rerun, and why must an Agent effect remain blocked?
+Aitia uses existing verification methods to help choose and revise software
+designs throughout the SDLC. It connects requirements, assumptions, guarantees,
+RFC/ADR decisions, implementation strategies and observed behavior. A new
+finding can change the design, invalidate earlier support and create new
+obligations with an explanation path.
 
-Aitia therefore does not compete with Lean, TLA+, TLC, Cedar, Specula or POO
-Flow.  It binds their distinct artifacts into a causal-assurance lifecycle
-without pretending that one tool's success proves the others' propositions.
+Specula already derives and validates TLA+ models, reproduces bugs and supports
+incremental verification. Aitia should reuse applicable tools, models, harnesses
+and checks while evaluating its own contribution: better-founded design choices,
+composition obligations and traceable changes in engineering justification.
+The full Specula application is optional; an upstream component or script can
+be reused without handing it ownership of Aitia's lifecycle.
 
 ** Related work and project-position matrix
 
@@ -132,10 +142,12 @@ without pretending that one tool's success proves the others' propositions.
 |-----------------+----------------+---------------+----------------------------+--------------|
 | POO Flow Agentic Control Plane RFC suite | organization Bundle, Agent control plane, proof/evidence chain and effect token | establishes reusable mechanism, ownership and authority boundaries | intentionally does not own Aitia's Software/SDLC claims or assurance policy | POO Flow is the full public mechanism Library on which Aitia is built |
 | Agent RFC / specification-first Agent development | human-reviewed intent, constraints and implementation plan | gives Agents an explicit architecture and acceptance target instead of an ad hoc prompt | a document does not establish current evidence, invalidation closure, authorization or execution | Aitia turns RFC clauses and revisions into typed claims, threats and obligations |
-| [[https://specula.info/][Specula]] ([[https://arxiv.org/abs/2607.25333][paper]]) | code-derived TLA+ specification, invariants, traces and reproduced bugs | autonomous specification generation, model checking, trace alignment and concrete bug reproduction | concentrates on discovering implementation/model violations; it is not a cross-tool evidence, policy and effect-authority ledger | a Specula run can satisfy Aitia TLA+/replay obligations when its artifacts are identity-bound and admitted |
+| [[https://github.com/specula-org/Specula][Specula]] ([[https://arxiv.org/abs/2607.25333][paper]]) | code-derived models, invariants, traces and reproduced bugs | specification generation, model checking, replay and incremental verification | Aitia must demonstrate additional value in design choices, composition obligations and changing justification | reuse qualified tools and assets under POO composition; the complete application is optional |
+| [[https://github.com/specula-org/tlaps-bench][TLAPS-Bench]] | TLA+ invariant proof tasks and checking runtime | mechanical proof checking and benchmark qualification | model proof requires separate implementation correspondence before supporting a code claim | qualify existing checker execution paths and tasks; preserve mandatory checks |
+| [[https://github.com/specula-org/specula-case-studies][Specula Case Studies]] | archived models, harnesses, traces and experiment records | concrete engineering assets and known-fault reproduction material | each selected record needs provenance, license and replay qualification | use selected assets as Recipe inputs; replay success is not a new discovery |
 | [[https://arxiv.org/abs/2605.02454][Causal Software Engineering]] | lifecycle-wide causal models, assumptions and counterfactual diagnosis | provides the broader research vision for causal reasoning throughout software engineering | a vision and roadmap do not by themselves define Aitia's POO objects, revision receipts or Runtime gate | Aitia is an executable contribution pursuing this direction with typed relation planes and invalidation |
 | Conventional CI/CD and test dashboards | jobs, statuses, logs and deployment stages | repeatable automation and immediate regression signals | a green result usually does not encode the complete subject, assumption, revision, causal support or downstream invalidation graph | Aitia consumes exact test/build receipts as evidence rather than treating green status as authority |
-| Lean, TLA+/TLC and Cedar used independently | theorem, checked state space or policy decision | strong, specialized reasoning inside a clearly defined formal boundary | none alone proves model-code alignment, evidence freshness, current authorization and effect completion | Aitia keeps the propositions separate and joins only digest-bound admitted receipts |
+| Lean, TLA+/TLC, TLAPS and Cedar used independently | theorem, checked state space or policy decision | strong, specialized reasoning inside a clearly defined formal boundary | none alone proves model-code alignment, evidence freshness, current authorization and effect completion | Aitia keeps the propositions separate and joins only digest-bound admitted receipts |
 
 The comparison is about responsibility rather than feature count.  Aitia's
 distinctive unit is the current, revision-bound justification of a conclusion
@@ -170,31 +182,45 @@ different propositions and trusted boundaries:
 | Aitia Assurance Graph | exact subject/revision bindings, typed support, invalidation, unresolved frontier and verification plan | temporal safety, authorization or effect execution |
 | Lean | general laws such as freshness, monotone invalidation, modality preservation, no stale authority and composition obligations | that the current deployment supplied fresh facts or executed an effect |
 | TLA+/TLC | bounded lifecycle transitions and adverse interleavings across change, invalidate, plan, verify, admit, decide, authorize and effect | universal theorem proof or production authorization |
+| TLAPS | mechanical checking of TLA+ proof obligations under explicit statements and trusted dependencies | implementation correspondence or production authorization |
 | Cedar | an allow/deny decision for one identity-bound principal, action, resource, context, policy and entity snapshot | evidence freshness, proof construction, runtime conformance or external success |
 | Runtime Host | one bounded execution attempt and its typed execution receipt | that missing proof or authorization may be inferred |
 
-The intended evidence flow is:
+The intended evidence workflow names semantic states, not implementation
+completion. RFC 0004 contains the full SDLC workflow and its design feedback.
 
-#+begin_example
-Agent RFC / ADR / source revisions
-  -> Aitia snapshot and threat/impact graph
-  -> invalidation and typed verification obligations
-  -> Lean proof receipts + TLA+/TLC model-check receipts + test/replay evidence
-  -> evidence admission against the same snapshot
-  -> Cedar projection and identity-bound authorization decision
-  -> one bounded POO Flow Runtime execution
-  -> execution receipt and post-effect evidence
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    D["RFC / ADR and sources<br/>declared"] --> S["Snapshot / impact graph<br/>bound"]
+    S --> O["Verification obligations<br/>pending"]
+    O --> V["Proof, model check, test / replay<br/>candidate results"]
+    V --> A{"Trusted admission valid?"}
+    A -->|yes| C["Scoped support<br/>admitted and current"]
+    C --> G{"Effect gate allows?"}
+    G -->|yes| X["Bounded Runtime attempt<br/>authorized"]
+    X --> R["Receipt and observations<br/>outcome recorded"]
+    R --> F["Lifecycle reassessment<br/>design review when challenged"]
+    F --> D
+    A -->|no / unknown| U["Unresolved / rejected<br/>affected effect blocked"]
+    U --> O
+    G -->|no / unknown| B["Effect blocked<br/>review / revalidation required"]
+    B --> O
+    C -->|changed / expired| B
+#+end_export
 
-Every arrow is digest- and revision-bound.  Lean cannot replace Cedar, Cedar
+Admission checks the subject, revision and cut. The effect gate requires a
+current decision, Cedar authorization and Runtime enforcement. Every arrow is
+digest- and revision-bound. Lean cannot replace Cedar, Cedar
 cannot replace TLA+, a TLC completion cannot replace runtime evidence, and a
 Runtime success cannot retroactively prove the RFC.  Unknown, conflicted,
 stale, mismatched or unavailable inputs fail closed and remain visible in the
 receipt graph.
 
-The current repository has executable snapshot/invalidation and modular Lean
-evidence.  The complete TLA+ lifecycle, Cedar admission and Runtime effect gate
-remain explicit roadmap phases; their absence is not represented as closure.
+The current repository has executable snapshot/invalidation, pure planning,
+modular Lean laws, a bounded TLA+ lifecycle model and known-fault Python replay.
+The connected design/trajectory experiment, upstream Recipe qualification,
+Python-to-Host evidence admission and Runtime effect gate remain open. See
+[[file:ROADMAP.org][ROADMAP]] for phase-specific evidence and limits.
 See [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001]],
 [[file:docs/rfcs/0002-snapshot-and-invalidation-kernel.org][RFC 0002]],
 [[file:docs/rfcs/0003-composition-value-interface.org][RFC 0003]] and
@@ -202,11 +228,11 @@ See [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001]],
 
 * Project rules
 
-- Public extension APIs are POO-native.  The ordinary =aitia.ss= surface selects
-  the maintained =aitia= Composition and fills bounded Project slots; its macro
-  lowers directly to those POO values.  Prototype, C3 and slot-transform
-  operators are exposed only when a user needs an advanced override.  Neither
-  layer uses raw alist DSLs or ad hoc patch languages.
+- Public extension APIs are POO-native. The maintained =aitia= Case now uses
+  POO Flow's =user-composition=, =compose profiles= and =use-module=.
+  The former no-import =aitia.ss= convenience is an open RFC 0003 UX gate,
+  not a supported loader in the current Profile algebra. Advanced overrides
+  use POO slots; neither path introduces an alist or patch-language DSL.
 - Functional transformations are values first.  Side effects live behind an
   explicit POO Flow verifier or runtime handoff.
 - Native Scheme tests are never heap-unbounded: the Aitia Testing Interface
@@ -238,6 +264,9 @@ The machine-readable declaration and complete texts are maintained in
 - [[file:docs/rfcs/0003-composition-value-interface.org][RFC 0003 — Composition Value Interface]] defines the Jsonnet-style single-value
   downstream file, the official =aitia= Composition and the advanced POO
   override boundary.
+- [[file:docs/rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004 — SDLC Design, Causal Assurance and Trajectories]] defines the
+  complete lifecycle framework, design leverage, reuse contracts and future
+  MRR boundary, with implementation acceptance still pending.
 - [[file:docs/adrs/README.org][ADR contract and template]] defines standardized bounded decisions, lifecycle,
   RFC links and the non-authorizing assurance projection.
 - [[file:docs/adrs/0007-consume-poo-flow-public-library.org][ADR 0007]] establishes POO Flow as Aitia's reusable public mechanism library.
@@ -245,8 +274,8 @@ The machine-readable declaration and complete texts are maintained in
 - [[file:docs/plans/software-sdlc-integration-inventory.org][Software/SDLC integration inventory]] classifies the existing implementation as
   keep, reference, generalize or later migrate.
 
-The repository has Phase 0 and Phase 1 evidence-partial work plus an active
-Phase 2 snapshot/invalidation slice.  ABI revision 2 and =SdlcRuntime.plan()=
-form the first production Python runtime contract for the complete eight-stage
-SDLC DAG.  That plan remains inert: executable stage receipts, release
-authority and completed effects are not claimed yet.
+Phase 2 snapshot/invalidation and Phase 3 pure planning have bounded completion
+receipts; later phases retain their explicit gaps. ABI revision 2 and
+=SdlcRuntime.plan()= expose the eight-stage assurance/execution DAG. That DAG
+is a protocol used within the full SDLC, and its plan remains inert: executable
+stage receipts, release authority and completed effects are not inferred.

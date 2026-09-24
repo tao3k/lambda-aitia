@@ -4,6 +4,40 @@
 #+title: Lambda Aitia Roadmap
 #+startup: overview
 
+* Lifecycle framework and current priority
+
+The complete SDLC is the product framework: requirements, software design,
+algorithm and implementation strategies, verification/testing, delivery,
+operation, maintenance and retirement. These activities exchange observations
+and reopen earlier decisions. The numbered phases below are implementation
+milestones for that framework, not the lifecycle experienced by a project.
+
+[[file:docs/rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] makes software design an early leverage point and Causal Assurance
+the connection across the lifecycle. The next product qualification must link
+requirements, at least two design alternatives, assumptions and guarantees to
+real execution trajectories, evidence, a revised ADR and renewed obligations.
+Recipe execution and tool integration contribute to that connected experiment.
+
+Reuse POO Flow Temporal Causality and existing upstream verification tools and
+assets. AnyIO serves the entire Aitia Python Runtime. MRR relation queries,
+derivation and lineage are deferred beyond the current Python implementation
+stage; this queue introduces no MRR integration.
+
+This view tracks implementation progress; it is separate from the engineering
+states in RFC 0004's lifecycle workflow.
+
+#+begin_export mermaid
+flowchart TD
+    B["Existing bounded foundations<br/>invalidation, planning, formal laws and replay"]
+    B --> D["Pending<br/>design alternatives and upstream qualification"]
+    B --> H["Pending<br/>Python-to-Host admission and async transport"]
+    D --> T["Pending<br/>connected behavior and design trajectories"]
+    H --> T
+    T --> R["Pending<br/>revision, revalidation and comparative evidence"]
+    R --> O["Pending<br/>contract-preserving optimization evidence"]
+    O -. later design .-> M["Deferred<br/>MRR relation queries, derivation and lineage"]
+#+end_export
+
 * Completion discipline
 
 Each phase closes only when its source, negative contracts, executable checks
@@ -48,13 +82,15 @@ Exit gates:
   parent state;
 - mounting the repository performs no activation or effect.
 
-Current evidence: the production dependency closure, Phase 2 Assurance fixture,
-modular Lean library, integration lane and native Scheme/C/Python package replay
+Current evidence: the independent PR CI, production dependency closure, Phase 2
+Assurance fixture, modular Lean library, integration lane and native
+Scheme/C/Python package replay
 from an isolated checkout at exact revisions.  The Homebrew Darwin toolchain
 adaptation is child-process scoped and does not alter a Nix-selected toolchain
 or the parent environment.  See
 =docs/receipts/2026-09-18-phase2-clean-replay.org=.  The remaining Phase 0 work
-is the independent CI/release lane and checked integration inventory.
+is a release lane and executable integration-inventory acceptance. The PR CI
+does not by itself constitute a published release or complete Phase 0.
 
 * Phase 1 — SDLC ownership migration and POO-native semantic kernel
 
@@ -116,12 +152,20 @@ Deliverables:
 
 Core law:
 
-#+begin_example
-changed(dependency)
-and reaches(dependency, claim)
-=> not authorized(claim)
-until current obligations are discharged by current evidence
-#+end_example
+#+begin_export mermaid
+stateDiagram-v2
+    state "Support: current" as Current
+    state "Support: stale; affected effect blocked" as Stale
+    state "Obligations: pending" as Pending
+    state "Support: renewed at a new cut" as Renewed
+    Current --> Stale: dependency changes and reaches claim
+    Stale --> Pending: derive current obligations
+    Pending --> Renewed: obligations discharged by current admitted evidence
+    Renewed --> Stale: another relevant change
+#+end_export
+
+Renewed support does not itself authorize an effect; current decision and
+authorization gates remain independently required.
 
 Exit gates:
 
@@ -133,7 +177,56 @@ Exit gates:
 
 * Phase 3 — Obligation derivation and verification planning
 
-Status: =planned=
+Status: =complete= for pure planning at the exact source cut in
+=docs/receipts/2026-09-23-phase3-planning-replay.org=. Verifier execution,
+evidence promotion and effect authority remain Phase 4/6 work.
+
+The first executable slice reuses the Phase 2 invalidation receipt to select
+snapshot-bound obligations.  A POO-native verification policy declares
+available capabilities, and the resulting POO-native plan records selected
+obligations, capability requirements, separate unknown/conflicted blockers and
+the underlying invalidation witnesses.  It is deterministic under inventory
+permutation and cannot claim verifier execution, release authority or runtime
+execution.
+Obligation evidence kinds are closed to proof, model checking, replay,
+unit/integration/native tests, static analysis, authorization differential and
+human review; an unknown kind is rejected at the model boundary.
+Within the affected obligation set, structural =depends-on= relations are
+projected into POO Flow Graph.  Its topological order becomes the selected
+request order; a blocked prerequisite blocks dependents, an unplanned
+prerequisite is never assumed discharged, and a dependency cycle records its
+path while blocking only its strongly connected component and downstream
+dependents; an independent acyclic branch retains its own order.  The plan
+records every cyclic component as well as one deterministic path witness; it
+still does not attest that any prerequisite has been verified.
+An obligation bound to an older snapshot is blocked rather than silently
+promoted to a replacement obligation.  Selection compares snapshot identity,
+revision and a non-circular context digest.  The context digest covers the
+canonical snapshot while excluding only obligation binding fields; the final
+snapshot digest still covers those fields.  Binding an unbound candidate is an
+explicit pure step, and a previously bound obligation cannot be rebound.
+The pure replacement-requirements receipt traces affected old obligations to
+a changed target snapshot and records blockers for unresolved changes, stale
+source bindings, revised claims or policy, and incomplete targets.  It derives
+the need for a new declaration without inventing a new obligation identity
+or copying an old evidence requirement across a changed claim.  The explicit
+declaration step accepts a caller-authored, unbound candidate in a target draft
+with a revised claim and support edge; it checks the source derivation and
+canonical snapshots, binds only that fresh candidate through the existing
+snapshot binder, reconstructs the final snapshot, and returns an inert receipt.
+It does not copy evidence, invoke a verifier or grant release authority.
+The explicit verifier-candidate catalog is a set of POO-native inert declarations
+with evidence kinds, capability and priority.  A pure explanation receipt
+records the chosen declaration, every rejected candidate and unassigned
+planned obligations; ties use candidate identity only after explicit priority.
+This is declared suitability, not adapter installation, execution or evidence
+admission.
+An explicit structural =composes= relation connects a composite claim to its
+component claims and projects through POO Flow Graph for invalidation.  A pure
+composition-requirements receipt demands an independent, claim-declared,
+snapshot-bound obligation for the composite.  Component status or evidence
+never supplies it, and even a present direct obligation does not attest that
+verification ran or evidence was admitted.
 
 Deliverables:
 
@@ -157,7 +250,17 @@ Exit gates:
 
 * Phase 4 — Verifier adapters and evidence admission
 
-Status: =planned=
+Status: =in-progress= (typed reported outcomes, pure structural eligibility and
+sealed-support checks reuse POO Flow's verification adapter. A configured
+Scheme Host capability now owns adapter, clock, lease, current snapshot source,
+revocation and a separate candidate admission ledger. An exact current
+assurance-edge witness can consume that ledger without promoting the snapshot
+evidence slot. A typed required-support receipt now checks all claim-declared
+obligations and both assurance links at the current Host cut, with explicit
+blockers and no release authority. Full Decision closure, trusted deployment,
+Cedar policy and the Runtime effect gate remain open. A Host-issued preflight
+can now bind an undecided Decision and its dependency edge to that support,
+but cannot produce =allow= or an effect token).
 
 Deliverables:
 
@@ -165,19 +268,32 @@ Deliverables:
    runtime replay and human review.
 2. Evidence envelopes binding producer, tool/version, input artifact digests,
    obligation, output digest, subject, revision, scope and validity interval.
-3. Admission rules for successful, failed, timed-out, unavailable and
-   indeterminate verifier outcomes.
+3. [~] Admission rules for successful, failed, timed-out, unavailable and
+   indeterminate verifier outcomes. The pure eligibility receipt remains
+   inert. A configured Host may now issue a separate admission for candidate
+   evidence after its verifier succeeds over the exact current snapshot;
+   changing =admission-state= in a node is not the promotion operation.
+   Admission remains subject to Host clock, source invalidation and revocation
+   and cannot authorize release.
+   The normal Host support entrypoint requires an exact POO Flow adapter-issued
+   seal over the current semantic subject; no structural-only public support
+   predicate remains. The low-level under-adapter check is explicitly
+   conditional, not an authorization path. A forged adapter or Host
+   presentation is rejected; proving that application configuration installed
+   the intended Host and that its clock and snapshot source are trusted remains
+   open.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
    caller-release pattern; public Scheme and Python namespaces remain
    unversioned while ABI revision is explicit metadata.
-7. [X] An Aitia-owned, uv-managed =bindings/python= production SDLC Runtime
+7. [X] An Aitia-owned, uv-managed =bindings/python= production Python Runtime
    with an out-of-line CFFI package.  POO Flow's =packages/python-runtime=
    remains the generic runtime mechanism, and Python contains no duplicate
    Aitia semantics.
-8. [X] ABI revision 2 publishes the canonical eight-stage POO Flow DAG as an
-   inert typed =SdlcFlowPlan=; it does not claim authorization or execution.
+8. [X] ABI revision 2 publishes the eight-stage assurance/execution protocol as
+   an inert typed =SdlcFlowPlan=; this is one protocol within the full SDLC and
+   does not claim authorization or execution.
 
 Exit gates:
 
@@ -201,14 +317,46 @@ Lean owns general laws, including:
 - no stale authority;
 - causal modality preservation;
 - counterfactual isolation;
-- composition creates a new obligation;
+- [X] composition requires a current, independent direct obligation;
 - unknown or conflicted support cannot grant authority.
 
-TLA+ owns the dynamic lifecycle:
+TLA+ models the dynamic assurance/execution protocol within the SDLC:
 
-#+begin_example
-change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
-#+end_example
+#+begin_export mermaid
+stateDiagram-v2
+    state "Change: admitted" as Changed
+    state "Support: invalidated" as Invalidated
+    state "Obligations: planned" as Planned
+    state "Verification: results produced" as Verified
+    state "Evidence: admitted" as Admitted
+    state "Decision: current" as Decided
+    state "Effect: authorized" as Authorized
+    state "Execution: receipt recorded" as Effect
+    Changed --> Invalidated
+    Invalidated --> Planned
+    Planned --> Verified: actual verifier execution
+    Verified --> Admitted: trusted evidence admission
+    Verified --> Planned: rejected or unresolved
+    Admitted --> Decided: decision obligations discharged
+    Decided --> Authorized: current authorization
+    Authorized --> Effect: Runtime gate and bounded attempt
+    Authorized --> Invalidated: revocation or expiry
+    Effect --> Changed: relevant new observation
+#+end_export
+
+A bounded TLC model in =proof/tla/AssuranceLifecycle.tla= now checks current
+admission/decision/grant authority, expiry and revocation. Separate mutant
+configurations demonstrate unsafe report-only effect start, stale admission,
+grant before re-verification and effect start after revocation; a reachability
+configuration demonstrates a valid effect path. This is local model evidence,
+not proof that the Runtime Host enforces the contract. Clock/adapter trust,
+counterfactual transition authority, unconditional liveness and source-bound CI replay
+remain open.
+
+A separate stable-environment fairness configuration now checks eventual
+effect start; removing fairness produces a stuttering counterexample. This
+narrows the progress assumption but does not claim progress under source
+changes, clock expiry, revocation or an unavailable Host.
 
 Required model-checking counterexamples include stale cached decisions,
 evidence admitted after a source change, release before re-verification,
@@ -224,7 +372,16 @@ Exit gates:
 
 * Phase 6 — POO Flow integration and effect gate
 
-Status: =planned=
+Status: =active= (the Host Decision preflight can now project a current,
+undecided candidate into POO Flow's POO-native Cedar request family. The
+request is inert and editable; Cedar evaluation, independent Host source
+admission and Runtime effect gating have not landed. The generic Runtime
+boundary rejects its preflight-only marker before Cedar evaluation. The
+Scheme Host can recheck an exact issued request against its current source
+cut, but Runtime does not yet invoke that predicate. POO Flow can now declare
+an action source-admission-required in the administrative Cedar capability;
+request editing cannot remove that requirement. No Aitia admitted =allow=
+Decision or trusted Runtime source-admission path exists yet).
 
 Deliverables:
 
@@ -234,12 +391,14 @@ Deliverables:
    Aitia into the POO Flow core bootstrap.
 3. Aitia AOT Scheme exports through a dedicated C ABI using the established
    POO Flow Scheme-native result ownership convention.
-4. Aitia's own production Python SDLC Runtime consumes that ABI through CFFI
+4. Aitia's own production Python Runtime consumes that ABI through CFFI
    and returns typed
    projections.  POO Flow's Python runtime remains a separate generic runtime
    and lifecycle transport.
-5. Cedar projection from a current admitted Decision, with snapshot and
-   invalidation bindings.
+5. [~] Cedar request projection from a current Host preflight, with Decision,
+   claim, policy and snapshot bindings. This is not yet a projection from an
+   admitted =allow= Decision; the Runtime Host must independently validate
+   the source cut at use before any authority can be granted.
 6. Runtime Host rejection of stale, unknown, conflicted, revoked or incomplete
    assurance closures.
 
@@ -252,7 +411,38 @@ Exit gates:
 
 * Phase 7 — Software/SDLC reference qualification
 
-Status: =planned=
+Status: =active= for inert design-contract replacement and snapshot-bound
+implementation-mapping slices; full reference qualification remains open.
+
+The target is the connected lifecycle experiment in RFC 0004: compare design
+alternatives, qualify reusable verification methods, link behavior and design
+evolution trajectories, and reopen obligations after a premise changes.
+Existing bounded results below are foundations for that experiment.
+
+The first job-executor regression now records an ADR-bound POO-native design
+contract with assumptions, guarantees, state ownership, effects and variation
+points. A retry-policy revision reopens the unique-effect guarantee; the
+existing SDLC impact projection uses POO Flow Graph to select its verification
+trajectory. Stronger assumptions, weakened guarantees, new effects, changed
+decision and same-revision mutation have negative tests. This is a pure
+declaration comparison, not a behavioral implication proof, admitted verifier
+receipt or release decision. A follow-on mapping now binds each guarantee to
+exact source artifact and Assurance snapshot revisions/digests. It fails closed
+on source/snapshot changes and uncovered guarantees, but it does not establish
+semantic model-to-code conformance or independent acceptance. A Host support
+projection now requires the guarantee Claim, its declared source dependency,
+an exact source input in a current Host admission, and the Claim's full support
+set. This remains conditional on the configured Host and is not a proof of
+verifier independence or deployment trust.
+
+The Python project's first installed-wheel qualification now runs a real
+worker process twice against a persistent task ledger and loopback provider.
+An intentionally regenerated retry key reproduces two commits after a lost
+acknowledgement; a stable logical-operation key yields one commit and eventual
+task completion. [[file:docs/adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]] proposes widening the guarantee from
+"per key" to "per logical operation" and the design-replacement test reopens
+the affected verification. This is known-fault behavioral evidence, not a
+Host-issued seal or proof of a production provider's idempotency.
 
 The first reference case is a software change crossing requirement,
 implementation, verification, release-decision and effect boundaries.  It
@@ -297,20 +487,39 @@ domain branch and the public API remains POO-native.
 
 * Immediate work queue
 
-These are the next bounded changes after Phase 0 review:
+The earlier migration, nominal vocabulary, snapshot/invalidation and CFFI
+foundation work is recorded in the phases above. The current queue is:
 
-1. [X] Add the repository contribution policy under the confirmed license contract.
-2. [X] Record the exact SDLC source/test/tool/profile inventory and current receipts.
-3. Move the SDLC and GitOps owners into Aitia and close the published Episteme
-   deletion plus parent pin; Aitia-side source and parity are complete.
-4. [X] Add the five-role =modules/assurance/= skeleton with declarations only.
-5. [X] Define the versioned vocabulary manifest and schema identifiers.
-6. [X] Implement relation-plane validation and its negative test matrix.
-7. [X] Implement canonical identity/digest projection.
-8. [X] Define the Aitia Scheme-native C ABI and pure-C harness with an unversioned
-   public namespace and explicit ABI revision metadata.
-9. [X] Complete Aitia's =bindings/python= CFFI consumer and wheel receipt.
-10. [X] Create the smallest change-to-invalidation fixture with no verifier calls.
+1. [ ] Extend the job-executor design case with a common requirement set and
+   comparable alternatives, keeping completion and unique-effect obligations.
+   Historical-source applicability and the owner/coverage audit are documented
+   in [[file:docs/plans/engineering-case-source-inventory.org][the case-source inventory]] and ADR 0008 r2. Parameter mismatch, retention,
+   independent commit/crash and concurrent-attempt checks remain unqualified.
+   Reuse existing Cedar/Runtime mechanisms for authorization; keep provider
+   effect uniqueness separate. Add an executable source-correction/review case
+   before claiming historical-judgment invalidation is complete.
+2. [ ] Qualify one TLAPS-Bench checker/task boundary and one asset-complete
+   upstream bug case. Record files, exact revisions, licenses, dependencies,
+   resource bounds and required upstream checks in the integration inventory.
+3. [ ] Project experimental behavior and design/assurance evolution through
+   POO Flow temporal/causal mechanisms. Check modality, causal cuts, late
+   observations and missing parents without turning structural paths into
+   causal proof.
+4. [ ] Connect real tool observations from the Aitia Python Runtime to the
+   configured Scheme Host, preserving source bytes and native-session ownership
+   through the AnyIO execution boundary. This is required before claiming
+   admitted support or progressing to the remaining Phase 6 effect gates.
+5. [ ] Compose the qualified methods through existing POO Profiles and slots;
+   an override must preserve required checks or reopen corresponding obligations.
+6. [ ] Replay failure, design revision, re-verification and a later assumption
+   change as one lifecycle case. Compare with the same upstream tools/assets
+   alone, and record explanation quality, missed obligations, unnecessary
+   reruns and execution costs.
+7. [ ] Qualify one contract-preserving implementation optimization with both
+   conformance and performance evidence.
 
-No Python semantic duplicate, Cedar policy, proof migration or effect execution
-belongs in this immediate queue.
+Euclid/GCD is a candidate tool qualification, not evidence for an unrelated
+job-executor claim. Known-fault replay is not novel bug discovery. Full Specula
+CLI lifecycle mapping, new checker implementations and MRR integration are not
+required deliverables in this queue. Phase 4/6/7 closure still requires actual
+Host and Runtime receipts rather than a documentation or Recipe-only milestone.

@@ -62,7 +62,14 @@ check-semantic:
 # Build the Aitia-owned assurance laws independently of POO Flow's proof package.
 [group('check')]
 check-proof:
-    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof
+    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
+    cd proof/lean && output="$(lake env lean AxiomAudit.lean)" && printf '%s\n' "$output" && ! grep -q 'sorryAx' <<< "$output"
+
+# TLA_TOOLS_JAR is an explicit, checksum-verified input; the recipe never
+# downloads tools or writes into the user's global Java environment.
+[group('check')]
+check-tla:
+    python3 -m unittest discover -s bindings/python/tests -p 'tla_contract.py'
 
 # Aitia owns its native ABI and Python Runtime checks.
 [group('check')]
@@ -80,6 +87,12 @@ check-native:
     cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py
     cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv run --locked --extra test pytest
     just build-python-wheel '{{ native_library }}'
+    just check-installed-wheel
+
+# Exercise the delivered wheel from a fresh environment outside the checkout.
+[group('check')]
+check-installed-wheel:
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test pytest tests/installed_wheel_qualification.py
 
 # Build the production wheel from Aitia's locked uv environment. The preceding
 # sync makes the declared PEP 517 backend available without a second isolated
@@ -92,7 +105,7 @@ build-python-wheel native_library:
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-license-contract check-semantic check-proof test-integration check-native
+check: check-license-contract check-semantic check-proof check-tla test-integration check-native
 
 [group('check')]
 check-all: check

@@ -2,7 +2,8 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; User selection projection. Importing this module enables no standard.
+;;; Legacy module-selection projection is standard-free. The NASA Standard is
+;;; selected through its own typed nasa/sdlc Module Profile, not an SDLC flag.
 (import :poo-flow/src/module-system/declaration/interface
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/objects
@@ -21,9 +22,6 @@
                (equal? (poo-flow-user-module-selection-key selection) '(custom . sdlc)))
     (error "expected a custom/sdlc selection"))
   (let ((flags (poo-flow-user-module-selection-flags selection)))
-    (unless (every (lambda (flag) (eq? flag '+nasa-7150-2d)) flags)
-      (error "unsupported SDLC feature" flags))
-    (unless (<= (length flags) 1)
-      (error "duplicate SDLC feature" flags))
-    (sdlc-contribution
-     (if (null? flags) SdlcProfile sdlc-nasa-7150-profile))))
+    (unless (null? flags)
+      (error "SDLC has no feature flags; select standards as Modules" flags))
+    (sdlc-contribution SdlcProfile)))

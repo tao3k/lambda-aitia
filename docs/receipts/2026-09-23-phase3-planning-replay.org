@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Phase 3 pure planning replay receipt
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-phase3-planning-replay-2026-09-23
+:STATUS:     admitted
+:DATE:       2026-09-23
+:RFC:        lambda-aitia-rfc-0001
+:END:
+
+* Exact source cut
+
+- POO Flow mechanism library: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=
+- Lambda Aitia: =6b1476b38888080c03e514bc36a6d5789056ac64=
+- Aitia PR CI: =35847725375= (license, Lean, Scheme/integration/Python passed)
+- Local host: Darwin arm64, Gerbil v0.19, =GERBIL_BUILD_CORES=12=,
+  child-process =env -u SDKROOT=.
+
+The source cut is an open-PR candidate, not a merged release. The local replay
+used isolated checkouts rather than the dirty shared parent worktree. Its
+=just check= completed, including the native C ABI harness and Python wheel.
+
+* Source and negative-contract map
+
+The public planner in =modules/assurance/funs.ss= consumes a typed snapshot,
+changed identities and a matching POO-native verification policy. It uses the
+POO Flow Graph dependency order and loop analysis; the plan and verifier-choice
+receipts cannot claim verifier execution, release authority or Runtime work.
+
+=t/assurance/unit/assurance-kernel-test.ss= directly checks:
+
+- deterministic plan and choice digests under inventory permutation;
+- affected prerequisite order, unplanned dependencies, blocked propagation,
+  SCC cycle witnesses and retention of an independent acyclic branch;
+- missing capability, unresolved input and conflicted snapshot blockers;
+- same-identity revision/content changes rejecting old obligation bindings;
+- independent composition obligations and explicit replacement declaration;
+- chosen and rejected verifier candidates, including unavailable capability.
+
+The verification policy has no suppression or authorization operation. It can
+declare capabilities but cannot convert a current failed or blocked request into
+an authority decision; =release-authorized?= and =runtime-executed?= are fixed
+false in the plan model. Authority remains a separate relation and Host gate.
+
+* Admission decision
+
+Phase 3's pure planning and explanation contract is closed for this exact
+source cut. This receipt does not attest that any candidate adapter is installed
+or trusted, that a verifier ran, that evidence was admitted, or that an effect
+was authorized or executed. Those remain Phase 4 and Phase 6 exit gates.

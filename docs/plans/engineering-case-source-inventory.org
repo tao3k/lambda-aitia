@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Engineering case sources and transfer judgments
+#+startup: overview
+
+:PROPERTIES:
+:ID:      lambda-aitia-engineering-case-source-inventory
+:STATUS:  draft
+:DATE:    2026-09-24
+:END:
+
+* Scope
+
+This is a reviewed reading inventory, not an imported dataset or a qualified
+Recipe catalog. The links below were inspected on 2026-09-24. No upstream
+source bytes, executable revision or license grant are pinned by this document.
+No article or Issue is reproduced here. Asset reuse requires a separate version,
+attribution/license and execution audit under
+[[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]].
+
+* Source claims and our proposed transfer
+
+| Source | Source scope | Aitia design question / proposed transfer | Status and limit |
+|--------+--------------+------------------------------------------+------------------|
+| [[https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/][Malcolm Featonby: Making retries safe with idempotent APIs]]; sections on late requests and changed intent | design account of request identity, retention and parameter mismatch | which component owns identity, trusted retry context and durable effect uniqueness? | inspiration for ADR 0008; no qualification of AWS services or our provider |
+| [[https://github.com/etcd-io/etcd/issues/19179][etcd #19179]]; original report by serathius, 2025-01-13 | reports a resumable-watch violation involving deletion, compaction, crash and resumed watch; original author had no local reproduction | does our assessment distinguish an absent event from incomplete history, and an author's interpretation from a checked cause? | external report only; linked CI artifacts, later resolution and affected-version range not qualified here |
+| [[https://github.blog/news-insights/company-news/oct21-post-incident-analysis/][GitHub: October 21 post-incident analysis]]; Jason Warner, incident in 2018 | describes failover into a database topology incompatible with application expectations | do composition obligations cover recovery topology and latency assumptions across owners? | historical account for applicability review, not a replayed Aitia case or claim about present GitHub architecture |
+
+The last two rows are candidate questions, not findings about Aitia. They are
+not additional implementation workstreams in this slice. Search results,
+Issue closure or repeated citations cannot promote their status.
+
+* First bounded transfer judgment
+
+The current job-executor shares the first source's response-loss uncertainty
+and logical retry identity question. It differs in workload and provider: one
+fixed job, constant payload, local SQLite and a loopback HTTP endpoint. It has
+no multi-tenant identity, retention policy or independently committed remote
+side effect. Those differences prevent a claim that it implements the source's
+complete service contract.
+
+The source motivates questions; source inspection answers what the fixture
+currently models. [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]] assigns pending checks to their actual owners,
+including existing Cedar authorization and Runtime handoff mechanisms. The
+judgment is provisional: provider changes, conflicting observations or source
+corrections reopen it. A future executable assessment must bind the consulted
+source revision and affected ADR/claim identities before testing invalidation.
+
+* Acceptance evidence still required
+
+- [ ] Bind the selected source snapshot/claims and accountable applicability
+  review without conflating external reports with local observations.
+- [ ] Record which previously omitted assumption or design option changed,
+  compared with the same design review without the historical source.
+- [ ] Qualify the pending ADR 0008 contracts with actual positive/negative
+  receipts; preserve Cedar, Runtime and provider ownership.
+- [ ] Introduce a corrected source claim and show a new review cut and reopened
+  obligations while preserving the earlier judgment and its evidence.
+
+This inventory adds neither a new public object family nor an inference engine.
+Successful designs and rejected alternatives should be included when selecting
+further cases, so the corpus does not reduce to incident-driven prescriptions.

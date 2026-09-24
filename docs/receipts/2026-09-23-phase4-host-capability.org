@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Phase 4 configured verification Host candidate
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-phase4-host-capability-2026-09-23
+:STATUS:     evidence-partial
+:DATE:       2026-09-23
+:RFC:        lambda-aitia-rfc-0001
+:END:
+
+* Source cut and boundary
+
+- Aitia base: =742291f3c0bbef5df8a7e6c3fcaba93c0c8afe8c=.
+- POO Flow verification mechanism: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=.
+- The application-configured =assurance-verification-host= keeps the exact
+  POO Flow adapter, clock and lease in private weak-key storage. Its POO
+  presentation cannot be copied or edited into a capability.
+- Verification refuses an ineligible outcome or evidence not bound to the
+  current snapshot/outcome before invoking the configured operation. The
+  operation must still return true to receive a seal.
+- Support checks read the Host clock internally; expiry, receipt revocation
+  and clock rollback fail closed. The low-level under-adapter function is
+  explicitly conditional, not a Host admission decision.
+
+* Replay
+
+The isolated local checkout used the current POO Flow source before the older
+installed library in =GERBIL_LOADPATH=. The first attempted test with only the
+older installed POO Flow failed an existing fake-adapter rejection assertion;
+that run is not accepted as evidence for this source cut. With the pinned
+source in the load path, the atomic evidence-admission and assurance-kernel
+tests passed, as did =just build-scheme=, the complete assurance test group,
+and =just check-semantic= across assurance, ADR, SDLC, GitOps and modules.
+The test runner capped each child at =-:max-heap=512M=.
+
+* Limits
+
+The Host constructor is a configuration capability, not proof that a trusted
+deployment installed it or that its clock is secure. =AssuranceEvidence='s
+caller-supplied =admission-state= is still metadata; there is no Host-owned
+promotion transition, Cedar projection, or Runtime effect gate in this slice.
+No seal or green test outcome is release authority.
