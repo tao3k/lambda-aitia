@@ -148,15 +148,62 @@
                     source-reader: (lambda (identity) payload))))
         (let-values (((receipt admission subject mapping)
                       (review cut configured source evidence)))
-          (check-equal? (.ref receipt 'source-bound-support-current?) #t)
+          (check-equal? admission #f)
+          (check-equal? (.ref receipt 'source-bound-support-current?) #f)
           (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #f)
           (set! payload source-bytes)
           (check-equal?
            (.ref (sdlc-design-guarantee-support-review
                   configured contract guarantee (list mapping) claim subject
-                  evidence-link admission (list admission))
+                  evidence-link admission '())
                  'source-bytes-checked-support-current?)
-           #t))))
+           #f)
+          (let-values (((fresh-receipt fresh-admission _subject _mapping)
+                        (review cut configured source evidence)))
+            (check-equal? (if fresh-admission #t #f) #t)
+            (check-equal?
+             (.ref fresh-receipt 'source-bytes-checked-support-current?)
+             #t)))))
+    (test-case "issued source-bound admission cannot revive after byte drift"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (payload source-bytes)
+             (configured
+              (host (lambda () cut)
+                    source-reader: (lambda (identity) payload))))
+        (let-values (((receipt admission subject mapping)
+                      (review cut configured source evidence)))
+          (check-equal? (if admission #t #f) #t)
+          (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #t)
+          (set! payload "different")
+          (check-equal?
+           (assurance-host-admission-current? configured admission) #f)
+          (set! payload source-bytes)
+          (check-equal?
+           (assurance-host-admission-current? configured admission) #f)
+          (let-values (((fresh-receipt fresh-admission _subject _mapping)
+                        (review cut configured source evidence)))
+            (check-equal? (if fresh-admission #t #f) #t)
+            (check-equal?
+             (.ref fresh-receipt 'source-bytes-checked-support-current?)
+             #t)))))
+    (test-case "source bytes moving during verifier execution prevent issuance"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (payload source-bytes)
+             (configured
+              (assurance-verification-host
+               "host/source-race"
+               (lambda (subject issued-at expires-at)
+                 (set! payload "different")
+                 #t)
+               (lambda () 11) 9 (lambda () cut)
+               source-reader: (lambda (identity) payload)))
+             (reported (outcome cut source)))
+        (check-equal?
+         (assurance-host-admit
+          configured (bound-obligation cut) evidence reported)
+         #f)))
     (test-case "a cut moving during Host source read fails closed"
       (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
                              evidence))
@@ -171,6 +218,7 @@
                       source-bytes))))
         (let-values (((receipt admission subject mapping)
                       (review cut configured source evidence)))
+          (check-equal? admission #f)
           (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #f))))
     (test-case "design assumptions cannot disappear from the Assurance Claim"
       (let* ((cut (bound-cut (list evidence-link requirement-link source-link)

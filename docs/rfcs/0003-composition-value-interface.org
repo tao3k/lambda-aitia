@@ -63,6 +63,13 @@ fields are still caller-supplied workflow data, not an Assurance seal or
 proof of actual verifier inputs. Accountable Host admission and source-byte
 binding remain separate acceptance gates.
 
+When an application configures an Assurance Host source reader, issuance and
+currentness recheck all declared verifier inputs against current source bytes.
+Observed byte drift invalidates prior admissions, so returning to the old bytes
+requires fresh verification. This strengthens the Host boundary but does not
+authenticate the source repository or prove what a verifier process actually
+consumed; those remain application Host responsibilities.
+
 * Composition semantics
 
 The default path composes maintained POO Profile values; advanced users may

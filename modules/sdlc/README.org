@@ -68,11 +68,13 @@ no release authority. Its =source-bound-support-current?= result is conditional
 on the application-configured Host; it does not establish verifier
 independence, semantic implementation conformance or trusted deployment.
 An application may configure the Assurance Host's =source-reader:= capability.
-=source-bytes-checked-support-current?= then requires that Host to read the
-mapped verifier input, compare its bytes to the Artifact SHA-256 using POO
-Flow's Source Lock algorithm, and preserve the same canonical snapshot before
-and after reading. Without the Host reader, or if the bytes or cut change, the
-stronger result fails closed. SDLC review callers cannot supply replacement
+With that reader, Host issuance and currentness check every declared verifier
+input against its Artifact SHA-256 using POO Flow's Source Lock algorithm.
+A byte mismatch or moving snapshot blocks issuance; observed byte drift
+invalidates previously issued receipts, which cannot revive merely because
+the bytes later return. =source-bytes-checked-support-current?= additionally
+requires the mapped design source to pass that check. Without the Host reader,
+the stronger result fails closed. SDLC review callers cannot supply replacement
 payloads. The application still owns the reader's repository/provenance trust
 and the verifier's actual process inputs; matching bytes alone proves neither
 Host independence nor semantic implementation conformance.

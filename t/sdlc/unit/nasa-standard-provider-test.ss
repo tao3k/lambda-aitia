@@ -42,6 +42,11 @@
   (test-suite
    "NASA NPR 7150.2D Standards Core Provider"
    (test-case
+    "Standards family shares the public NASA SDLC identity"
+    (check-equal? (.ref Nasa7150_2DStandardFamily 'identity)
+                  "nasa/sdlc/npr-7150.2")
+    (check-equal? (.ref Nasa7150_2DStandardFamily 'semantic-kind) 'sdlc))
+   (test-case
     "declares all immutable NASA source facts through Sources Lock Feature"
     (check-equal? (.ref Nasa7150_2DSourcesLock 'feature-id) 'sources-lock)
     (check-equal? (.ref Nasa7150_2DSourcesLock 'entry-count) 6)

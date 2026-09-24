@@ -129,6 +129,7 @@
     (and (.ref eligibility 'eligible?)
          (assurance-evidence-outcome-bound? snapshot evidence outcome)
          (host-snapshot-current? entry snapshot obligation evidence outcome)
+         (host-outcome-inputs-current? host snapshot outcome)
          (let (now (host-instant entry))
            (let (receipt
                  (poo-flow-verify
@@ -136,10 +137,16 @@
                   (assurance-verification-subject
                    snapshot obligation evidence outcome)
                   now (+ now (vector-ref entry 3))))
-             (when receipt
-               (hash-put! issued-host-receipts receipt
-                          (vector host (vector-ref entry 8))))
-             receipt)))))
+             (and receipt
+                  (if (host-outcome-inputs-current? host snapshot outcome)
+                    (begin
+                      (hash-put! issued-host-receipts receipt
+                                 (vector host (vector-ref entry 8)))
+                      receipt)
+                    (begin
+                      (poo-flow-revoke-verification! (vector-ref entry 1)
+                                                     receipt)
+                      #f))))))))
 
 ;;; This checks a Host-issued seal; it does not promote evidence or grant an effect.
 (def (assurance-host-sealed-support?
@@ -148,6 +155,7 @@
     (let (issued (hash-get issued-host-receipts receipt))
       (and issued (eq? host (vector-ref issued 0))
            (host-snapshot-current? entry snapshot obligation evidence outcome)
+           (host-outcome-inputs-current? host snapshot outcome)
            (= (vector-ref issued 1) (vector-ref entry 8))
          (assurance-support-sealed-under-adapter?
           relation evidence obligation snapshot outcome
@@ -235,6 +243,8 @@
               (.ref eligibility 'eligible?)
               (assurance-evidence-outcome-bound?
                snapshot evidence outcome)
+              (host-outcome-inputs-current?
+               (vector-ref issued 0) snapshot outcome)
               (eq? (.ref evidence 'admission-state) 'candidate)
               (equal? (assurance-verification-subject-snapshot subject)
                       (vector-ref issued 6))
@@ -291,12 +301,29 @@
                 (equal? (cdr revision) (.ref artifact 'revision))
                 (eq? (.ref artifact 'state) 'supported)
                 (let (payload (reader (.ref artifact 'identity)))
-                  (and (or (string? payload) (u8vector? payload))
-                       (equal? (source-lock-payload-digest payload)
-                               (.ref artifact 'content-digest))
-                       (equal? expected-cut
-                               (assurance-snapshot-semantic-digest
-                                (host-current-snapshot entry))))))))))
+                  (let (matches?
+                        (and (or (string? payload) (u8vector? payload))
+                             (equal? (source-lock-payload-digest payload)
+                                     (.ref artifact 'content-digest))))
+                    (unless matches? (invalidate-host-cut! entry))
+                    (and matches?
+                         (equal? expected-cut
+                                 (assurance-snapshot-semantic-digest
+                                  (host-current-snapshot entry)))))))))))
+
+;;; An optional Host source reader strengthens issuance and currentness for
+;;; every declared verifier input. With no configured reader the old Host
+;;; remains a verification Host, but it cannot claim source-byte checking.
+(def (host-outcome-inputs-current? host snapshot outcome)
+  (let (entry (required-host-entry host))
+    (or (not (vector-ref entry 9))
+        (every (lambda (input)
+                 (let (artifact (snapshot-node snapshot
+                                                (.ref input 'identity)))
+                   (and artifact
+                        (assurance-host-source-current?
+                         host snapshot artifact))))
+               (.ref outcome 'inputs)))))
 
 (def (required-support-link? snapshot obligation claim)
   (find (lambda (relation)

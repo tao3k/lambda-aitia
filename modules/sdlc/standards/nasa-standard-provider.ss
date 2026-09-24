@@ -48,7 +48,7 @@
 
 (def Nasa7150_2DStandardFamily
   (poo-flow-standard-family
-   "nasa/npr-7150.2" "NASA" 'software-engineering
+   "nasa/sdlc/npr-7150.2" "NASA" 'sdlc
    '(html scheme) "publicly-available-nasa-directive"
    '((contributor . lambda-aitia)
      (authority . nasa-nodis))))
