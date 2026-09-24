@@ -56,6 +56,18 @@ the supplied snapshot. It does not validate the bytes behind an artifact,
 prove the implementation satisfies the guarantee, admit evidence or authorize
 release. Independent verifier/Host acceptance remains a separate gate.
 
+=verification.ss= projects a design guarantee through the existing Assurance
+Host. It requires a current implementation mapping, an exact current Claim
+whose predicate is the guarantee statement and whose assumptions match the
+design contract, a declared Claim-to-source edge,
+and a Host admission whose verifier input names that same source
+identity/revision/digest. The Host must also report the Claim's full required
+support set current. Missing source dependencies, unrelated inputs, copied or
+revoked admissions fail closed. The projection issues no admission and grants
+no release authority. Its =source-bound-support-current?= result is conditional
+on the application-configured Host; it does not establish verifier
+independence, semantic implementation conformance or trusted deployment.
+
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
 models. Applications combine this module with POO Flow-owned workflow modules

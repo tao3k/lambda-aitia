@@ -363,7 +363,11 @@ declaration comparison, not a behavioral implication proof, admitted verifier
 receipt or release decision. A follow-on mapping now binds each guarantee to
 exact source artifact and Assurance snapshot revisions/digests. It fails closed
 on source/snapshot changes and uncovered guarantees, but it does not establish
-semantic model-to-code conformance or independent acceptance.
+semantic model-to-code conformance or independent acceptance. A Host support
+projection now requires the guarantee Claim, its declared source dependency,
+an exact source input in a current Host admission, and the Claim's full support
+set. This remains conditional on the configured Host and is not a proof of
+verifier independence or deployment trust.
 
 The first reference case is a software change crossing requirement,
 implementation, verification, release-decision and effect boundaries.  It
