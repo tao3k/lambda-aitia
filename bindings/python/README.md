@@ -33,6 +33,10 @@ from a separately materialized copy; selectors cannot escape that copy.
 for a future Host-owned source reader. This still does not prove repository
 provenance, interpreter independence, or trusted external services. The
 Assurance Host owns admission, revocation and execution authority.
+The POSIX verifier runs pytest in its own process group and stops that group
+on timeout or output overflow. `max_output_bytes` defaults to 8 MiB; only the
+last 8 KiB is retained in the observation. Cleanup uncertainty is reported as
+`control-error`, never as a passing result.
 
 `AitiaNativeSession` keeps one Gambit transport runtime alive across calls to
 `SdlcRuntime(session=...)` and `evaluate_gitops(..., session=...)`. It is

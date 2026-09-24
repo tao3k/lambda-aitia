@@ -10,8 +10,11 @@ from dataclasses import dataclass, replace
 import hashlib
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
+import selectors
+import signal
 import subprocess
 import tempfile
+import time
 from uuid import uuid4
 import xml.etree.ElementTree as ET
 
@@ -158,12 +161,107 @@ def _validated_selectors(
             raise ValueError("pytest selector must name a file in frozen source")
 
 
+def _stop_process_group(process: subprocess.Popen[bytes]) -> bool:
+    """Stop pytest's group; return false if descendant cleanup is uncertain."""
+
+    controlled = True
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        controlled = False
+    try:
+        process.wait(timeout=0.2)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        controlled = False
+    try:
+        process.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        controlled = False
+        process.kill()
+        process.wait()
+    return controlled
+
+
+def _run_bounded_verifier(
+    argv: tuple[str, ...],
+    root: Path,
+    environment: dict[str, str],
+    timeout_seconds: int,
+    max_output_bytes: int,
+) -> tuple[int | None, str, str | None]:
+    """Drain bounded output and terminate the whole verifier group on failure.
+
+    Non-POSIX process trees are rejected until an equivalent descendant-kill
+    contract is qualified; silently killing only pytest would leave effects.
+    """
+
+    if os.name != "posix":
+        raise OSError("controlled pytest verification requires POSIX process groups")
+    tail = bytearray()
+    observed_bytes = 0
+    deadline = time.monotonic() + timeout_seconds
+    stop_reason = None
+    process = subprocess.Popen(
+        argv,
+        cwd=root,
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    try:
+        assert process.stdout is not None
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            output_complete = False
+            while not (output_complete and process.poll() is not None):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    stop_reason = "timeout"
+                    break
+                for key, _ in selector.select(timeout=min(remaining, 0.1)):
+                    chunk = os.read(key.fileobj.fileno(), 65536)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        output_complete = True
+                        continue
+                    observed_bytes += len(chunk)
+                    tail.extend(chunk)
+                    del tail[:-8192]
+                    if observed_bytes > max_output_bytes:
+                        stop_reason = "output-exceeded"
+                        break
+                if stop_reason:
+                    break
+        if stop_reason:
+            if not _stop_process_group(process):
+                stop_reason = "control-error"
+            exit_code = None
+        else:
+            exit_code = process.wait()
+        return exit_code, tail.decode("utf-8", "replace"), stop_reason
+    finally:
+        if process.poll() is None:
+            _stop_process_group(process)
+        if process.stdout is not None:
+            process.stdout.close()
+
+
 def run_pytest_frozen(
     python: Path,
     source_payload: bytes,
     selectors: tuple[str, ...],
     *,
     timeout_seconds: int = 30,
+    max_output_bytes: int = 8 * 1024 * 1024,
     environment: dict[str, str] | None = None,
 ) -> PytestObservation:
     """Run selected tests only from a validated frozen source payload.
@@ -176,6 +274,8 @@ def run_pytest_frozen(
     _validated_selectors(selectors, entries)
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
+    if max_output_bytes <= 0:
+        raise ValueError("max_output_bytes must be positive")
     before = _source_payload_digest(source_payload)
     run_id = uuid4().hex
     interpreter = python.absolute()
@@ -199,24 +299,12 @@ def run_pytest_frozen(
             target.write_bytes(contents)
         report = Path(workspace) / f"{run_id}.xml"
         argv = (
-            str(interpreter), "-m", "pytest", "-q",
+            str(interpreter), "-m", "pytest", "-q", "-s",
             "-p", "no:cacheprovider", f"--junitxml={report}", *selectors,
         )
-        try:
-            completed = subprocess.run(
-                argv, cwd=root, env=safe_environment, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, text=True, errors="replace",
-                timeout=timeout_seconds, check=False,
-            )
-            exit_code = completed.returncode
-            output = completed.stdout
-        except subprocess.TimeoutExpired as error:
-            exit_code = None
-            output = (
-                (error.stdout or b"").decode("utf-8", "replace")
-                if isinstance(error.stdout, bytes)
-                else (error.stdout or "")
-            )
+        exit_code, output, stop_reason = _run_bounded_verifier(
+            argv, root, safe_environment, timeout_seconds, max_output_bytes
+        )
         try:
             after = source_digest(root)
         except (OSError, ValueError):
@@ -242,8 +330,8 @@ def run_pytest_frozen(
                 pass
         if before != after:
             status = "source-changed"
-        elif exit_code is None:
-            status = "timeout"
+        elif stop_reason:
+            status = stop_reason
         elif exit_code == 2:
             status = "interrupted"
         elif exit_code == 3:
@@ -276,6 +364,7 @@ def run_pytest(
     selectors: tuple[str, ...],
     *,
     timeout_seconds: int = 30,
+    max_output_bytes: int = 8 * 1024 * 1024,
     environment: dict[str, str] | None = None,
 ) -> PytestObservation:
     """Capture source, execute its frozen copy, and detect caller-tree drift.
@@ -287,7 +376,8 @@ def run_pytest(
     payload = capture_source_tree(source_root)
     observation = run_pytest_frozen(
         python, payload, selectors,
-        timeout_seconds=timeout_seconds, environment=environment,
+        timeout_seconds=timeout_seconds, max_output_bytes=max_output_bytes,
+        environment=environment,
     )
     if not observation.source_current(source_root):
         return replace(observation, status="source-changed")

@@ -4,7 +4,9 @@
 
 from pathlib import Path
 import hashlib
+import os
 import sys
+import time
 
 import pytest
 
@@ -123,4 +125,38 @@ def test_pytest_observation_rejects_timeout(tmp_path: Path) -> None:
     )
     assert observed.status == "timeout"
     assert observed.exit_code is None
+    assert not observed.passed_obligation
+
+
+def test_pytest_observation_stops_child_process_on_timeout(tmp_path: Path) -> None:
+    if os.name != "posix":
+        pytest.skip("process-group termination is qualified on POSIX")
+    marker = tmp_path.parent / "orphan-marker"
+    (tmp_path / "test_case.py").write_text(
+        "import subprocess, sys, time\n"
+        "def test_child():\n"
+        "    subprocess.Popen([sys.executable, '-c', "
+        f"\"import time; from pathlib import Path; time.sleep(2); "
+        f"Path({str(marker)!r}).write_text('orphan')\"])\n"
+        "    time.sleep(5)\n"
+    )
+    observed = run_pytest(
+        Path(sys.executable), tmp_path, ("test_case.py",), timeout_seconds=1
+    )
+    assert observed.status == "timeout"
+    time.sleep(2.2)
+    assert not marker.exists()
+
+
+def test_pytest_observation_caps_output(tmp_path: Path) -> None:
+    (tmp_path / "test_case.py").write_text(
+        "def test_loud():\n    print('x' * 500_000)\n"
+    )
+    observed = run_pytest(
+        Path(sys.executable), tmp_path, ("test_case.py",),
+        max_output_bytes=4096,
+    )
+    assert observed.status == "output-exceeded"
+    assert observed.exit_code is None
+    assert len(observed.output) <= 8192
     assert not observed.passed_obligation
