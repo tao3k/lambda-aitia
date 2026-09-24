@@ -5,12 +5,15 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/src/feature-system/source-lock-feature
+                 source-lock-payload-digest)
         :poo-flow/lambda-aitia/modules/assurance/interface
         :poo-flow/lambda-aitia/modules/sdlc/interface)
 
 (export design-verification-test)
 
-(def digest-a (string-append "sha256:" (make-string 64 #\a)))
+(def source-bytes "(def (execute-job) 'committed)\n")
+(def digest-a (source-lock-payload-digest source-bytes))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
 (def guarantee
   (sdlc-design-guarantee "unique-effect" "g1" "At most one external commit"))
@@ -118,10 +121,39 @@
         (let-values (((receipt admission subject mapping)
                       (review cut configured source evidence)))
           (check-equal? (.ref receipt 'source-bound-support-current?) #t)
+          (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #f)
           (check-equal? (.ref receipt 'verifier-independence-established?) #f)
           (check-equal? (.ref receipt 'implementation-conforms?) #f)
           (check-equal? (.ref receipt 'release-authorized?) #f)
           (check-equal? (.ref receipt 'runtime-executed?) #f))))
+    (test-case "actual source bytes must match the mapped digest"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (configured (host (lambda () cut))))
+        (let-values (((receipt admission subject mapping)
+                      (review cut configured source evidence)))
+          (let ((matched
+                 (sdlc-design-guarantee-support-review
+                  configured contract guarantee (list mapping) claim subject
+                  evidence-link admission (list admission)
+                  source-payloads: (list (cons "artifact/source" source-bytes))))
+                (changed
+                 (sdlc-design-guarantee-support-review
+                  configured contract guarantee (list mapping) claim subject
+                  evidence-link admission (list admission)
+                  source-payloads: (list (cons "artifact/source" "different"))))
+                (duplicate
+                 (sdlc-design-guarantee-support-review
+                  configured contract guarantee (list mapping) claim subject
+                  evidence-link admission (list admission)
+                  source-payloads: (list (cons "artifact/source" source-bytes)
+                                         (cons "artifact/source" source-bytes)))))
+            (check-equal? (.ref matched 'source-bytes-checked-support-current?) #t)
+            (check-equal? (.ref matched 'verifier-independence-established?) #f)
+            (check-equal? (.ref matched 'implementation-conforms?) #f)
+            (check-equal? (.ref changed 'source-bound-support-current?) #t)
+            (check-equal? (.ref changed 'source-bytes-checked-support-current?) #f)
+            (check-equal? (.ref duplicate 'source-bytes-checked-support-current?) #f)))))
     (test-case "design assumptions cannot disappear from the Assurance Claim"
       (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
                              evidence))

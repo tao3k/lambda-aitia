@@ -7,6 +7,8 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
+        (only-in :poo-flow/src/feature-system/source-lock-feature
+                 source-lock-payload-digest)
         (only-in :poo-flow/lambda-aitia/modules/assurance/interface
                  assurance-claim? assurance-node-canonical
                  assurance-relation? assurance-snapshot-canonical?
@@ -52,12 +54,22 @@
                        (.ref link-value 'source-digest))))
         (.ref outcome-value 'inputs)))
 
+(def (source-payload-bound? payloads link-value)
+  (let (matches
+        (filter (lambda (entry)
+                  (equal? (car entry) (.ref link-value 'source)))
+                payloads))
+    (and (= (length matches) 1)
+         (equal? (source-lock-payload-digest (cdar matches))
+                 (.ref link-value 'source-digest)))))
+
 ;;; One Host admission must bind a verifier outcome to at least one source
 ;;; declared for this guarantee. All claim obligations still need Host support.
 ;;; The returned value is an inert assessment, never an authority token.
 (def (sdlc-design-guarantee-support-review
       host-value contract-value guarantee-value implementation-links
-      claim-value subject-value relation-value admission-value admissions)
+      claim-value subject-value relation-value admission-value admissions
+      source-payloads: (source-payloads '()))
   (unless (and (sdlc-design-contract? contract-value)
                (sdlc-design-clause? guarantee-value)
                (eq? (.ref guarantee-value 'kind) 'guarantee)
@@ -66,7 +78,13 @@
                (assurance-claim? claim-value)
                (assurance-verification-subject? subject-value)
                (assurance-relation? relation-value)
-               (list? admissions))
+               (list? admissions)
+               (list? source-payloads)
+               (every (lambda (entry)
+                        (and (pair? entry) (string? (car entry))
+                             (or (string? (cdr entry))
+                                 (u8vector? (cdr entry)))))
+                      source-payloads))
     (error "invalid design guarantee support review input"))
   (let* ((snapshot-value (.ref subject-value 'snapshot))
          (obligation-value (.ref subject-value 'obligation))
@@ -108,6 +126,13 @@
                         snapshot-value claim-value (.ref link 'source))
                        (input-bound? outcome-value link)))
                 source-links))
+         (source-bytes-bound?
+          (find (lambda (link)
+                  (and (source-dependency?
+                        snapshot-value claim-value (.ref link 'source))
+                       (input-bound? outcome-value link)
+                       (source-payload-bound? source-payloads link)))
+                source-links))
          (admission-current?
           (and admission-value
                (memq admission-value admissions)
@@ -133,9 +158,12 @@
         mapping-current?: (.ref mapping 'mapping-current?)
         claim-current?: (and guarantee-current? claim-current-value #t)
         source-input-bound?: (and source-bound? #t)
+        source-bytes-match?: (and source-bytes-bound? #t)
         host-admission-current?: (and admission-current? #t)
         required-support-current?: (and support-current? #t)
         source-bound-support-current?: (and support-current? #t)
+        source-bytes-checked-support-current?:
+        (and support-current? source-bytes-bound? #t)
         verifier-independence-established?: #f
         implementation-conforms?: #f
         release-authorized?: #f

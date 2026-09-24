@@ -67,6 +67,13 @@ revoked admissions fail closed. The projection issues no admission and grants
 no release authority. Its =source-bound-support-current?= result is conditional
 on the application-configured Host; it does not establish verifier
 independence, semantic implementation conformance or trusted deployment.
+Callers may additionally supply =source-payloads:= as exact artifact-id/byte
+pairs. =source-bytes-checked-support-current?= then requires a unique payload
+for a mapped verifier input and compares its SHA-256 using POO Flow's Source
+Lock algorithm. A missing, duplicated or changed payload fails this stronger
+check. This only verifies caller-supplied bytes against the declared artifact;
+it does not authenticate the repository checkout, the verifier's actual inputs
+or the Host's independence. Those remain separate application trust duties.
 
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
