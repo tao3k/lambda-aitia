@@ -1,13 +1,13 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+title: ADR 0006 — Maintain Python as the production SDLC runtime
+#+title: ADR 0006 — Maintain Aitia Python Runtime as a production project
 
 :PROPERTIES:
 :ID:              lambda-aitia-adr-0006
 :STATUS:          accepted
 :DATE:            2026-09-18
-:REVISION:        r1
+:REVISION:        r2
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
 :CONSULTED:       poo-flow-maintainers
@@ -23,8 +23,9 @@ implementations to drift.
 
 * Decision
 
-=bindings/python= is Lambda Aitia's production Python project.  Its public
-runtime covers the complete lifecycle vocabulary:
+=bindings/python= is Lambda Aitia's production Python Runtime, not an SDLC-only
+project. The SDLC lifecycle is its first implemented contract and carries the
+complete vocabulary:
 
 #+begin_example
 change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
@@ -38,6 +39,9 @@ The responsibilities remain layered:
 - The stable C ABI transfers owned JSON request and receipt bytes.
 - Python validates and materializes those receipts for production consumers;
   it does not reproduce the semantic algorithms.
+- AnyIO is the runtime-wide asynchronous foundation for structured task
+  lifetimes, cancellation and bounded concurrency across Aitia capabilities.
+  It does not grant Host authority or make an inert plan executable.
 
 The first admitted runtime operation is =SdlcRuntime.plan()=.  It obtains the
 canonical eight-stage DAG from Scheme through ABI revision 2.  The plan is
@@ -50,8 +54,9 @@ runtime execution.
 - Python API stability is a release concern, not example-code maintenance.
 - No stage may be presented as executed until its Scheme operation publishes a
   source-bound receipt and the POO Flow runtime actually executes it.
-- The complete lifecycle remains the product boundary even while individual
-  executable stages are delivered incrementally.
+- The complete lifecycle remains the SDLC capability boundary, not the scope
+  of the entire Python project. Executable capabilities are delivered only
+  with owned operations and attributable receipts.
 
 * Confirmation
 

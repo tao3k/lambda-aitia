@@ -49,13 +49,15 @@ Flow.  Mounting this Git
 submodule does not import a module, activate a Profile, run a verifier, grant a
 capability, authorize a decision or execute an effect.
 
-The production Python SDLC Runtime is maintained entirely under
+The production Aitia Python Runtime is maintained entirely under
 =bindings/python= in this repository; it is not an example.  POO Flow's
 =packages/python-runtime= remains the generic graph execution and lifecycle
 mechanism and does not own Aitia semantics.  Aitia Scheme is compiled AOT
 behind an owned-byte C ABI.  The Python project validates typed lifecycle
 receipts and exposes them to downstream systems without reimplementing Scheme
-decisions.
+decisions. SDLC planning is the first implemented capability, not the scope of
+the Python project. AnyIO is its runtime-wide concurrency foundation; generic
+Graph/DAG and FunFlow execution mechanisms remain owned by POO Flow.
 
 * Core model
 

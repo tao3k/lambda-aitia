@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-"""Production Python runtime for Lambda Aitia's Scheme-owned SDLC."""
+"""Production Python runtime for Lambda Aitia."""
 
 from .gitops import GitOpsDecision, evaluate_gitops
 from .native import AitiaNativeError, AitiaNativeSession, descriptor

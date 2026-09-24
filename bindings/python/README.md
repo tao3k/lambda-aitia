@@ -3,10 +3,11 @@ SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 -->
 
-# Lambda Aitia Python SDLC Runtime
+# Lambda Aitia Python Runtime
 
 This is Lambda Aitia's production Python project, not an example package.  It
-is the Python runtime surface for the complete SDLC lifecycle:
+is the Python runtime surface for Aitia's software-engineering capabilities.
+SDLC planning is its first implemented lifecycle contract:
 
 ```text
 change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
@@ -16,6 +17,13 @@ Lambda Aitia Scheme owns the lifecycle vocabulary, assurance semantics,
 decisions and receipts. POO Flow owns the reusable Graph/DAG and runtime
 mechanisms. The Python package consumes those contracts through the stable C
 ABI and does not reimplement either owner's semantics.
+
+AnyIO is a production dependency for the runtime-wide asynchronous execution
+boundary: structured task lifetimes, cancellation and bounded concurrency will
+apply across Aitia capabilities, not only SDLC and not as a pytest cleanup
+mechanism. The current native session is thread-affine, so it must not be
+passed into `anyio.to_thread.run_sync`; an async entry point requires a
+qualified owner-preserving transport before it can claim execution.
 
 The current production surface publishes and validates the canonical lifecycle
 DAG through `SdlcRuntime.plan()`. The returned receipt is deliberately inert:
