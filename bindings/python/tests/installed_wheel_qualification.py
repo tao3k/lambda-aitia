@@ -61,10 +61,15 @@ def test_installed_wheel_qualification() -> None:
         # with cwd outside the checkout and no development path override.
         code = """
 from pathlib import Path
-from lambda_aitia import SdlcRuntime
+from lambda_aitia import AitiaNativeSession, SdlcRuntime
 from lambda_aitia.verification import run_pytest
 root = Path('scenario').resolve()
 assert SdlcRuntime().plan('qualification/job-42').lifecycle_id == 'qualification/job-42'
+with AitiaNativeSession() as session:
+    runtime = SdlcRuntime(session=session)
+    assert runtime.plan('qualification/job-42/first').lifecycle_id == 'qualification/job-42/first'
+    assert runtime.plan('qualification/job-42/second').lifecycle_id == 'qualification/job-42/second'
+assert session.closed
 selector = ('test_unique_effect.py::test_unique_effect_after_lost_ack_and_restart',)
 buggy = run_pytest(Path(__import__('sys').executable), root, selector,
     environment={'AITIA_QUALIFICATION_MODE': 'buggy'})

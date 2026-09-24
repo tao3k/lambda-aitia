@@ -5,11 +5,12 @@
 """Production Python runtime for Lambda Aitia's Scheme-owned SDLC."""
 
 from .gitops import GitOpsDecision, evaluate_gitops
-from .native import AitiaNativeError, descriptor
+from .native import AitiaNativeError, AitiaNativeSession, descriptor
 from .runtime import SdlcFlowPlan, SdlcRuntime
 
 __all__ = [
     "AitiaNativeError",
+    "AitiaNativeSession",
     "GitOpsDecision",
     "SdlcFlowPlan",
     "SdlcRuntime",

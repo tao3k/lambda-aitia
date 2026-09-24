@@ -4,6 +4,7 @@
 
 #include "lambda_aitia/aitia.h"
 
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,19 @@ typedef void (*lambda_aitia_result_release_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_descriptor_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_evaluate_fn)(char *, poo_flow_aitia_result *);
 
+typedef struct lambda_aitia_python_session {
+  lambda_aitia_library library;
+  lambda_aitia_runtime_shutdown_fn runtime_shutdown;
+  lambda_aitia_result_init_fn result_init;
+  lambda_aitia_result_release_fn result_release;
+  lambda_aitia_descriptor_fn descriptor;
+  lambda_aitia_evaluate_fn sdlc_flow_plan;
+  lambda_aitia_evaluate_fn evaluate;
+} lambda_aitia_python_session;
+
+/* Gambit has one process runtime. A live session excludes transient calls. */
+static atomic_flag lambda_aitia_runtime_lease = ATOMIC_FLAG_INIT;
+
 static int lambda_aitia_load_symbol(lambda_aitia_library library,
                                     const char *name, void *destination,
                                     size_t destination_size) {
@@ -57,121 +71,157 @@ static const char *lambda_aitia_loader_error(void) {
 #endif
 }
 
-void lambda_aitia_python_release(uint8_t *output) { free(output); }
-
-int lambda_aitia_python_call(const char *library_path, const char *operation,
-                             const uint8_t *payload, size_t payload_length,
-                             uint8_t **output, size_t *output_length,
-                             char *error, size_t error_capacity) {
-  lambda_aitia_library library;
+lambda_aitia_python_session *lambda_aitia_python_open(
+    const char *library_path, char *error, size_t error_capacity) {
+  lambda_aitia_python_session *session;
   lambda_aitia_revision_fn revision;
   lambda_aitia_runtime_init_fn runtime_init;
-  lambda_aitia_runtime_shutdown_fn runtime_shutdown;
-  lambda_aitia_result_init_fn result_init;
-  lambda_aitia_result_release_fn result_release;
-  lambda_aitia_descriptor_fn descriptor;
-  lambda_aitia_evaluate_fn sdlc_flow_plan;
-  lambda_aitia_evaluate_fn evaluate;
+
+  if (library_path == NULL || library_path[0] == '\0') {
+    lambda_aitia_write_error(error, error_capacity, "invalid Aitia library path");
+    return NULL;
+  }
+  if (atomic_flag_test_and_set(&lambda_aitia_runtime_lease)) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Lambda Aitia runtime already has an active session");
+    return NULL;
+  }
+  session = (lambda_aitia_python_session *)calloc(1, sizeof(*session));
+  if (session == NULL) {
+    lambda_aitia_write_error(error, error_capacity, "session allocation failed");
+    goto fail_lease;
+  }
+  session->library = LAMBDA_AITIA_OPEN(library_path);
+  if (session->library == NULL) {
+    lambda_aitia_write_error(error, error_capacity, lambda_aitia_loader_error());
+    goto fail_session;
+  }
+  if (!lambda_aitia_load_symbol(session->library, "poo_flow_aitia_abi_revision",
+                                &revision, sizeof(revision)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_runtime_init",
+                                &runtime_init, sizeof(runtime_init)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_runtime_shutdown",
+                                &session->runtime_shutdown,
+                                sizeof(session->runtime_shutdown)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_result_init",
+                                &session->result_init, sizeof(session->result_init)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_result_release",
+                                &session->result_release,
+                                sizeof(session->result_release)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_descriptor",
+                                &session->descriptor, sizeof(session->descriptor)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_sdlc_flow_plan",
+                                &session->sdlc_flow_plan,
+                                sizeof(session->sdlc_flow_plan)) ||
+      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_gitops_evaluate",
+                                &session->evaluate, sizeof(session->evaluate))) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Lambda Aitia ABI symbol is absent");
+    goto fail_library;
+  }
+  if (runtime_init() != 0) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Lambda Aitia runtime initialization failed");
+    goto fail_library;
+  }
+  if (revision() != POO_FLOW_AITIA_ABI_REVISION) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Lambda Aitia ABI revision mismatch");
+    session->runtime_shutdown();
+    goto fail_library;
+  }
+  return session;
+
+fail_library:
+  LAMBDA_AITIA_CLOSE(session->library);
+fail_session:
+  free(session);
+fail_lease:
+  atomic_flag_clear(&lambda_aitia_runtime_lease);
+  return NULL;
+}
+
+void lambda_aitia_python_close(lambda_aitia_python_session *session) {
+  if (session == NULL) return;
+  session->runtime_shutdown();
+  LAMBDA_AITIA_CLOSE(session->library);
+  free(session);
+  atomic_flag_clear(&lambda_aitia_runtime_lease);
+}
+
+void lambda_aitia_python_release(uint8_t *output) { free(output); }
+
+int lambda_aitia_python_session_call(
+    lambda_aitia_python_session *session, const char *operation,
+    const uint8_t *payload, size_t payload_length, uint8_t **output,
+    size_t *output_length, char *error, size_t error_capacity) {
   poo_flow_aitia_result result;
   char *input = NULL;
   int32_t status;
 
-  if (output == NULL || output_length == NULL || library_path == NULL ||
+  if (session == NULL || output == NULL || output_length == NULL ||
       operation == NULL) {
     lambda_aitia_write_error(error, error_capacity, "invalid Aitia call");
     return -100;
   }
   *output = NULL;
   *output_length = 0;
-  library = LAMBDA_AITIA_OPEN(library_path);
-  if (library == NULL) {
-    lambda_aitia_write_error(error, error_capacity, lambda_aitia_loader_error());
-    return -101;
-  }
-  if (!lambda_aitia_load_symbol(library, "poo_flow_aitia_abi_revision",
-                                &revision, sizeof(revision)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_runtime_init",
-                                &runtime_init, sizeof(runtime_init)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_runtime_shutdown",
-                                &runtime_shutdown,
-                                sizeof(runtime_shutdown)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_result_init",
-                                &result_init, sizeof(result_init)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_result_release",
-                                &result_release, sizeof(result_release)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_descriptor",
-                                &descriptor, sizeof(descriptor)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_sdlc_flow_plan",
-                                &sdlc_flow_plan, sizeof(sdlc_flow_plan)) ||
-      !lambda_aitia_load_symbol(library, "poo_flow_aitia_gitops_evaluate",
-                                &evaluate, sizeof(evaluate))) {
-    lambda_aitia_write_error(error, error_capacity,
-                             "Lambda Aitia ABI symbol is absent");
-    LAMBDA_AITIA_CLOSE(library);
-    return -102;
-  }
-  if (runtime_init() != 0) {
-    lambda_aitia_write_error(error, error_capacity,
-                             "Lambda Aitia runtime initialization failed");
-    LAMBDA_AITIA_CLOSE(library);
-    return -103;
-  }
-  if (revision() != POO_FLOW_AITIA_ABI_REVISION) {
-    lambda_aitia_write_error(error, error_capacity,
-                             "Lambda Aitia ABI revision mismatch");
-    runtime_shutdown();
-    LAMBDA_AITIA_CLOSE(library);
-    return -104;
-  }
-  result_init(&result);
+  session->result_init(&result);
   if (strcmp(operation, "descriptor") == 0) {
-    status = descriptor(&result);
+    status = session->descriptor(&result);
   } else if (strcmp(operation, "sdlc-flow-plan") == 0 ||
              strcmp(operation, "gitops-evaluate") == 0) {
     if (payload == NULL || payload_length == 0 || payload_length == SIZE_MAX) {
       lambda_aitia_write_error(error, error_capacity,
                                "Aitia operation requires JSON input");
-      result_release(&result);
-      runtime_shutdown();
-      LAMBDA_AITIA_CLOSE(library);
-      return -105;
+      status = -105;
+      goto done;
     }
     input = (char *)malloc(payload_length + 1u);
     if (input == NULL) {
       lambda_aitia_write_error(error, error_capacity, "input allocation failed");
-      result_release(&result);
-      runtime_shutdown();
-      LAMBDA_AITIA_CLOSE(library);
-      return -106;
+      status = -106;
+      goto done;
     }
     memcpy(input, payload, payload_length);
     input[payload_length] = '\0';
     status = strcmp(operation, "sdlc-flow-plan") == 0
-                 ? sdlc_flow_plan(input, &result)
-                 : evaluate(input, &result);
-    free(input);
+                 ? session->sdlc_flow_plan(input, &result)
+                 : session->evaluate(input, &result);
   } else {
     lambda_aitia_write_error(error, error_capacity, "unknown Aitia operation");
-    result_release(&result);
-    runtime_shutdown();
-    LAMBDA_AITIA_CLOSE(library);
-    return -107;
+    status = -107;
+    goto done;
   }
   if (result.payload != NULL && result.length > 0) {
     *output = (uint8_t *)malloc(result.length);
     if (*output == NULL) {
-      result_release(&result);
       lambda_aitia_write_error(error, error_capacity,
                                "output allocation failed");
-      runtime_shutdown();
-      LAMBDA_AITIA_CLOSE(library);
-      return -108;
+      status = -108;
+      goto done;
     }
     memcpy(*output, result.payload, result.length);
     *output_length = result.length;
   }
-  result_release(&result);
-  runtime_shutdown();
-  LAMBDA_AITIA_CLOSE(library);
+
+done:
+  free(input);
+  session->result_release(&result);
+  return status;
+}
+
+int lambda_aitia_python_call(const char *library_path, const char *operation,
+                             const uint8_t *payload, size_t payload_length,
+                             uint8_t **output, size_t *output_length,
+                             char *error, size_t error_capacity) {
+  lambda_aitia_python_session *session =
+      lambda_aitia_python_open(library_path, error, error_capacity);
+  int status;
+  if (session == NULL) return -101;
+  status = lambda_aitia_python_session_call(
+      session, operation, payload, payload_length, output, output_length,
+      error, error_capacity);
+  lambda_aitia_python_close(session);
   return status;
 }

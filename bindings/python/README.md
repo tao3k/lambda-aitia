@@ -30,6 +30,13 @@ runs, timeouts, missing reports and source drift do not pass its obligation.
 The caller must supply an isolated source tree and trusted Python environment.
 The Assurance Host still owns admission, revocation and execution authority.
 
+`AitiaNativeSession` keeps one Gambit transport runtime alive across calls to
+`SdlcRuntime(session=...)` and `evaluate_gitops(..., session=...)`. It is
+process-exclusive and thread-affine; use it as a context manager. It does not
+issue Host verification seals or admission capabilities. A separate Scheme
+Host operation and opaque ABI handles are still required before Python
+observations can be admitted.
+
 ```python
 from lambda_aitia import SdlcRuntime
 

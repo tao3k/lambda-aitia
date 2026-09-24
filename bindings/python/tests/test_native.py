@@ -4,7 +4,13 @@
 
 import pytest
 
-from lambda_aitia import GitOpsDecision, SdlcRuntime, descriptor, evaluate_gitops
+from lambda_aitia import (
+    AitiaNativeSession,
+    GitOpsDecision,
+    SdlcRuntime,
+    descriptor,
+    evaluate_gitops,
+)
 from lambda_aitia.native import AitiaNativeError
 from lambda_aitia.runtime import SdlcFlowPlan
 
@@ -40,6 +46,33 @@ def test_production_runtime_materializes_scheme_owned_sdlc_plan() -> None:
 def test_runtime_rejects_invalid_lifecycle_before_native_dispatch() -> None:
     with pytest.raises(ValueError, match="non-empty"):
         SdlcRuntime().plan("")
+
+
+def test_session_keeps_one_scheme_runtime_for_distinct_calls() -> None:
+    with AitiaNativeSession() as session:
+        runtime = SdlcRuntime(session=session)
+        assert runtime.plan("session/first").lifecycle_id == "session/first"
+        assert runtime.plan("session/second").lifecycle_id == "session/second"
+        assert evaluate_gitops(_gitops_change(), session=session).accepted is True
+        with pytest.raises(AitiaNativeError, match="active session"):
+            AitiaNativeSession()
+        with pytest.raises(AitiaNativeError, match="active session"):
+            descriptor()
+    assert session.closed
+    session.close()
+    with pytest.raises(AitiaNativeError, match="closed"):
+        runtime.plan("session/after-close")
+    assert descriptor()["semanticOwner"] == "lambda-aitia"
+
+
+def test_session_rejects_cross_thread_calls() -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    with AitiaNativeSession() as session:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            failure = pool.submit(SdlcRuntime(session=session).plan, "other/thread")
+            with pytest.raises(AitiaNativeError, match="another thread"):
+                failure.result()
 
 
 @pytest.mark.parametrize("field", ["releaseAuthorized", "runtimeExecuted"])
