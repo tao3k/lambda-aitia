@@ -8,6 +8,7 @@
 :ID:         lambda-aitia-rfc-0004
 :STATUS:     draft
 :DATE:       2026-09-24
+:UPDATED:    2026-09-24
 :PARENT_RFC: lambda-aitia-rfc-0001
 :IMPLEMENTS: lambda-aitia-rfc-0001
 :END:
@@ -194,6 +195,96 @@ and incomplete coverage retain an unknown frontier. Cross-clock mapping or
 additional time axes require a qualified POO Flow contract; this RFC does not
 claim that every such mapping already exists.
 
+* Historical engineering cases as design inputs
+
+Issues, design discussions, incident reports and engineering articles can
+contribute before implementation begins. Preserve the reasoning that connects
+context, requirements, assumptions, alternatives and consequences, rather than
+only a summary or a recommended pattern. Include successful designs, rejected
+proposals and withdrawn fixes as well as failures.
+
+| Use | Contribution | Admission boundary |
+|-----+--------------+--------------------|
+| Inspiration | proposes a question, assumption, alternative or failure scenario | similarity does not establish applicability or a local defect |
+| Judgment | supports an accountable choice under explicit conditions and tradeoffs | record matching conditions, differences, counterevidence, owner and review triggers |
+| Verification asset | supplies a model, checker, harness or regression | qualify the exact asset and proposition before admitting support for the current subject |
+
+These are uses, not automatic stages of increasing trust. A useful article
+need not contain a replay program. A human cost or maintainability judgment
+need not become a mechanical theorem, but must retain attribution, scope and
+reconsideration conditions. Neither judgment nor author reputation grants an
+effect capability.
+
+The reusable case records context/version/workload, intended guarantee,
+explicit and inferred assumptions, reported events, proposed explanations,
+considered alternatives, consequences and transfer conditions. Every extracted
+claim points to its source passage or comment and available revision. Keep
+original URL, author, publication/update and retrieval times; record digest and
+reuse permissions when retaining source bytes or executable assets. A mutable
+URL is not a pinned artifact. This phase references sources and records our
+analysis; it does not vendor articles or assume all public material is licensed
+for code/data redistribution.
+
+Before applying a case, compare state/effect ownership, failure model,
+identity, timing/retention, workload and recovery requirements against the
+current design. Record the correspondence as a reviewable proposal with
+supporting and contradicting observations. Search similarity, citation count,
+Issue closure and Agent confidence cannot discharge that applicability review.
+Multiple articles repeating the same incident are not independent evidence.
+
+#+begin_export mermaid
+flowchart TD
+    S["External material<br/>reported and attributed"] --> Q["Design question / alternative<br/>proposed"]
+    Q --> M["Applicability mapping<br/>pending review"]
+    M --> J["Design judgment<br/>scoped, with explicit unknowns"]
+    J --> D["RFC / ADR choice<br/>proposed for accountable review"]
+    D --> O["Verification obligations<br/>open"]
+    S --> A["Reusable assets<br/>unqualified"]
+    A --> V["Actual checks<br/>candidate results"]
+    O --> V
+    V --> E["Evidence admission<br/>required for supported claims"]
+    S --> N["Correction / new report<br/>applicability reassessment pending"]
+    N --> M
+#+end_export
+
+An external report is evidence of what its author reports, not a local observed
+execution. Separate the system-event timeline from the history of what became
+known: publication, correction, retrieval and design review. A later explanation
+creates a new assessment and can reopen a decision; it does not rewrite the
+earlier knowledge cut. Unknown timestamps remain unknown. Do not give a whole
+case one =verified= flag: a reported failure, hypothesized cause, tested repair
+and unreviewed transfer can coexist.
+
+Use existing Artifact, Claim, Assumption, Finding, Evidence, Decision and
+Obligation projections and POO composition. These conceptual correspondences
+are not new implemented constructors or permission to add arbitrary edge names.
+POO Flow retains generic temporal/causal and query ownership. No parallel case
+graph engine, universal crawler, confidence scorer or MRR integration is
+required to qualify the first case.
+
+** First application and mechanism reuse
+
+[[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]] applies this method to logical-operation identity. The AWS idempotency
+article supplies design questions, not evidence that Aitia or the fixture meets
+the AWS contract. The source/coverage matrix in that ADR distinguishes the
+existing replay from untested parameter, retention and crash boundaries.
+
+Authorization conditions belong in the existing POO Flow Cedar Provider, using
+trusted context supplied by the Host; do not create an Aitia policy evaluator.
+Cedar decides whether an action is allowed for the supplied principal, resource
+and context. Runtime must enforce that decision at use. Provider-side atomic
+deduplication and durable effects remain execution obligations: two concurrent
+requests can both be allowed without an execution-time uniqueness mechanism.
+An =Allow= does not establish that a previous attempt failed or did not commit.
+
+The current =assurance-host-cedar-request= and its currentness predicate are
+preflight projections, not a connected Runtime gate. Preserve their owner and
+reuse the existing effect-token machinery; qualify the missing handoff instead
+of treating the whole authorization design as absent. An operation identity
+survives retries, while a new attempt still requires the applicable current
+authorization. Outcome-unknown retries require provider reconciliation and
+idempotency guarantees, not an invented success or automatic fresh commit.
+
 * Reuse existing verification methods and engineering assets
 
 A Recipe is a composition of existing POO objects and slots describing
@@ -281,6 +372,12 @@ discovery needs a separate evaluation with unexposed answers.
 
 * Pending acceptance gates
 
+- [ ] One historical case records source attribution, applicability and
+  counterevidence, the design judgment it changed, and the resulting obligation.
+  Demonstrate a source correction reopening review without overwriting history.
+- [ ] ADR 0008's owner/coverage matrix is qualified, including the existing
+  Cedar/Runtime path and provider-side parameter, retention and crash boundaries;
+  documentation of a gap is not its executable closure.
 - [ ] Upstream reuse inventory binds selected files, revisions, dependencies,
   licenses, required checks and replay evidence.
 - [ ] A maintained POO Composition selects the qualified Recipe and an
@@ -311,6 +408,7 @@ and their receipts retain their existing scope.
 - [[file:../adrs/0006-production-python-sdlc-runtime.org][ADR 0006 — Aitia Python Runtime]]
 - [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 — Stable logical-operation identity]]
 - [[file:../../ROADMAP.org][Roadmap and current implementation evidence]]
+- [[file:../plans/engineering-case-source-inventory.org][Engineering case sources and transfer judgments]]
 - POO Flow =src/modules/temporal-causality/interface.ss= and architecture
   =161-temporal-causality-and-causal-trajectory-architecture.org= own the generic
   mechanism; Aitia consumes the pinned public library.

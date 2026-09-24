@@ -83,6 +83,11 @@ eight-step assurance/execution protocol is one mechanism within this framework.
 
 * Candidate reuse qualification
 
+Historical design sources have a separate
+[[file:engineering-case-source-inventory.org][source and applicability inventory]]. Inspiration and judgment do not require
+an executable asset, and do not qualify a Recipe or establish local evidence.
+ADR 0008 records the first source-inspected coverage and mechanism-owner audit.
+
 The following are candidates, not installed or qualified dependencies. Before
 selection, bind exact files and revision/digests, original attribution/license,
 dependencies, applicability assumptions, mandatory checks and replay receipt.

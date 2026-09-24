@@ -492,6 +492,12 @@ foundation work is recorded in the phases above. The current queue is:
 
 1. [ ] Extend the job-executor design case with a common requirement set and
    comparable alternatives, keeping completion and unique-effect obligations.
+   Historical-source applicability and the owner/coverage audit are documented
+   in [[file:docs/plans/engineering-case-source-inventory.org][the case-source inventory]] and ADR 0008 r2. Parameter mismatch, retention,
+   independent commit/crash and concurrent-attempt checks remain unqualified.
+   Reuse existing Cedar/Runtime mechanisms for authorization; keep provider
+   effect uniqueness separate. Add an executable source-correction/review case
+   before claiming historical-judgment invalidation is complete.
 2. [ ] Qualify one TLAPS-Bench checker/task boundary and one asset-complete
    upstream bug case. Record files, exact revisions, licenses, dependencies,
    resource bounds and required upstream checks in the integration inventory.

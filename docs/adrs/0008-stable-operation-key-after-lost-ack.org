@@ -7,7 +7,8 @@
 :ID:              lambda-aitia-adr-0008
 :STATUS:          proposed
 :DATE:            2026-09-24
-:REVISION:        r1
+:REVISION:        r2
+:UPDATED:         2026-09-24
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
 :CONSULTED:       poo-flow-maintainers
@@ -69,7 +70,56 @@ by declaration-level compatibility.
 - Full source-bound Host admission and production provider qualification remain
   open.
 
+* Historical input and current coverage
+
+Revision r2 retains the proposed decision and adds an applicability and owner
+audit. It does not accept the ADR or certify a production provider.
+[[file:../plans/engineering-case-source-inventory.org][The case-source inventory]] records the AWS article used as design inspiration,
+alongside candidate history/observability and composition cases. Its treatment
+of late retries and changed intent motivates questions about retention and
+payload binding; it is not verification evidence for this project.
+
+Source inspection on 2026-09-24 found that the fixture worker uses one literal
+=job-42= key in fixed mode and always sends =commit=. The provider stores the
+effect and key as one SQLite row, uses =insert or ignore= and withholds the
+first ACK. This covers a bounded lost-ACK/restart scenario; it has no separate
+external effect, expiry, parameter-conflict check or tenant namespace. The
+=fixed= mode name denotes the repair to that specific injected fault only.
+The inspected sources are the [[file:../../bindings/python/qualification/job_executor/worker.py][worker]],
+[[file:../../bindings/python/qualification/job_executor/test_unique_effect.py][provider/test fixture]] and [[file:../../modules/assurance/host.ss][Host preflight projection]]. The reused POO Flow boundary is
+=src/modules/authorization/providers/cedar/interface.ss= and its existing
+decision/effect-token projection, not a new Aitia-owned authorization module.
+
+| Contract question | Existing mechanism / evidence boundary | Remaining obligation and owner |
+|-------------------+----------------------------------------+--------------------------------|
+| Is this attempt currently permitted? | POO Flow Cedar Provider and effect-token machinery exist; Aitia projects preflight requests and rechecks their currentness | Host supplies trusted facts; existing Cedar evaluates policy; Runtime enforces at use. The Aitia-to-Runtime path remains unqualified; no new local authorization engine |
+| Does retry preserve logical identity? | fixed mode uses one job identity across two sequential worker processes | Aitia task-state contract and actual provider must qualify tenant/job/operation scope, persistence and concurrent attempts |
+| Can the same identity change its intent? | payload is constant; provider does not compare an incoming payload with the stored payload | provider rejects inconsistent reuse; Host/Runtime bind authorized intent to dispatched bytes. Test mismatch rejection without an additional effect |
+| What if the deduplication record expires? | no expiry or cleanup is modeled | provider owns retention guarantee; Aitia records retry horizon and review conditions. Test boundary/late requests and explicit reconciliation or rejection outside the guarantee |
+| Is effect commit atomic with deduplication? | one SQLite row stands for both key and effect; no failure between independent commits is modeled | actual provider owns atomicity or its recovery protocol. Qualify crashes before/after commit and lost response; policy permission alone is insufficient |
+| What if two attempts are allowed concurrently? | existing scenario restarts workers sequentially | Runtime/provider qualify atomic reservation or deduplication and outcome reconciliation; two Cedar permits must not be mistaken for unique execution |
+
+Do not copy these checks into a second Python policy layer. Trusted
+identity/intent, current authority and applicable retry-window conditions may
+be inputs to the existing Cedar policy boundary. Their truth must come from
+the responsible Host/provider, not caller-supplied booleans. Policy evaluation
+does not persist a deduplication record, make a network request atomic, or
+prove whether an unacknowledged attempt committed.
+
+Retry identity and authorization identity are distinct: a logical operation
+keeps its identity after restart, but an old permit need not remain valid.
+An unknown result must retain that uncertainty until the provider's qualified
+retry/reconciliation contract resolves it. Generic POO Flow reconciliation
+cannot be assumed to establish uniqueness of an external provider effect.
+
+The desired design remains stable logical identity with current authorization
+and a qualified provider contract. The added obligations refine its conditions;
+they do not silently turn the guarantee into unconditional exactly-once delivery.
+
 * More Information
 
 - [[file:../../bindings/python/qualification/job_executor/README.org][Job-executor qualification case]]
 - [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- [[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004 — Historical cases and lifecycle design]]
+- [[https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/][AWS Builders' Library — Idempotent API design]]
+- [[https://docs.cedarpolicy.com/auth/authorization.html][Cedar authorization semantics]]

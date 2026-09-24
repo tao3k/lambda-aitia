@@ -27,3 +27,33 @@ honor that scope while a logical operation is duplicated with two keys.
 [[file:../../../../docs/adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]]
 proposes a revised logical-operation guarantee and keeps its acceptance and
 re-verification separate from this test result.
+
+* Coverage boundary
+
+The worker has one fixed job and constant payload; the provider's single SQLite
+row represents both the deduplication key and the effect. This is not a model
+of multi-tenant identity, changed intent, retention expiry, concurrent attempts
+or atomicity across a ledger and an independent external service. Fixed mode
+repairs the injected identity fault, not every idempotency failure mode.
+
+ADR 0008's r2 coverage matrix assigns those remaining qualifications to their
+owners. Existing POO Flow Cedar authorization and Runtime effect mechanisms
+must be reused, not reimplemented in this fixture. A Cedar permit answers an
+authorization question; it does not establish provider commit uniqueness or
+resolve an unknown outcome after a lost acknowledgement.
+
+* Focused replay receipt — 2026-09-24
+
+The unchanged worker/test sources at Aitia commit
+=f3438241780e863db6c0b518d86628b540f96cd1= were rerun during the ADR r2 audit.
+From =bindings/python=, =uv run --locked --no-sync= ran
+=pytest qualification/job_executor/test_unique_effect.py= with a process-scoped
+=AITIA_QUALIFICATION_MODE=:
+
+- =fixed=: one test passed; one commit and task completion were asserted.
+- =buggy=: the expected negative test failed specifically at =committed == 1=,
+  observing two commits, rather than failing to start the worker/provider.
+
+This was a focused source-fixture replay in the existing uv environment, not a
+new installed-wheel qualification or Cedar/Runtime execution receipt. The new
+owner matrix does not promote untested boundaries to passing evidence.
