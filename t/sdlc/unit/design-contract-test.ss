@@ -94,6 +94,27 @@
         (check-equal?
          (.ref (sdlc-design-replacement-review baseline more-effects) 'blockers)
          '(new-effect))))
+    (test-case "lost ACK exposes the difference between a key and a logical operation"
+      (let* ((logical-effect
+              (sdlc-design-guarantee
+               "unique-effect" "g2"
+               "At most one external commit per logical job operation across retries and restarts"))
+             (revised (contract "r2" (list idempotency)
+                                (list logical-effect cancellation)
+                                (list retry-v2)))
+             (review (sdlc-design-replacement-review baseline revised))
+             (with-adr (contract "r2" (list idempotency)
+                                 (list logical-effect cancellation)
+                                 (list retry-v2)
+                                 decision: "lambda-aitia-adr-0008"))
+             (decision-review
+              (sdlc-design-replacement-review baseline with-adr)))
+        (check-equal? (.ref review 'declared-substitutable?) #f)
+        (check-equal? (.ref review 'recheck-guarantees) '("unique-effect"))
+        (check-equal? (.ref decision-review 'recheck-guarantees)
+                      '("cancel-before-commit" "unique-effect"))
+        (check-equal? (.ref review 'evidence-admitted?) #f)
+        (check-equal? (.ref review 'release-authorized?) #f)))
     (test-case "declaration-level compatibility never admits new evidence"
       (let* ((next (contract "r2" '() (list unique-effect cancellation)
                              (list retry-v1)))

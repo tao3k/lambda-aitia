@@ -85,6 +85,41 @@ jobs:
             proof/lean/.lake
           key: lambda-aitia-lean-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('proof/lean/lean-toolchain', 'proof/lean/lakefile.lean', 'proof/lean/lake-manifest.json') }}
 
+  tla-model:
+    name: TLA+ assurance lifecycle counterexamples
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Lambda Aitia
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Restore pinned TLC cache
+        id: tlc-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ci/tools/tla2tools.jar
+          key: lambda-aitia-tlc-v1.7.2-fa18543e44ed5974a85bd2c60c0dc16620ae117680ea8e693d2691999ed90b22
+
+      - name: Download pinned TLC release asset
+        if: steps.tlc-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .ci/tools
+          curl -fsSL --retry 3 \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.2/tla2tools.jar \
+            -o .ci/tools/tla2tools.jar
+
+      - name: Verify TLC release and replay all model contracts
+        env:
+          TLA_TOOLS_JAR: ${{ github.workspace }}/.ci/tools/tla2tools.jar
+        run: python3 -m unittest discover -s bindings/python/tests -p 'tla_contract.py'
+
+      - name: Save pinned TLC cache
+        if: steps.tlc-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .ci/tools/tla2tools.jar
+          key: lambda-aitia-tlc-v1.7.2-fa18543e44ed5974a85bd2c60c0dc16620ae117680ea8e693d2691999ed90b22
+
   scheme-runtime:
     name: Scheme, integration and Python runtime
     runs-on: ubuntu-latest

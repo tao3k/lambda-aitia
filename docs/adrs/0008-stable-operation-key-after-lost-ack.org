@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0008 — Bind retry identity to the logical operation
+
+:PROPERTIES:
+:ID:              lambda-aitia-adr-0008
+:STATUS:          proposed
+:DATE:            2026-09-24
+:REVISION:        r1
+:RFC_ID:          lambda-aitia-rfc-0001
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED:       poo-flow-maintainers
+:INFORMED:        lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+The original job-executor declaration says that the provider deduplicates
+=tenant/job/operation= keys and guarantees at most one commit *per key*. A
+real-process qualification case exposes the gap: after a provider commits but
+its acknowledgement is lost, a restarted worker can generate a new key. The
+provider correctly deduplicates each key while committing the same logical
+job operation twice. This is a known fault-injection case, not a newly found
+defect in a deployed application.
+
+* Decision Drivers
+
+- Keep a single logical identity across retries and process restarts.
+- Preserve completion after a transient acknowledgement loss.
+- Do not claim exactly-once effects without provider idempotency and durable
+  task-state assumptions.
+- Keep a revised guarantee and its evidence separate from the old declaration.
+
+* Considered Options
+
+1. Keep the per-key guarantee and accept duplicate logical operations.
+2. Turn off retries, avoiding duplicates by sacrificing completion.
+3. Persist or deterministically derive a stable provider key from the logical
+   operation identity and revise the guarantee scope.
+
+* Decision Outcome
+
+Propose option 3. The job ledger owns the logical operation identity and retry
+state. The same tenant/job/operation key reaches an idempotent provider after
+restart. The revised =unique-effect= guarantee is at most one external commit
+per logical job operation across retries and restarts, conditional on the
+provider retaining its deduplication record. A changed guarantee, retry
+variation and ADR identity reopen verification; old evidence is not admitted
+by declaration-level compatibility.
+
+* Consequences
+
+- Good: acknowledgement loss does not create a second effect in the bounded
+  qualification case, and the worker can still complete after restart.
+- Bad: key retention, scoping and provider deduplication are new operational
+  dependencies to qualify before any production assurance claim.
+- Neutral: this proposed ADR neither issues a Host seal nor authorizes an
+  effect. Acceptance requires independent review of the actual provider and
+  persistence mechanism.
+
+* Confirmation
+
+- The Python project's installed-wheel qualification runs two worker processes
+  against a persistent SQLite ledger and a loopback HTTP provider. The buggy
+  key strategy fails with two commits; the stable strategy passes with one.
+- The Scheme design-replacement test treats the changed guarantee and decision
+  as requiring fresh review, with no evidence admission or release authority.
+- Full source-bound Host admission and production provider qualification remain
+  open.
+
+* More Information
+
+- [[file:../../bindings/python/qualification/job_executor/README.org][Job-executor qualification case]]
+- [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]

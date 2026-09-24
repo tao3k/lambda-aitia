@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Python job-executor qualification case
+
+This case belongs to the production =bindings/python= uv project. Its worker
+is a real child process, its task ledger and provider effect log are SQLite
+files, and the effect provider is a loopback HTTP server. The service commits
+once, withholds the first acknowledgement, and lets a restarted worker retry.
+
+The =buggy= strategy generates a new provider idempotency key after restart:
+the test must fail with two commits. The =fixed= strategy retains a key derived
+from the logical operation: the same test must pass with one commit and a
+completed task. This is a deliberate known-fault replay, not a novel bug.
+
+The installed-wheel project test copies the scenario outside the checkout,
+installs the built wheel and locked dependencies in a new uv environment, and
+runs both strategies through =lambda_aitia.verification.run_pytest=. It also
+changes one source file after the passing observation and requires that
+=source_current= reject the old observation. The observation is not a Scheme
+Host admission; process input provenance, a durable Host session, independent
+provider trust, and a Runtime effect gate remain open.
+
+The case challenges the original guarantee's *per key* scope: a provider can
+honor that scope while a logical operation is duplicated with two keys.
+[[file:../../../../docs/adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]]
+proposes a revised logical-operation guarantee and keeps its acceptance and
+re-verification separate from this test result.

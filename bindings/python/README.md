@@ -23,6 +23,13 @@ it cannot claim release authorization or runtime execution. Stage execution is
 added only as each real Scheme operation and attributable receipt becomes
 available; the package will never simulate completion with Python callbacks.
 
+`lambda_aitia.verification.run_pytest` is a production subprocess observation
+surface, not a Host-issued admission. It preserves exit status, selected test
+count, JUnit digest and source-tree digest; zero collected tests, skipped-only
+runs, timeouts, missing reports and source drift do not pass its obligation.
+The caller must supply an isolated source tree and trusted Python environment.
+The Assurance Host still owns admission, revocation and execution authority.
+
 ```python
 from lambda_aitia import SdlcRuntime
 
@@ -51,6 +58,13 @@ LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
 LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
   env -u SDKROOT uv build --wheel --offline --no-build-isolation
 ```
+
+`just check-native` also installs that wheel in a fresh uv environment outside
+the repository, runs the native plan, reproduces a lost-acknowledgement bug in
+two real worker processes and a loopback HTTP service, checks the corrected
+worker, then rejects the old observation after a source edit. This is a known
+fault-injection qualification case, not a newly discovered production defect
+or an Assurance Host seal.
 
 On Darwin, the repository `justfile` selects `/usr/bin/cc`, unsets `SDKROOT`
 for Gerbil invocations, and keeps the deployment metadata consistent with the

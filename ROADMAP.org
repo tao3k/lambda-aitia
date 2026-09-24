@@ -369,6 +369,15 @@ an exact source input in a current Host admission, and the Claim's full support
 set. This remains conditional on the configured Host and is not a proof of
 verifier independence or deployment trust.
 
+The Python project's first installed-wheel qualification now runs a real
+worker process twice against a persistent task ledger and loopback provider.
+An intentionally regenerated retry key reproduces two commits after a lost
+acknowledgement; a stable logical-operation key yields one commit and eventual
+task completion. [[file:docs/adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]] proposes widening the guarantee from
+"per key" to "per logical operation" and the design-replacement test reopens
+the affected verification. This is known-fault behavioral evidence, not a
+Host-issued seal or proof of a production provider's idempotency.
+
 The first reference case is a software change crossing requirement,
 implementation, verification, release-decision and effect boundaries.  It
 uses Aitia-owned Software/SDLC knowledge while keeping NASA and provider rules
