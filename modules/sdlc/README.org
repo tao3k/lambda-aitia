@@ -70,6 +70,11 @@ independence, semantic implementation conformance or trusted deployment.
 An application may configure the Assurance Host's =source-reader:= capability.
 With that reader, Host issuance and currentness check every declared verifier
 input against its Artifact SHA-256 using POO Flow's Source Lock algorithm.
+The configured verification operation then receives Host-materialized POO input
+values as its fourth argument, each with =identity=, =revision=, =digest= and a
+copy of the validated =payload=. The Host rechecks those values after the
+operation; replacing both payload and digest cannot retain a seal. Without a
+reader, the operation retains its three-argument contract.
 A byte mismatch or moving snapshot blocks issuance; observed byte drift
 invalidates previously issued receipts, which cannot revive merely because
 the bytes later return. =source-bytes-checked-support-current?= additionally

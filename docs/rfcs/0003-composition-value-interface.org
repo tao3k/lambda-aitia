@@ -65,6 +65,10 @@ binding remain separate acceptance gates.
 
 When an application configures an Assurance Host source reader, issuance and
 currentness recheck all declared verifier inputs against current source bytes.
+The configured verification operation receives Host-materialized POO input
+values as a fourth argument, including a copy of each validated payload; the
+Host rechecks identities, revisions, digests and payloads after the operation.
+Without a reader, the operation keeps its three-argument contract.
 Observed byte drift invalidates prior admissions, so returning to the old bytes
 requires fresh verification. This strengthens the Host boundary but does not
 authenticate the source repository or prove what a verifier process actually

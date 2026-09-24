@@ -92,9 +92,18 @@
 (def (host source-procedure source-reader: (reader #f))
   (assurance-verification-host
    "host/design-verification"
-   (lambda (subject-value issued-at expires-at)
-     (and (equal? (.ref (.ref subject-value 'outcome) 'output-digest) digest-b)
-          (< issued-at expires-at)))
+   (if reader
+     (lambda (subject-value issued-at expires-at inputs)
+       (and (= (length inputs) 1)
+            (equal? (.ref (car inputs) 'identity) "artifact/source")
+            (equal? (.ref (car inputs) 'payload) source-bytes)
+            (equal? (.ref (.ref subject-value 'outcome) 'output-digest)
+                    digest-b)
+            (< issued-at expires-at)))
+     (lambda (subject-value issued-at expires-at)
+       (and (equal? (.ref (.ref subject-value 'outcome) 'output-digest)
+                    digest-b)
+            (< issued-at expires-at))))
    (lambda () 11) 9 source-procedure source-reader: reader))
 (def (review snapshot-value host-value input-source evidence-value)
   (let* ((bound (bound-obligation snapshot-value))
@@ -194,11 +203,33 @@
              (configured
               (assurance-verification-host
                "host/source-race"
-               (lambda (subject issued-at expires-at)
+               (lambda (subject issued-at expires-at inputs)
+                 (check-equal? (.ref (car inputs) 'payload) source-bytes)
                  (set! payload "different")
                  #t)
                (lambda () 11) 9 (lambda () cut)
                source-reader: (lambda (identity) payload)))
+             (reported (outcome cut source)))
+        (check-equal?
+         (assurance-host-admit
+          configured (bound-obligation cut) evidence reported)
+         #f)))
+    (test-case "verifier cannot mutate handed source bytes and keep a seal"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (configured
+              (assurance-verification-host
+               "host/handed-input-mutation"
+               (lambda (subject issued-at expires-at inputs)
+                 (let (input (car inputs))
+                   (set-car! inputs
+                             (.o identity: (.ref input 'identity)
+                                 revision: (.ref input 'revision)
+                                 digest: (source-lock-payload-digest "different")
+                                 payload: "different")))
+                 #t)
+               (lambda () 11) 9 (lambda () cut)
+               source-reader: (lambda (identity) source-bytes)))
              (reported (outcome cut source)))
         (check-equal?
          (assurance-host-admit

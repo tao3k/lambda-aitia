@@ -111,10 +111,26 @@
                (procedure? snapshot-source)
                (or (not source-reader) (procedure? source-reader)))
     (error "invalid assurance verification Host configuration"))
-  (let* ((adapter
+  (let* ((host (.o identity: (string-copy identity-value)))
+         (adapter
           (poo-flow-verification-adapter
-           identity-value operation assurance-verification-subject-snapshot))
-         (host (.o identity: (string-copy identity-value))))
+           identity-value
+           (lambda (subject now until)
+             (if source-reader
+               (let (inputs
+                     (host-materialized-inputs
+                      host (.ref subject 'snapshot) (.ref subject 'outcome)))
+                 (and inputs
+                      (let (expected
+                            (map (lambda (input)
+                                   (vector (string-copy (.ref input 'identity))
+                                           (string-copy (.ref input 'revision))
+                                           (string-copy (.ref input 'digest))))
+                                 inputs))
+                        (and (eq? (operation subject now until inputs) #t)
+                             (host-handed-inputs-current? inputs expected)))))
+               (operation subject now until)))
+           assurance-verification-subject-snapshot)))
     (hash-put! issued-hosts host
                (vector (string-copy identity-value) adapter clock lease -1
                        snapshot-source 0 #f 0 source-reader))
@@ -278,7 +294,7 @@
 ;;; conditional application trust boundary, not a claim about Git provenance
 ;;; or the verifier's actual process inputs. Re-read and recheck the cut after
 ;;; materialization so a moving snapshot cannot qualify an old source.
-(def (assurance-host-source-current? host snapshot artifact)
+(def (host-source-payload host snapshot artifact)
   (let* ((entry (required-host-entry host))
          (reader (vector-ref entry 9)))
     (and reader
@@ -309,7 +325,51 @@
                     (and matches?
                          (equal? expected-cut
                                  (assurance-snapshot-semantic-digest
-                                  (host-current-snapshot entry)))))))))))
+                                  (host-current-snapshot entry)))
+                         payload))))))))
+
+(def (assurance-host-source-current? host snapshot artifact)
+  (and (host-source-payload host snapshot artifact) #t))
+
+;;; The configured operation receives these POO values as its fourth argument
+;;; when source-reader: is present. The Host, not the operation, selects and
+;;; validates the bytes. It rehashes the handed values after the operation.
+(def (host-materialized-inputs host snapshot outcome)
+  (let loop ((remaining (.ref outcome 'inputs)) (collected '()))
+    (if (null? remaining)
+      (reverse collected)
+      (let* ((input (car remaining))
+             (artifact (snapshot-node snapshot (.ref input 'identity)))
+             (payload-value (and artifact
+                                 (host-source-payload host snapshot artifact)))
+             (handed-payload
+              (and payload-value
+                   (if (string? payload-value)
+                     (string-copy payload-value)
+                     (u8vector-copy payload-value)))))
+        (and payload-value
+             (loop (cdr remaining)
+                   (cons (.o identity: (.ref input 'identity)
+                             revision: (.ref input 'revision)
+                             digest: (.ref input 'digest)
+                             payload: handed-payload)
+                         collected)))))))
+
+(def (host-handed-inputs-current? inputs expected)
+  (let loop ((remaining inputs) (original expected))
+    (cond
+     ((null? remaining) (null? original))
+     ((null? original) #f)
+     (else
+      (let ((input (car remaining)) (fields (car original)))
+        (and (equal? (.ref input 'identity) (vector-ref fields 0))
+             (equal? (.ref input 'revision) (vector-ref fields 1))
+             (equal? (.ref input 'digest) (vector-ref fields 2))
+             (let (payload-value (.ref input 'payload))
+               (and (or (string? payload-value) (u8vector? payload-value))
+                    (equal? (source-lock-payload-digest payload-value)
+                            (vector-ref fields 2))))
+             (loop (cdr remaining) (cdr original))))))))
 
 ;;; An optional Host source reader strengthens issuance and currentness for
 ;;; every declared verifier input. With no configured reader the old Host
