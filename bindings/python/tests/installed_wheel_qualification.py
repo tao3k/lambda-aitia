@@ -62,7 +62,7 @@ def test_installed_wheel_qualification() -> None:
         code = """
 from pathlib import Path
 from lambda_aitia import AitiaNativeSession, SdlcRuntime
-from lambda_aitia.verification import run_pytest
+from lambda_aitia.verification import capture_source_tree, run_pytest, run_pytest_frozen
 root = Path('scenario').resolve()
 assert SdlcRuntime().plan('qualification/job-42').lifecycle_id == 'qualification/job-42'
 with AitiaNativeSession() as session:
@@ -75,7 +75,8 @@ buggy = run_pytest(Path(__import__('sys').executable), root, selector,
     environment={'AITIA_QUALIFICATION_MODE': 'buggy'})
 assert buggy.status == 'failed', buggy
 assert 'assert 2 == 1' in buggy.output, buggy.output
-fixed = run_pytest(Path(__import__('sys').executable), root, selector,
+fixed = run_pytest_frozen(Path(__import__('sys').executable),
+    capture_source_tree(root), selector,
     environment={'AITIA_QUALIFICATION_MODE': 'fixed'})
 assert fixed.passed_obligation and fixed.collected == 1, fixed
 assert fixed.source_current(root)

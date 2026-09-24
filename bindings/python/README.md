@@ -27,8 +27,12 @@ available; the package will never simulate completion with Python callbacks.
 surface, not a Host-issued admission. It preserves exit status, selected test
 count, JUnit digest and source-tree digest; zero collected tests, skipped-only
 runs, timeouts, missing reports and source drift do not pass its obligation.
-The caller must supply an isolated source tree and trusted Python environment.
-The Assurance Host still owns admission, revocation and execution authority.
+It captures a bounded, canonical source-byte payload and executes pytest only
+from a separately materialized copy; selectors cannot escape that copy.
+`capture_source_tree` and `run_pytest_frozen` expose the same payload boundary
+for a future Host-owned source reader. This still does not prove repository
+provenance, interpreter independence, or trusted external services. The
+Assurance Host owns admission, revocation and execution authority.
 
 `AitiaNativeSession` keeps one Gambit transport runtime alive across calls to
 `SdlcRuntime(session=...)` and `evaluate_gitops(..., session=...)`. It is

@@ -18,8 +18,9 @@ installs the built wheel and locked dependencies in a new uv environment, and
 runs both strategies through =lambda_aitia.verification.run_pytest=. It also
 changes one source file after the passing observation and requires that
 =source_current= reject the old observation. The observation is not a Scheme
-Host admission; process input provenance, a durable Host session, independent
-provider trust, and a Runtime effect gate remain open.
+Host admission. Pytest runs from captured source bytes in a fresh directory,
+but repository provenance, Scheme Host admission, independent provider trust,
+and a Runtime effect gate remain open.
 
 The case challenges the original guarantee's *per key* scope: a provider can
 honor that scope while a logical operation is duplicated with two keys.

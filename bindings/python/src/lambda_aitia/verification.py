@@ -6,24 +6,39 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import subprocess
 import tempfile
 from uuid import uuid4
 import xml.etree.ElementTree as ET
 
 
-def source_digest(root: Path) -> str:
-    """Hash the exact regular-file tree selected for a verifier run."""
+_SOURCE_MAGIC = b"lambda-aitia.source-tree.v1\0"
+_MAX_SOURCE_BYTES = 64 * 1024 * 1024
+_MAX_SOURCE_FILES = 10_000
+
+
+def _source_payload_digest(payload: bytes) -> str:
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def capture_source_tree(root: Path) -> bytes:
+    """Freeze a regular-file tree into canonical, source-lock-compatible bytes.
+
+    Source paths and contents are length-framed, ordered, and bounded. The
+    returned bytes can be independently rehashed by the Scheme Host's source
+    reader; their digest is not a verification seal.
+    """
 
     root = root.resolve(strict=True)
     if not root.is_dir():
         raise ValueError("source root must be a directory")
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*")):
+    entries: list[tuple[bytes, bytes]] = []
+    size = len(_SOURCE_MAGIC) + 8
+    for path in root.rglob("*"):
         if path.is_symlink():
             raise ValueError(f"source tree contains a symlink: {path}")
         if path.is_dir():
@@ -31,12 +46,71 @@ def source_digest(root: Path) -> str:
         if not path.is_file():
             raise ValueError(f"source tree contains a non-file: {path}")
         relative = path.relative_to(root).as_posix().encode("utf-8")
-        contents = path.read_bytes()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        digest.update(len(contents).to_bytes(8, "big"))
-        digest.update(contents)
-    return "sha256:" + digest.hexdigest()
+        remaining = _MAX_SOURCE_BYTES - size - 4 - len(relative) - 8
+        if remaining < 0:
+            raise ValueError("source tree exceeds verifier capture limit")
+        with path.open("rb") as source:
+            contents = source.read(remaining + 1)
+        size += 4 + len(relative) + 8 + len(contents)
+        if size > _MAX_SOURCE_BYTES or len(entries) >= _MAX_SOURCE_FILES:
+            raise ValueError("source tree exceeds verifier capture limit")
+        entries.append((relative, contents))
+    entries.sort(key=lambda entry: entry[0])
+    framed = bytearray(_SOURCE_MAGIC)
+    framed.extend(len(entries).to_bytes(8, "big"))
+    for relative, contents in entries:
+        framed.extend(len(relative).to_bytes(4, "big"))
+        framed.extend(relative)
+        framed.extend(len(contents).to_bytes(8, "big"))
+        framed.extend(contents)
+    return bytes(framed)
+
+
+def _source_entries(payload: bytes) -> tuple[tuple[Path, bytes], ...]:
+    if len(payload) > _MAX_SOURCE_BYTES or not payload.startswith(_SOURCE_MAGIC):
+        raise ValueError("invalid frozen source payload")
+    position = len(_SOURCE_MAGIC)
+
+    def take(length: int) -> bytes:
+        nonlocal position
+        if length < 0 or position + length > len(payload):
+            raise ValueError("truncated frozen source payload")
+        result = payload[position : position + length]
+        position += length
+        return result
+
+    count = int.from_bytes(take(8), "big")
+    if count > _MAX_SOURCE_FILES:
+        raise ValueError("frozen source file count exceeds limit")
+    entries: list[tuple[Path, bytes]] = []
+    previous = b""
+    for _ in range(count):
+        relative = take(int.from_bytes(take(4), "big"))
+        if not relative or relative <= previous or b"\\" in relative or b"\0" in relative:
+            raise ValueError("invalid frozen source path ordering")
+        previous = relative
+        try:
+            decoded = relative.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError("invalid frozen source path encoding") from error
+        path = PurePosixPath(decoded)
+        if (
+            path.is_absolute()
+            or PureWindowsPath(decoded).drive
+            or any(part in ("", ".", "..") for part in decoded.split("/"))
+        ):
+            raise ValueError("frozen source path escapes root")
+        contents = take(int.from_bytes(take(8), "big"))
+        entries.append((Path(*path.parts), contents))
+    if position != len(payload):
+        raise ValueError("trailing frozen source payload bytes")
+    return tuple(entries)
+
+
+def source_digest(root: Path) -> str:
+    """Hash the canonical frozen bytes of a regular-file tree."""
+
+    return _source_payload_digest(capture_source_tree(root))
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,27 +139,44 @@ class PytestObservation:
             return False
 
 
-def run_pytest(
+def _validated_selectors(
+    selectors: tuple[str, ...], entries: tuple[tuple[Path, bytes], ...]
+) -> None:
+    selected_files = {path.as_posix() for path, _ in entries}
+    if not selectors:
+        raise ValueError("at least one explicit pytest selector is required")
+    for selector in selectors:
+        filename = selector.split("::", 1)[0]
+        if (
+            not filename
+            or selector.startswith("-")
+            or "\\" in filename
+            or "\0" in filename
+            or any(part in ("", ".", "..") for part in filename.split("/"))
+            or filename not in selected_files
+        ):
+            raise ValueError("pytest selector must name a file in frozen source")
+
+
+def run_pytest_frozen(
     python: Path,
-    source_root: Path,
+    source_payload: bytes,
     selectors: tuple[str, ...],
     *,
     timeout_seconds: int = 30,
     environment: dict[str, str] | None = None,
 ) -> PytestObservation:
-    """Run selected tests in a caller-frozen tree and validate their JUnit report.
+    """Run selected tests only from a validated frozen source payload.
 
-    The caller owns the tree, interpreter, dependencies, and external services.
-    This function detects source drift, but cannot prove process isolation or
-    turn its result into a Host-issued seal.
+    The caller owns the interpreter, dependencies and external services. The
+    payload is observable process input, not a Host-issued verification seal.
     """
 
-    if not selectors or any(not item or item.startswith("-") for item in selectors):
-        raise ValueError("at least one explicit pytest selector is required")
+    entries = _source_entries(source_payload)
+    _validated_selectors(selectors, entries)
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
-    root = source_root.resolve(strict=True)
-    before = source_digest(root)
+    before = _source_payload_digest(source_payload)
     run_id = uuid4().hex
     interpreter = python.absolute()
     if not interpreter.is_file():
@@ -99,8 +190,14 @@ def run_pytest(
         if any(not key.startswith("AITIA_QUALIFICATION_") for key in environment):
             raise ValueError("only AITIA_QUALIFICATION_ environment values are allowed")
         safe_environment.update(environment)
-    with tempfile.TemporaryDirectory(prefix="aitia-pytest-") as report_directory:
-        report = Path(report_directory) / f"{run_id}.xml"
+    with tempfile.TemporaryDirectory(prefix="aitia-pytest-") as workspace:
+        root = Path(workspace) / "source"
+        root.mkdir()
+        for relative, contents in entries:
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(contents)
+        report = Path(workspace) / f"{run_id}.xml"
         argv = (
             str(interpreter), "-m", "pytest", "-q",
             "-p", "no:cacheprovider", f"--junitxml={report}", *selectors,
@@ -115,8 +212,15 @@ def run_pytest(
             output = completed.stdout
         except subprocess.TimeoutExpired as error:
             exit_code = None
-            output = (error.stdout or b"").decode("utf-8", "replace") if isinstance(error.stdout, bytes) else (error.stdout or "")
-        after = source_digest(root)
+            output = (
+                (error.stdout or b"").decode("utf-8", "replace")
+                if isinstance(error.stdout, bytes)
+                else (error.stdout or "")
+            )
+        try:
+            after = source_digest(root)
+        except (OSError, ValueError):
+            after = None
         collected = passed = skipped = 0
         report_digest = None
         report_valid = False
@@ -164,3 +268,27 @@ def run_pytest(
             run_id, before, argv, exit_code, status, collected, passed,
             skipped, report_digest, output[-8192:],
         )
+
+
+def run_pytest(
+    python: Path,
+    source_root: Path,
+    selectors: tuple[str, ...],
+    *,
+    timeout_seconds: int = 30,
+    environment: dict[str, str] | None = None,
+) -> PytestObservation:
+    """Capture source, execute its frozen copy, and detect caller-tree drift.
+
+    A changing caller tree invalidates the observation, but even a passing
+    observation is not a Scheme Assurance Host admission.
+    """
+
+    payload = capture_source_tree(source_root)
+    observation = run_pytest_frozen(
+        python, payload, selectors,
+        timeout_seconds=timeout_seconds, environment=environment,
+    )
+    if not observation.source_current(source_root):
+        return replace(observation, status="source-changed")
+    return observation
