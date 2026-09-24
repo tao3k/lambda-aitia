@@ -47,7 +47,10 @@ def test_installed_wheel_qualification() -> None:
             cwd=PROJECT / "bindings/python", quiet=True)
         run("uv", "venv", "--python", str(PYTHON), str(venv), cwd=root)
         interpreter = venv / "bin/python"
-        run("uv", "pip", "install", "--offline", "--python", str(interpreter),
+        # A fresh CI cache can lack a locked wheel even when the source-tree
+        # environment already has it. Resolve only hashes from uv.lock;
+        # reuse cached wheels and fetch missing ones when needed.
+        run("uv", "pip", "install", "--python", str(interpreter),
             "-r", str(requirements), cwd=root)
         run("uv", "pip", "install", "--offline", "--no-deps", "--python",
             str(interpreter), str(wheel), cwd=root)
