@@ -350,8 +350,8 @@ Exit gates:
 
 * Phase 7 — Software/SDLC reference qualification
 
-Status: =active= for an inert design-contract replacement slice; full reference
-qualification remains open.
+Status: =active= for inert design-contract replacement and snapshot-bound
+implementation-mapping slices; full reference qualification remains open.
 
 The first job-executor regression now records an ADR-bound POO-native design
 contract with assumptions, guarantees, state ownership, effects and variation
@@ -359,8 +359,11 @@ points. A retry-policy revision reopens the unique-effect guarantee; the
 existing SDLC impact projection uses POO Flow Graph to select its verification
 trajectory. Stronger assumptions, weakened guarantees, new effects, changed
 decision and same-revision mutation have negative tests. This is a pure
-declaration comparison, not a behavioral implication proof, model-to-code
-mapping, admitted verifier receipt or release decision.
+declaration comparison, not a behavioral implication proof, admitted verifier
+receipt or release decision. A follow-on mapping now binds each guarantee to
+exact source artifact and Assurance snapshot revisions/digests. It fails closed
+on source/snapshot changes and uncovered guarantees, but it does not establish
+semantic model-to-code conformance or independent acceptance.
 
 The first reference case is a software change crossing requirement,
 implementation, verification, release-decision and effect boundaries.  It

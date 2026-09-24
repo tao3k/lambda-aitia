@@ -45,6 +45,17 @@ An alternative local-deduplication candidate changes state ownership,
 responsibility and the ADR decision. It is therefore blocked for design review
 even though its guarantee statements have the same text as the original.
 
+=implementation.ss= adds an inert design-to-source link. A link binds one
+guarantee revision to an Assurance artifact identity/revision/digest and the
+canonical Assurance snapshot context in which that source appears. The review
+requires every guarantee to have a current link and rejects changed contracts,
+guarantees, snapshots, source digests and unresolved/conflicted snapshot cuts.
+It reuses the Assurance snapshot owner rather than defining another source
+ledger. A current mapping means only that the declaration is consistent with
+the supplied snapshot. It does not validate the bytes behind an artifact,
+prove the implementation satisfies the guarantee, admit evidence or authorize
+release. Independent verifier/Host acceptance remains a separate gate.
+
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
 models. Applications combine this module with POO Flow-owned workflow modules

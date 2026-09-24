@@ -8,12 +8,15 @@
         (only-in :gerbil/core list-sort)
         :std/list/list
         :poo-flow/src/module-system/contribution/model
+        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+                 assurance-canonical-digest)
         :poo-flow/lambda-aitia/modules/sdlc/types)
 
 (export SdlcDesignClause SdlcDesignVariation SdlcDesignContract
         sdlc-design-clause? sdlc-design-variation? sdlc-design-contract?
         sdlc-design-assumption sdlc-design-guarantee
         sdlc-design-variation sdlc-design-contract
+        sdlc-design-contract-digest
         sdlc-design-replacement-review)
 
 (def (text-list? values)
@@ -123,6 +126,13 @@
         (ordered-keys (.ref value 'assumptions) clause-key)
         (ordered-keys (.ref value 'guarantees) clause-key)
         (ordered-keys (.ref value 'variations) variation-key)))
+(def (sdlc-design-contract-digest value)
+  (unless (sdlc-design-contract? value)
+    (error "invalid design contract for digest"))
+  (assurance-canonical-digest
+   (list 'lambda-aitia.sdlc-design-contract
+         (.ref value 'identity) (.ref value 'revision)
+         (contract-body value))))
 (def (changed-ids old-values new-values key)
   (ordered-ids
    (append

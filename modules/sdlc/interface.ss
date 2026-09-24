@@ -16,3 +16,5 @@
 (export (import: :poo-flow/lambda-aitia/modules/sdlc/impact))
 (import :poo-flow/lambda-aitia/modules/sdlc/design)
 (export (import: :poo-flow/lambda-aitia/modules/sdlc/design))
+(import :poo-flow/lambda-aitia/modules/sdlc/implementation)
+(export (import: :poo-flow/lambda-aitia/modules/sdlc/implementation))
