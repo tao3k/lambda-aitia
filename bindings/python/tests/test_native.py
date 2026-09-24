@@ -75,7 +75,7 @@ def test_python_delegates_gitops_decision_to_scheme() -> None:
                 {"name": "commit-policy", "conclusion": "success"},
                 {"name": "build", "conclusion": "success"},
                 {"name": "unit-test", "conclusion": "success"},
-                {"name": "nasa-7150-2d", "conclusion": "success"},
+                {"name": "nasa/sdlc/npr-7150.2", "conclusion": "success"},
             ],
         }
     )

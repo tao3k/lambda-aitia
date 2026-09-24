@@ -89,13 +89,13 @@
    snapshot-context-digest: (.ref snapshot-value 'context-digest)
    inputs: (list (assurance-verifier-input input-source))
    output-digest: digest-b))
-(def (host source-procedure)
+(def (host source-procedure source-reader: (reader #f))
   (assurance-verification-host
    "host/design-verification"
    (lambda (subject-value issued-at expires-at)
      (and (equal? (.ref (.ref subject-value 'outcome) 'output-digest) digest-b)
           (< issued-at expires-at)))
-   (lambda () 11) 9 source-procedure))
+   (lambda () 11) 9 source-procedure source-reader: reader))
 (def (review snapshot-value host-value input-source evidence-value)
   (let* ((bound (bound-obligation snapshot-value))
          (reported (outcome snapshot-value input-source))
@@ -126,34 +126,52 @@
           (check-equal? (.ref receipt 'implementation-conforms?) #f)
           (check-equal? (.ref receipt 'release-authorized?) #f)
           (check-equal? (.ref receipt 'runtime-executed?) #f))))
-    (test-case "actual source bytes must match the mapped digest"
+    (test-case "Host-owned source bytes must match the mapped digest"
       (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
                              evidence))
-             (configured (host (lambda () cut))))
+             (configured
+              (host (lambda () cut)
+                    source-reader: (lambda (identity)
+                                     (and (equal? identity "artifact/source")
+                                          source-bytes)))))
         (let-values (((receipt admission subject mapping)
                       (review cut configured source evidence)))
-          (let ((matched
-                 (sdlc-design-guarantee-support-review
+          (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #t)
+          (check-equal? (.ref receipt 'verifier-independence-established?) #f)
+          (check-equal? (.ref receipt 'implementation-conforms?) #f))))
+    (test-case "changed Host bytes fail closed"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (payload "different")
+             (configured
+              (host (lambda () cut)
+                    source-reader: (lambda (identity) payload))))
+        (let-values (((receipt admission subject mapping)
+                      (review cut configured source evidence)))
+          (check-equal? (.ref receipt 'source-bound-support-current?) #t)
+          (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #f)
+          (set! payload source-bytes)
+          (check-equal?
+           (.ref (sdlc-design-guarantee-support-review
                   configured contract guarantee (list mapping) claim subject
-                  evidence-link admission (list admission)
-                  source-payloads: (list (cons "artifact/source" source-bytes))))
-                (changed
-                 (sdlc-design-guarantee-support-review
-                  configured contract guarantee (list mapping) claim subject
-                  evidence-link admission (list admission)
-                  source-payloads: (list (cons "artifact/source" "different"))))
-                (duplicate
-                 (sdlc-design-guarantee-support-review
-                  configured contract guarantee (list mapping) claim subject
-                  evidence-link admission (list admission)
-                  source-payloads: (list (cons "artifact/source" source-bytes)
-                                         (cons "artifact/source" source-bytes)))))
-            (check-equal? (.ref matched 'source-bytes-checked-support-current?) #t)
-            (check-equal? (.ref matched 'verifier-independence-established?) #f)
-            (check-equal? (.ref matched 'implementation-conforms?) #f)
-            (check-equal? (.ref changed 'source-bound-support-current?) #t)
-            (check-equal? (.ref changed 'source-bytes-checked-support-current?) #f)
-            (check-equal? (.ref duplicate 'source-bytes-checked-support-current?) #f)))))
+                  evidence-link admission (list admission))
+                 'source-bytes-checked-support-current?)
+           #t))))
+    (test-case "a cut moving during Host source read fails closed"
+      (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
+                             evidence))
+             (next (bound-cut (list evidence-link requirement-link)
+                              evidence))
+             (current-cut cut)
+             (configured
+              (host (lambda () current-cut)
+                    source-reader:
+                    (lambda (identity)
+                      (set! current-cut next)
+                      source-bytes))))
+        (let-values (((receipt admission subject mapping)
+                      (review cut configured source evidence)))
+          (check-equal? (.ref receipt 'source-bytes-checked-support-current?) #f))))
     (test-case "design assumptions cannot disappear from the Assurance Claim"
       (let* ((cut (bound-cut (list evidence-link requirement-link source-link)
                              evidence))

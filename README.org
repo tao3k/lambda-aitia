@@ -202,11 +202,11 @@ See [[file:docs/rfcs/0001-causal-assurance-core.org][RFC 0001]],
 
 * Project rules
 
-- Public extension APIs are POO-native.  The ordinary =aitia.ss= surface selects
-  the maintained =aitia= Composition and fills bounded Project slots; its macro
-  lowers directly to those POO values.  Prototype, C3 and slot-transform
-  operators are exposed only when a user needs an advanced override.  Neither
-  layer uses raw alist DSLs or ad hoc patch languages.
+- Public extension APIs are POO-native. The maintained =aitia= Case now uses
+  POO Flow's =user-composition=, =compose profiles= and =use-module=.
+  The former no-import =aitia.ss= convenience is an open RFC 0003 UX gate,
+  not a supported loader in the current Profile algebra. Advanced overrides
+  use POO slots; neither path introduces an alist or patch-language DSL.
 - Functional transformations are values first.  Side effects live behind an
   explicit POO Flow verifier or runtime handoff.
 - Native Scheme tests are never heap-unbounded: the Aitia Testing Interface

@@ -50,7 +50,7 @@
     "source.lock.ss is the deterministic product of declarations and bytes"
     (let* ((generated-lock
             (sources-lock-freeze
-             "lambda-aitia/nasa-npr-7150.2d/sources"
+             "lambda-aitia/nasa/sdlc/npr-7150.2/D/sources"
              "2022-03-08"
              Nasa7150_2DSources
              read-lambda-aitia-source

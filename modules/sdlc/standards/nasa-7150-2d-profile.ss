@@ -16,7 +16,7 @@
   "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter3")
 
 (def Nasa7150_2D
-  (.o (:: @ StandardProfile.) identity: "nasa/npr-7150.2d" edition: "D"
+  (.o (:: @ StandardProfile.) identity: "nasa/sdlc/npr-7150.2" edition: "D"
       source-url: chapter3-url verified-on: "2026-09-12"
       effective-date: "2022-03-08" expiration-date: "2027-03-08"
       applicability-source:

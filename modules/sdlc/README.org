@@ -67,18 +67,20 @@ revoked admissions fail closed. The projection issues no admission and grants
 no release authority. Its =source-bound-support-current?= result is conditional
 on the application-configured Host; it does not establish verifier
 independence, semantic implementation conformance or trusted deployment.
-Callers may additionally supply =source-payloads:= as exact artifact-id/byte
-pairs. =source-bytes-checked-support-current?= then requires a unique payload
-for a mapped verifier input and compares its SHA-256 using POO Flow's Source
-Lock algorithm. A missing, duplicated or changed payload fails this stronger
-check. This only verifies caller-supplied bytes against the declared artifact;
-it does not authenticate the repository checkout, the verifier's actual inputs
-or the Host's independence. Those remain separate application trust duties.
+An application may configure the Assurance Host's =source-reader:= capability.
+=source-bytes-checked-support-current?= then requires that Host to read the
+mapped verifier input, compare its bytes to the Artifact SHA-256 using POO
+Flow's Source Lock algorithm, and preserve the same canonical snapshot before
+and after reading. Without the Host reader, or if the bytes or cut change, the
+stronger result fails closed. SDLC review callers cannot supply replacement
+payloads. The application still owns the reader's repository/provenance trust
+and the verifier's actual process inputs; matching bytes alone proves neither
+Host independence nor semantic implementation conformance.
 
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
-models. Applications combine this module with POO Flow-owned workflow modules
-through =use-composition=.
+models. Applications combine these POO-native Profiles through POO Flow's
+=use-module= and =compose profiles=.
 
 #+begin_export mermaid
 flowchart LR
@@ -91,25 +93,20 @@ flowchart LR
   Consumer -->|"host-owned execution"| Runtime[GitHub Actions or another CI host]
 #+end_export
 
-The user-owned POO Flow =user-interface/init.ss= selects SDLC using the existing
-custom module syntax (paths are relative to that user directory):
+The maintained software-engineering Project selects base SDLC and NASA's
+standard-family contribution separately:
 
 #+begin_src scheme
-(poo-flow!
- :custom
- (sdlc +nasa-7150-2d))
+(poo-flow-user-module-selection 'software-engineering 'sdlc '())
+(poo-flow-user-module-selection 'nasa 'sdlc '(+npr-7150.2))
 #+end_src
 
-Here =sdlc= resolves through POO Flow's trusted contribution registry. A user
-can instead load a complete private collection with =(@ "./modules")=.
-
-Omit =+nasa-7150-2d= to select SDLC without NASA. =config.ss= owns the pure
-=sdlc-config= projection from a native module selection to a contribution.
-Unknown and duplicate flags fail explicitly. POO Flow's user-owned
-=user-interface/sdlc.ss= consumes the root init selections and exports
-=poo-flow-user-sdlc-contributions=. Consumers import that projection when needed;
-importing root init alone still only declares module selections. There is no
-automatic runtime activation. No example project is part of the SDLC build.
+Omit the NASA selection for standard-free SDLC. =config.ss= owns the pure
+=sdlc-config= projection; it rejects unsupported feature flags. The public
+profile identifies the standard family as =nasa/sdlc/npr-7150.2=. The selected
+edition =D= belongs to the Standard descriptor and source lock, so later
+editions need not change the family-level composition name. Composition does
+not activate a runtime.
 
 =standards/nasa-7150-2d-profile.ss= owns the standard descriptor used by
 =config.ss= and scenario Profiles. It contains the immutable source/catalog

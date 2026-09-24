@@ -27,7 +27,7 @@
     "user-interface/profiles/gitops/dev.ss"
     "user-interface/profiles/gitops/staging.ss"
     "user-interface/profiles/gitops/production.ss"
-    "user-interface/profiles/sdlc/nasa-7150-2d.ss"))
+    "user-interface/profiles/nasa/sdlc.ss"))
 
 (asp-gerbil-scheme-package-spec!
  (lambda-aitia-package @ asp-gerbil-scheme-library-package-prototype)

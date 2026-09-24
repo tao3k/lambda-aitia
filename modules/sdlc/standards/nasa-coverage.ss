@@ -59,7 +59,7 @@
                          (not (eq? (.ref row 'implementation-status)
                                    'implemented)))
                        rows)))
-    (.o standard: "nasa/npr-7150.2d"
+    (.o standard: "nasa/sdlc/npr-7150.2"
         requirement-count: (length rows)
         implemented-count:
         (length (filter (lambda (row)

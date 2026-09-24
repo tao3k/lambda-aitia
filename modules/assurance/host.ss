@@ -14,12 +14,15 @@
                  poo-flow-verification-adapter poo-flow-verify
                  poo-flow-verification-valid?
                  poo-flow-revoke-verification!)
+        (only-in :poo-flow/src/feature-system/source-lock-feature
+                 source-lock-payload-digest)
         (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
                  poo-flow-cedar-runtime-handoff?
                  poo-flow-cedar-authorization-request
                  poo-flow-cedar-authorization-request?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/types
-                 assurance-snapshot? assurance-claim? assurance-obligation?
+                 assurance-snapshot? assurance-artifact? assurance-claim?
+                 assurance-obligation?
                  assurance-decision? assurance-decision-preflight?
                  AssuranceRequiredSupport AssessmentRequiredSupport
                  AssuranceDecisionPreflight)
@@ -37,6 +40,7 @@
 (export assurance-verification-host assurance-host-verify
         assurance-host-sealed-support? assurance-host-revoke!
         assurance-host-admit assurance-host-admission-current?
+        assurance-host-source-current?
         assurance-host-admitted-support?
         assurance-host-required-support
         assurance-host-preflight-decision
@@ -98,12 +102,14 @@
      (host-current-snapshot entry) obligation evidence outcome))))
 
 (def (assurance-verification-host
-      identity-value operation clock lease snapshot-source)
+      identity-value operation clock lease snapshot-source
+      source-reader: (source-reader #f))
   (unless (and (string? identity-value)
                (> (string-length identity-value) 0)
                (procedure? operation) (procedure? clock)
                (exact-integer? lease) (> lease 0)
-               (procedure? snapshot-source))
+               (procedure? snapshot-source)
+               (or (not source-reader) (procedure? source-reader)))
     (error "invalid assurance verification Host configuration"))
   (let* ((adapter
           (poo-flow-verification-adapter
@@ -111,7 +117,7 @@
          (host (.o identity: (string-copy identity-value))))
     (hash-put! issued-hosts host
                (vector (string-copy identity-value) adapter clock lease -1
-                       snapshot-source 0 #f 0))
+                       snapshot-source 0 #f 0 source-reader))
     host))
 
 ;;; An eligible report alone is never an issued seal. The configured operation
@@ -257,6 +263,40 @@
 (def (snapshot-node snapshot identity)
   (find (lambda (node) (equal? (.ref node 'identity) identity))
         (.ref snapshot 'nodes)))
+
+;;; Source bytes come only from the Host's configured reader. This is a
+;;; conditional application trust boundary, not a claim about Git provenance
+;;; or the verifier's actual process inputs. Re-read and recheck the cut after
+;;; materialization so a moving snapshot cannot qualify an old source.
+(def (assurance-host-source-current? host snapshot artifact)
+  (let* ((entry (required-host-entry host))
+         (reader (vector-ref entry 9)))
+    (and reader
+         (assurance-snapshot? snapshot)
+         (assurance-snapshot-canonical? snapshot)
+         (assurance-artifact? artifact)
+         (let* ((current (host-current-snapshot entry))
+                (expected-cut (assurance-snapshot-semantic-digest snapshot))
+                (current-artifact
+                 (snapshot-node current (.ref artifact 'identity)))
+                (revision (assoc (.ref artifact 'identity)
+                                 (.ref current 'source-revisions))))
+           (and (equal? expected-cut
+                        (assurance-snapshot-semantic-digest current))
+                current-artifact
+                (assurance-artifact? current-artifact)
+                (equal? (assurance-node-canonical current-artifact)
+                        (assurance-node-canonical artifact))
+                revision
+                (equal? (cdr revision) (.ref artifact 'revision))
+                (eq? (.ref artifact 'state) 'supported)
+                (let (payload (reader (.ref artifact 'identity)))
+                  (and (or (string? payload) (u8vector? payload))
+                       (equal? (source-lock-payload-digest payload)
+                               (.ref artifact 'content-digest))
+                       (equal? expected-cut
+                               (assurance-snapshot-semantic-digest
+                                (host-current-snapshot entry))))))))))
 
 (def (required-support-link? snapshot obligation claim)
   (find (lambda (relation)
