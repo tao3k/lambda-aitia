@@ -72,11 +72,20 @@ last 8 KiB is retained in the observation. Cleanup uncertainty is reported as
 `control-error`, never as a passing result.
 
 `AitiaNativeSession` keeps one Gambit transport runtime alive across calls to
-`SdlcRuntime(session=...)` and `evaluate_gitops(..., session=...)`. It is
+`SdlcRuntime(session=...)`, `evaluate_gitops(..., session=...)`, and
+`evaluate_org_contract(..., session=...)`. It is
 process-exclusive and thread-affine; use it as a context manager. It does not
 issue Host verification seals or admission capabilities. A separate Scheme
 Host operation and opaque ABI handles are still required before Python
 observations can be admitted.
+
+`evaluate_org_contract` calls Orgize's versioned C ABI from the same initialized
+native link unit. The input is a sequence of `OrgElementFact` values already
+projected by the source owner, not raw Org text. Orgize owns Element graph
+queries and Contract evaluation; Aitia does not parse Org or treat a matching
+contract as authenticated provenance, review, admission, or effect authority.
+The binary row/result layout and revision are defined in Orgize's
+`bindings/c/include/orgize.h`. Aitia checks the revision before each call.
 
 ```python
 from lambda_aitia import SdlcRuntime

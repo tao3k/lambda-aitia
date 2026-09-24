@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 #include "lambda_aitia/aitia.h"
+#include "orgize.h"
 
 #include <stdatomic.h>
 #include <stdio.h>
@@ -32,6 +33,11 @@ typedef void (*lambda_aitia_result_init_fn)(poo_flow_aitia_result *);
 typedef void (*lambda_aitia_result_release_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_descriptor_fn)(poo_flow_aitia_result *);
 typedef int32_t (*lambda_aitia_evaluate_fn)(char *, poo_flow_aitia_result *);
+typedef uint32_t (*orgize_revision_fn)(void);
+typedef int32_t (*orgize_evaluate_fn)(const orgize_element_row *, uint32_t,
+                                      int64_t, const char *, const char *,
+                                      const char *, uint32_t, uint32_t,
+                                      orgize_contract_result *);
 
 typedef struct lambda_aitia_python_session {
   lambda_aitia_library library;
@@ -209,6 +215,36 @@ done:
   free(input);
   session->result_release(&result);
   return status;
+}
+
+int lambda_aitia_python_session_org_contract(
+    lambda_aitia_python_session *session, const orgize_element_row *rows,
+    uint32_t row_count, int64_t scope_id, const char *query_kind,
+    const char *field_name, const char *field_value, uint32_t expectation,
+    uint32_t expected_count, orgize_contract_result *result,
+    char *error, size_t error_capacity) {
+  orgize_revision_fn revision;
+  orgize_evaluate_fn evaluate;
+
+  if (session == NULL || result == NULL) {
+    lambda_aitia_write_error(error, error_capacity, "invalid Orgize call");
+    return -100;
+  }
+  if (!lambda_aitia_load_symbol(session->library, "orgize_abi_revision",
+                                &revision, sizeof(revision)) ||
+      !lambda_aitia_load_symbol(session->library, "orgize_contract_evaluate",
+                                &evaluate, sizeof(evaluate))) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Orgize ABI symbols are absent");
+    return -101;
+  }
+  if (revision() != 1u) {
+    lambda_aitia_write_error(error, error_capacity,
+                             "Orgize ABI revision mismatch");
+    return -102;
+  }
+  return evaluate(rows, row_count, scope_id, query_kind, field_name,
+                  field_value, expectation, expected_count, result);
 }
 
 int lambda_aitia_python_call(const char *library_path, const char *operation,
