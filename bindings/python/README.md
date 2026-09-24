@@ -6,12 +6,30 @@ SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 # Lambda Aitia Python Runtime
 
 This is Lambda Aitia's production Python project, not an example package.  It
-is the Python runtime surface for Aitia's software-engineering capabilities.
-SDLC planning is its first implemented lifecycle contract:
+is the Python runtime surface for Aitia across the complete SDLC: requirements,
+design, algorithms and implementation strategies, testing, delivery, operation
+and evolution. The first planning API exposes the assurance/execution protocol
+used within that lifecycle:
 
-```text
-change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
+```mermaid
+flowchart TD
+    C["change<br/>identified"] --> I["invalidate<br/>dependent support stale"]
+    I --> P["plan<br/>obligations pending"]
+    P --> V["verify<br/>candidate results produced"]
+    V --> A["admit<br/>evidence accepted within scope"]
+    A --> D["decide<br/>decision current"]
+    D --> U["authorize<br/>bounded effect permitted"]
+    U --> E["effect<br/>execution receipt recorded"]
+    V -->|failed or unresolved| P
+    A -->|relevant premise changes| I
+    U -->|revoked or expired| I
 ```
+
+These are semantic workflow states, not implementation-progress labels.
+Feedback edges describe lifecycle reassessment, not edges returned by the
+current API. The API projects only an inert, ordered eight-stage DAG, not
+executed transitions. Admission, decision, authorization and execution each
+require their own checked receipt.
 
 Lambda Aitia Scheme owns the lifecycle vocabulary, assurance semantics,
 decisions and receipts. POO Flow owns the reusable Graph/DAG and runtime
@@ -20,16 +38,23 @@ ABI and does not reimplement either owner's semantics.
 
 AnyIO is a production dependency for the runtime-wide asynchronous execution
 boundary: structured task lifetimes, cancellation and bounded concurrency will
-apply across Aitia capabilities, not only SDLC and not as a pytest cleanup
-mechanism. The current native session is thread-affine, so it must not be
-passed into `anyio.to_thread.run_sync`; an async entry point requires a
-qualified owner-preserving transport before it can claim execution.
+apply across all Aitia capabilities. The current native session is
+thread-affine, so it must not be passed into `anyio.to_thread.run_sync`; an async
+entry point requires a qualified owner-preserving transport before it can
+claim execution.
 
-The current production surface publishes and validates the canonical lifecycle
+The current production surface publishes and validates the assurance-flow
 DAG through `SdlcRuntime.plan()`. The returned receipt is deliberately inert:
 it cannot claim release authorization or runtime execution. Stage execution is
 added only as each real Scheme operation and attributable receipt becomes
 available; the package will never simulate completion with Python callbacks.
+
+[RFC 0004](../../docs/rfcs/0004-sdlc-design-and-causal-trajectories.org) defines
+the connected design and trajectory qualification. POO Flow owns generic
+temporal/causal mechanisms; this project integrates actual tool execution and
+scoped observations through its native boundary. Reusable upstream checker,
+model and harness qualification is pending. MRR integration is deferred beyond
+the current Python stage.
 
 `lambda_aitia.verification.run_pytest` is a production subprocess observation
 surface, not a Host-issued admission. It preserves exit status, selected test

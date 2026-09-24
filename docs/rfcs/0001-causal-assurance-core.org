@@ -8,23 +8,31 @@
 :ID:         lambda-aitia-rfc-0001
 :STATUS:     draft
 :DATE:       2026-09-17
+:UPDATED:    2026-09-24
 :END:
 
 * Decision summary
 
-Lambda Aitia owns a domain-neutral, POO-native model of why an engineering
-claim is justified, what defeats or invalidates that justification, which
-verification obligations follow, and which decisions/effects must remain
-blocked.  It does not own domain knowledge, a second graph engine, verifier
-implementations, runtime execution or effect authority.
+Lambda Aitia organizes its software-engineering capabilities around the
+complete SDLC, including requirements, design, algorithms and implementation
+strategies, verification/testing, delivery, operation, maintenance and
+retirement. Its POO-native assurance kernel models why an engineering claim is
+justified, what defeats or invalidates that justification, which obligations
+follow, and which decisions/effects must remain blocked. Software semantics
+belong to Aitia's modules; generic graph, temporal/causal and runtime mechanisms
+remain POO Flow-owned, and existing verifiers retain their checking semantics.
 
 The core abstraction is an executable causal assurance case, not a collection
 of verification result flags:
 
-#+begin_example
-claims + assumptions + typed relations + obligations + evidence
-+ invalidation + decisions + effect guards
-#+end_example
+claims, assumptions, typed relations, obligations and evidence, together with
+invalidation, decisions and effect guards.
+
+[[file:0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] refines this architecture with design alternatives, conditional
+guarantees, behavior and design-evolution trajectories, reusable Recipes and
+the deferred MRR direction. Software design is an early leverage point within
+the full lifecycle. The eight-stage assurance/execution flow is a protocol
+used throughout that lifecycle, not a complete SDLC phase list.
 
 * Problem
 
@@ -51,9 +59,10 @@ through named, checked functions that emit receipts.
 | Lambda Aitia | Software/SDLC, ADR and standards modules; claims, assumptions, relation semantics, obligations, evidence admission, invalidation and planning | non-software vertical truth, graph runtime, verifier semantics or effect execution |
 | POO Flow | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
 | POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
-| Aitia Python SDLC Runtime | production SDLC API, Aitia-owned CFFI transport, ABI negotiation and typed receipt projection | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
+| Aitia Python Runtime | production APIs across Aitia's SDLC capabilities, CFFI transport, tool execution integration and typed observations/receipts | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
 | Lean | general proof terms and assurance laws | current runtime state or action authority |
 | TLA+/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
+| TLAPS | mechanical checking of TLA+ proof obligations | model/code correspondence or runtime authority |
 | Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
 | Runtime Host | final typed boundary for authorized execution | manufacturing missing evidence or guessing transport/runtime state |
 | Application | explicit selection, composition and policy | redefining source-owned semantics |
@@ -74,7 +83,9 @@ explicit descriptor metadata rather than part of those names.  The production
 Python package validates and materializes lifecycle requests and receipts;
 Scheme remains the decision owner.  POO Flow's =packages/python-runtime=
 remains the separate generic execution/lifecycle mechanism consumed by the
-Aitia SDLC runtime rather than becoming a second SDLC semantic API.
+Aitia Python Runtime rather than becoming a second SDLC semantic API. AnyIO
+provides the runtime-wide concurrency foundation; thread-affine native sessions
+and Host-issued authority must retain their owner at asynchronous boundaries.
 
 * Semantic objects
 
@@ -163,6 +174,13 @@ that an assurance obligation is discharged, or that an effect is authorized.
 =unknown=, and deprecated/superseded records to =stale=.  Only a separately
 admitted assurance closure and authority receipt can cross the effect boundary.
 
+Requirements, assumptions, alternatives and conditional guarantees form the
+design context for these choices. A finding can reopen that context before
+implementation changes. Algorithm optimization is evaluated against the chosen
+contract; changing its assumptions or guarantees reopens the design decision.
+The existing design-contract review checks declarations, not arbitrary logical
+implication. RFC 0004 specifies the corresponding qualification work.
+
 * Relation planes
 
 ** Provenance plane
@@ -185,6 +203,13 @@ Representative relations: =precedes=, =causal-parent=, =enables= and
 =prevents=.  Modalities are observed, declared, derived, hypothesized and
 counterfactual.  Missing parents and temporal contradictions create an unknown
 frontier.  Earlier-than never automatically promotes to caused-by.
+
+POO Flow's Temporal Causality owns generic event graphs, causal cuts, trajectory
+assessment and witness paths. Aitia connects scoped system behavior to the
+evolution of design decisions and their assurance using checked projections.
+Late observations create new assessment cuts; observed failures, model traces
+and counterfactual branches retain their modality and environment. Full Aitia
+trajectory integration is a pending RFC 0004 gate, beyond structural impact.
 
 ** Assurance plane
 
@@ -229,15 +254,15 @@ An assurance snapshot binds:
 
 Change processing is pure:
 
-#+begin_example
-admit change
-  -> compute structural witnesses
-  -> select affected claims and assumptions
-  -> invalidate dependent support
-  -> derive obligations
-  -> invalidate decisions
-  -> emit effect guards
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    C["Change<br/>admitted"] --> W["Structural witnesses<br/>computed"]
+    W --> A["Claims and assumptions<br/>affected set selected"]
+    A --> S["Dependent support<br/>invalidated"]
+    S --> O["New obligations<br/>pending"]
+    S --> D["Dependent decisions<br/>invalidated"]
+    D --> E["Effect guards<br/>blocked"]
+#+end_export
 
 An invalidation receipt reports affected and unresolved identities.  Its slots
 for temporal assessment, assurance closure, release authorization and runtime
@@ -246,11 +271,8 @@ receipt.  Presentation values cannot mutate the admitted snapshot.
 
 * Functional verification planning
 
-The planner consumes values and returns a value:
-
-#+begin_example
-Plan : Change -> Snapshot -> Policy -> PlanningResult
-#+end_example
+The planner consumes =Change=, =Snapshot= and =Policy= values and returns a
+=PlanningResult= value.
 
 PlanningResult contains ordered obligations, capability requirements,
 dependency constraints, rejected alternatives and blockers.  Tool invocation
@@ -336,10 +358,14 @@ declared numeric priority determine a deterministic choice; every rejected
 candidate and unassigned planned obligation remains visible.  A chosen
 declaration is not proof that an adapter is installed, executable or trusted.
 
-The first verifier kinds are Lean proof, TLA+/TLC model check, runtime replay,
+Verifier integrations include Lean/TLAPS proof, TLA+/TLC model check, runtime replay,
 unit test, integration test, Cedar differential, static analysis and human
 review.  This list is extensible through named POO-native helpers, not raw
 compute hooks.
+Tool-specific producers qualify against the existing evidence-kind vocabulary;
+listing TLAPS here does not mean its execution path is already integrated.
+Reuse the necessary upstream checker and trusted execution boundary before
+adding a new implementation, as specified by RFC 0004.
 
 * Assurance laws
 

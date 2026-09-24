@@ -4,6 +4,40 @@
 #+title: Lambda Aitia Roadmap
 #+startup: overview
 
+* Lifecycle framework and current priority
+
+The complete SDLC is the product framework: requirements, software design,
+algorithm and implementation strategies, verification/testing, delivery,
+operation, maintenance and retirement. These activities exchange observations
+and reopen earlier decisions. The numbered phases below are implementation
+milestones for that framework, not the lifecycle experienced by a project.
+
+[[file:docs/rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] makes software design an early leverage point and Causal Assurance
+the connection across the lifecycle. The next product qualification must link
+requirements, at least two design alternatives, assumptions and guarantees to
+real execution trajectories, evidence, a revised ADR and renewed obligations.
+Recipe execution and tool integration contribute to that connected experiment.
+
+Reuse POO Flow Temporal Causality and existing upstream verification tools and
+assets. AnyIO serves the entire Aitia Python Runtime. MRR relation queries,
+derivation and lineage are deferred beyond the current Python implementation
+stage; this queue introduces no MRR integration.
+
+This view tracks implementation progress; it is separate from the engineering
+states in RFC 0004's lifecycle workflow.
+
+#+begin_export mermaid
+flowchart TD
+    B["Existing bounded foundations<br/>invalidation, planning, formal laws and replay"]
+    B --> D["Pending<br/>design alternatives and upstream qualification"]
+    B --> H["Pending<br/>Python-to-Host admission and async transport"]
+    D --> T["Pending<br/>connected behavior and design trajectories"]
+    H --> T
+    T --> R["Pending<br/>revision, revalidation and comparative evidence"]
+    R --> O["Pending<br/>contract-preserving optimization evidence"]
+    O -. later design .-> M["Deferred<br/>MRR relation queries, derivation and lineage"]
+#+end_export
+
 * Completion discipline
 
 Each phase closes only when its source, negative contracts, executable checks
@@ -118,12 +152,20 @@ Deliverables:
 
 Core law:
 
-#+begin_example
-changed(dependency)
-and reaches(dependency, claim)
-=> not authorized(claim)
-until current obligations are discharged by current evidence
-#+end_example
+#+begin_export mermaid
+stateDiagram-v2
+    state "Support: current" as Current
+    state "Support: stale; affected effect blocked" as Stale
+    state "Obligations: pending" as Pending
+    state "Support: renewed at a new cut" as Renewed
+    Current --> Stale: dependency changes and reaches claim
+    Stale --> Pending: derive current obligations
+    Pending --> Renewed: obligations discharged by current admitted evidence
+    Renewed --> Stale: another relevant change
+#+end_export
+
+Renewed support does not itself authorize an effect; current decision and
+authorization gates remain independently required.
 
 Exit gates:
 
@@ -245,12 +287,13 @@ Deliverables:
 6. [X] An Aitia Scheme-native ABI contract following POO Flow's owned-byte,
    caller-release pattern; public Scheme and Python namespaces remain
    unversioned while ABI revision is explicit metadata.
-7. [X] An Aitia-owned, uv-managed =bindings/python= production SDLC Runtime
+7. [X] An Aitia-owned, uv-managed =bindings/python= production Python Runtime
    with an out-of-line CFFI package.  POO Flow's =packages/python-runtime=
    remains the generic runtime mechanism, and Python contains no duplicate
    Aitia semantics.
-8. [X] ABI revision 2 publishes the canonical eight-stage POO Flow DAG as an
-   inert typed =SdlcFlowPlan=; it does not claim authorization or execution.
+8. [X] ABI revision 2 publishes the eight-stage assurance/execution protocol as
+   an inert typed =SdlcFlowPlan=; this is one protocol within the full SDLC and
+   does not claim authorization or execution.
 
 Exit gates:
 
@@ -277,11 +320,29 @@ Lean owns general laws, including:
 - [X] composition requires a current, independent direct obligation;
 - unknown or conflicted support cannot grant authority.
 
-TLA+ owns the dynamic lifecycle:
+TLA+ models the dynamic assurance/execution protocol within the SDLC:
 
-#+begin_example
-change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
-#+end_example
+#+begin_export mermaid
+stateDiagram-v2
+    state "Change: admitted" as Changed
+    state "Support: invalidated" as Invalidated
+    state "Obligations: planned" as Planned
+    state "Verification: results produced" as Verified
+    state "Evidence: admitted" as Admitted
+    state "Decision: current" as Decided
+    state "Effect: authorized" as Authorized
+    state "Execution: receipt recorded" as Effect
+    Changed --> Invalidated
+    Invalidated --> Planned
+    Planned --> Verified: actual verifier execution
+    Verified --> Admitted: trusted evidence admission
+    Verified --> Planned: rejected or unresolved
+    Admitted --> Decided: decision obligations discharged
+    Decided --> Authorized: current authorization
+    Authorized --> Effect: Runtime gate and bounded attempt
+    Authorized --> Invalidated: revocation or expiry
+    Effect --> Changed: relevant new observation
+#+end_export
 
 A bounded TLC model in =proof/tla/AssuranceLifecycle.tla= now checks current
 admission/decision/grant authority, expiry and revocation. Separate mutant
@@ -330,7 +391,7 @@ Deliverables:
    Aitia into the POO Flow core bootstrap.
 3. Aitia AOT Scheme exports through a dedicated C ABI using the established
    POO Flow Scheme-native result ownership convention.
-4. Aitia's own production Python SDLC Runtime consumes that ABI through CFFI
+4. Aitia's own production Python Runtime consumes that ABI through CFFI
    and returns typed
    projections.  POO Flow's Python runtime remains a separate generic runtime
    and lifecycle transport.
@@ -352,6 +413,11 @@ Exit gates:
 
 Status: =active= for inert design-contract replacement and snapshot-bound
 implementation-mapping slices; full reference qualification remains open.
+
+The target is the connected lifecycle experiment in RFC 0004: compare design
+alternatives, qualify reusable verification methods, link behavior and design
+evolution trajectories, and reopen obligations after a premise changes.
+Existing bounded results below are foundations for that experiment.
 
 The first job-executor regression now records an ADR-bound POO-native design
 contract with assumptions, guarantees, state ownership, effects and variation
@@ -421,21 +487,33 @@ domain branch and the public API remains POO-native.
 
 * Immediate work queue
 
-These are the next bounded changes after Phase 0 review:
+The earlier migration, nominal vocabulary, snapshot/invalidation and CFFI
+foundation work is recorded in the phases above. The current queue is:
 
-1. [X] Add the repository contribution policy under the confirmed license contract.
-2. [X] Record the exact SDLC source/test/tool/profile inventory and current receipts.
-3. [X] Move the SDLC and GitOps owners into Aitia and publish the Episteme
-   deletion plus parent pin at the already qualified ownership cut. A newer
-   Aitia PR head still needs its own parent gitlink update after acceptance.
-4. [X] Add the five-role =modules/assurance/= skeleton with declarations only.
-5. [X] Define the versioned vocabulary manifest and schema identifiers.
-6. [X] Implement relation-plane validation and its negative test matrix.
-7. [X] Implement canonical identity/digest projection.
-8. [X] Define the Aitia Scheme-native C ABI and pure-C harness with an unversioned
-   public namespace and explicit ABI revision metadata.
-9. [X] Complete Aitia's =bindings/python= CFFI consumer and wheel receipt.
-10. [X] Create the smallest change-to-invalidation fixture with no verifier calls.
+1. [ ] Extend the job-executor design case with a common requirement set and
+   comparable alternatives, keeping completion and unique-effect obligations.
+2. [ ] Qualify one TLAPS-Bench checker/task boundary and one asset-complete
+   upstream bug case. Record files, exact revisions, licenses, dependencies,
+   resource bounds and required upstream checks in the integration inventory.
+3. [ ] Project experimental behavior and design/assurance evolution through
+   POO Flow temporal/causal mechanisms. Check modality, causal cuts, late
+   observations and missing parents without turning structural paths into
+   causal proof.
+4. [ ] Connect real tool observations from the Aitia Python Runtime to the
+   configured Scheme Host, preserving source bytes and native-session ownership
+   through the AnyIO execution boundary. This is required before claiming
+   admitted support or progressing to the remaining Phase 6 effect gates.
+5. [ ] Compose the qualified methods through existing POO Profiles and slots;
+   an override must preserve required checks or reopen corresponding obligations.
+6. [ ] Replay failure, design revision, re-verification and a later assumption
+   change as one lifecycle case. Compare with the same upstream tools/assets
+   alone, and record explanation quality, missed obligations, unnecessary
+   reruns and execution costs.
+7. [ ] Qualify one contract-preserving implementation optimization with both
+   conformance and performance evidence.
 
-No Python semantic duplicate, Cedar policy, proof migration or effect execution
-belongs in this immediate queue.
+Euclid/GCD is a candidate tool qualification, not evidence for an unrelated
+job-executor claim. Known-fault replay is not novel bug discovery. Full Specula
+CLI lifecycle mapping, new checker implementations and MRR integration are not
+required deliverables in this queue. Phase 4/6/7 closure still requires actual
+Host and Runtime receipts rather than a documentation or Recipe-only milestone.

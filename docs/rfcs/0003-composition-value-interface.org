@@ -8,6 +8,7 @@
 :ID:         lambda-aitia-rfc-0003
 :STATUS:     draft
 :DATE:       2026-09-18
+:UPDATED:    2026-09-24
 :PARENT_RFC: lambda-aitia-rfc-0001
 :IMPLEMENTS: lambda-aitia-rfc-0001
 :END:
@@ -89,6 +90,14 @@ selection of GitOps, SDLC, NASA, ADR/RFC, assurance and formal-method
 obligations. The Project declaration does not yet prove that all downstream
 slots, verifier bindings and no-import UX are complete.
 
+[[file:0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] places these selections inside the complete SDLC. Design alternatives,
+implementation strategies, testing, operation and revision use the same
+maintained composition boundary. A Recipe composes existing POO declarations
+for applicability, source-bound assets, operations and required checks. An
+advanced replacement must preserve those checks or open explicit obligations;
+changing a Profile cannot silently weaken a requirement or reuse stale support.
+Recipe qualification and behavior/design trajectory projection remain pending.
+
 * Ownership and trust
 
 | Owner | Responsibility |
@@ -125,6 +134,7 @@ that ordinary users must type.
 
 - RFC 0001 defines the Assurance vocabulary carried by the Project Profile.
 - RFC 0002 defines canonical snapshots and invalidation.
+- RFC 0004 defines lifecycle design, trajectory scope and reusable Recipes.
 - ADR 0007 keeps POO Flow as the mechanism library.
 - ADR 0006 keeps Python as a production Runtime consumer, not a second
   semantic owner.

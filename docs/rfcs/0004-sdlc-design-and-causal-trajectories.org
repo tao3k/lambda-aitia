@@ -1,0 +1,322 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0004 — SDLC Design, Causal Assurance and Trajectories
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0004
+:STATUS:     draft
+:DATE:       2026-09-24
+:PARENT_RFC: lambda-aitia-rfc-0001
+:IMPLEMENTS: lambda-aitia-rfc-0001
+:END:
+
+* Decision summary and scope
+
+The complete Software Development Life Cycle (SDLC) is Aitia's organizing
+framework. Requirements, engineering design, algorithm and implementation
+strategies, verification and testing, delivery, operation, maintenance and
+retirement all participate in that lifecycle. Causal Assurance maintains the
+justification of engineering conclusions as these activities change the system.
+
+Software design receives early engineering investment because cheaper code
+generation increases the value of deciding what to build, under which
+assumptions, with which responsibilities and guarantees. This is a product
+direction to evaluate through qualification cases, not a claim that code cost
+or design quality has already been measured.
+
+The eight-step =change -> invalidate -> plan -> verify -> admit -> decide ->
+authorize -> effect= flow is the existing assurance/execution protocol. It can
+be used at multiple lifecycle points; it is not an enumeration of the entire
+SDLC. The overall lifecycle contains feedback, concurrent activities and
+repeated revisions. A bounded execution plan may be a DAG without turning the
+whole lifecycle into one fixed pipeline.
+
+This RFC records the agreed direction and pending executable acceptance work.
+Its draft status does not promote the capabilities below to implemented APIs.
+
+The lifecycle workflow below names engineering states, not implementation
+milestones. Transitions require attributable revisions and receipts; an arrow
+does not itself grant assurance or authority. Feedback can reopen earlier
+activities, and independent obligations may proceed concurrently.
+
+#+begin_export mermaid
+stateDiagram-v2
+    state "Requirements: scoped" as Requirements
+    state "Design: alternatives proposed" as Design
+    state "ADR: option selected" as Selected
+    state "Implementation: candidate" as Implementation
+    state "Verification: obligations pending" as Verification
+    state "Assurance: supported at a bound cut" as Supported
+    state "Delivery: effect authorized" as Authorized
+    state "Operation: behavior observed" as Operation
+    state "Maintenance: reassessment pending" as Reassessment
+    state "Retirement: obligations pending" as Retirement
+    state "Retired: closure recorded" as Retired
+    [*] --> Requirements
+    Requirements --> Design: scope and constraints recorded
+    Design --> Selected: alternatives reviewed
+    Selected --> Implementation: strategy chosen
+    Implementation --> Verification: candidate and checks bound
+    Verification --> Supported: scoped evidence admitted
+    Verification --> Design: finding challenges design
+    Supported --> Authorized: current decision and effect gate
+    Authorized --> Operation: execution receipt and observations
+    Authorized --> Reassessment: revoked, expired or premise changed
+    Supported --> Reassessment: premise changes or late evidence
+    Operation --> Reassessment
+    Reassessment --> Requirements: requirement revision
+    Reassessment --> Design: decision revision
+    Reassessment --> Verification: renewed obligations
+    Operation --> Retirement
+    Retirement --> Retired: residual obligations discharged
+#+end_export
+
+These states summarize activity, not a single global status enum. Multiple
+claims may have different support states at the same cut. Pending or stale
+support blocks the affected effect; an accepted ADR alone is not authorization.
+Operational findings or changed context trigger reassessment; an accountable
+retirement decision opens retirement obligations before closure is recorded.
+
+* Design and implementation within the lifecycle
+
+| Activity | Engineering question | Attributable output |
+|----------+----------------------+---------------------|
+| Requirements and context | What outcome is needed, for whom and under what constraints? | revisioned requirements, scope and acceptance conditions |
+| Software and engineering design | Who owns state, responsibility, interfaces, failure handling and effects? | alternatives, assumptions, guarantees and RFC/ADR decisions |
+| Algorithms and implementation strategies | How can the chosen guarantees be realized within cost and resource constraints? | strategy choice, implementation mapping and measurements |
+| Verification and testing | Which precise propositions have supporting or contradicting evidence? | scoped proofs, model checks, tests, replay and review |
+| Delivery and operation | Which action is currently permitted, and what actually happened? | authority, execution receipts and observed trajectories |
+| Maintenance and retirement | Which assumptions changed, and what must be revised, migrated or stopped? | invalidation, new obligations and accountable successor decisions |
+
+Activities share one lifecycle subject and revision history. An algorithm
+change that alters consistency or failure guarantees is also a design
+decision. A performance optimization within the same contract still needs
+conformance and performance evidence. Estimated cost, human judgment and
+measured behavior retain distinct evidence kinds and scopes.
+
+Design work relates existing POO values through:
+
+#+begin_export mermaid
+flowchart TD
+    R["Requirements and constraints<br/>scoped"] --> A["Assumptions and alternatives<br/>proposed"]
+    A --> D["Responsibilities, state, interfaces and effects<br/>selected in RFC / ADR"]
+    D --> G["Conditional guarantees<br/>declared, not yet supported"]
+    G --> I["Implementation strategy<br/>candidate"]
+    G --> O["Verification obligations<br/>open"]
+    I --> E["Tool results and observations<br/>candidate evidence"]
+    O --> E
+    E --> C{"Scoped admission and assessment"}
+    C -->|support established| S["Guarantee supported<br/>at this revision and cut"]
+    C -->|failed or unresolved| F["Finding / unknown frontier<br/>requires review"]
+    F --> A
+    S -->|premise changes| X["Prior support stale<br/>reassessment required"]
+    X --> O
+#+end_export
+
+A guarantee states its subject, predicate and scope under named assumptions.
+An assumption states a premise, its owner and the conditions requiring review.
+An ADR records considered options and their consequences; acceptance records
+the design choice, while current assurance requires separately admitted
+evidence. Relaxing a requirement is an explicit requirement revision and
+review, not a repair technique that silently turns a failed check green.
+
+The existing =SdlcDesignContract= supplies responsibilities, owned state,
+allowed effects, assumptions, guarantees, variations and a decision identity.
+Its replacement review admits exact declaration comparisons only. Logical
+implication between different statements, model/code correspondence and
+cross-component guarantees require additional obligations with attributable
+checks. Neither name equality nor two successful component checks establishes
+the safety of their composition.
+
+* System behavior and design evolution trajectories
+
+POO Flow owns Temporal Causality, event graphs, causal cuts, trajectory
+contracts, witness paths and traversal. Aitia supplies software event meaning
+and the links from behavior to requirements, assumptions, design decisions and
+assurance. Python transports observations and invokes tools through the owned
+runtime boundary.
+
+Two related trajectories are required:
+
+- system behavior: requests, state transitions, retries, effects, failures and
+  recovery in an explicitly identified environment;
+- design and assurance evolution: hypotheses, RFC/ADR choices, checks,
+  findings, invalidation, revision and renewed acceptance.
+
+Evidence and checked projections connect these trajectories. A runtime event
+can challenge an assumption; a reviewed explanation can motivate an ADR
+revision. Structural impact, temporal precedence and graph reachability do not
+by themselves establish a causal explanation. Agent-proposed explanations
+remain hypotheses until their supporting checks are admitted.
+
+#+begin_export mermaid
+flowchart TD
+    subgraph Behavior["System behavior trajectory"]
+        O["Execution events<br/>observed in a bound environment"] --> R["Replay / checks<br/>scoped results"]
+    end
+    subgraph Design["Design and assurance trajectory"]
+        G["Guarantee<br/>declared"] --> F["Finding<br/>open"]
+        F --> H["Causal explanation<br/>hypothesized"]
+        H --> C["Explanation checks<br/>pending"]
+        C --> A["ADR revision<br/>proposed for review"]
+        A --> N["Revalidation obligations<br/>pending after selection"]
+    end
+    R -->|challenges within scope| F
+    R -->|evidence for assessment| C
+    N -->|requires a new bound run| O
+#+end_export
+
+The cross-trajectory links are evidence and obligation relations, not an
+automatic causal inference from event order. A proposed ADR retains its
+assumptions even when the explanation remains unresolved.
+
+| Trajectory source | Scope that must remain visible |
+|-------------------+--------------------------------|
+| Production or experimental execution | observed events in the named system or harness, with source and environment bindings |
+| TLC/model-check counterexample | behavior permitted by the exact model and checked configuration; implementation correspondence is a separate obligation |
+| Proposed intervention or alternative design | counterfactual branch under explicit assumptions and a bounded horizon |
+| RFC/ADR and assurance evolution | recorded choices and changes in justification, without rewriting earlier facts or granting runtime authority |
+
+An observed failure remains observed in its original environment. The current
+POO Flow trajectory contract reserves =error-event-paths= for uncommitted
+counterfactuals; actual bug replays must not be relabeled to fit that slot.
+Use the existing observed event graph, and place any missing generic trajectory
+mechanism in its POO Flow owner before exposing an Aitia projection.
+
+An assessment binds the event graph, immutable causal cut, explicit time
+observation, source/design/policy revisions and horizon. Occurrence order,
+ingress order and revision order must not be conflated. A late observation
+creates a new assessment cut and may invalidate current support while leaving
+the earlier cut intact. Missing causal parents, incompatible clock domains
+and incomplete coverage retain an unknown frontier. Cross-clock mapping or
+additional time axes require a qualified POO Flow contract; this RFC does not
+claim that every such mapping already exists.
+
+* Reuse existing verification methods and engineering assets
+
+A Recipe is a composition of existing POO objects and slots describing
+applicability, bound inputs, operations, required checks, expected artifacts
+and failure handling. It is not a new configuration language or a separate
+workflow engine. RFC 0003 governs its maintained and advanced expression paths.
+
+Reuse existing functions, packages, scripts, models, harnesses and tool
+commands at a boundary that preserves their correctness conditions. The reuse
+unit includes the checking implementation, necessary dependencies, real
+execution path and relevant regression tests. When those pieces are coupled,
+first qualify the existing boundary or contribute a focused upstream change.
+Add a new implementation only for an identified capability gap.
+
+For every selected component or asset, record exact source revision/digest,
+original attribution and license, applicability assumptions, dependencies and
+the check establishing that it works in Aitia. The integration inventory must
+distinguish candidates from qualified reuse. Package layout alone does not
+establish a stable SDK or independent checker entry point.
+
+TLAPS-Bench is a candidate source of proof tasks and checking components.
+Retain the target statement, trusted inputs and required checks when qualifying
+an entry point. Use TLAPS to check TLA+ proofs; a Lean translation is not a
+prerequisite. TLC model checking and TLAPS proof checking retain their distinct
+propositions. Existing proof evidence kinds can name different producers
+without adding a parallel semantic schema for each tool.
+
+Specula and its case-study archive are candidate sources of verification tools,
+models, harnesses, traces and reproductions. The archive stores experiment
+records; each selected record needs a replay and attribution audit. The full
+Specula application is optional, not the required workflow owner. Calling an
+upstream script or bounded tool command is a legitimate reuse choice.
+Specula already provides continuous and incremental verification, so Aitia's
+proposed value must be demonstrated through design decisions, composition
+obligations and changing justification rather than that feature alone.
+
+* Runtime ownership and future MRR work
+
+The production Aitia Python Runtime under =bindings/python= serves all Aitia
+capabilities across the SDLC. AnyIO is its asynchronous foundation for task
+lifetime, cancellation, bounded concurrency and I/O. POO Flow continues to own
+generic Graph/FunFlow execution and temporal/causal algorithms. Scheme/POO owns
+Aitia's semantic composition, and the C ABI carries typed projections.
+Native session thread affinity must be preserved at asynchronous boundaries.
+Declaring the AnyIO dependency does not establish async execution or Host
+admission of a tool observation.
+
+MRR is deferred beyond the current Python implementation stage. A later design
+will evaluate relation queries, derivation and lineage over lifecycle
+snapshots; its role is broader than storing trace logs. Preserve identities,
+revisions, typed relations, modalities, cuts, witnesses and unknown frontiers
+now so a later integration can project them without redefining Aitia meaning.
+Do not add an MRR dependency, query adapter, storage framework or new Python
+inference engine in this phase. Future query results must retain snapshot and
+lineage bindings and pass the applicable admission boundary before use.
+
+* Qualification sequence and observable value
+
+The primary deliverable is one connected lifecycle experiment. The current
+job-executor case is a known-fault seed: per-key deduplication can succeed
+while a logical operation commits twice after acknowledgement loss. Its
+existing ADR 0008 and design-contract tests supply a starting point, not full
+causal or Host closure.
+
+1. Bind requirements for completion and unique logical effects, assumptions,
+   source, model when available, and at least two design alternatives.
+2. Replay the known failure through existing tools and preserve the actual
+   experimental trajectory. Record the proposed explanation and check its
+   relationship to the original per-key guarantee.
+3. Compare disabling retries with preserving a stable operation identity;
+   completion and provider retention assumptions remain explicit.
+4. Record the chosen revision and derive its obligations. Run the appropriate
+   reused tools, establish required source/model correspondence and consume
+   actual Host admission where a supported conclusion is claimed.
+5. Change a retention or retry assumption, or admit a late observation. Show
+   the new cut, affected guarantees, explanation paths and renewed obligations.
+6. Apply an implementation optimization and check both contract preservation
+   and measured benefit under the same workload and environment scope.
+
+Qualify one small TLAPS-Bench task and one sufficiently complete upstream bug
+case as reusable methods. These are separate execution qualifications until
+their claims actually refer to the same subject: a GCD proof cannot discharge
+a job-executor guarantee. A known-answer replay is regression evidence; novel
+discovery needs a separate evaluation with unexposed answers.
+
+* Pending acceptance gates
+
+- [ ] Upstream reuse inventory binds selected files, revisions, dependencies,
+  licenses, required checks and replay evidence.
+- [ ] A maintained POO Composition selects the qualified Recipe and an
+  advanced override preserves mandatory checks or opens new obligations.
+- [ ] The connected lifecycle case compares design alternatives against the
+  same requirements, including safety and progress where applicable.
+- [ ] System, model, counterfactual and design trajectories preserve scope;
+  missing parents and late evidence have explicit negative cases.
+- [ ] A changed assumption yields attributable invalidation witnesses and
+  prevents stale support from being reused.
+- [ ] Frozen Python tool observations reach the actual Scheme Host admission
+  path; serialized success cannot substitute for that path.
+- [ ] A contract-preserving optimization has conformance and performance
+  evidence, with no unreviewed weakening of the target requirement.
+- [ ] Compare the same upstream tools/assets with and without Aitia's design
+  and assurance links: check missed obligations, unnecessary reruns and the
+  ability to explain why a conclusion changed. Record limitations and costs.
+
+The upstream entry points, connected trajectory projection and Host bridge
+remain unqualified by this documentation change. Existing bounded primitives
+and their receipts retain their existing scope.
+
+* References
+
+- [[file:0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
+- [[file:0002-snapshot-and-invalidation-kernel.org][RFC 0002 — Snapshot and Invalidation Kernel]]
+- [[file:0003-composition-value-interface.org][RFC 0003 — Composition Value Interface]]
+- [[file:../adrs/0006-production-python-sdlc-runtime.org][ADR 0006 — Aitia Python Runtime]]
+- [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 — Stable logical-operation identity]]
+- [[file:../../ROADMAP.org][Roadmap and current implementation evidence]]
+- POO Flow =src/modules/temporal-causality/interface.ss= and architecture
+  =161-temporal-causality-and-causal-trajectory-architecture.org= own the generic
+  mechanism; Aitia consumes the pinned public library.
+- [[https://github.com/specula-org/Specula#continuous-verification][Specula continuous verification]]
+- [[https://github.com/specula-org/tlaps-bench][TLAPS-Bench tasks and runtime]]
+- [[https://github.com/specula-org/specula-case-studies][Specula experiment archive]]
+
+Upstream references were inspected on 2026-09-24. They identify reuse
+candidates, not pinned or qualified dependencies of this project.
