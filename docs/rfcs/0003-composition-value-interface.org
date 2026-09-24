@@ -57,9 +57,11 @@ The maintained GitOps Scenario selects this typed Module Profile with:
 #+end_src
 
 Its check name is a workflow gate keyed to the standard family. A green
-check name alone does not establish assessment against edition D: exact
-edition, source digest, evidence and accountable Host admission must be
-bound separately by Assurance. This binding is an open acceptance gate.
+check with only that name now fails closed: the check must also match the
+selected Standard object's edition and Source Lock digest. These check
+fields are still caller-supplied workflow data, not an Assurance seal or
+proof of actual verifier inputs. Accountable Host admission and source-byte
+binding remain separate acceptance gates.
 
 * Composition semantics
 
@@ -99,8 +101,10 @@ that ordinary users must type.
   exposing POO internals, through a POO Flow-owned public mechanism.
 - [ ] An advanced override extends the same maintained Project Profile and
   preserves selection/provenance receipts.
-- [ ] NASA assessment evidence binds the exact edition and Source Lock digest;
-  a same-name green check from another edition cannot satisfy it.
+- [X] The pure GitOps decision rejects a same-name green check lacking the
+  selected edition or Source Lock digest, including a check for another edition.
+- [ ] A Host-issued NASA assessment binds actual verifier inputs, source bytes,
+  exact edition and Source Lock digest before it can count as Assurance support.
 - [ ] Case, C ABI and Python project consume one canonical composition cut in
   a clean checkout across both repositories.
 - [ ] Source-located diagnostics, doctor presentation and scale receipts pass

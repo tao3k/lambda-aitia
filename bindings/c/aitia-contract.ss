@@ -67,7 +67,9 @@
 (def (json-check object repository revision)
   (github-check
    (json-symbol object "name") repository revision
-   (json-symbol object "conclusion")))
+   (json-symbol object "conclusion")
+   standard-edition: (hash-get object "standardEdition")
+   source-lock-digest: (hash-get object "sourceLockDigest")))
 
 (def (symbols->json values)
   (list->vector (map symbol->string values)))

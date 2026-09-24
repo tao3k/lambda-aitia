@@ -13,8 +13,20 @@
 
 (def repository "tao3k/poo-flow")
 (def revision "0123456789abcdef")
+(def nasa-standard (car (.ref nasa-sdlc-npr7150_2 'standards)))
+(def (nasa-check (edition (.ref nasa-standard 'edition))
+                 (digest (.ref nasa-standard 'source-lock-digest)))
+  (github-check 'nasa/sdlc/npr-7150.2 repository revision 'success
+                standard-edition: edition source-lock-digest: digest))
 (def (successful-checks names (at-revision revision))
-  (map (lambda (name) (github-check name repository at-revision 'success)) names))
+  (map (lambda (name)
+         (if (eq? name 'nasa/sdlc/npr-7150.2)
+           (github-check name repository at-revision 'success
+                         standard-edition: (.ref nasa-standard 'edition)
+                         source-lock-digest:
+                         (.ref nasa-standard 'source-lock-digest))
+           (github-check name repository at-revision 'success)))
+       names))
 (def dev-checks '(commit-policy build unit-test nasa/sdlc/npr-7150.2))
 (def (run-github-gitops change checks)
   (github-run-gitops github-gitops-sdlc change checks))
@@ -58,6 +70,33 @@
              (successful-checks '(commit-policy build unit-test))))
         (check-equal? (.ref decision 'accepted) #f)
         (check-equal? (.ref decision 'missing-checks) '(nasa/sdlc/npr-7150.2))))
+    (test-case "same-name green check without an edition-bound source lock fails closed"
+      (let (decision
+            (run-github-gitops
+             (github-change 'pull-request repository revision
+                            "feature/gitops" "develop" 42)
+             (append (successful-checks '(commit-policy build unit-test))
+                     (list (github-check 'nasa/sdlc/npr-7150.2
+                                         repository revision 'success)))))
+        (check-equal? (.ref decision 'accepted) #f)
+        (check-equal? (.ref decision 'stale-checks) '(nasa/sdlc/npr-7150.2))
+        (check-equal? (.ref decision 'reasons)
+                      '(standard-assessment-mismatch))))
+    (test-case "wrong NASA edition or source lock cannot authorize promotion"
+      (for-each
+       (lambda (check)
+         (let (decision
+               (run-github-gitops
+                (github-change 'pull-request repository revision
+                               "feature/gitops" "develop" 42)
+                (append (successful-checks '(commit-policy build unit-test))
+                        (list check))))
+           (check-equal? (.ref decision 'accepted) #f)
+           (check-equal? (.ref decision 'reasons)
+                         '(standard-assessment-mismatch))))
+       (list (nasa-check "C") (nasa-check
+                               (.ref nasa-standard 'edition)
+                               "sha256:wrong-lock"))))
     (test-case "checks for another Git revision cannot authorize promotion"
       (let (decision
             (run-github-gitops
