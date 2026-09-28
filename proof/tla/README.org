@@ -1,0 +1,139 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Modular TLA+ design checks
+
+:PROPERTIES:
+:ID: lambda-aitia-tla-modules
+:STATUS: design-validation-partial
+:DATE: 2026-09-24
+:END:
+
+* Boundaries and independent checks
+
+| Selector | Model owner | Checks | Dependency |
+|----------+-------------+--------+------------|
+| =work= | [[file:WorkLifecycle.tla][WorkLifecycle]] | cancellation preserves outstanding work; cancellation and quiescence reachable; Boolean state space | TLA standard library |
+| =retirement= | [[file:RetirementReview.tla][RetirementReview]] | final-cut work/inventory guards; three unsafe mutants; retirement reachable | =INSTANCE WorkLifecycle= |
+| =ingress= | [[file:RetirementIngress.tla][RetirementIngress]] | post-retirement requests, epoch fencing, cached-grant mutants and reachable rejection/start | =INSTANCE RetirementReview= and =EffectAdmission= |
+| =lifecycle= | [[file:AssuranceLifecycle.tla][AssuranceLifecycle]] | existing evidence/admission/authorization safety and conditional progress | =EffectAdmission= |
+| =all= (default) | all four lanes | 22 configurations | complete regression lane |
+
+An atomic check is a named contract boundary, not an arbitrary file fragment.
+The retirement model reuses the work actions instead of copying cancellation
+semantics. Its environment also injects late activity and inventory loss, which
+are absent from the isolated work model. Passing atomic checks therefore does
+not replace the composition check. A work-module edit requires =work=,
+=retirement= and =ingress=; a retirement-only edit requires =retirement= and
+=ingress=. An =EffectAdmission= edit requires =lifecycle= and =ingress=;
+full CI runs =all=.
+
+The existing assurance lifecycle remains an integration model, not a completed
+modularization of admission, revocation and grants. Its effect-admission guard
+is now a shared operator, not copied into the retirement consumer. The full
+revocation transition/issuance protocol still requires independent extraction
+and composition checks before claiming an entirely modular assurance library.
+
+* Replay
+
+Set =TLA_TOOLS_JAR= to the existing checksum-verified v1.7.2 release jar. No
+tool download or global environment change occurs in these recipes.
+
+#+begin_src sh
+just check-tla work
+just check-tla retirement
+just check-tla ingress
+just check-tla lifecycle
+just check-tla
+just check-proof
+just check-formal
+#+end_src
+
+The Python project is managed by =uv=; the same unittest checks also run in CI
+without requiring production Runtime imports. Unknown selectors are rejected,
+not silently treated as zero tests. Each TLC run uses one worker, a 512 MiB Java
+heap, a 60-second timeout and a separate temporary state directory. Expected
+counterexamples require the exact invariant failure, exit status and trace;
+parser or tool errors are not successful negative tests. Heap is not a total
+RSS bound. Cache the pinned tool, not an unqualified previous green result.
+
+* Interpretation
+
+The new models are design experiments, not a second public configuration API
+and not yet generated projections of an admitted Scheme POO Contract. Their
+=retired= state is a review decision at a modeled cut, not deletion performed
+by the Runtime. No action authority follows from a passing model check.
+
+The new models keep deadlock checking enabled and have explicit terminal
+self-loops. Isolated =RetirementReview= freezes its terminal environment;
+=RetirementIngress= explicitly permits a later request and checks rejection
+using the same current-grant predicate as =AssuranceLifecycle=. This closes a
+bounded model assumption, not a deployed ingress or Runtime guarantee. No
+fairness, eventual drain, crash recovery, inventory truth,
+unbounded consumer coverage or persistent-state claim is established here.
+
+[[file:../../docs/receipts/2026-09-24-retirement-formal-review.org][The formal review receipt]] separates TLC exploration, Lean laws, native parser
+roundtrip and pending Scheme correspondence. TLC acceptance alone does not
+close the three-part formal qualification required by POO Flow.
+[[file:../../docs/receipts/2026-09-24-retirement-ingress-review.org][The ingress follow-up]] records the new counterexamples, shared predicate
+regression and four independent native parser capability gaps.
+[[file:../../docs/receipts/2026-09-24-formal-source-qualification.org][The source qualification follow-up]] closes those four gaps locally and runs
+all five native models unchanged. =check-formal= runs native syntax, declared
+POO source binding, all TLC configurations and Lean in sequence; it fails if
+the installed parser lacks the required syntax. Until the parser patch is
+published and its dependency pin updated, this explicit lane requires the
+qualified linked source checkout in =GERBIL_LOADPATH=. It is not silently added
+to default CI against an older dependency.
+
+The maintained [[file:../../user-interface/scenarios/job-retirement-contract.ss][retirement POO design contract]] names the assumptions, guarantee and
+TLA/Lean source groups. Binding tests use existing source digests, Assurance
+snapshots and SDLC implementation links. A changed source cut or premise
+invalidates the old links. This establishes declared source correspondence,
+not generated projections, semantic refinement, verifier admission or Runtime
+authority; those claims remain explicitly false in the review value.
+
+* Existing assurance lifecycle contract
+
+=AssuranceLifecycle= describes one obligation and one source revision change.
+It is a contract for a future trusted Host handoff, not an implementation of
+that Host. =ReportSuccess= is untrusted: it cannot verify, admit, decide,
+authorize, or start an effect. =InstallAdapter= merely makes a verifier
+available. Admission requires a current verification seal; authorization
+requires current admission and decision; starting an effect also requires a
+non-expired grant issued in the current revocation epoch.
+
+The bounded domains are two source revisions, four clock values, and three
+revocation epochs. TLC exhaustively checks the safe model within those bounds.
+The =Unsafe*= actions are deliberate mutations, not implementation paths.
+The =lifecycle= selector retains all eight original configurations; the CI
+unittest discovery retains these plus fourteen new modular checks. The tool
+digest remains =fa18543e44ed5974a85bd2c60c0dc16620ae117680ea8e693d2691999ed90b22=.
+
+For manual inspection from this directory, with =tlc= installed on =PATH=:
+
+#+begin_src sh
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycle.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleProgress.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleNoFair.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleReachable.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleUnsafe.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleLateAdmit.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleEarlyGrant.cfg AssuranceLifecycle
+JAVA_TOOL_OPTIONS=-Xmx512m tlc -workers 1 -config AssuranceLifecycleAfterRevoke.cfg AssuranceLifecycle
+#+end_src
+
+Use =-metadir= with a writable temporary directory for read-only checkouts.
+Safe and progress configurations must exit 0. Progress assumes a stable source
+and clock, no revocation, and weak fairness for each Host stage. No-fairness
+must violate =EventuallyEffect=: a possible path alone does not prove progress.
+Reachability checks =NoEffectStarted= and must find a valid =StartEffect= trace.
+Other mutants must violate their named invariants, not merely fail to run.
+
+This model does not prove a live adapter was installed by a trusted Host, a
+clock is trustworthy, a grant is cryptographically bound, or the actual
+Scheme/Python/Runtime path enforces the model. It does not yet model
+counterfactual promotion or concurrent effects. Conditional fairness does not
+establish progress when sources change, clocks advance, or grants are revoked.
+Those remain separate Phase 4–6 exit gates. The original configurations disable
+deadlock checks; they are retained as baseline regressions, not examples of the
+new explicit-terminal-state discipline.

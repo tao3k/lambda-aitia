@@ -1,13 +1,14 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+title: ADR 0006 — Maintain Python as the production SDLC runtime
+#+title: ADR 0006 — Maintain Aitia Python Runtime as a production project
 
 :PROPERTIES:
 :ID:              lambda-aitia-adr-0006
 :STATUS:          accepted
 :DATE:            2026-09-18
-:REVISION:        r1
+:REVISION:        r3
+:UPDATED:         2026-09-24
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
 :CONSULTED:       poo-flow-maintainers
@@ -23,12 +24,30 @@ implementations to drift.
 
 * Decision
 
-=bindings/python= is Lambda Aitia's production Python project.  Its public
-runtime covers the complete lifecycle vocabulary:
+=bindings/python= is Lambda Aitia's production Python Runtime serving all its
+capabilities within the complete SDLC: requirements, design, algorithms and
+implementation strategies, testing, delivery, operation and evolution. Its
+first lifecycle-planning API projects this assurance/execution protocol:
 
-#+begin_example
-change -> invalidate -> plan -> verify -> admit -> decide -> authorize -> effect
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    C["change<br/>identified"] --> I["invalidate<br/>dependent support stale"]
+    I --> P["plan<br/>obligations pending"]
+    P --> V["verify<br/>candidate results produced"]
+    V --> A["admit<br/>evidence accepted within scope"]
+    A --> D["decide<br/>decision current"]
+    D --> U["authorize<br/>bounded effect permitted"]
+    U --> E["effect<br/>execution receipt recorded"]
+    V -->|failed or unresolved| P
+    A -->|relevant premise changes| I
+    U -->|revoked or expired| I
+#+end_export
+
+Node labels describe the states a completed stage would establish. Feedback
+edges describe lifecycle reassessment, not edges returned by the current API.
+The API projects only an inert, ordered eight-stage DAG, not executed
+transitions. Admission, decision, authorization and execution each require
+their own checked receipt.
 
 The responsibilities remain layered:
 
@@ -38,9 +57,12 @@ The responsibilities remain layered:
 - The stable C ABI transfers owned JSON request and receipt bytes.
 - Python validates and materializes those receipts for production consumers;
   it does not reproduce the semantic algorithms.
+- AnyIO is the runtime-wide asynchronous foundation for structured task
+  lifetimes, cancellation and bounded concurrency across Aitia capabilities.
+  It does not grant Host authority or make an inert plan executable.
 
-The first admitted runtime operation is =SdlcRuntime.plan()=.  It obtains the
-canonical eight-stage DAG from Scheme through ABI revision 2.  The plan is
+The first exposed planning operation is =SdlcRuntime.plan()=. It obtains the
+eight-stage assurance DAG from Scheme through ABI revision 2. The plan is
 inert and explicitly reports that it neither authorizes release nor proves
 runtime execution.
 
@@ -50,8 +72,12 @@ runtime execution.
 - Python API stability is a release concern, not example-code maintenance.
 - No stage may be presented as executed until its Scheme operation publishes a
   source-bound receipt and the POO Flow runtime actually executes it.
-- The complete lifecycle remains the product boundary even while individual
-  executable stages are delivered incrementally.
+- The full SDLC organizes the Python project; the planning API is one capability
+  within it. Executable capabilities are delivered only with owned operations
+  and attributable receipts.
+- Generic temporal/causal trajectories and execution mechanisms are reused
+  from POO Flow. Upstream tools, checkers and assets are qualified at their
+  usable boundaries; MRR integration is deferred beyond this Python stage.
 
 * Confirmation
 
@@ -60,3 +86,11 @@ runtime execution.
 - Python tests construct the typed plan through the bundled native library.
 - Wheel verification imports and calls the installed production package
   without a Gerbil runtime in the Python process.
+
+* Scope clarification
+
+Revision r3 clarifies that the complete SDLC is the framework and the existing
+eight-stage plan is its assurance/execution protocol. It preserves the Python
+project and dependency ownership decision. Async execution, connected causal
+trajectories and real tool-to-Host admission remain pending gates under
+[[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]].

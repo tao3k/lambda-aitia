@@ -109,7 +109,7 @@
          subject: (.ref project 'subject)
          revision: (.ref project 'revision)
          scope: (.ref project 'scope)
-         standard: "nasa/npr-7150.2d"
+         standard: "nasa/sdlc/npr-7150.2"
          edition: "NPR 7150.2D"
          software-class: class-value
          mapping-matrix-digest: matrix-digest

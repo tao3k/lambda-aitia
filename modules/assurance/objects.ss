@@ -4,6 +4,8 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
+        (only-in :gerbil/core list-sort)
+        :std/list/list
         :poo-flow/src/module-system/contribution/model
         :poo-flow/lambda-aitia/modules/assurance/types)
 
@@ -11,7 +13,7 @@
         assurance-observation assurance-event assurance-action
         assurance-obligation assurance-evidence assurance-counterexample
         assurance-finding assurance-decision assurance-effect
-        assurance-relation)
+        assurance-relation assurance-verifier-candidate)
 
 (def (assurance-artifact identity-value revision-value state-value digest-value
                          owner: owner-value media-kind: media-kind-value
@@ -80,12 +82,16 @@
 (def (assurance-obligation identity-value revision-value state-value digest-value
                            subject: subject-value claim: claim-value
                            snapshot: snapshot-value evidence-kind: evidence-kind-value
-                           capability: capability-value scope: scope-value)
+                           capability: capability-value scope: scope-value
+                           snapshot-revision: (snapshot-revision-value #f)
+                           snapshot-context-digest: (snapshot-context-value #f))
   (poo-flow-check-model AssuranceObligation
     (.o (:: @ (poo-flow-model-prototype AssuranceObligation))
         identity: identity-value kind: 'obligation revision: revision-value
         state: state-value content-digest: digest-value subject: subject-value
         claim: claim-value snapshot: snapshot-value evidence-kind: evidence-kind-value
+        snapshot-revision: snapshot-revision-value
+        snapshot-context-digest: snapshot-context-value
         capability: capability-value scope: scope-value)))
 (def (assurance-evidence identity-value revision-value state-value digest-value
                          producer: producer-value tool: tool-value
@@ -154,3 +160,22 @@
      (.o (:: @ (poo-flow-model-prototype AssuranceRelation))
          identity: identity-value plane: plane-value relation: relation-value
          source: source-value target: target-value modality: modality-value))))
+
+(def (assurance-verifier-candidate identity-value revision-value
+                                   priority-value evidence-kind-values
+                                   capability-value)
+  (unless (and (list? evidence-kind-values)
+               (pair? evidence-kind-values)
+               (every assurance-evidence-kind? evidence-kind-values))
+    (error "invalid verifier evidence kinds" evidence-kind-values))
+  (poo-flow-check-model
+   AssuranceVerifierCandidate
+   (.o (:: @ (poo-flow-model-prototype AssuranceVerifierCandidate))
+       identity: identity-value revision: revision-value
+       priority: priority-value
+       evidence-kinds:
+       (list-sort
+        (lambda (left right)
+          (string<? (symbol->string left) (symbol->string right)))
+        (delete-duplicates/hash evidence-kind-values))
+       capability: capability-value)))

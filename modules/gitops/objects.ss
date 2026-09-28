@@ -71,6 +71,10 @@
     provider: provider-value event: event-value repository: repository-value
     revision: revision-value source-ref: source-ref-value
     target-ref: target-ref-value pull-request: pull-request-value))
-(def (gitops-check name-value repository-value revision-value conclusion-value)
+(def (gitops-check name-value repository-value revision-value conclusion-value
+                   standard-edition: (standard-edition #f)
+                   source-lock-digest: (source-lock-digest #f))
   (.new GitOpsCheck name: name-value repository: repository-value
-        revision: revision-value conclusion: conclusion-value))
+        revision: revision-value conclusion: conclusion-value
+        standard-edition: standard-edition
+        source-lock-digest: source-lock-digest))

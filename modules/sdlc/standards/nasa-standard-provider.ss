@@ -44,11 +44,11 @@
         nasa-7150-2d-validation-closure
         nasa-7150-2d-materialize-sources)
 
-(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa-npr-7150.2d")
+(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa/sdlc/npr-7150.2/D")
 
 (def Nasa7150_2DStandardFamily
   (poo-flow-standard-family
-   "nasa/npr-7150.2" "NASA" 'software-engineering
+   "nasa/sdlc/npr-7150.2" "NASA" 'sdlc
    '(html scheme) "publicly-available-nasa-directive"
    '((contributor . lambda-aitia)
      (authority . nasa-nodis))))

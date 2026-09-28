@@ -13,10 +13,81 @@ Projects may select multiple standards. No standard is automatically activated.
 The activity vocabulary does not impose a waterfall sequence; projects own the
 ordering, iteration and release process.
 
+* Design contracts and replacement review
+
+=design.ss= adds POO-native component design declarations under the SDLC owner.
+A contract names its ADR decision, responsibilities, owned state, allowed
+effects, assumptions, guarantees and variation points. Each clause has an
+identity, revision and statement; a variation declares which guarantees its
+change may affect. These are engineering declarations, not executable logical
+predicates or admitted evidence. Accepting the named ADR does not establish a
+guarantee.
+
+=sdlc-design-replacement-review= compares two revisions of the same contract.
+Its intentionally narrow declaration-level rule permits only exact clause
+identity/revision/statement matches: a candidate may require no new assumption
+and may discard no old guarantee. Added effects, changed state ownership,
+responsibility, ADR decision or variation declarations remain visible blockers.
+The receipt lists changed identities and guarantees requiring fresh checking;
+it never admits evidence or grants release authority. An unchanged declaration
+at a new revision still requires re-verification. Textual similarity is not
+treated as logical implication, and a =declared-substitutable?= candidate is
+not a proof of implementation refinement.
+
+Consumers may feed =changed-identities= into the existing
+=sdlc-change-impact= projection, which delegates trajectory analysis to POO
+Flow Graph. The job-executor regression does this for a retry-policy change:
+only the explicitly affected unique-effect guarantee and its verification
+are selected by the declared graph. If a variation omits a necessary
+dependency, this slice cannot discover it; model-to-implementation conformance
+and independent acceptance remain further qualification work.
+An alternative local-deduplication candidate changes state ownership,
+responsibility and the ADR decision. It is therefore blocked for design review
+even though its guarantee statements have the same text as the original.
+
+=implementation.ss= adds an inert design-to-source link. A link binds one
+guarantee revision to an Assurance artifact identity/revision/digest and the
+canonical Assurance snapshot context in which that source appears. The review
+requires every guarantee to have a current link and rejects changed contracts,
+guarantees, snapshots, source digests and unresolved/conflicted snapshot cuts.
+It reuses the Assurance snapshot owner rather than defining another source
+ledger. A current mapping means only that the declaration is consistent with
+the supplied snapshot. It does not validate the bytes behind an artifact,
+prove the implementation satisfies the guarantee, admit evidence or authorize
+release. Independent verifier/Host acceptance remains a separate gate.
+
+=verification.ss= projects a design guarantee through the existing Assurance
+Host. It requires a current implementation mapping, an exact current Claim
+whose predicate is the guarantee statement and whose assumptions match the
+design contract, a declared Claim-to-source edge,
+and a Host admission whose verifier input names that same source
+identity/revision/digest. The Host must also report the Claim's full required
+support set current. Missing source dependencies, unrelated inputs, copied or
+revoked admissions fail closed. The projection issues no admission and grants
+no release authority. Its =source-bound-support-current?= result is conditional
+on the application-configured Host; it does not establish verifier
+independence, semantic implementation conformance or trusted deployment.
+An application may configure the Assurance Host's =source-reader:= capability.
+With that reader, Host issuance and currentness check every declared verifier
+input against its Artifact SHA-256 using POO Flow's Source Lock algorithm.
+The configured verification operation then receives Host-materialized POO input
+values as its fourth argument, each with =identity=, =revision=, =digest= and a
+copy of the validated =payload=. The Host rechecks those values after the
+operation; replacing both payload and digest cannot retain a seal. Without a
+reader, the operation retains its three-argument contract.
+A byte mismatch or moving snapshot blocks issuance; observed byte drift
+invalidates previously issued receipts, which cannot revive merely because
+the bytes later return. =source-bytes-checked-support-current?= additionally
+requires the mapped design source to pass that check. Without the Host reader,
+the stronger result fails closed. SDLC review callers cannot supply replacement
+payloads. The application still owns the reader's repository/provenance trust
+and the verifier's actual process inputs; matching bytes alone proves neither
+Host independence nor semantic implementation conformance.
+
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
-models. Applications combine this module with POO Flow-owned workflow modules
-through =use-composition=.
+models. Applications combine these POO-native Profiles through POO Flow's
+=use-module= and =compose profiles=.
 
 #+begin_export mermaid
 flowchart LR
@@ -29,25 +100,20 @@ flowchart LR
   Consumer -->|"host-owned execution"| Runtime[GitHub Actions or another CI host]
 #+end_export
 
-The user-owned POO Flow =user-interface/init.ss= selects SDLC using the existing
-custom module syntax (paths are relative to that user directory):
+The maintained software-engineering Project selects base SDLC and NASA's
+standard-family contribution separately:
 
 #+begin_src scheme
-(poo-flow!
- :custom
- (sdlc +nasa-7150-2d))
+(poo-flow-user-module-selection 'software-engineering 'sdlc '())
+(poo-flow-user-module-selection 'nasa 'sdlc '(+npr-7150.2))
 #+end_src
 
-Here =sdlc= resolves through POO Flow's trusted contribution registry. A user
-can instead load a complete private collection with =(@ "./modules")=.
-
-Omit =+nasa-7150-2d= to select SDLC without NASA. =config.ss= owns the pure
-=sdlc-config= projection from a native module selection to a contribution.
-Unknown and duplicate flags fail explicitly. POO Flow's user-owned
-=user-interface/sdlc.ss= consumes the root init selections and exports
-=poo-flow-user-sdlc-contributions=. Consumers import that projection when needed;
-importing root init alone still only declares module selections. There is no
-automatic runtime activation. No example project is part of the SDLC build.
+Omit the NASA selection for standard-free SDLC. =config.ss= owns the pure
+=sdlc-config= projection; it rejects unsupported feature flags. The public
+profile identifies the standard family as =nasa/sdlc/npr-7150.2=. The selected
+edition =D= belongs to the Standard descriptor and source lock, so later
+editions need not change the family-level composition name. Composition does
+not activate a runtime.
 
 =standards/nasa-7150-2d-profile.ss= owns the standard descriptor used by
 =config.ss= and scenario Profiles. It contains the immutable source/catalog

@@ -17,7 +17,7 @@
         Nasa7150_2DSources
         Nasa7150_2DSourcesLock)
 
-(def +nasa-7150-2d-edition-identity+ "nasa/npr-7150.2d/2022-03-08")
+(def +nasa-7150-2d-edition-identity+ "nasa/sdlc/npr-7150.2/D/2022-03-08")
 (def +nasa-7150-2d-edition-canonical-uri+
   "https://nodis3.gsfc.nasa.gov/N_PR_7150_002D_")
 (def +nasa-7150-2d-source-ref+
@@ -34,17 +34,17 @@
       metadata: (list (cons 'section section-value))))
 
 (def Nasa7150_2DSources
-  (list (nasa-source "nasa/npr-7150.2d/chapter2"
+  (list (nasa-source "nasa/sdlc/npr-7150.2/D/chapter2"
                      "chapter2.html" "Chapter2" 'chapter-2)
-        (nasa-source "nasa/npr-7150.2d/chapter3"
+        (nasa-source "nasa/sdlc/npr-7150.2/D/chapter3"
                      "chapter3.html" "Chapter3" 'chapter-3)
-        (nasa-source "nasa/npr-7150.2d/chapter4"
+        (nasa-source "nasa/sdlc/npr-7150.2/D/chapter4"
                      "chapter4.html" "Chapter4" 'chapter-4)
-        (nasa-source "nasa/npr-7150.2d/chapter5"
+        (nasa-source "nasa/sdlc/npr-7150.2/D/chapter5"
                      "chapter5.html" "Chapter5" 'chapter-5)
-        (nasa-source "nasa/npr-7150.2d/chapter6"
+        (nasa-source "nasa/sdlc/npr-7150.2/D/chapter6"
                      "chapter6.html" "Chapter6" 'chapter-6)
-        (nasa-source "nasa/npr-7150.2d/appendix-c"
+        (nasa-source "nasa/sdlc/npr-7150.2/D/appendix-c"
                      "appendix-c.html" "AppendixC" 'appendix-c)))
 
 (include "source.lock.ss")

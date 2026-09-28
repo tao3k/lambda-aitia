@@ -12,19 +12,19 @@
 (export sdlc-config-test)
 (def sdlc-config-test
   (test-suite "SDLC init selection projection"
-    (test-case "existing custom module syntax selects the standard"
+    (test-case "custom SDLC module is standard-free"
       (let* ((bundles (poo-flow-modules!
-                       :custom (sdlc @ "../lambda-aitia/modules/sdlc" +nasa-7150-2d)))
+                       :custom (sdlc @ "../lambda-aitia/modules/sdlc")))
              (selection (caar bundles))
              (contribution (sdlc-config selection))
              (standards (.ref (.ref contribution 'profile) 'standards)))
         (check-equal? (poo-flow-user-module-selection-entrypoint selection)
                       "../lambda-aitia/modules/sdlc/interface.ss")
-        (check-equal? (map (lambda (s) (.ref s 'identity)) standards) '("nasa/npr-7150.2d"))
+        (check-equal? standards '())
         (check-equal? (.ref (admit-contributions (list contribution) '()) 'accepted?) #t)))
     (test-case "no feature means no NASA selection"
       (check-equal? (.ref (.ref (selected) 'profile) 'standards) '()))
     (test-case "unsupported features and unrelated modules are rejected"
-      (check-exception (selected '+nasa-7150-2c) Error?)
-      (check-exception (selected '+nasa-7150-2d '+nasa-7150-2d) Error?)
+      (check-exception (selected '+nasa) Error?)
+      (check-exception (selected '+npr-7150.2) Error?)
       (check-exception (sdlc-config (poo-flow-user-module-selection 'custom 'other '())) Error?))))

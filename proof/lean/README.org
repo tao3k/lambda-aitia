@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+title: Lambda Aitia Assurance Proofs
+#+title: Lambda Aitia Assurance and SDLC Proofs
 
 This is Lambda Aitia's source-owned Lean package.  It states laws over Aitia
 assurance vocabulary and does not import or copy POO Flow's generic proof
@@ -22,3 +22,23 @@ that impact is monotone when the changed set expands over one fixed
 reachability relation, that a non-empty unresolved frontier prevents closure,
 and that an inert invalidation receipt grants no release authority or runtime
 execution.
+
+=LambdaAitiaProof.Modules.Assurance.Composition= proves a separate admission
+law: current evidence belonging only to component obligations cannot support
+the composite claim.  Any admitted composite has a current discharged direct
+obligation distinct from each component obligation.  These theorems assume the
+explicit =Contract= fields; the Scheme acceptance tests check that the
+runtime projection observes the same boundary, rather than treating a Lean
+theorem as runtime authority.
+
+The independently selectable =LambdaAitiaModuleSdlcProof= library mirrors
+=modules/sdlc/design.ss=. Its =Design= module proves reflexivity and
+transitivity of the declaration-level assumption/guarantee replacement
+direction and shows that an added assumption or dropped guarantee blocks that
+relation. It does not certify natural-language clause meanings, the Scheme
+comparison implementation or any Runtime effect.
+
+=AxiomAudit.lean= prints the transitive axioms of every exported law. The
+=just check-proof= and CI gates reject =sorryAx= in that output; a successful
+compile alone is not accepted as evidence that theorems contain no admitted
+holes.

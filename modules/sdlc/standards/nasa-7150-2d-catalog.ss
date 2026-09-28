@@ -20,7 +20,7 @@
          (page (list-ref row 2)) (excerpt (list-ref row 3))
          (parts (list-ref row 4)) (notes (list-ref row 5))
          (matrix (list-ref row 6))
-         (value (.o identity: id standard: "nasa/npr-7150.2d"
+         (value (.o identity: id standard: "nasa/sdlc/npr-7150.2"
                     section: section-value source-url: (string-append
                       "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=" page)
                     source-excerpt: excerpt source-parts: parts source-notes: notes

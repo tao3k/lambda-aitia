@@ -33,7 +33,9 @@
   {name: {type: Symbol}
    repository: {type: NonEmptyString}
    revision: {type: NonEmptyString}
-   conclusion: {type: GitOpsCheckConclusion}})
+   conclusion: {type: GitOpsCheckConclusion}
+   standard-edition: {type: (Or False NonEmptyString)}
+   source-lock-digest: {type: (Or False NonEmptyString)}})
 (define-type (GitOpsDecision @ Class.)
   slots: =>.+
   {repository: {type: NonEmptyString}

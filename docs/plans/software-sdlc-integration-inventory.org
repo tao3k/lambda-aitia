@@ -2,9 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 #+title: Software/SDLC-to-Aitia Integration Inventory
-#+status: draft
-#+date: 2026-09-17
 #+startup: overview
+
+:PROPERTIES:
+:ID:      lambda-aitia-software-sdlc-integration-inventory
+:STATUS:  draft
+:DATE:    2026-09-17
+:UPDATED: 2026-09-24
+:END:
 
 * Purpose
 
@@ -17,12 +22,12 @@ ontology surfaces.
 The software Architecture Decision Record module is also Aitia-owned and is
 published as =ADR=.  No lowercase compatibility module is retained.
 
-The Aitia-side source migration and parity inventory are complete.  Publication
-cutover remains evidence-partial until Lambda Episteme publishes the deletion
-of ADR, GitOps and SDLC and POO Flow pins that clean child commit.  This
-inventory governs the intended post-migration boundary and prevents either
-repository from reintroducing compatibility aliases or duplicate semantic
-owners.
+The Aitia-side source migration and parity inventory are complete.  The
+Episteme deletion is published, and the POO Flow main gitlink already pins a
+clean Episteme cut.  The Aitia PR head is newer than the POO Flow main gitlink
+and requires a separate pin update after acceptance.  This inventory governs
+the post-migration boundary and prevents either repository from reintroducing
+compatibility aliases or duplicate semantic owners.
 
 Classification:
 
@@ -34,24 +39,25 @@ Classification:
 
 * Normative layering
 
-#+begin_example
-Lambda Aitia
-  Software Engineering and SDLC modules
-  NASA standards and GitOps Profiles
-  claim and assumption support
-  typed provenance/dependency/causal/assurance/authority relations
-  change impact, evidence invalidation and obligation planning
-          |
-          | inert plans, decisions and receipts
-          v
-POO Flow
-  POO composition, functional execution, graph substrate,
-  verifier/runtime adapters and effect handoff
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    A["Lambda Aitia<br/>Software Engineering, SDLC, NASA standards and GitOps"]
+    A --> S["Aitia assurance semantics<br/>claims, assumptions and typed relations"]
+    S --> I["Impact, invalidation and obligation planning<br/>inert plans and receipts"]
+    I -->|consumes public mechanisms| P["POO Flow<br/>composition, graph, temporal / causal algorithms and Runtime"]
+    A --> Py["Aitia Python Runtime<br/>tools and observations"]
+    Py -->|owned runtime boundaries| P
+    Py -->|candidate evidence, not authority| S
+#+end_export
 
 Lambda Episteme composes beside Aitia when an application needs non-SDLC
 vertical knowledge; it is not an upstream owner for Aitia's SDLC semantics.
 POO Flow execution does not redefine Aitia reasoning.
+
+The complete SDLC organizes requirements, design, algorithm/implementation
+strategies, testing, delivery, operation and evolution. RFC 0004 specifies how
+behavior and design/assurance trajectories connect these activities. The
+eight-step assurance/execution protocol is one mechanism within this framework.
 
 * Inventory
 
@@ -66,13 +72,37 @@ POO Flow execution does not redefine Aitia reasoning.
 | =modules/gitops/=, GitOps/GitHub Profiles and scenario adapter | Lambda Aitia | migrated | repository revision, check and delivery-decision facts | stable public namespace has no version suffix; revision is evidence metadata |
 | =modules/decision-kind/= | Lambda Episteme | keep, reference | accountable software decision kinds and conflicts | Aitia links decisions but does not redefine their domain meaning |
 | =src/graph/= | POO Flow | reference | graph substrate and typed traversal | Aitia creates no second graph engine |
+| =src/modules/temporal-causality/= | POO Flow | reference | event graphs, cuts, trajectory contracts and temporal classification | Aitia supplies software meaning; complete behavior/design trajectory integration remains pending |
 | POO Flow verification contribution contracts | POO Flow | reference | verifier capability and receipt handoff | a plan never invokes a verifier directly |
 | =bindings/runtime-c/include/poo_flow/scheme_native_v1.h= pattern | POO Flow | reference | owned-byte AOT Scheme ABI convention | Aitia uses stable unversioned language namespaces; ABI revision is descriptor metadata |
-| =bindings/python= | Lambda Aitia | new | Aitia-owned CFFI consumer and wheel for the Scheme-native ABI | Python transports JSON and never duplicates Scheme decisions |
+| =bindings/python= | Lambda Aitia | maintained | production Runtime across Aitia's SDLC capabilities, CFFI, tool observations and AnyIO dependency | async execution and tool-to-Host admission remain pending; Scheme retains semantic ownership |
 | =packages/python-runtime= | POO Flow | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
 | =packages/proof/lean/PooFlowProof/Enterprise/EvidenceFreshness.lean= | POO Flow proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
-| SDLC/change lifecycle TLA+ model to be added | Aitia | new | invalidate, plan, reverify, decide and gate lifecycle | must be generic, with NASA supplied only as external facts |
+| =proof/tla/AssuranceLifecycle.tla= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
 | Cedar adapter and Runtime Host | POO Flow | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
+
+* Candidate reuse qualification
+
+Historical design sources have a separate
+[[file:engineering-case-source-inventory.org][source and applicability inventory]]. Inspiration and judgment do not require
+an executable asset, and do not qualify a Recipe or establish local evidence.
+ADR 0008 records the first source-inspected coverage and mechanism-owner audit.
+
+The following are candidates, not installed or qualified dependencies. Before
+selection, bind exact files and revision/digests, original attribution/license,
+dependencies, applicability assumptions, mandatory checks and replay receipt.
+
+| Candidate | Reuse target | Qualification required | Current status |
+|-----------+--------------+------------------------+----------------|
+| TLAPS-Bench | proof task and existing checker execution path | preserve target/trusted inputs and regression checks; prove the selected entry point and environment work | unqualified; Euclid/GCD is a candidate smoke task |
+| Specula tools and Case Studies | models, harnesses, traces, reproduction programs and applicable checker code | select an asset-complete record; audit attribution, version and replay conditions | unqualified; no archive-wide import or complete-app backend requirement |
+| MRR | future relation queries, derivation and lineage | a later ownership and snapshot-admission contract against its then-current capabilities | deferred; no current Python integration |
+
+The production code follows upstream reuse only after qualification. No new
+proof scorer, Agent kernel or Specula workflow state machine is authorized by
+this inventory. Use existing POO composition and POO Flow runtime mechanisms
+to organize the selected operations. See
+[[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] and the [[file:../../ROADMAP.org][current work queue]].
 
 * Existing semantics to preserve
 
@@ -109,19 +139,19 @@ weaken:
 
 The first fixture is purely software engineering:
 
-#+begin_example
-Requirement R@1 constrains Implementation I@1
-Verification V@1 checks I@1 against R@1
-Evidence E@1 discharges Obligation O@1 for ReleaseClaim C@1
-Decision D@1 permits deployment Effect X under Snapshot G@1
-
-Change R@1 -> R@2 or I@1 -> I@2
-  => dependent assumptions and C@1 impacted
-  => E@1 stale for the changed closure
-  => O@2 derived for the exact impacted verification set
-  => D@1 invalid
-  => X blocked
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    R["Requirement R@1<br/>scoped"] -->|constrains| I["Implementation I@1<br/>candidate"]
+    I --> V["Verification V@1<br/>checks I@1 against R@1"]
+    V -->|bound admission| E["Evidence E@1<br/>current"]
+    E --> O["Obligation O@1<br/>discharged for ReleaseClaim C@1"]
+    O --> D["Decision D@1<br/>current under Snapshot G@1"]
+    D --> X["Deployment Effect X<br/>requires separate authorization / Runtime gate"]
+    C["R@2 or I@2<br/>changed"] --> A["Dependent assumptions and C@1<br/>impacted"]
+    A --> S["E@1<br/>stale for changed closure"]
+    S --> N["O@2<br/>pending for impacted verification set"]
+    S --> B["D@1 invalid<br/>X blocked"]
+#+end_export
 
 Required negative cases:
 

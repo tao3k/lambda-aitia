@@ -3,21 +3,31 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-;;; Final User Composition: provider + environment Profiles + SDLC Standard.
-(import :poo-flow/src/user-interface/config-discovery-syntax)
-(export github-gitops-sdlc)
+;;; Maintained GitHub/GitOps/SDLC Case. Selection and Case lowering belong to
+;;; POO Flow; the concrete policy Profiles remain owned by Aitia.
+(import (only-in :poo-flow/src/module-system/profile-composition/interface
+                 profiles compose use-module user-composition
+                 poo-flow-profile-export poo-flow-module-profiles)
+        (only-in :poo-flow/src/module-system/semantic-module/objects
+                 poo-flow-semantic-identity poo-flow-semantic-module)
+        :poo-flow/lambda-aitia/user-interface/profiles/github/actions
+        :poo-flow/lambda-aitia/user-interface/profiles/gitops/dev
+        :poo-flow/lambda-aitia/user-interface/profiles/gitops/staging
+        :poo-flow/lambda-aitia/user-interface/profiles/gitops/production
+        :poo-flow/lambda-aitia/user-interface/profiles/nasa/sdlc)
+(export AitiaDeliveryModule github-gitops-sdlc)
 
-(use-composition github-gitops-sdlc
-  (modules
-    (use-module funflow as github
-      (profile actions))
-    (use-module gitops as delivery
-      (profile dev)
-      (profile staging)
-      (profile production))
-    (use-module sdlc as sdlc
-      (profile nasa-7150-2d)))
-  (compose
-    (profile github actions)
-    (profiles delivery dev staging production)
-    (profile sdlc nasa-7150-2d)))
+(def AitiaDeliveryModule
+  (poo-flow-semantic-module
+   (poo-flow-semantic-identity 'software-engineering 'delivery)
+   profiles:
+   (poo-flow-module-profiles
+    (poo-flow-profile-export 'actions actions)
+    (poo-flow-profile-export 'dev dev)
+    (poo-flow-profile-export 'staging staging)
+    (poo-flow-profile-export 'production production))))
+
+(user-composition github-gitops-sdlc
+  (compose profiles
+    (use-module AitiaDeliveryModule actions dev staging production)
+    (use-module NasaSdlcModule npr-7150.2)))

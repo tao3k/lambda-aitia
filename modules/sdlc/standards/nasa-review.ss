@@ -31,7 +31,7 @@
     (.o (:: @ (poo-flow-model-prototype SdlcCriterionEvidence))
         identity: id kind: 'sdlc.evidence
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
-        standard: "nasa/npr-7150.2d" requirement: requirement-id criterion: criterion-id
+        standard: "nasa/sdlc/npr-7150.2" requirement: requirement-id criterion: criterion-id
         source-digest: (row-digest (nasa-requirement-by-id requirement-id))
         producer: producer-value outcome: outcome-value)))
 (def (unique-ids? values)
@@ -76,7 +76,7 @@
     (error "invalid NASA project assessment inputs"))
   (for-each
    (lambda (e)
-     (unless (and (equal? (.ref e 'standard) "nasa/npr-7150.2d")
+     (unless (and (equal? (.ref e 'standard) "nasa/sdlc/npr-7150.2")
                   (member (.ref e 'criterion)
                           (map (lambda (c) (.ref c 'identity))
                                (nasa-requirement-criteria (.ref e 'requirement)))))
@@ -147,7 +147,7 @@
   (poo-flow-check-model SdlcTailoringPacket
     (.o (:: @ (poo-flow-model-prototype SdlcTailoringPacket)) identity: id
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
-        standard: "nasa/npr-7150.2d" requirement: requirement-id
+        standard: "nasa/sdlc/npr-7150.2" requirement: requirement-id
         rationale: rationale-value risk: risk-value mitigations: mitigations-value
         risk-acceptance: acceptance-value archived-matrix: archive-value)))
 (def (nasa-authority-attestation id packet authority-value signer-value record-value decision-value)
@@ -160,7 +160,7 @@
         record: record-value decision: decision-value)))
 (def (nasa-tailoring-review project class-value context packet attestations)
   (unless (and (sdlc-project? project) (sdlc-tailoring-packet? packet)
-               (bound? packet project) (equal? (.ref packet 'standard) "nasa/npr-7150.2d")
+               (bound? packet project) (equal? (.ref packet 'standard) "nasa/sdlc/npr-7150.2")
                (list? attestations) (every sdlc-authority-attestation? attestations)
                (unique-ids? attestations))
     (error "invalid tailoring review inputs"))

@@ -23,7 +23,9 @@
      (poo-flow-user-module-selection
       'software-engineering 'gitops '(+open-gitops))
      (poo-flow-user-module-selection
-      'software-engineering 'sdlc '(+nasa-7150-2d))
+      'software-engineering 'sdlc '())
+     (poo-flow-user-module-selection
+      'nasa 'sdlc '(+npr-7150.2))
      (poo-flow-user-module-selection
       'software-engineering 'ADR '(+rfc-relations))
      (poo-flow-user-module-selection

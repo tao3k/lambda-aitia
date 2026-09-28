@@ -120,6 +120,27 @@ def configure_gambit_compiler(home: Path) -> str:
     return str(compiler)
 
 
+def configure_orgize_header() -> None:
+    """Make Orgize's installed public header visible to Gambit's C phase."""
+
+    gerbil_path = os.environ.get("GERBIL_PATH")
+    if not gerbil_path:
+        raise RuntimeError("GERBIL_PATH must identify the installed Gerbil packages")
+    header_root = (
+        Path(gerbil_path).resolve()
+        / "pkg/github.com/tao3k/orgize/bindings/c"
+    )
+    if not (header_root / "include/orgize.h").is_file():
+        raise RuntimeError(
+            "Orgize's public C header is absent; run gxpkg deps --install "
+            f"for the pinned POO Flow dependencies: {header_root}"
+        )
+    previous = os.environ.get("C_INCLUDE_PATH")
+    os.environ["C_INCLUDE_PATH"] = os.pathsep.join(
+        part for part in (str(header_root), previous) if part
+    )
+
+
 def module_closure(project: Path) -> tuple[list[tuple[str, Path]], Path]:
     expression = r'''(let* ((ctx (import-module "bindings/c/aitia-native.ss"))
                              (deps (gxc#find-runtime-module-deps ctx)))
@@ -166,6 +187,7 @@ def generated_define(link_source: Path, name: str) -> str:
 
 def main() -> int:
     configure_darwin_toolchain()
+    configure_orgize_header()
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args()
