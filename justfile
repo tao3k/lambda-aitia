@@ -11,6 +11,7 @@ export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
 export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", self_root + ":" + GERBIL_PATH + "/lib")
 native_root := GERBIL_PATH + "/native"
 native_library := native_root + "/libpoo_flow_aitia.dylib"
+python_native_dir := self_root + "/bindings/python/src/lambda_aitia/_native"
 gerbil_env := if os() == "macos" { "env -u SDKROOT" } else { "env" }
 export UV_CACHE_DIR := env_var_or_default("UV_CACHE_DIR", self_root + "/.cache/uv")
 darwin_cc := if os() == "macos" { "/usr/bin/cc" } else { "cc" }
@@ -81,6 +82,21 @@ check-formal:
     just check-tla
     just check-proof
 
+# Refresh the in-place Python extension without rebuilding POO Flow.
+[group('dev')]
+dev-python:
+    test -f '{{ GERBIL_PATH }}/pkg/github.com/tao3k/orgize/bindings/c/include/orgize.h' || { echo 'Orgize C header missing from GERBIL_PATH; install the declared POO Flow Gerbil dependencies first' >&2; exit 1; }
+    just clean-python-cffi
+    cd bindings/python && {{ gerbil_env }} uv sync --locked --extra test
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python -c 'from lambda_aitia._native._aitia_cffi import ffi; ffi.typeof("orgize_element_row"); print("aitia-cffi-current")'
+
+# Remove only generated CFFI artifacts, not Python sources or the uv venv.
+[group('clean')]
+clean-python-cffi:
+    find '{{ python_native_dir }}' -maxdepth 1 -type f -name '_aitia_cffi.*' -delete
+    if test -d '{{ python_native_dir }}/_build_temp'; then find '{{ python_native_dir }}/_build_temp' -depth -delete; fi
+
 # Aitia owns its native ABI and Python Runtime checks.
 [group('check')]
 check-native:
@@ -94,6 +110,7 @@ check-native:
     '{{ native_root }}/aitia_dynamic_harness' '{{ native_library }}'
     just test-scheme bindings
     cd bindings/python && {{ gerbil_env }} uv lock --check
+    just clean-python-cffi
     cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py
     cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv run --locked --extra test pytest
     just build-python-wheel '{{ native_library }}'
@@ -110,8 +127,8 @@ check-installed-wheel:
 [group('build')]
 build-python-wheel native_library:
     test -f '{{ native_library }}'
-    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' env -u SDKROOT uv sync --locked --extra test
-    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' env -u SDKROOT uv build --wheel --offline --no-build-isolation
+    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv sync --locked --extra test
+    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv build --wheel --offline --no-build-isolation
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]

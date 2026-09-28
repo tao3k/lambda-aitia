@@ -129,21 +129,26 @@ Builds require `LAMBDA_AITIA_NATIVE_LIBRARY` to identify the qualified native
 library that will be bundled into the wheel.
 
 The binding is an independent uv project owned entirely by Lambda Aitia. From
-this directory, synchronize and test the locked environment with:
+the repository root, refresh the generated CFFI extension and check its current
+Orgize row type with:
 
 ```sh
-env -u SDKROOT uv sync --locked --extra test
-env -u SDKROOT uv run --locked --extra test pytest
+just dev-python
 ```
 
-Build the distributable wheel after producing the Scheme-native library:
+To remove only stale generated CFFI modules and their temporary C objects:
 
 ```sh
-LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
-  env -u SDKROOT uv sync --locked --extra test
-LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
-  env -u SDKROOT uv build --wheel --offline --no-build-isolation
+just clean-python-cffi
 ```
+
+`dev-python` requires the declared POO Flow/Gerbil dependencies, including
+Orgize's C header, in the selected `GERBIL_PATH`. It cleans and rebuilds only
+the in-place CFFI extension, without compiling POO Flow or replacing the native
+library. Run `just check-native` against the qualified POO Flow version for
+the complete Scheme/native/Python and wheel qualification.
+The `justfile` removes `SDKROOT` only on Darwin; it does not alter that
+environment variable on Linux.
 
 `just check-native` also installs that wheel in a fresh uv environment outside
 the repository, runs the native plan, reproduces a lost-acknowledgement bug in
