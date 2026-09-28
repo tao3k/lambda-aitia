@@ -1,0 +1,289 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Job executor — engineering design workspace
+#+startup: overview
+#+TODO: TODO REVIEW BLOCKED | DONE CANCELLED
+#+category: aitia-design
+
+:PROPERTIES:
+:ID:           aitia-job-executor-workspace
+:REVISION:     r2
+:STATUS:       draft
+:CONTRACT_ORG: lambda-aitia.engineering-workspace
+:END:
+
+* Design question
+:PROPERTIES:
+:ID: aitia-job-executor-question
+:END:
+
+How can one logical job finish after acknowledgement loss without creating a
+second external effect? This maintained Aitia work surface connects people,
+Agent review roles, design alternatives and bounded evidence in native Org.
+Its starting decision is [[file:../../docs/adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]], which remains proposed.
+
+This file targets the Scheme-owned Org Elements query path. Its consumer
+qualification is pending; legacy CLI queries do not close that gate.
+Role references below are proposed
+assignments, not registered principals, running Agents or granted capabilities.
+The Aitia Org-to-Scheme projection and controlled edit/execution loop remain
+pending under [[file:../../docs/rfcs/0005-org-native-engineering-workspace.org][RFC 0005]]. Reading this file executes no source block.
+
+| Dimension | Current state | Authority / source |
+|-----------+---------------+--------------------|
+| Design choice | proposed: stable logical identity | ADR 0008; independent review pending |
+| Local qualification | bounded pass and known-fault replay | linked source-fixture receipt; not provider certification |
+| Guarantee support | full support unresolved | retention, intent, concurrency and external commit boundaries open |
+| Effect authority | not granted by this workspace | existing Cedar / Runtime admission required |
+| Production outcome | not observed here | no production execution receipt |
+
+* Organization
+:PROPERTIES:
+:ID: aitia-job-executor-organization
+:END:
+
+Roles refer to the existing POO Flow Organization Bundle concepts. An
+application must resolve actual principal/role/Agent identities, visibility
+and delegations before scheduling. Org nesting does not confer authority.
+
+| Proposed role | Responsibility | Suggested context projection | Not granted by this document |
+|---------------+----------------+------------------------------+------------------------------|
+| design-owner | owns requirements, alternatives and ADR proposal | whole design and review findings | self-certification of external guarantees |
+| case-reviewer | reviews historical relevance and counterevidence | source inventory, assumptions and alternatives | mutation of provider or release policy |
+| guarantee-reviewer | checks gaps across component contracts | requirements, assumptions, owner matrix and scoped receipts | conversion of a hypothesis into proof |
+| verification-runner | requests bounded checks through Runtime | selected obligation, bound inputs and tool contract | arbitrary Org code execution or provider credentials |
+| decision-reviewer | reviews the proposed choice and its conditions | alternatives, objections, obligations and evidence references | bypassing Cedar / Runtime effect gates |
+
+The same person or Agent may fill more than one role only when the application
+permits it; a required independent review must retain actual principal
+separation. No Agent is spawned by a heading or an =OWNER_ROLE= property.
+
+* Design decision — stable logical identity
+:PROPERTIES:
+:ID: aitia-job-executor-design-decision
+:STATUS: proposed
+:CONTRACT_ORG: lambda-aitia.design-review
+:END:
+
+This subtree is the review context for ADR 0008. Its contract checks local
+requirements, assumptions, alternatives, review work and receipt references;
+passing does not accept the decision or establish any external guarantee.
+
+** Requirements
+:PROPERTIES:
+:ID: aitia-job-executor-requirements
+:END:
+
+*** Unique logical effect
+:PROPERTIES:
+:ID:         aitia-job-executor-unique-effect
+:AITIA_KIND: requirement
+:OWNER_ROLE: design-owner
+:END:
+
+One logical job operation must not commit a duplicate effect within the
+qualified provider contract. Per-key uniqueness is insufficient when a retry
+can change its key. A completed review must state the scope rather than claim
+unconditional exactly-once delivery.
+
+*** Completion after transient response loss
+:PROPERTIES:
+:ID:         aitia-job-executor-completion
+:AITIA_KIND: requirement
+:OWNER_ROLE: design-owner
+:END:
+
+The job must be able to complete after transient acknowledgement loss under
+explicit service-availability and retry/reconciliation conditions. Turning
+off retries cannot silently remove this requirement.
+
+** Assumptions
+:PROPERTIES:
+:ID: aitia-job-executor-assumptions
+:END:
+
+*** Provider retains logical-operation identity
+:PROPERTIES:
+:ID:         aitia-job-executor-retention
+:AITIA_KIND: assumption
+:OWNER_ROLE: design-owner
+:STATUS:     unqualified
+:END:
+
+The provider's deduplication scope and retention cover permitted retries.
+There is no measured retention duration in the current fixture. A shortened
+retention interval, identity collision or late request reopens this assumption.
+
+*** Effect and deduplication survive failure coherently
+:PROPERTIES:
+:ID:         aitia-job-executor-atomicity
+:AITIA_KIND: assumption
+:OWNER_ROLE: guarantee-reviewer
+:STATUS:     unqualified
+:END:
+
+The actual provider supplies atomic commit or a qualified recovery protocol.
+The local SQLite row stands for both the key and the effect; it does not test
+an independent external side effect. Two Cedar permits are not a uniqueness
+mechanism. A lost ACK leaves the caller uncertain, not entitled to assume no
+commit occurred.
+
+** Alternatives
+:PROPERTIES:
+:ID: aitia-job-executor-alternatives
+:END:
+
+#+name: retry-design-alternatives
+| Option | Unique logical effect | Completion | Additional obligations | Current judgment |
+|--------+-----------------------+------------+------------------------+------------------|
+| Stop after lost ACK | avoids a retry-induced duplicate, but does not establish original outcome | not guaranteed | explicit unknown outcome and recovery owner | conflicts with unattended completion unless recovery is added |
+| Retry with stable identity | conditional on scope, retention and provider semantics | conditional on availability and retry policy | parameter binding, persistence, concurrent attempts and crash checks | proposed by ADR 0008; one bounded fixture passes |
+| Query / reconcile before further action | depends on authoritative correlation and reconciliation semantics | depends on query availability and outcome resolution | bind original identity; absence must not be mistaken for failure when history is incomplete | candidate; no local implementation or receipt |
+
+These are comparisons under the same requirements, not a numeric ranking.
+The first and third options are not claimed to have been executed. Reconciliation
+may complement stable identity; the alternatives are not inherently exclusive.
+
+*** Stop after lost ACK
+:PROPERTIES:
+:ID: aitia-job-executor-option-stop
+:END:
+
+The comparison above identifies the missing completion/recovery guarantee.
+
+*** Retry with stable identity
+:PROPERTIES:
+:ID: aitia-job-executor-option-stable-identity
+:END:
+
+ADR 0008 proposes this option under the assumptions in this decision subtree.
+
+*** Query and reconcile
+:PROPERTIES:
+:ID: aitia-job-executor-option-reconcile
+:END:
+
+The comparison above retains this unimplemented candidate and its unknowns.
+
+** Historical material
+:PROPERTIES:
+:ID: aitia-job-executor-history
+:END:
+
+[[file:../../docs/plans/engineering-case-source-inventory.org][The source inventory]] retains attribution and applicability boundaries for
+the AWS idempotency article, the etcd watch report and the GitHub incident
+analysis. The first informs identity/retention questions. The other two remain
+candidate questions about missing history and cross-component assumptions;
+they are not evidence of an Aitia defect.
+
+** Review
+:PROPERTIES:
+:ID: aitia-job-executor-review
+:END:
+
+*** TODO Review retention and retry horizon :assumption:review:
+:PROPERTIES:
+:ID:           aitia-job-executor-review-retention
+:OWNER_ROLE:   case-reviewer
+:SUBJECT_ID:   aitia-job-executor-retention
+:END:
+
+- [ ] Name the actual provider contract and identity scope.
+- [ ] Compare retry horizon with retention, including late requests.
+- [ ] Record contrary evidence and the required action outside the guarantee.
+
+Expected Agent contribution: an attributed applicability finding attached to
+this node, with proposed changes and explicit unknowns. It cannot accept the ADR.
+
+*** TODO Review guarantee composition :guarantee:review:
+:PROPERTIES:
+:ID:           aitia-job-executor-review-composition
+:OWNER_ROLE:   guarantee-reviewer
+:SUBJECT_ID:   aitia-job-executor-atomicity
+:END:
+
+- [ ] Bind authorized intent to dispatched parameters.
+- [ ] Qualify mismatched-parameter rejection and concurrent attempts.
+- [ ] Qualify crash boundaries with the actual effect provider.
+
+Use the [[file:../../docs/adrs/0008-stable-operation-key-after-lost-ack.org][existing owner matrix]]: Host supplies trusted context, Cedar evaluates
+authorization, Runtime enforces at use, and provider mechanisms establish
+effect uniqueness. Do not add a second policy evaluator.
+
+*** BLOCKED Connect the source-bound Org review projection :integration:
+:PROPERTIES:
+:ID:           aitia-job-executor-review-projection
+:OWNER_ROLE:   design-owner
+:SUBJECT_ID:   aitia-job-executor-workspace
+:END:
+
+The Scheme sources are located on Orgize's =codex/scheme-rowan-org-cutover=
+branch. Qualify an installable package boundary before wiring this projection:
+the current gerbil-parser Scheme dependency points back to POO Flow, and Orgize
+does not yet have a Gerbil package entrypoint. See RFC 0005's package audit.
+Reuse parser-owned identities/ranges and POO objects. Do not implement an Org
+parser in Python or infer supported bindings from the existence of the CLI.
+
+*** TODO Review the proposed ADR :decision:review:
+:PROPERTIES:
+:ID:           aitia-job-executor-review-decision
+:OWNER_ROLE:   decision-reviewer
+:SUBJECT_ID:   lambda-aitia-adr-0008
+:END:
+
+- [ ] Review the same requirements across alternatives and retained objections.
+- [ ] Confirm the missing qualifications and responsible owners.
+- [ ] Record a decision revision; editing this TODO does not accept the ADR.
+
+** Receipts
+:PROPERTIES:
+:ID: aitia-job-executor-receipts
+:END:
+
+The [[file:../../bindings/python/qualification/job_executor/README.org][source-fixture replay receipt]] records the 2026-09-24 run at code commit
+=f3438241780e863db6c0b518d86628b540f96cd1=: fixed mode passed, while buggy mode
+failed specifically with two commits. This is a linked historical receipt, not
+a new run produced by opening this document or a trusted Host-issued admission.
+
+| Observation | Scope | Does not establish |
+|-------------+-------+--------------------|
+| Fixed strategy passed | single job, fixed payload, sequential restart and local provider | retention, multi-tenant or independent external-effect guarantees |
+| Buggy strategy failed with two commits | deliberate known-fault regression | novel bug discovery or causal proof for a production service |
+| Org contract check | workspace sections and decision-local review structure | identity resolution, role authority, evidence freshness or execution |
+
+The separate [[file:../../docs/receipts/2026-09-24-retirement-impact.org][retirement Impact receipt]] qualifies a synthetic automatic-retry
+removal analysis through POO Flow. It is not a new run of the persistent Python
+worker or evidence that queued tasks were migrated or cancelled.
+
+* Revision journal
+:PROPERTIES:
+:ID: aitia-job-executor-journal
+:END:
+:LOGBOOK:
+- Note taken on [2026-09-24 Thu] \\
+  Created the native authoring/query work surface. No role assignment or
+  production authorization was issued. Existing receipts remain linked.
+:END:
+
+Keep later judgments as new revisions with source and reason. An Agent edit
+proposal must bind the document digest, node ID, original range and expected
+old content; a concurrent edit requires review/replanning, not a blind offset
+replacement. A moved heading retains identity but gains no delegated rights.
+
+* Workflow
+
+#+begin_export mermaid
+flowchart TD
+    O["Org design node<br/>authored"] --> Q["Orgize projection<br/>located and queryable"]
+    Q --> R["Role-scoped review<br/>proposed"]
+    R --> P["Node edit<br/>pending owner acceptance"]
+    P --> C["Revised design<br/>obligations reopened"]
+    C --> G["Cedar / Runtime handoff<br/>qualification pending"]
+    G --> E["Actual execution receipt<br/>required before claiming results"]
+    E --> O
+#+end_export
+
+This document is an authored work surface, not a qualification receipt.
+Scheme admission, AOT generation and actual consumer evaluation remain required.
+The diagram describes the intended interaction, not completed execution.

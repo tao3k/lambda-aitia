@@ -40,8 +40,14 @@ AnyIO is a production dependency for the runtime-wide asynchronous execution
 boundary: structured task lifetimes, cancellation and bounded concurrency will
 apply across all Aitia capabilities. The current native session is
 thread-affine, so it must not be passed into `anyio.to_thread.run_sync`; an async
-entry point requires a qualified owner-preserving transport before it can
-claim execution.
+*native-session* entry point requires a qualified owner-preserving transport
+before it can claim execution.
+
+`lambda_aitia.verification.run_pytest_frozen_async` now runs the bounded pytest
+observer in an AnyIO worker, with an optional capacity limiter. Cancellation
+waits for its timeout-bound process-group cleanup; it never abandons pytest or
+passes an `AitiaNativeSession` to that worker. This returns a source-bound
+observation only, not a Scheme Host admission or authorization.
 
 The current production surface publishes and validates the assurance-flow
 DAG through `SdlcRuntime.plan()`. The returned receipt is deliberately inert:
@@ -66,6 +72,29 @@ from a separately materialized copy; selectors cannot escape that copy.
 for a future Host-owned source reader. This still does not prove repository
 provenance, interpreter independence, or trusted external services. The
 Assurance Host owns admission, revocation and execution authority.
+
+`prepare_org_edit_review` is the Aitia-owned preflight for an Org-native
+engineering workspace. It accepts a node ID, byte span and expected old bytes
+from an upstream Orgize projection, checks them against the exact projected
+source digest, rejects stale, moved, duplicate or overlapping edits, and
+returns an inert owner-review proposal. It does not parse Org, apply edits or
+grant authorization. The existing Orgize PR #15 now supplies a Scheme-AOT
+graph-backed source transformation that rechecks node ownership and produces
+candidate text. Aitia-to-Orgize transport and owner-approved persistence are
+still pending; this Python API does not claim those steps.
+
+```python
+from lambda_aitia import OrgNodeEdit, prepare_org_edit_review
+
+review = prepare_org_edit_review(
+    source_path,
+    source_id="design/decision.org",
+    projected_source_digest=orgize_projection.source_digest,
+    edits=(OrgNodeEdit(node_id, start_byte, end_byte, expected_old, replacement),),
+)
+assert review.source_current(source_path)  # freshness only; not approval
+```
+
 The POSIX verifier runs pytest in its own process group and stops that group
 on timeout or output overflow. `max_output_bytes` defaults to 8 MiB; only the
 last 8 KiB is retained in the observation. Cleanup uncertainty is reported as
@@ -119,9 +148,10 @@ LAMBDA_AITIA_NATIVE_LIBRARY=/absolute/path/to/libpoo_flow_aitia.dylib \
 `just check-native` also installs that wheel in a fresh uv environment outside
 the repository, runs the native plan, reproduces a lost-acknowledgement bug in
 two real worker processes and a loopback HTTP service, checks the corrected
-worker, then rejects the old observation after a source edit. This is a known
-fault-injection qualification case, not a newly discovered production defect
-or an Assurance Host seal.
+worker through the AnyIO frozen-source verifier while the main thread retains
+one native session, then rejects the old observation after a source edit. This
+is a known fault-injection qualification case, not a newly discovered
+production defect or an Assurance Host seal.
 
 On Darwin, the repository `justfile` selects `/usr/bin/cc`, unsets `SDKROOT`
 for Gerbil invocations, and keeps the deployment metadata consistent with the

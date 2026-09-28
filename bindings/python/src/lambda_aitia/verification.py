@@ -18,6 +18,8 @@ import time
 from uuid import uuid4
 import xml.etree.ElementTree as ET
 
+import anyio
+
 
 _SOURCE_MAGIC = b"lambda-aitia.source-tree.v1\0"
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024
@@ -356,6 +358,42 @@ def run_pytest_frozen(
             run_id, before, argv, exit_code, status, collected, passed,
             skipped, report_digest, output[-8192:],
         )
+
+
+async def run_pytest_frozen_async(
+    python: Path,
+    source_payload: bytes,
+    selectors: tuple[str, ...],
+    *,
+    timeout_seconds: int = 30,
+    max_output_bytes: int = 8 * 1024 * 1024,
+    environment: dict[str, str] | None = None,
+    limiter: anyio.CapacityLimiter | None = None,
+) -> PytestObservation:
+    """Run a frozen verifier through AnyIO without abandoning its process.
+
+    Cancellation waits for the bounded worker to terminate and clean up the
+    pytest process group. No thread-affine native session enters this worker;
+    the result remains an observation, not a Host admission.
+    """
+
+    frozen_payload = bytes(source_payload)
+    frozen_selectors = tuple(selectors)
+    frozen_environment = dict(environment) if environment is not None else None
+
+    def execute() -> PytestObservation:
+        return run_pytest_frozen(
+            python,
+            frozen_payload,
+            frozen_selectors,
+            timeout_seconds=timeout_seconds,
+            max_output_bytes=max_output_bytes,
+            environment=frozen_environment,
+        )
+
+    return await anyio.to_thread.run_sync(
+        execute, abandon_on_cancel=False, limiter=limiter
+    )
 
 
 def run_pytest(

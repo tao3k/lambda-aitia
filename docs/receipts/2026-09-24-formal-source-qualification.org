@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Formal source qualification — local joint gate
+#+startup: overview
+
+:PROPERTIES:
+:ID: lambda-aitia-formal-source-qualification-2026-09-24
+:STATUS: locally-qualified-source-boundary
+:DATE: 2026-09-24
+:RFC_ID: lambda-aitia-rfc-0004
+:END:
+
+* What closes here
+
+This follows the [[file:2026-09-24-retirement-ingress-review.org][ingress review]]. The previously rejected multiline and modular
+TLA+ forms now parse in the parser owner without changing the Aitia models.
+All five maintained models pass syntax success, artifact validity and exact
+source-byte roundtrip. TLC and Lean remain independent gates.
+
+The native repair lives in the existing linked gerbil-parser checkout, not a
+new Aitia parser. Its grammar now treats newlines as lossless whitespace rather
+than declaration terminators. Named instances, qualified names and flat leading
+junction expressions have explicit CST nodes. The scope does not include
+nested indentation-sensitive junction lists, full TLA+ syntax, configuration
+parsing or rebuilt Rust/Rowan AOT products. TLC still performs its own parsing
+and semantic checks for the exact models/configurations.
+
+An initial optional-newline production introduced a shift ambiguity at the
+next definition and exceeded a 60-second probe. It was replaced, not accepted
+as qualified. The stale diagnostic process was interrupted. Gerbil probes
+kept a 512 MiB heap; one cold generation diagnostic used a 180-second wall limit.
+The final native regression processes completed within the 60-second gate.
+
+* Maintained POO declaration and source binding
+
+[[file:../../user-interface/scenarios/job-retirement-contract.ss][The retirement contract]] declares identity =job-executor/retirement=,
+revision =r1=, guarantee =retirement-safety/g1= and four explicit assumptions:
+atomic epoch fencing, known inventory, no new grant after closure, and the
+single-client bound. It grants no allowed runtime effects.
+
+[[file:../../t/formal/retirement-binding-test.ss][Binding qualification]] uses existing =sdlc-design-implementation-link=,
+=sdlc-design-implementation-review=, Assurance snapshots and source digests.
+The TLA source group contains four model/helper files and fourteen configs;
+the Lean group contains both retirement proof modules. Every member's content
+digest participates in its source-group identity. The links bind both groups
+to the same contract identity, revision, contract digest and snapshot cut.
+
+Checks confirm that either source-group mutation changes the snapshot context
+and invalidates both old links, even if nominal revisions are unchanged. A
+changed design assumption also rejects both links as =contract-changed=.
+An initial test incorrectly expected =source-changed=; the existing owner
+correctly diagnoses =snapshot-changed= first. The test was corrected without
+weakening that owner or changing invalidation semantics.
+
+These are declared source bindings. They do not prove that the formal formulas
+are faithful projections of the natural-language contract, that a Scheme
+implementation refines the models, or that the Host admitted verifier evidence.
+Review values continue to report =implementation-conforms?=,
+=evidence-admitted?= and =release-authorized?= as false. A source-group manifest
+is not a complete verifier/toolchain attestation. The explicit joint gate runs
+every verifier; source mapping alone is not evidence-coverage admission.
+
+* Executed gates and replay
+
+| Gate | Result |
+|------+--------|
+| parser-owned native suite | 12 test cases, including new CST/roundtrip and incomplete-form rejection tests; =MODULE-OK= / =HARNESS-OK= |
+| Aitia native syntax suite | 2 cases; five actual model files plus a lossless rejected-source control |
+| Aitia POO binding suite | 4 cases; current binding and source/premise invalidation |
+| TLC | 22 configurations match positive/expected-counterexample outcomes |
+| Lean | both libraries build; all 20 audited laws have no axioms and no =sorryAx= |
+| repository hygiene | license contract and its 7 tests pass; both changed repositories pass whitespace checks |
+
+=just check-formal= runs the two native suites, TLC and Lean in order. It is an
+explicit qualification lane while the parser change remains uncommitted;
+default CI is not silently changed to require an unpublished dependency.
+With the current package layout, from the Aitia root:
+
+#+begin_src sh
+GERBIL_PATH="$PWD/../../.gerbil" \
+GERBIL_LOADPATH="$PWD/../../.gerbil/pkg/github.com/tao3k/gerbil-parser:$PWD:$PWD/../..:$PWD/../../.gerbil/lib" \
+TLA_TOOLS_JAR=/path/to/verified/tla2tools.jar just check-formal
+#+end_src
+
+No new root variable, global tool installation or source flattening is needed.
+The existing atomic test recipe bounds its observer at 1 GiB and its native
+test child at 512 MiB; direct parser probes used 512 MiB for the observer too.
+TLC uses its checksum-pinned jar, one worker and 512 MiB Java heap. Its local
+RMI listener required sandbox execution permission. No remote CI run is claimed.
+
+* Source cut
+
+Aitia remains at =de65fa2033ce62569147ee5411c05c50051206dd= with local changes.
+The linked parser branch advanced independently during the work from
+=f42393559de4aa78620a836777bbfd91ee6751ca= to
+=f0df5a11d8014bdfe8be30be5a1f3ad9203ce0bf=. Its unrelated artifact-filename
+change is preserved. Our parser edits remain confined to the two files below.
+The qualified parser source resolves through the parent's existing package
+link to =/private/tmp/gerbil-parser-rowan-scanned-tokens=.
+
+| Source | SHA-256 |
+|--------+---------|
+| parser =languages/tla-plus/v1/grammar.ss= | =a419e55d490afbdd7c8e31cf36fa17b2e598aac0b470dd6d8e2a5a12089299e6= |
+| parser =languages/tla-plus/v1/parser-test.ss= | =44fcd73fd6e9f736ec8b736db0f92fc83f635a0ef04f1bfca16a0874ee5a56da= |
+| Aitia =user-interface/scenarios/job-retirement-contract.ss= | =e333a91bf0964fb2762ddcf54e7bd5fa7c5e8071e721a45b50479617c27b5965= |
+| Aitia =t/formal/tla-syntax-test.ss= | =2f95897254ac97067eba5f728fd01be2b3b7f49ac1f2be2aef8fe1c25a8ff982= |
+| Aitia =t/formal/retirement-binding-test.ss= | =93438d52f8e71242615b6ef8feeb5f600d83da7a0344de6ad33916f1c3679f79= |
+
+* Remaining exit gates
+
+- Publish the parser-owned repair, update the actual dependency authority and
+  independently replay without relying on this dirty linked checkout. Neither
+  commits, pushes nor dependency-pin changes were performed in this slice.
+- Establish semantic correspondence or generation of the formal projections
+  from the owning POO contract; source identity tests cannot substitute for it.
+- Refine atomic fencing to actual authority/Runtime behavior, then evaluate
+  repeated clients and fairness under explicit assumptions.
+- Keep persistence and actual effect execution deferred. This is local closure
+  of the source/verification plumbing, not production or SDLC-wide closure.

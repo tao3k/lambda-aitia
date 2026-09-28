@@ -267,6 +267,11 @@ The machine-readable declaration and complete texts are maintained in
 - [[file:docs/rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004 — SDLC Design, Causal Assurance and Trajectories]] defines the
   complete lifecycle framework, design leverage, reuse contracts and future
   MRR boundary, with implementation acceptance still pending.
+- [[file:docs/rfcs/0005-org-native-engineering-workspace.org][RFC 0005 — Org-native engineering workspace]] defines source-bound Agent
+  review, POO Flow dependency ownership and the unresolved package cycle.
+  The [[file:user-interface/workspaces/job-executor.org][maintained job-executor workspace]] is the first native authoring surface.
+  Qualification must use Scheme-owned declarations and the Rowan/AOT consumer;
+  earlier legacy CLI lint/query results do not establish this integration.
 - [[file:docs/adrs/README.org][ADR contract and template]] defines standardized bounded decisions, lifecycle,
   RFC links and the non-authorizing assurance projection.
 - [[file:docs/adrs/0007-consume-poo-flow-public-library.org][ADR 0007]] establishes POO Flow as Aitia's reusable public mechanism library.

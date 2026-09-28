@@ -3,7 +3,7 @@
 \*
 \* SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-EXTENDS Naturals, TLC
+EXTENDS Naturals, TLC, EffectAdmission
 
 (* Bounded control-plane model. A successful report is not a Host verification;
    admitted evidence and grants are current only inside their validity cut. *)
@@ -21,7 +21,7 @@ Verify == adapterInstalled /\ planned = revision /\ clock < 3 /\ verified' = rev
 Admit == verified = revision /\ clock < sealUntil /\ admitted # revision /\ admitted' = revision /\ UNCHANGED <<revision, planned, verified, decided, granted, grantEpoch, epoch, clock, sealUntil, grantUntil, adapterInstalled, reportedSuccess, effectStarted, startSafe>>
 Decide == admitted = revision /\ decided # revision /\ decided' = revision /\ UNCHANGED <<revision, planned, verified, admitted, granted, grantEpoch, epoch, clock, sealUntil, grantUntil, adapterInstalled, reportedSuccess, effectStarted, startSafe>>
 Authorize == decided = revision /\ admitted = revision /\ granted # revision /\ clock < 3 /\ granted' = revision /\ grantEpoch' = epoch /\ grantUntil' = clock + 1 /\ UNCHANGED <<revision, planned, verified, admitted, decided, epoch, clock, sealUntil, adapterInstalled, reportedSuccess, effectStarted, startSafe>>
-StartEffect == ~effectStarted /\ granted = revision /\ admitted = revision /\ decided = revision /\ grantEpoch = epoch /\ clock < grantUntil /\ effectStarted' = TRUE /\ startSafe' = (admitted = revision /\ decided = revision /\ granted = revision /\ grantEpoch = epoch /\ clock < grantUntil) /\ UNCHANGED <<revision, planned, verified, admitted, decided, granted, grantEpoch, epoch, clock, sealUntil, grantUntil, adapterInstalled, reportedSuccess>>
+StartEffect == ~effectStarted /\ CurrentGrant(granted, revision, admitted, decided, grantEpoch, epoch, clock, grantUntil) /\ effectStarted' = TRUE /\ startSafe' = (admitted = revision /\ decided = revision /\ granted = revision /\ grantEpoch = epoch /\ clock < grantUntil) /\ UNCHANGED <<revision, planned, verified, admitted, decided, granted, grantEpoch, epoch, clock, sealUntil, grantUntil, adapterInstalled, reportedSuccess>>
 ChangeSource == revision = 1 /\ revision' = 2 /\ planned' = 0 /\ verified' = 0 /\ admitted' = 0 /\ decided' = 0 /\ granted' = 0 /\ sealUntil' = 0 /\ grantUntil' = 0 /\ UNCHANGED <<grantEpoch, epoch, clock, adapterInstalled, reportedSuccess, effectStarted, startSafe>>
 Tick == clock < 3 /\ clock' = clock + 1 /\ admitted' = (IF clock + 1 < sealUntil THEN admitted ELSE 0) /\ decided' = (IF clock + 1 < sealUntil THEN decided ELSE 0) /\ granted' = (IF (clock + 1 < sealUntil /\ clock + 1 < grantUntil) THEN granted ELSE 0) /\ UNCHANGED <<revision, planned, verified, grantEpoch, epoch, sealUntil, grantUntil, adapterInstalled, reportedSuccess, effectStarted, startSafe>>
 Revoke == epoch < 2 /\ epoch' = epoch + 1 /\ verified' = 0 /\ admitted' = 0 /\ decided' = 0 /\ granted' = 0 /\ sealUntil' = 0 /\ UNCHANGED <<revision, planned, grantEpoch, clock, grantUntil, adapterInstalled, reportedSuccess, effectStarted, startSafe>>

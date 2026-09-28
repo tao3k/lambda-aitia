@@ -1,0 +1,143 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Retirement ingress — terminal assumptions challenged
+#+startup: overview
+
+:PROPERTIES:
+:ID: lambda-aitia-retirement-ingress-review-2026-09-24
+:STATUS: evidence-partial
+:DATE: 2026-09-24
+:RFC_ID: lambda-aitia-rfc-0004
+:END:
+
+* Design finding
+
+The [[file:2026-09-24-retirement-formal-review.org][isolated review model]] prevents observations after its terminal state.
+That does not prove that external callers stop sending requests. The new
+[[file:../../proof/tla/RetirementIngress.tla][ingress composition]] permits a request before or after retirement, including
+a client retaining a cached grant. Merely removing a capability from a graph,
+or marking review complete, does not fence these callers.
+
+The modeled correction is ordered: close grant issuance and advance the
+authority epoch, drain known work, then finalize. At effect start, recheck the
+grant epoch. =EffectAdmission.CurrentGrant= is extracted without changing the
+existing =AssuranceLifecycle.StartEffect= predicate; both consumers use that
+same operator. This is reuse of a formal authorization contract, not a new
+policy evaluator or a claim that Cedar/Runtime already implements the mapping.
+
+* Executed model checks
+
+#+begin_src sh
+just check-tla ingress
+just check-tla
+just check-proof
+#+end_src
+
+The same pinned TLC jar and 512 MiB / one-worker / 60-second-per-run limits as
+the earlier receipt were used. Local RMI required sandbox execution permission.
+
+| Configuration | Generated / distinct | Expected and observed outcome |
+|---------------+----------------------+-------------------------------|
+| =RetirementIngress= | 741 / 248 | exit 0, queue empty; no post-retirement start; retired work drained, inventory known, epoch fenced |
+| =RetirementIngressUnfenced= | 413 / 150 | exit 12, =NoPostRetirementStart= violated when finalization omits the fence |
+| =RetirementIngressCachedGrant= | 524 / 179 | exit 12, same invariant violated when effect start skips grant validation |
+| =RetirementIngressRejected= | 499 / 178 | exit 12, =NeverRejectAfterRetirement= violated: a later request really reaches rejection |
+| =RetirementIngressStarted= | 38 / 23 | exit 12, =NeverStarted= violated: the model also allows an ordinary pre-retirement start |
+
+The last two are non-vacuity controls, not defects. The safe model includes
+explicit terminal self-loops and keeps deadlock checking enabled. Negative
+configurations require an actual trace and the named invariant violation, not
+an arbitrary nonzero process result.
+
+All 22 configurations across four unittest methods matched their contracts.
+The eight existing assurance checks retained exactly their preceding generated
+and distinct state counts after extraction of =CurrentGrant=. This is a
+regression observation, not a formal equivalence proof of the extraction.
+The ingress-only run took 3.407 s and the complete run 14.813 s; these are
+single-run wall times including JVM startup, not general performance claims.
+
+Four additional Lean laws prove initial safety, incompatibility of a current
+cached epoch with safe retirement, preservation across abstract boundary steps,
+and reachable-state safety. They reuse =Retirement.stepPreservesSafety=.
+Requests/rejections can stutter after retirement; a current-grant start is not
+excluded by a hard-coded retired guard but by the proved fence invariant.
+All 20 exported audited laws reported no axioms and no =sorryAx=.
+
+* Explicit abstraction limits
+
+- One pending request and one attempt are modeled, with epochs 0 and 1 and a
+  cached epoch 0. Revision, admission, decision and time are fixed to isolate
+  revocation. New grant issuance, grant expiry and repeated retries are not
+  explored by this composition; the existing lifecycle regression is separate.
+- Closing issuance and advancing the epoch is one atomic action. Actual
+  distributed ordering, concurrent authorities and restart behavior remain
+  obligations, not facts inferred from TLC.
+- =known= is an assumption about inventory, not proof of actual completeness.
+  Post-retirement discovery of previously unknown work is not covered.
+- No fairness or eventual retirement is claimed. Lean's abstract relation is
+  not yet a proved refinement of the TLA+ actions or a Scheme implementation.
+- Persistence, runtime effects, package publication and remote CI were not
+  performed. The worktree remains uncommitted.
+
+* Native parser: four independent capability gaps
+
+At parser commit =562dcd428f00b05ca87407fd54b1e04dcf076ae9=, the public native
+=parse-tla-plus-v1= API was probed with this wrapper:
+
+#+begin_example
+---- MODULE Probe ----
+<body>
+====
+#+end_example
+
+| Body | Parse success | First native diagnostic |
+|------+---------------+-------------------------|
+| =Value == TRUE= | true | none; valid artifact and exact byte roundtrip |
+| =Work == INSTANCE WorkLifecycle= | false | =lr-no-action=, state 137, byte 40, =WorkLifecycle= |
+| =Value == Work!Quiescent= | false | =lr-no-action=, state 137, byte 36, =!= |
+| =VARIABLES active,= then newline and = queued= | false | =lr-no-action=, state 205, byte 40, newline |
+| =Value= definition header, then newline and =TRUE= | false | =lr-no-action=, state 209, byte 31, newline |
+
+These are syntax probes, not standalone resolved modules or TLC checks.
+Grammar inspection agrees: only unnamed instance declarations exist, qualified
+operator selection has no production, and newlines terminate declarations.
+This expands the previous first-failure diagnosis; it does not repair the
+parser. No parser-owner source was modified and no downstream fallback added.
+
+Notably the four rejected probes still reported a valid artifact and lossless
+roundtrip. Those properties describe a well-formed diagnostic/lossless token
+artifact; they do NOT mean successful syntax admission. Qualification must
+continue requiring =success AND valid AND exact roundtrip=.
+
+The probe used a bounded =gxi -:max-heap=512M= process with 60-second timeout
+and parent source/dependency paths in =GERBIL_LOADPATH=. An initial attempt
+omitting the parent source path failed at an unbound observability import;
+the corrected path resolved that import without changing dependencies.
+
+* Source cut and next obligations
+
+This continues the uncommitted Aitia source cut at
+=de65fa2033ce62569147ee5411c05c50051206dd=.
+
+| Source | SHA-256 |
+|--------+---------|
+| =proof/tla/EffectAdmission.tla= | =94ab242a5b2610dff134511dd9e4431e9e831d863938bfa30dadea7718a2deb5= |
+| =proof/tla/AssuranceLifecycle.tla= | =8b63b1b334cf31d490630c594aec7de0c30b0a5d4dcc4728d4f9d9c5fbc5bcfc= |
+| =proof/tla/RetirementIngress.tla= | =7227aa8deea008de87e3204c659254d72e2bb153889f5baf2d2993b979067af5= |
+| =proof/tla/RetirementIngress.cfg= | =df8d25edb57d96fc1756167e07b93f95eac717ab6741cbc5a8b0e5149a2c217a= |
+| =proof/tla/RetirementIngressCachedGrant.cfg= | =9c9330666e2bed4cddb2fad63020b9c8432ad573722ca8d18a751e7da253acd0= |
+| =proof/tla/RetirementIngressRejected.cfg= | =7c5725cf1ab1269da358a2366bba7609da0f704787df710dc8cff0a7299d1a51= |
+| =proof/tla/RetirementIngressStarted.cfg= | =b2645bd555d48a306e6a232ce0ecd2a534d3a5ae27b6f8a1d36f15855dcc5b8e= |
+| =proof/tla/RetirementIngressUnfenced.cfg= | =ec3c2181c8714a0408ce4da1430bdb79cc23d30623f6963e99d84673ea5064b0= |
+| =proof/lean/LambdaAitiaProof/Modules/Sdlc/RetirementIngress.lean= | =cc1b7609613461a61ef6825edd39ae055860d99c1691895b437af099c3e27dd0= |
+| =bindings/python/tests/tla_contract.py= | =2dfb943c0dabfe3e97ed4225926f3ce88e60e4f3ce6ddfba5e749ddbd3d1a548= |
+
+1. Repair modular/multiline syntax in the parser owner and require exact
+   source-byte roundtrip. Do not flatten source to disguise missing grammar.
+2. Bind the formal projections to admitted Scheme Contract identity/revision
+   and prove or test the claimed correspondence; hashes alone do not do that.
+3. Challenge atomic fencing/new issuance and repeated/concurrent requests,
+   then state fairness premises for progress. Keep using the existing authority
+   owner rather than adding another authorization implementation.
+4. Keep persistence deferred while these design/verification gates are open.

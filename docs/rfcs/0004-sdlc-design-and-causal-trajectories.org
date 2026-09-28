@@ -37,6 +37,10 @@ whole lifecycle into one fixed pipeline.
 This RFC records the agreed direction and pending executable acceptance work.
 Its draft status does not promote the capabilities below to implemented APIs.
 
+[[file:0005-org-native-engineering-workspace.org][RFC 0005]] specifies the native Org engineering work surface and source-bound
+Agent review, with generic Org integration owned by POO Flow. Its initial
+authoring checks are distinct from the pending connected execution loop.
+
 The lifecycle workflow below names engineering states, not implementation
 milestones. Transitions require attributable revisions and receipts; an arrow
 does not itself grant assurance or authority. Feedback can reopen earlier
@@ -79,6 +83,83 @@ claims may have different support states at the same cut. Pending or stale
 support blocks the affected effect; an accepted ADR alone is not authorization.
 Operational findings or changed context trigger reassessment; an accountable
 retirement decision opens retirement obligations before closure is recorded.
+
+* Formal challenge gates before persistence integration
+
+The immediate design-validation priority is to challenge lifecycle assumptions
+using reviewed upstream failure reports, not to add storage. Keep reported
+behavior, our proposed transfer and locally executed evidence distinct in the
+[[file:../plans/engineering-case-source-inventory.org][source inventory]]. An Issue being closed does not qualify our design.
+
+TLA+ is organized into reusable action/contract modules with independently
+runnable configurations and a separate composition lane. Each safety boundary
+needs positive exploration, a reachable-state control and a deliberately
+weakened guard that produces the expected counterexample. Do not duplicate a
+shared action in every scenario, discard environment interference to obtain a
+green atomic test, or infer composite correctness from leaf checks alone.
+
+The first [[file:../../proof/tla/README.org][modular slice]] separates cancellation/work observations from retirement
+review. It requires final-cut quiescence and known inventory: a cancellation
+request, an earlier accepted review, or missing history is insufficient.
+Lean proves safety preservation for an abstract retirement transition relation;
+it does not yet prove Scheme or TLA+ refinement. The
+[[file:../receipts/2026-09-24-retirement-formal-review.org][formal receipt]] records the actual checks and uncovered parser boundary.
+
+The [[file:../receipts/2026-09-24-formal-source-qualification.org][local source qualification]] now checks native syntax/byte-roundtrip and
+binds both source views to one maintained POO design declaration, revision and
+source cut using existing SDLC/Assurance links. A model, proof or premise
+change invalidates old bindings. This is source correspondence, not a proof of
+semantic refinement or Host evidence admission. Portable parser pinning,
+independent replay and semantic correspondence remain required for closure.
+The isolated review terminal state assumes no later
+ingress; the [[file:../receipts/2026-09-24-retirement-ingress-review.org][bounded ingress composition]] challenges this by permitting requests
+after retirement. It requires closing grant issuance and advancing the epoch
+before finalization, and rechecking the cached grant at effect start. The
+effect-admission predicate is extracted from the existing assurance model.
+This does not establish a deployed Cedar/Runtime binding, new grant issuance,
+distributed atomicity, repeated retries or eventual progress. Authorization,
+ingress exclusion and fairness still need their actual owner correspondences
+before any Runtime or eventual-retirement guarantee. Persistence remains
+deferred; passing these abstract checks does not authorize its implementation.
+
+** Correspondence gate across design, formal views and execution
+
+A source digest proves which bytes were checked, not that the checked formula
+means the declared guarantee. Each claimed correspondence therefore needs a
+reviewable interpretation, an owner and an adversarial check:
+
+| Boundary | Required correspondence | Falsifying control |
+|----------+-------------------------+--------------------|
+| POO design contract → TLA+ | Map each relevant assumption and guarantee to named state predicates/actions, including the environment and modeled client bound | weaken a fence, inventory or ingress premise and require the expected reachable counterexample |
+| POO design contract → Lean | State theorem premises and conclusion against the same declaration; audit imported axioms and excluded behaviors | remove a needed premise and demonstrate that the claim is no longer established |
+| TLA+/Lean → Scheme and Runtime | Identify the concrete state/effect transitions represented by the abstract ones and document omitted transitions | replay a concrete behavior outside the mapping and keep conformance unknown or violated |
+| Tool result → Assurance Host | Bind actual tool/source/configuration identities and the exact proposition assessed | change an input or tool identity and reject reuse of the earlier admission |
+
+The current source-group links qualify identity and invalidation only. A
+matching name, digest, passing model configuration or axiom-free theorem does
+not fill an interpretation row. A counterexample in the abstract model is a
+model finding until its concrete correspondence is checked; an observed
+Runtime trace is not retroactively turned into a model execution. If a
+concrete transition has no modeled counterpart, record that coverage gap and
+reopen the design or model rather than narrowing the tested environment to
+make the check pass. No implementation-conformance or effect-authority flag
+may become true from these source mappings alone.
+
+For the maintained =job-executor/retirement= declaration, the first
+correspondence review has these concrete boundaries:
+
+| Declaration | Current formal representation | Remaining gap |
+|-------------+-------------------------------+---------------|
+| =atomic-epoch-fence= | TLA+ =CloseIngress= closes issuance and advances =epoch= in one action; Lean =Step.close= changes both fields | No concrete Host/Cedar/Runtime atomic transition is bound |
+| =known-inventory= and quiescence | TLA+ =Review!Retire= requires =known= and =Work!Quiescent=; Lean =Retirement.Step.finalize= requires =inventory=, =idle= and =drained= | Neither formal view proves the inventory is complete in production |
+| =no-new-grant= | The TLA+ composition has one fixed cached grant and no grant-issuance action; Lean has no issuance transition | This is an excluded environment behavior, not a proved revocation protocol |
+| =bounded-client= | TLA+ =pending= and =attempted= model one request/attempt; Lean's =requestOrReject= stutters | Multiple clients, responses and retry progress are outside the Lean theorem |
+| =retirement-safety/g1= | TLA+ checks =NoOutstandingWork= and =NoPostRetirementStart=; Lean proves =Retirement.Safe= and =RetirementIngress.Safe= for its own =Step= relation | These are two abstract checks, not a proof that either is a faithful refinement of the Scheme contract or deployed effects |
+
+The current source binding tracks changes to these files, but none of the
+remaining gaps can be closed by adding another digest link. In particular,
+the absent grant-issuance transition must be modeled and challenged before
+claiming that real new grants are excluded after retirement.
 
 * Design and implementation within the lifecycle
 
@@ -194,6 +275,106 @@ the earlier cut intact. Missing causal parents, incompatible clock domains
 and incomplete coverage retain an unknown frontier. Cross-clock mapping or
 additional time axes require a qualified POO Flow contract; this RFC does not
 claim that every such mapping already exists.
+
+* Lifecycle Impact of introduction, change and retirement
+
+Design direction agreed on 2026-09-24; implementation qualification remains
+pending. Impact is a lifecycle view of a change, not only a list of files to
+rebuild. It asks which historical interpretations and obligations, current
+conditions, and future options are changed by introducing, modifying or
+retiring a capability. POO Flow retains generic Impact and Temporal Causality
+ownership; Aitia supplies Software/SDLC relations and domain obligations.
+
+| Perspective | Introduce or modify a capability | Retire a capability |
+|-------------+---------------------------------+---------------------|
+| Past assets and commitments | check old data against new assumptions; reassess the applicability of earlier evidence | preserve interpretation/replay of old results and outstanding commitments |
+| Current code and operation | inspect consumers, interfaces, deployment conditions, authority and resource interactions | identify remaining consumers, running instances, in-flight work and configuration references |
+| Future work and obligations | open verification, migration, monitoring and maintenance obligations | migrate consumers, prevent new use where required, drain/cancel queued work and verify residual duties |
+
+Impact on the past never changes an observed historical fact. Distinguish
+evidence that was valid under its original conditions but is no longer
+applicable from evidence whose original justification is now challenged.
+The latter opens correction and retrospective review, not silent deletion of
+the original receipt. Record when a condition applied separately from when
+it was learned or corrected.
+
+** Inputs, meaning and receipt boundary
+
+Assessments bind the proposed change and before/after source/design snapshots,
+affected capability identities, deployment scope, selected typed relations,
+explicit causal cut/time observation, horizon and inventory completeness.
+An unexecuted change remains proposed or counterfactual; it is not an observed
+production event merely because its impact has been computed.
+
+Relevant relations include implementation dependencies, data/protocol usage,
+assumption/guarantee support, evidence applicability and accountable ownership.
+Every relation needs a source and declared meaning. Org ancestry, organization
+hierarchy, code references and causal relations are not interchangeable.
+An unchanged function signature does not imply an unchanged guarantee: a
+retention, permission or consistency change can alter assurance without an
+API change.
+
+For each affected subject, present its identity, witness path, applicable
+versions/environment/time bounds, evidence modality, unresolved conditions,
+recommended obligation and responsible role. This is an analysis/proposal,
+not execution authority. Existing Cedar/Runtime admission remains necessary
+before a proposed migration, cancellation or other external effect.
+
+The existing POO Flow classifier partitions events by logical position.
+That alone does not establish current exposure: an old task, authorization or
+stored object can still be active now. Current applicability needs an explicit
+state or validity-interval projection, including its source and uncertainty.
+Any missing generic mechanism belongs in POO Flow, not a parallel Aitia engine.
+
+Dynamic callers, unregistered deployments, external consumers and missing
+history remain an unknown frontier. No discovered dependency is not evidence
+of no dependency. Completeness is relative to the declared inventory and scope.
+
+** Retirement preserves history and discharges remaining obligations
+
+Deletion is not the inverse of introduction. Analyze the old snapshot as well
+as the candidate one: deleting an object and its edges before analysis can
+hide precisely the consumers that need migration. Preserve the capability's
+historical identity and provenance after removal from the active surface;
+record retirement and any successor explicitly. A semantically different
+replacement does not inherit identity merely by keeping the same display name.
+
+The maintained Composition selects applicable retirement stages. The following
+workflow is a qualification target, not an implemented global state machine:
+
+#+begin_export mermaid
+flowchart TD
+    P["Retirement<br/>proposed"] --> I["Impact<br/>scoped; unknowns retained"]
+    I --> R["Migration and residual duties<br/>owner review pending"]
+    R --> A["Selected actions<br/>authorization pending"]
+    A --> E["Migration / drain / cancellation<br/>execution receipts required"]
+    E --> V["Residual obligations<br/>verification pending"]
+    V -->|unresolved| R
+    V -->|closure conditions satisfied| C["Retired<br/>historical identity retained"]
+#+end_export
+
+An accepted retirement proposal neither cancels queued work nor rewrites
+historical evidence. Required operations use the existing effect boundary;
+irreversible effects may require explicit compensation or unresolved duties
+rather than a claim that rollback erased them.
+
+** Next qualification: retire one job-executor capability
+
+Pair the existing repair case with a bounded retirement experiment using the
+same job-executor subject. Select one concrete capability and bind its consumers
+before implementing the experiment; this RFC does not order a production
+removal. Include an old persisted job/result, a current consumer or in-flight
+job, and queued future work. Preserve one unrelated consumer as a negative
+control and one deliberately unknown external-consumer boundary.
+
+The experiment must show pre/post snapshot witnesses, explicit handling of
+still-active old work, proposed migration/drain obligations and actual receipts
+where execution is claimed. Replaying an old result must retain its original
+version/scope; a replacement cannot silently acquire the old evidence.
+
+The [[file:../receipts/2026-09-24-retirement-impact.org][first bounded analysis receipt]] exercises the automatic-retry fixture through
+POO Flow's existing public mechanisms. It uses synthetic facts and does not
+close the persisted-state, obligation derivation or execution requirements above.
 
 * Historical engineering cases as design inputs
 
@@ -388,8 +569,22 @@ discovery needs a separate evaluation with unexposed answers.
   missing parents and late evidence have explicit negative cases.
 - [ ] A changed assumption yields attributable invalidation witnesses and
   prevents stale support from being reused.
+- [ ] Introduction/change/retirement Impact binds pre/post snapshots, typed
+  relations and explicit temporal scope; proposal and observed effect remain
+  separate. Generic analysis stays in POO Flow.
+- [ ] The retirement case covers historical data/results, current consumers
+  and queued work; old-but-active subjects are not lost to past-event filtering.
+  Removed graph nodes cannot hide their old dependents. Unrelated controls are
+  not reopened, and incomplete external-consumer inventory remains unknown.
+- [ ] Historical validity, current applicability and later correction are
+  distinct; missing inventory and out-of-horizon effects cannot certify safe
+  deletion. Migration or compensation requires its own authorized receipts.
 - [ ] Frozen Python tool observations reach the actual Scheme Host admission
   path; serialized success cannot substitute for that path.
+- [ ] The maintained POO contract's assumptions and guarantees have reviewed
+  TLA+/Lean interpretations and falsifying controls, followed by concrete
+  Scheme/Runtime transition correspondence. Source identity alone is not
+  semantic refinement.
 - [ ] A contract-preserving optimization has conformance and performance
   evidence, with no unreviewed weakening of the target requirement.
 - [ ] Compare the same upstream tools/assets with and without Aitia's design
@@ -405,6 +600,7 @@ and their receipts retain their existing scope.
 - [[file:0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
 - [[file:0002-snapshot-and-invalidation-kernel.org][RFC 0002 — Snapshot and Invalidation Kernel]]
 - [[file:0003-composition-value-interface.org][RFC 0003 — Composition Value Interface]]
+- [[file:0005-org-native-engineering-workspace.org][RFC 0005 — Org-native Engineering Workspace]]
 - [[file:../adrs/0006-production-python-sdlc-runtime.org][ADR 0006 — Aitia Python Runtime]]
 - [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 — Stable logical-operation identity]]
 - [[file:../../ROADMAP.org][Roadmap and current implementation evidence]]

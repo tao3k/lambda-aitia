@@ -1,0 +1,158 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Retirement design — modular formal review
+#+startup: overview
+
+:PROPERTIES:
+:ID: lambda-aitia-retirement-formal-review-2026-09-24
+:STATUS: evidence-partial
+:DATE: 2026-09-24
+:RFC_ID: lambda-aitia-rfc-0004
+:END:
+
+* Decision and evidence boundary
+
+New persistence integration is deferred. The prior
+[[file:2026-09-24-retirement-impact.org][Scheme Impact checks]] exercise structural/temporal analysis, not a proof of
+retirement safety. Existing Lean laws covered fixed-snapshot impact and design
+substitution; the existing TLA+ model covered assurance admission/authorization.
+Neither covered the new retirement review. This slice adds design experiments,
+not deployed deletion, a new public DSL, or a second generic Impact engine.
+
+[[file:../plans/engineering-case-source-inventory.org][The source inventory]] distinguishes Temporal's documented cancellation
+semantics, the etcd watch report and a LangGraph recovery report from our own
+proposed transfers. None was replayed locally in this slice. Known upstream
+reports are not new bug discoveries, and these models do not reproduce their
+implementations.
+
+* Executed checks
+
+Run from the Aitia root with the existing pinned =TLA_TOOLS_JAR=:
+
+#+begin_src sh
+just check-tla work
+just check-tla retirement
+just check-tla
+just check-proof
+just check-license-contract
+#+end_src
+
+| Lane / configuration | Generated / distinct states | Observed result |
+|----------------------+-----------------------------+-----------------|
+| =WorkLifecycle= | 14 / 8 | exit 0; queue empty |
+| =WorkCancellation= | 3 / 2 | exit 0; work remains after request |
+| =WorkCancellationReachable= | 2 / 2 | exit 12; =NeverCancelled= violated |
+| =WorkQuiescenceReachable= | 8 / 7 | exit 12; =NeverQuiescent= violated |
+| =RetirementReview= | 84 / 42 | exit 0; queue empty; deadlock checks enabled |
+| =RetirementReviewCancellation= | 24 / 15 | exit 12; =NoOutstandingWork= violated |
+| =RetirementReviewStale= | 46 / 27 | exit 12; =NoOutstandingWork= violated |
+| =RetirementReviewUnknown= | 49 / 28 | exit 12; =InventoryKnown= violated |
+| =RetirementReviewReachable= | 39 / 21 | exit 12; =NeverRetired= violated |
+
+All nine new configurations and the eight unchanged assurance configurations
+passed their expected-outcome contracts. This means 17 configurations within
+three unittest methods, not 17 successful safety theorems. The harness checks
+the exact counterexample property, exit code, nonempty exploration and trace.
+Negative checks stop at a counterexample and need not exhaust their queues.
+
+One local work-only run took 2.595 s; retirement-only took 3.321 s; the final
+all-module run took 11.390 s. These are single-run unittest wall times including
+JVM startup, not a repeated benchmark or a general speedup claim. Atomic
+selection avoids unrelated models; changing the shared work module still
+requires its retirement consumer check.
+
+Lean 4.31.0 built both assurance/SDLC libraries. Six new exported laws prove
+initial safety, one-step preservation, reachable-state safety and three unsafe
+state witnesses. All 16 audited laws reported no axioms; no =sorryAx= was used.
+The observation relation overapproximates all nonterminal observations, while
+the finalize action checks current work/inventory. This is an abstract-model
+proof, not an established refinement from TLA+ or Scheme.
+
+The invalid module selector =not-a-module= was also checked with the project's
+existing Python interpreter: argparse exited 2 rather than running zero tests.
+The same unittest suite remains discoverable through the existing CI command.
+No remote CI run or clean-checkout validation is claimed.
+
+* Unclosed native syntax gate
+
+The parent dependency resolves to gerbil-parser commit
+=562dcd428f00b05ca87407fd54b1e04dcf076ae9= at
+=/private/tmp/gerbil-parser-rowan-scanned-tokens=, with a clean source worktree
+at inspection. Importing its public =parse-tla-plus-v1= and runtime artifact
+checks under a 512 MiB Gerbil heap / 60-second timeout rejected both sources:
+
+| Source | First diagnostic |
+|--------+------------------|
+| =WorkLifecycle.tla= | =GERBIL-PARSER-TLA-PLUS-V1=, =lr-no-action=, state 209, byte 472: newline after the =RequestCancellation= definition header |
+| =RetirementReview.tla= | same code/kind, state 205, byte 541: newline within the =VARIABLES= declaration |
+
+The inspected grammar requires these expressions/declarations on one line;
+TLC's parser accepts the native multiline forms. These are first-failure
+locations, not an exhaustive parser capability audit: named =INSTANCE= and
+qualified operators also require qualification after the newline gap is fixed.
+No alternate parser, flattened-source workaround or false roundtrip receipt
+was introduced. Native parser acceptance/byte-roundtrip remains failed.
+
+The executable reproduction uses the parent =GERBIL_PATH= and its existing
+=GERBIL_LOADPATH= dependency source/library paths, then for each model:
+
+#+begin_src scheme
+(import (only-in :std/misc/ports read-all-as-string)
+        (only-in :gerbil-parser/languages/tla-plus/v1/parser parse-tla-plus-v1)
+        (only-in :gerbil-parser/src/runtime/artifact
+                 parse-artifact-success? parse-artifact-valid?
+                 parse-artifact-roundtrip parse-artifact-ref))
+(let* ((source (call-with-input-file "proof/tla/WorkLifecycle.tla" read-all-as-string))
+       (artifact (parse-tla-plus-v1 source)))
+  (displayln (parse-artifact-ref artifact 'diagnostics))
+  (exit (if (and (parse-artifact-success? artifact)
+                 (parse-artifact-valid? artifact)
+                 (equal? source (parse-artifact-roundtrip artifact))) 0 1)))
+#+end_src
+
+* Reproducibility and source cut
+
+Aitia HEAD is =de65fa2033ce62569147ee5411c05c50051206dd= with uncommitted
+changes; this is a shared-worktree receipt. TLC release v1.7.2 reports TLC2
+2.17 (2022-02-02, revision 3c7caa5); its SHA-256 is
+=fa18543e44ed5974a85bd2c60c0dc16620ae117680ea8e693d2691999ed90b22=.
+Each execution used one worker, =-Xmx512m=, a fresh temporary state directory
+and a 60-second process timeout. The sandbox first blocked Java's local RMI
+listener; the same bounded checks passed with local execution permission.
+
+| Source (relative to Aitia) | SHA-256 |
+|---------------------------+---------|
+| =proof/tla/WorkLifecycle.tla= | =079452f967fc2f1d21a1e962dd0d38a5e62fa6b36a4055d2c42358fb006fbb23= |
+| =proof/tla/RetirementReview.tla= | =4edbe49d59f663a007ad986108d1e374e3408c4593fb4c4c53a34c02232ed01a= |
+| =proof/lean/LambdaAitiaProof/Modules/Sdlc/Retirement.lean= | =86f899c87cfd51ed2daa23dbc0c4b3bb88914851b42afeed28dc51e067eb45d3= |
+| =bindings/python/tests/tla_contract.py= | =788e97254d0923104357654b59e6ad2902a9ec483eb72f35c75d8e18657c13a3= |
+| =proof/tla/WorkCancellation.cfg= | =503131d547fa46de7555b245156dc072ebb04c4a32f3fc6f4672ff600f751198= |
+| =proof/tla/WorkCancellationReachable.cfg= | =a79ba63517e17e4fd7ca1eb7d2964455f8c40e58a2b5a87aef6f29d565d8f5b1= |
+| =proof/tla/WorkLifecycle.cfg= | =1084116ad37aeb2bbb511ce9fd7bded6381c946f0ba39f927116ff722a8910bf= |
+| =proof/tla/WorkQuiescenceReachable.cfg= | =a4467507d11ce289101a29644dd84d45c57fb72c534d25d096b2276d46d31ed7= |
+| =proof/tla/RetirementReview.cfg= | =9a433fe46ec346fe6d180ca0483b415cdf0f6f4fc9650cb739c6ce4e72dfd2df= |
+| =proof/tla/RetirementReviewCancellation.cfg= | =641e05f7356e568494e2dc7fbc340635031706593a07971c612c6891ada31969= |
+| =proof/tla/RetirementReviewReachable.cfg= | =1ec1a31f4e3d25c0d7dba39abdc1f79300a4ef7a80e683565cdf8a2d96231093= |
+| =proof/tla/RetirementReviewStale.cfg= | =28e8245f7bb71691d7d0b274a06b6458d6a81f932520b74bc5d228f6d9e8442f= |
+| =proof/tla/RetirementReviewUnknown.cfg= | =e935c67af6280fb68fddb1819ed0364ddbb5cd21aae6fb4f428df48d9027d61a= |
+
+* Next gates, not claimed complete
+
+Follow-up: [[file:2026-09-24-retirement-ingress-review.org][the ingress review]] adds a bounded challenge to item 3 and extracts the
+existing grant predicate. The source hashes and 17-case results above remain
+the earlier cut; the follow-up records its changed runner/model hashes and
+22-case run. Items 1, 2 and live authority correspondence remain open.
+
+1. Qualify the native parser for modular/multiline TLA+ without weakening the
+   source-byte identity or introducing a downstream parsing authority.
+2. Bind admitted Scheme Contract identity/revision and projection digests to
+   the TLA+ and Lean views, with an executable correspondence check.
+3. Challenge the terminal assumption by composing retirement with ingress and
+   revocation: a late request after finalization must not be hidden by a
+   frozen state. Reuse the current authority owners; do not add a policy engine.
+4. State fairness assumptions before proving eventual drain/retirement.
+   Unknown inventory, replay, multiple consumers and repeated late arrivals
+   remain outside this finite model's complete guarantees.
+5. Keep persistence and real effect execution deferred. Neither abstract proof
+   nor the synthetic Scheme case constitutes production readiness.

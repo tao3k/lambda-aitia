@@ -68,8 +68,18 @@ check-proof:
 # TLA_TOOLS_JAR is an explicit, checksum-verified input; the recipe never
 # downloads tools or writes into the user's global Java environment.
 [group('check')]
-check-tla:
-    python3 -m unittest discover -s bindings/python/tests -p 'tla_contract.py'
+check-tla module='all':
+    uv run --locked --project bindings/python python bindings/python/tests/tla_contract.py '{{module}}'
+
+# Explicit source/formal lane: requires the qualified native parser dependency.
+# Every gate must run; none substitutes for semantic implementation refinement.
+[group('check')]
+check-formal:
+    just test-scheme-atomic formal tla-syntax-test.ss
+    just test-scheme-atomic formal tla-poo-interface-test.ss
+    just test-scheme-atomic formal retirement-binding-test.ss
+    just check-tla
+    just check-proof
 
 # Aitia owns its native ABI and Python Runtime checks.
 [group('check')]

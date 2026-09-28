@@ -17,3 +17,13 @@ open LambdaAitiaProof.Modules
 #print axioms Sdlc.Design.refinesTrans
 #print axioms Sdlc.Design.strongerAssumptionBlocks
 #print axioms Sdlc.Design.droppedGuaranteeBlocks
+#print axioms Sdlc.Retirement.initialSafe
+#print axioms Sdlc.Retirement.stepPreservesSafety
+#print axioms Sdlc.Retirement.reachableSafe
+#print axioms Sdlc.Retirement.cancellationDoesNotJustifyRetirement
+#print axioms Sdlc.Retirement.oldReviewDoesNotJustifyRetirement
+#print axioms Sdlc.Retirement.unknownInventoryBlocksRetirement
+#print axioms Sdlc.RetirementIngress.initialSafe
+#print axioms Sdlc.RetirementIngress.currentGrantExcludesRetirement
+#print axioms Sdlc.RetirementIngress.stepPreservesSafety
+#print axioms Sdlc.RetirementIngress.reachableSafe

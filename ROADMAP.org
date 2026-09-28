@@ -18,6 +18,13 @@ requirements, at least two design alternatives, assumptions and guarantees to
 real execution trajectories, evidence, a revised ADR and renewed obligations.
 Recipe execution and tool integration contribute to that connected experiment.
 
+The agreed lifecycle Impact design in RFC 0004 covers capability introduction,
+change and retirement across historical assets/commitments, current code and
+operation, and future work. POO Flow owns generic analysis; Aitia adds SDLC
+meaning. A bounded job-executor retirement case is the next paired Impact
+qualification, not an instruction to remove a production capability. Its
+implementation and execution receipts remain pending.
+
 Reuse POO Flow Temporal Causality and existing upstream verification tools and
 assets. AnyIO serves the entire Aitia Python Runtime. MRR relation queries,
 derivation and lineage are deferred beyond the current Python implementation
@@ -25,6 +32,21 @@ stage; this queue introduces no MRR integration.
 
 This view tracks implementation progress; it is separate from the engineering
 states in RFC 0004's lifecycle workflow.
+
+[[file:docs/rfcs/0005-org-native-engineering-workspace.org][RFC 0005]] adds the maintained [[file:user-interface/workspaces/job-executor.org][Org-native job-executor workspace]]. Its
+Scheme-owned contract and Rowan consumer qualification remain pending; the
+earlier legacy CLI checks do not close this gate. POO Flow owns the intended
+Orgize dependency; direct Scheme package
+installation is blocked by the Orgize → gerbil-parser → POO Flow dependency
+cycle and missing Orgize package entrypoint. Existing generated Cargo artifacts
+can be qualified independently of that source-package cycle. Rust/Rowan runtime
+delivery is the later durable path, not an interim workaround or a prerequisite
+for the current Python stage. The immediate implementation priority remains
+Aitia's production Python Runtime: preserve frozen source observations through
+AnyIO execution and reach the actual Scheme Host admission path. Python must
+not reimplement Org parsing or contract evaluation to bypass the pending
+Orgize boundary. Role projection, source-bound edits and the connected
+lifecycle remain separate gates.
 
 #+begin_export mermaid
 flowchart TD
@@ -419,6 +441,14 @@ alternatives, qualify reusable verification methods, link behavior and design
 evolution trajectories, and reopen obligations after a premise changes.
 Existing bounded results below are foundations for that experiment.
 
+The [[file:docs/receipts/2026-09-24-retirement-impact.org][retirement Impact analysis receipt]] adds seven Scheme qualification cases
+using the existing POO Flow Graph/Temporal Causality mechanisms. The synthetic
+automatic-retry case preserves old dependents and historical cuts, distinguishes
+explicit current activity from past occurrence, and retains unknown consumers
+and future/out-of-horizon work. Candidate graph edits are not migration receipts.
+Real persisted observations, derived migration duties and authorized execution
+remain pending; the lifecycle retirement gate is not closed.
+
 The first job-executor regression now records an ADR-bound POO-native design
 contract with assumptions, guarantees, state ownership, effects and variation
 points. A retry-policy revision reopens the unique-effect guarantee; the
@@ -490,6 +520,23 @@ domain branch and the public API remains POO-native.
 The earlier migration, nominal vocabulary, snapshot/invalidation and CFFI
 foundation work is recorded in the phases above. The current queue is:
 
+Immediate priority (2026-09-24): defer new persistence integration. First
+challenge the design with source-reviewed upstream failure reports and actual
+formal checks. [[file:proof/tla/README.org][Modular TLA+ checks]] now separate work/cancellation, retirement review and
+the existing assurance lifecycle; [[file:docs/receipts/2026-09-24-retirement-formal-review.org][the formal review receipt]] records bounded
+exploration and Lean laws, not Runtime closure. The
+[[file:docs/receipts/2026-09-24-formal-source-qualification.org][local source qualification]] now passes native TLA+ parsing/roundtrip and
+declared POO Contract/source-cut invalidation. Next gates are publication and
+consumer pinning of the parser fix, independent replay, and semantic
+correspondence between the Scheme contract and formal views (not just hashes).
+The [[file:docs/receipts/2026-09-24-retirement-ingress-review.org][bounded ingress composition]] now admits post-retirement requests and
+checks epoch fencing, with two unsafe mutants; live authority/Runtime
+correspondence, new grant issuance and eventual progress remain unqualified.
+Extract admission,
+revocation and grant contracts from the existing lifecycle model with atomic
+counterexamples; retain the whole-protocol regression. Do not resume storage
+work merely because these design-level tests pass.
+
 1. [ ] Extend the job-executor design case with a common requirement set and
    comparable alternatives, keeping completion and unique-effect obligations.
    Historical-source applicability and the owner/coverage audit are documented
@@ -505,10 +552,26 @@ foundation work is recorded in the phases above. The current queue is:
    POO Flow temporal/causal mechanisms. Check modality, causal cuts, late
    observations and missing parents without turning structural paths into
    causal proof.
+   Pair the repair case with one capability-retirement experiment: bind old
+   persisted results, current/in-flight consumers and queued work to pre/post
+   snapshots. Preserve historical identity, distinguish old-but-active state
+   from past occurrence, and derive migration/drain obligations with witnesses.
+   Include an unrelated negative control and unknown external consumers;
+   disappearance from the new graph must not imply safe deletion. Close only
+   with the scoped qualification and effect receipts required by RFC 0004.
+   The [[file:docs/receipts/2026-09-24-retirement-impact.org][first bounded analysis slice]] passes; actual persistent-state and effect
+   qualification remains open and is deferred behind the formal design gates.
 4. [ ] Connect real tool observations from the Aitia Python Runtime to the
    configured Scheme Host, preserving source bytes and native-session ownership
    through the AnyIO execution boundary. This is required before claiming
    admitted support or progressing to the remaining Phase 6 effect gates.
+   The bounded frozen-pytest AnyIO worker now waits for process-group cleanup
+   under cancellation and never carries a thread-affine native session; it
+   remains an observation-only slice, not Host admission. The installed-wheel
+   qualification also exercises a real native session before and after that
+   worker, with the lost-ACK failure/fix and stale-source rejection. The next
+   gate is an owner-preserving Host operation and opaque capability transport,
+   followed by source-change, expiry, revocation and forged-receipt negatives.
 5. [ ] Compose the qualified methods through existing POO Profiles and slots;
    an override must preserve required checks or reopen corresponding obligations.
 6. [ ] Replay failure, design revision, re-verification and a later assumption

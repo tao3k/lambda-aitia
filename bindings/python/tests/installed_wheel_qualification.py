@@ -60,10 +60,11 @@ def test_installed_wheel_qualification() -> None:
         # Import, native invocation, verifier and stale-source test all occur
         # with cwd outside the checkout and no development path override.
         code = """
+import anyio
 from pathlib import Path
 from lambda_aitia import (AitiaNativeSession, OrgElementFact, SdlcRuntime,
                           evaluate_org_contract)
-from lambda_aitia.verification import capture_source_tree, run_pytest, run_pytest_frozen
+from lambda_aitia.verification import capture_source_tree, run_pytest, run_pytest_frozen_async
 root = Path('scenario').resolve()
 assert SdlcRuntime().plan('qualification/job-42').lifecycle_id == 'qualification/job-42'
 with AitiaNativeSession() as session:
@@ -82,10 +83,21 @@ buggy = run_pytest(Path(__import__('sys').executable), root, selector,
     environment={'AITIA_QUALIFICATION_MODE': 'buggy'})
 assert buggy.status == 'failed', buggy
 assert 'assert 2 == 1' in buggy.output, buggy.output
-fixed = run_pytest_frozen(Path(__import__('sys').executable),
-    capture_source_tree(root), selector,
-    environment={'AITIA_QUALIFICATION_MODE': 'fixed'})
-assert fixed.passed_obligation and fixed.collected == 1, fixed
+source_payload = capture_source_tree(root)
+
+async def verify_fixed():
+    return await run_pytest_frozen_async(Path(__import__('sys').executable),
+        source_payload, selector,
+        environment={'AITIA_QUALIFICATION_MODE': 'fixed'},
+        limiter=anyio.CapacityLimiter(1))
+
+with AitiaNativeSession() as session:
+    runtime = SdlcRuntime(session=session)
+    assert runtime.plan('qualification/job-42/first').lifecycle_id == 'qualification/job-42/first'
+    fixed = anyio.run(verify_fixed)
+    assert fixed.passed_obligation and fixed.collected == 1, fixed
+    assert runtime.plan('qualification/job-42/second').lifecycle_id == 'qualification/job-42/second'
+assert session.closed
 assert fixed.source_current(root)
 worker = root / 'worker.py'
 worker.write_bytes(worker.read_bytes() + b'\\n# changed after verification\\n')

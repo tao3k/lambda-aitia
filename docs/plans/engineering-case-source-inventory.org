@@ -31,6 +31,20 @@ The last two rows are candidate questions, not findings about Aitia. They are
 not additional implementation workstreams in this slice. Search results,
 Issue closure or repeated citations cannot promote their status.
 
+* Retirement design challenges (2026-09-24)
+
+| Primary source | Observation status | Design transfer and executable check | Remaining limit |
+|----------------+--------------------+--------------------------------------+-----------------|
+| [[https://github.com/temporalio/sdk-python#asyncio-cancellation][Temporal Python SDK cancellation documentation]] | documented behavior, not a reported bug: cancellation can be caught or shielded; cancelling a child-start task is not equivalent to cancelling an already started child | =WorkLifecycle= keeps request separate from completion; =RetirementReviewCancellation= must produce a counterexample | no Temporal integration or reproduction claimed |
+| [[https://github.com/etcd-io/etcd/issues/19179][etcd #19179]] | original report links CI evidence; local reproduction and affected versions are not qualified here | discovered history/inventory gaps reopen completeness; =RetirementReviewUnknown= must fail | the Boolean inventory abstraction is not a model or reproduction of etcd compaction |
+| [[https://github.com/langchain-ai/langgraph/issues/8039][LangGraph #8039]] | author reports checkpoint/write ordering and repeated side effects on recovery, with a reproducer; not independently reproduced here | challenge the assumption that a checkpoint proves all effects are recorded; retain operation identity and replay-epoch obligations | no persistence implementation added; crash/replay model and upstream qualification remain pending |
+
+The stale-review mutant adds a separate Aitia design challenge: work observed
+after review must be rechecked at the final cut. It is not presented as the
+root cause of any of these upstream reports. Source reports motivate tests;
+their conclusions are not admitted as local evidence. See the
+[[file:../receipts/2026-09-24-retirement-formal-review.org][formal review receipt]] for what was actually executed.
+
 * First bounded transfer judgment
 
 The current job-executor shares the first source's response-loss uncertainty

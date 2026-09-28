@@ -3,3 +3,5 @@
 -- SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 import LambdaAitiaProof.Modules.Sdlc.Design
+import LambdaAitiaProof.Modules.Sdlc.Retirement
+import LambdaAitiaProof.Modules.Sdlc.RetirementIngress

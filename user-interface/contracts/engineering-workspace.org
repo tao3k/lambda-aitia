@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Aitia engineering workspace — Scheme-owned Org contracts
+
+:PROPERTIES:
+:ID:     aitia-engineering-workspace-contract
+:STATUS: draft
+:END:
+
+Orgize's Scheme/POO Org Elements and Org Contract modules own these declarations.
+The tagged Scheme blocks lower to admitted POO values, then to Rust AOT plans
+consumed over the Scheme-declared Rowan graph. No legacy CLI evaluator or
+Python implementation defines the semantics. CONTRACT_ID and CONTRACT_SCOPE
+remain native Org properties; :org-contract is the upstream block selector,
+not a replacement metadata channel.
+
+These contracts check reviewable structure only. They do not resolve identity,
+verify the content of evidence, complete a review or grant execution authority.
+Consumer generation/evaluation must be qualified on the Scheme/Rowan path.
+
+* Engineering workspace
+:PROPERTIES:
+:CONTRACT_ID: lambda-aitia.engineering-workspace
+:CONTRACT_SCOPE: document
+:END:
+
+#+begin_src scheme :org-contract
+(assert-org-element "workspace.organization" error
+  (bindings)
+  (org-elements headline (property title "Organization") (child-of scope))
+  (expect at-least 1))
+(assert-org-element "workspace.requirements" error
+  (bindings)
+  (org-elements headline (property title "Requirements") (descendant-of scope))
+  (expect at-least 1))
+(assert-org-element "workspace.assumptions" error
+  (bindings)
+  (org-elements headline (property title "Assumptions") (descendant-of scope))
+  (expect at-least 1))
+(assert-org-element "workspace.alternatives" error
+  (bindings)
+  (org-elements headline (property title "Alternatives") (descendant-of scope))
+  (expect at-least 1))
+(assert-org-element "workspace.review" error
+  (bindings)
+  (org-elements headline (property title "Review") (descendant-of scope))
+  (expect at-least 1))
+(assert-org-element "workspace.receipts" error
+  (bindings)
+  (org-elements headline (property title "Receipts") (descendant-of scope))
+  (expect at-least 1))
+#+end_src
+
+* Design decision review
+:PROPERTIES:
+:CONTRACT_ID: lambda-aitia.design-review
+:CONTRACT_SCOPE: subtree
+:END:
+
+The section bindings are local to the selected decision. A required next gate
+is proving that another decision's content cannot satisfy these assertions.
+
+#+begin_src scheme :org-contract
+(assert-org-element "decision.requirements" error
+  (bindings
+   (bind requirements
+     (org-elements headline (property title "Requirements") (child-of scope))))
+  (org-elements headline (child-of requirements))
+  (expect at-least 1))
+(assert-org-element "decision.assumptions" error
+  (bindings
+   (bind assumptions
+     (org-elements headline (property title "Assumptions") (child-of scope))))
+  (org-elements headline (child-of assumptions))
+  (expect at-least 1))
+(assert-org-element "decision.alternatives" error
+  (bindings
+   (bind alternatives
+     (org-elements headline (property title "Alternatives") (child-of scope))))
+  (org-elements headline (child-of alternatives))
+  (expect at-least 2))
+(assert-org-element "decision.review" error
+  (bindings
+   (bind review
+     (org-elements headline (property title "Review") (child-of scope))))
+  (org-elements headline (child-of review))
+  (expect at-least 1))
+(assert-org-element "decision.receipts" error
+  (bindings
+   (bind receipts
+     (org-elements headline (property title "Receipts") (child-of scope))))
+  (org-elements link (descendant-of receipts))
+  (expect at-least 1))
+#+end_src

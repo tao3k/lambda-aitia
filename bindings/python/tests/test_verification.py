@@ -8,12 +8,14 @@ import os
 import sys
 import time
 
+import anyio
 import pytest
 
 from lambda_aitia.verification import (
     capture_source_tree,
     run_pytest,
     run_pytest_frozen,
+    run_pytest_frozen_async,
     source_digest,
 )
 
@@ -70,6 +72,63 @@ def test_frozen_execution_uses_captured_bytes_not_later_source(tmp_path: Path) -
     assert observed.status == "passed"
     assert not observed.source_current(tmp_path)
     assert observed.source_digest != source_digest(tmp_path)
+
+
+def test_anyio_frozen_execution_keeps_source_and_authority_separate(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "test_case.py"
+    source.write_text("def test_ok():\n    assert True\n")
+    payload = capture_source_tree(tmp_path)
+
+    async def execute():
+        return await run_pytest_frozen_async(
+            Path(sys.executable), payload, ("test_case.py",),
+            limiter=anyio.CapacityLimiter(1),
+        )
+
+    observed = anyio.run(execute)
+    assert observed.status == "passed"
+    assert observed.source_digest == "sha256:" + hashlib.sha256(payload).hexdigest()
+    assert observed.source_current(tmp_path)
+
+
+def test_anyio_cancellation_waits_for_bounded_verifier_cleanup(
+    tmp_path: Path,
+) -> None:
+    if os.name != "posix":
+        pytest.skip("process-group termination is qualified on POSIX")
+    marker = tmp_path.parent / "cancelled-verifier-marker"
+    started = tmp_path.parent / "cancelled-verifier-started"
+    (tmp_path / "test_case.py").write_text(
+        "import subprocess, sys, time\n"
+        "from pathlib import Path\n"
+        "def test_child():\n"
+        "    subprocess.Popen([sys.executable, '-c', "
+        f"\"import time; from pathlib import Path; time.sleep(2); "
+        f"Path({str(marker)!r}).write_text('orphan')\"])\n"
+        f"    Path({str(started)!r}).write_text('started')\n"
+        "    time.sleep(5)\n"
+    )
+    payload = capture_source_tree(tmp_path)
+
+    async def observe() -> None:
+        await run_pytest_frozen_async(
+            Path(sys.executable), payload, ("test_case.py",),
+            timeout_seconds=1,
+        )
+
+    async def execute() -> None:
+        async with anyio.create_task_group() as tasks:
+            tasks.start_soon(observe)
+            with anyio.fail_after(3):
+                while not started.exists():
+                    await anyio.sleep(0.01)
+            tasks.cancel_scope.cancel()
+
+    anyio.run(execute)
+    time.sleep(2.2)
+    assert not marker.exists()
 
 
 def test_frozen_source_rejects_escaping_selectors_and_malformed_bytes(
