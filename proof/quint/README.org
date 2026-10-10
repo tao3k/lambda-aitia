@@ -46,14 +46,20 @@ is introduced here: ASCENT belongs to the parent POO Flow dependency graph.
 * Claim boundary
 
 These are bounded design experiments, not generated projections of the POO
-Contract, proof of Scheme/Runtime refinement, a live Host handoff, or deployed
-authority. The lifecycle bounds are two source revisions, four clock values
+Contract, proof of Scheme/Runtime refinement, or deployed authority. A separate
+local Scheme Host in =modules/sdlc/retirement-host.ss= executes the bounded
+ingress fence/start cut, including one real effect callback, and
+=t/formal/retirement-execution-test.ss= checks selected positive and negative
+behaviors. This is an executable correspondence check, not a general refinement
+proof or a deployed authority integration. The lifecycle bounds are two source revisions, four clock values
 and three epochs. Ingress isolates one cached grant, one request and one
 attempt; it does not model new grant issuance, multiple clients, persistence,
 crash recovery or inventory truth. Fair progress assumes a stable source and
 clock, no revocation, and weak fairness of each Host stage. It says nothing
 about progress under a changing environment.
 
-The retirement binding test hashes this source cut together with the Lean
-view, but a current mapping is not semantic correspondence or implementation
-conformance. Those obligations remain open.
+The retirement binding test hashes the declared Lean, Quint and Scheme source
+cut. A current mapping alone is not semantic correspondence; the execution
+test supplies bounded behavioral evidence for this particular Host. Multi-owner
+concurrency, crash recovery, new grant issuance, and complete implementation
+conformance remain open.

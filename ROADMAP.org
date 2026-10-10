@@ -527,10 +527,12 @@ the existing assurance lifecycle; [[file:docs/receipts/2026-09-24-retirement-for
 exploration and Lean laws, not Runtime closure. Historical
 [[file:docs/receipts/2026-09-24-formal-source-qualification.org][TLA+ source qualification]] is retained as a receipt only. The maintained
 Quint lane checks source syntax through Quint and declared POO Contract/source-cut
-invalidation. Next gates are independent replay and semantic
-correspondence between the Scheme contract and formal views (not just hashes).
+invalidation. The local retirement Host and its execution test now check a
+bounded Scheme behavior cut, including a real callback and negative cases;
+the source binding covers Lean, Quint and Scheme. Independent replay, broader
+semantic correspondence and a refinement argument remain open.
 The [[file:docs/receipts/2026-09-24-retirement-ingress-review.org][bounded ingress composition]] now admits post-retirement requests and
-checks epoch fencing, with two unsafe mutants; live authority/Runtime
+checks epoch fencing, with two unsafe mutants; deployed authority/Runtime
 correspondence, new grant issuance and eventual progress remain unqualified.
 Extract admission,
 revocation and grant contracts from the existing lifecycle model with atomic

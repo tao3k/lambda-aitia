@@ -183,8 +183,9 @@
       (receipt 'close-ingress state #f 'already-closed #f))))
 
 (def (aitia-retirement-host-request-start! host)
-  (let (state (mutation-state host))
-    (if (or (.ref state 'pending?) (.ref state 'attempted?))
+  (let (state (host-state host))
+    (if (or (.ref state 'handoff-in-progress?)
+            (.ref state 'pending?) (.ref state 'attempted?))
       (receipt 'request-start state #f 'request-already-consumed #f)
       (publish host 'request-start (.o (:: @ state) pending?: #t)
                #t 'pending))))
