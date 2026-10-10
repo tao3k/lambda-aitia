@@ -92,7 +92,7 @@ Deliverables:
    applications compose contributions; POO Flow core never imports Aitia.
 6. A checked integration inventory covering Lambda Episteme Software
    Engineering, SDLC, GitOps and decision knowledge plus POO Flow Graph, Lean,
-   TLA+, Cedar and Runtime Host artifacts.
+   Quint, Cedar and Runtime Host artifacts.
 
 Exit gates:
 
@@ -286,7 +286,7 @@ but cannot produce =allow= or an effect token).
 
 Deliverables:
 
-1. Adapter contracts for Lean, TLA+/TLC, native tests, static analyzers,
+1. Adapter contracts for Lean, Quint/TLC, native tests, static analyzers,
    runtime replay and human review.
 2. Evidence envelopes binding producer, tool/version, input artifact digests,
    obligation, output digest, subject, revision, scope and validity interval.
@@ -328,7 +328,7 @@ Exit gates:
   digests and typed failures;
 - the installed Python wheel consumes the AOT/native artifact without Gerbil.
 
-* Phase 5 — Assurance laws in Lean and lifecycle model in TLA+
+* Phase 5 — Assurance laws in Lean and lifecycle models in Quint
 
 Status: =evidence-partial=
 
@@ -342,7 +342,7 @@ Lean owns general laws, including:
 - [X] composition requires a current, independent direct obligation;
 - unknown or conflicted support cannot grant authority.
 
-TLA+ models the dynamic assurance/execution protocol within the SDLC:
+Quint models the dynamic assurance/execution protocol within the SDLC:
 
 #+begin_export mermaid
 stateDiagram-v2
@@ -366,7 +366,7 @@ stateDiagram-v2
     Effect --> Changed: relevant new observation
 #+end_export
 
-A bounded TLC model in =proof/tla/AssuranceLifecycle.tla= now checks current
+A bounded Quint model in =proof/quint/AssuranceLifecycle.qnt= now checks current
 admission/decision/grant authority, expiry and revocation. Separate mutant
 configurations demonstrate unsafe report-only effect start, stale admission,
 grant before re-verification and effect start after revocation; a reachability
@@ -520,14 +520,14 @@ domain branch and the public API remains POO-native.
 The earlier migration, nominal vocabulary, snapshot/invalidation and CFFI
 foundation work is recorded in the phases above. The current queue is:
 
-Immediate priority (2026-09-24): defer new persistence integration. First
+Immediate priority (2026-10-10): defer new persistence integration. First
 challenge the design with source-reviewed upstream failure reports and actual
-formal checks. [[file:proof/tla/README.org][Modular TLA+ checks]] now separate work/cancellation, retirement review and
+formal checks. [[file:proof/quint/README.org][Quint design checks]] separate work/cancellation, retirement review, ingress and
 the existing assurance lifecycle; [[file:docs/receipts/2026-09-24-retirement-formal-review.org][the formal review receipt]] records bounded
-exploration and Lean laws, not Runtime closure. The
-[[file:docs/receipts/2026-09-24-formal-source-qualification.org][local source qualification]] now passes native TLA+ parsing/roundtrip and
-declared POO Contract/source-cut invalidation. Next gates are publication and
-consumer pinning of the parser fix, independent replay, and semantic
+exploration and Lean laws, not Runtime closure. Historical
+[[file:docs/receipts/2026-09-24-formal-source-qualification.org][TLA+ source qualification]] is retained as a receipt only. The maintained
+Quint lane checks source syntax through Quint and declared POO Contract/source-cut
+invalidation. Next gates are independent replay and semantic
 correspondence between the Scheme contract and formal views (not just hashes).
 The [[file:docs/receipts/2026-09-24-retirement-ingress-review.org][bounded ingress composition]] now admits post-retirement requests and
 checks epoch fencing, with two unsafe mutants; live authority/Runtime
@@ -545,9 +545,9 @@ work merely because these design-level tests pass.
    Reuse existing Cedar/Runtime mechanisms for authorization; keep provider
    effect uniqueness separate. Add an executable source-correction/review case
    before claiming historical-judgment invalidation is complete.
-2. [ ] Qualify one TLAPS-Bench checker/task boundary and one asset-complete
-   upstream bug case. Record files, exact revisions, licenses, dependencies,
-   resource bounds and required upstream checks in the integration inventory.
+2. [ ] Qualify one asset-complete upstream bug case. Record files, exact
+   revisions, licenses, dependencies, resource bounds and required upstream
+   checks in the integration inventory. Do not add a TLA+/TLAPS execution lane.
 3. [ ] Project experimental behavior and design/assurance evolution through
    POO Flow temporal/causal mechanisms. Check modality, causal cuts, late
    observations and missing parents without turning structural paths into

@@ -31,11 +31,11 @@
      (poo-flow-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
      (poo-flow-user-module-selection
-      'software-engineering 'formal-methods '(+tla+ +lean +cedar))))
+      'software-engineering 'formal-methods '(+quint +lean +cedar))))
    (poo-flow-settings
     project-kind: 'software-engineering
     composition: 'aitia
-    formal-method-obligations: '(tla+ lean cedar)
+    formal-method-obligations: '(quint lean cedar)
     runtime-executed?: #f)
    '(project-kind
      composition

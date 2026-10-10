@@ -7,7 +7,7 @@ import LambdaAitiaProof.Modules.Sdlc.Retirement
 An abstract extension of retirement review with an ingress fence. Requests
 and rejections may stutter after retirement; an effect with a current epoch
 cannot start there. Finalization requires a closed issuance boundary and an
-invalidated cached epoch. No proof of deployed revocation, TLA correspondence,
+invalidated cached epoch. No proof of deployed revocation, Quint correspondence,
 grant issuance, fairness or persistent state is claimed.
 -/
 

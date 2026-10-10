@@ -78,7 +78,7 @@ eight-step assurance/execution protocol is one mechanism within this framework.
 | =bindings/python= | Lambda Aitia | maintained | production Runtime across Aitia's SDLC capabilities, CFFI, tool observations and AnyIO dependency | async execution and tool-to-Host admission remain pending; Scheme retains semantic ownership |
 | =packages/python-runtime= | POO Flow | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
 | =packages/proof/lean/PooFlowProof/Enterprise/EvidenceFreshness.lean= | POO Flow proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
-| =proof/tla/AssuranceLifecycle.tla= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
+| =proof/quint/AssuranceLifecycle.qnt= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
 | Cedar adapter and Runtime Host | POO Flow | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
 
 * Candidate reuse qualification
@@ -94,7 +94,6 @@ dependencies, applicability assumptions, mandatory checks and replay receipt.
 
 | Candidate | Reuse target | Qualification required | Current status |
 |-----------+--------------+------------------------+----------------|
-| TLAPS-Bench | proof task and existing checker execution path | preserve target/trusted inputs and regression checks; prove the selected entry point and environment work | unqualified; Euclid/GCD is a candidate smoke task |
 | Specula tools and Case Studies | models, harnesses, traces, reproduction programs and applicable checker code | select an asset-complete record; audit attribution, version and replay conditions | unqualified; no archive-wide import or complete-app backend requirement |
 | MRR | future relation queries, derivation and lineage | a later ownership and snapshot-admission contract against its then-current capabilities | deferred; no current Python integration |
 

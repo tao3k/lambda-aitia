@@ -47,10 +47,10 @@
           (software-engineering . formal-methods)))
        (check-equal?
         (poo-flow-user-module-selection-flags (list-ref modules 5))
-        '(+tla+ +lean +cedar))))
+        '(+quint +lean +cedar))))
    (test-case "formal-method declarations reuse the POO Flow Proof module"
      (check-equal? (poo-flow-proof-module? aitia-formal-methods-module) #t)
-     (check-equal? (.ref aitia-tla-plus-provider 'runtime-executed?) #f)
+     (check-equal? (.ref aitia-quint-provider 'runtime-executed?) #f)
      (check-equal? (.ref aitia-lean-provider 'obligation-only?) #t)
      (check-equal? (.ref aitia-cedar-provider 'role)
                    'authorization-policy-validation))))

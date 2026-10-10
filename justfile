@@ -66,20 +66,17 @@ check-proof:
     cd proof/lean && lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
     cd proof/lean && output="$(lake env lean AxiomAudit.lean)" && printf '%s\n' "$output" && ! grep -q 'sorryAx' <<< "$output"
 
-# TLA_TOOLS_JAR is an explicit, checksum-verified input; the recipe never
-# downloads tools or writes into the user's global Java environment.
+# Quint 0.33.0 and its Apalache 0.62.1 TLC backend are explicit inputs.
+# The checker exhausts each bounded model and requires negative-control traces.
 [group('check')]
-check-tla module='all':
-    uv run --locked --project bindings/python python bindings/python/tests/tla_contract.py '{{module}}'
+check-quint module='all':
+    python3 proof/quint/check_contract.py '{{module}}'
 
-# Explicit source/formal lane: requires the qualified native parser dependency.
 # Every gate must run; none substitutes for semantic implementation refinement.
 [group('check')]
 check-formal:
-    just test-scheme-atomic formal tla-syntax-test.ss
-    just test-scheme-atomic formal tla-poo-interface-test.ss
     just test-scheme-atomic formal retirement-binding-test.ss
-    just check-tla
+    just check-quint
     just check-proof
 
 # Refresh the in-place Python extension without rebuilding POO Flow.
@@ -132,7 +129,7 @@ build-python-wheel native_library:
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-license-contract check-semantic check-proof check-tla test-integration check-native
+check: check-license-contract check-semantic check-proof check-quint test-integration check-native
 
 [group('check')]
 check-all: check

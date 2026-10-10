@@ -11,6 +11,10 @@
 :RFC:        lambda-aitia-rfc-0001
 :END:
 
+This is a historical TLA+ receipt. Its =proof/tla/= paths refer to the source
+at commit =49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4=; the maintained model
+and checks are now in [[file:../../proof/quint/README.org][Quint]].
+
 * Exact model cut
 
 - Aitia base commit: =608525c84e853ed5f5b156693c8f72fe58cfcf97=;

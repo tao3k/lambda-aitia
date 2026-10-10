@@ -61,8 +61,7 @@ through named, checked functions that emit receipts.
 | POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
 | Aitia Python Runtime | production APIs across Aitia's SDLC capabilities, CFFI transport, tool execution integration and typed observations/receipts | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
 | Lean | general proof terms and assurance laws | current runtime state or action authority |
-| TLA+/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
-| TLAPS | mechanical checking of TLA+ proof obligations | model/code correspondence or runtime authority |
+| Quint/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
 | Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
 | Runtime Host | final typed boundary for authorized execution | manufacturing missing evidence or guessing transport/runtime state |
 | Application | explicit selection, composition and policy | redefining source-owned semantics |
@@ -358,12 +357,12 @@ declared numeric priority determine a deterministic choice; every rejected
 candidate and unassigned planned obligation remains visible.  A chosen
 declaration is not proof that an adapter is installed, executable or trusted.
 
-Verifier integrations include Lean/TLAPS proof, TLA+/TLC model check, runtime replay,
+Verifier integrations include Lean proof, Quint/TLC model check, runtime replay,
 unit test, integration test, Cedar differential, static analysis and human
 review.  This list is extensible through named POO-native helpers, not raw
 compute hooks.
 Tool-specific producers qualify against the existing evidence-kind vocabulary;
-listing TLAPS here does not mean its execution path is already integrated.
+the maintained lane does not include TLAPS.
 Reuse the necessary upstream checker and trusted execution boundary before
 adding a new implementation, as specified by RFC 0004.
 
@@ -391,7 +390,7 @@ The architecture requires executable formal statements of at least these laws:
 7. Effect separation: authorization neither proves effect start nor effect
    completion.
 
-Lean proves general laws.  TLA+/TLC checks lifecycle interleavings such as a
+Lean proves general laws. Quint/TLC checks lifecycle interleavings such as a
 source change racing a cached decision or an effect beginning after revocation.
 The bounded lifecycle model additionally separates safety from progress:
 eventual effect start is required only when the source and clock remain stable,
@@ -454,7 +453,7 @@ standards compliance, release certification or unrestricted causal inference.
 The repository license is closed as =Apache-2.0 AND
 LGPL-2.1-or-later=, matching POO Flow.  The former open decisions are closed by:
 
-1. ADR 0004: Aitia owns assurance-specific Lean/TLA+ sources and may consume a
+1. ADR 0004 r2: Aitia owns assurance-specific Lean/Quint sources and may consume a
    pinned POO Flow proof package for generic laws.
 2. ADR 0007 supersedes ADR 0003: POO Flow is Aitia's public mechanism library;
    additions require a stable public owner, not an artificially small

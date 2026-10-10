@@ -8,6 +8,8 @@ version.ss
 .cache/
 .bin/
 .lake/
+_apalache-out/
+proof/quint/node_modules/
 __pycache__/
 *.py[cod]
 *.so

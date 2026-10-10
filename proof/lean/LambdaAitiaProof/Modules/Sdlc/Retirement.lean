@@ -5,7 +5,7 @@
 Design-level retirement safety. `Step.observe` overapproximates every
 pre-retirement observation, including late work and inventory loss; safety
 cannot rely on an old review. Terminal states admit no further observations.
-This is not a proof of TLA/Scheme correspondence, inventory truth, liveness,
+This is not a proof of Quint/Scheme correspondence, inventory truth, liveness,
 post-retirement ingress exclusion, persistence, or effect authorization.
 -/
 

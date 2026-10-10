@@ -91,26 +91,27 @@ using reviewed upstream failure reports, not to add storage. Keep reported
 behavior, our proposed transfer and locally executed evidence distinct in the
 [[file:../plans/engineering-case-source-inventory.org][source inventory]]. An Issue being closed does not qualify our design.
 
-TLA+ is organized into reusable action/contract modules with independently
-runnable configurations and a separate composition lane. Each safety boundary
+Quint is organized into reusable work and grant predicates with independently
+runnable finite models and a separate ingress composition lane. Each safety boundary
 needs positive exploration, a reachable-state control and a deliberately
 weakened guard that produces the expected counterexample. Do not duplicate a
 shared action in every scenario, discard environment interference to obtain a
 green atomic test, or infer composite correctness from leaf checks alone.
 
-The first [[file:../../proof/tla/README.org][modular slice]] separates cancellation/work observations from retirement
+The [[file:../../proof/quint/README.org][maintained Quint slice]] separates cancellation/work observations from retirement
 review. It requires final-cut quiescence and known inventory: a cancellation
 request, an earlier accepted review, or missing history is insufficient.
 Lean proves safety preservation for an abstract retirement transition relation;
-it does not yet prove Scheme or TLA+ refinement. The
-[[file:../receipts/2026-09-24-retirement-formal-review.org][formal receipt]] records the actual checks and uncovered parser boundary.
+it does not yet prove Scheme or Quint refinement. The
+[[file:../receipts/2026-09-24-retirement-formal-review.org][historical TLA+ receipt]] records the earlier checks and parser boundary.
 
-The [[file:../receipts/2026-09-24-formal-source-qualification.org][local source qualification]] now checks native syntax/byte-roundtrip and
-binds both source views to one maintained POO design declaration, revision and
+The historical [[file:../receipts/2026-09-24-formal-source-qualification.org][source qualification]] checked TLA+ syntax/byte-roundtrip. The
+maintained Quint CLI checks Quint syntax and binds both current source views
+to one POO design declaration, revision and
 source cut using existing SDLC/Assurance links. A model, proof or premise
 change invalidates old bindings. This is source correspondence, not a proof of
-semantic refinement or Host evidence admission. Portable parser pinning,
-independent replay and semantic correspondence remain required for closure.
+semantic refinement or Host evidence admission. Independent replay and
+semantic correspondence remain required for closure.
 The isolated review terminal state assumes no later
 ingress; the [[file:../receipts/2026-09-24-retirement-ingress-review.org][bounded ingress composition]] challenges this by permitting requests
 after retirement. It requires closing grant issuance and advancing the epoch
@@ -130,9 +131,9 @@ reviewable interpretation, an owner and an adversarial check:
 
 | Boundary | Required correspondence | Falsifying control |
 |----------+-------------------------+--------------------|
-| POO design contract → TLA+ | Map each relevant assumption and guarantee to named state predicates/actions, including the environment and modeled client bound | weaken a fence, inventory or ingress premise and require the expected reachable counterexample |
+| POO design contract → Quint | Map each relevant assumption and guarantee to named state predicates/actions, including the environment and modeled client bound | weaken a fence, inventory or ingress premise and require the expected reachable counterexample |
 | POO design contract → Lean | State theorem premises and conclusion against the same declaration; audit imported axioms and excluded behaviors | remove a needed premise and demonstrate that the claim is no longer established |
-| TLA+/Lean → Scheme and Runtime | Identify the concrete state/effect transitions represented by the abstract ones and document omitted transitions | replay a concrete behavior outside the mapping and keep conformance unknown or violated |
+| Quint/Lean → Scheme and Runtime | Identify the concrete state/effect transitions represented by the abstract ones and document omitted transitions | replay a concrete behavior outside the mapping and keep conformance unknown or violated |
 | Tool result → Assurance Host | Bind actual tool/source/configuration identities and the exact proposition assessed | change an input or tool identity and reject reuse of the earlier admission |
 
 The current source-group links qualify identity and invalidation only. A
@@ -150,11 +151,11 @@ correspondence review has these concrete boundaries:
 
 | Declaration | Current formal representation | Remaining gap |
 |-------------+-------------------------------+---------------|
-| =atomic-epoch-fence= | TLA+ =CloseIngress= closes issuance and advances =epoch= in one action; Lean =Step.close= changes both fields | No concrete Host/Cedar/Runtime atomic transition is bound |
-| =known-inventory= and quiescence | TLA+ =Review!Retire= requires =known= and =Work!Quiescent=; Lean =Retirement.Step.finalize= requires =inventory=, =idle= and =drained= | Neither formal view proves the inventory is complete in production |
-| =no-new-grant= | The TLA+ composition has one fixed cached grant and no grant-issuance action; Lean has no issuance transition | This is an excluded environment behavior, not a proved revocation protocol |
-| =bounded-client= | TLA+ =pending= and =attempted= model one request/attempt; Lean's =requestOrReject= stutters | Multiple clients, responses and retry progress are outside the Lean theorem |
-| =retirement-safety/g1= | TLA+ checks =NoOutstandingWork= and =NoPostRetirementStart=; Lean proves =Retirement.Safe= and =RetirementIngress.Safe= for its own =Step= relation | These are two abstract checks, not a proof that either is a faithful refinement of the Scheme contract or deployed effects |
+| =atomic-epoch-fence= | Quint =CloseIngress= closes issuance and advances =epoch= in one action; Lean =Step.close= changes both fields | No concrete Host/Cedar/Runtime atomic transition is bound |
+| =known-inventory= and quiescence | Quint =Retire= requires =known= and =quiescent(work)=; Lean =Retirement.Step.finalize= requires =inventory=, =idle= and =drained= | Neither formal view proves the inventory is complete in production |
+| =no-new-grant= | The Quint composition has one fixed cached grant and no grant-issuance action; Lean has no issuance transition | This is an excluded environment behavior, not a proved revocation protocol |
+| =bounded-client= | Quint =pending= and =attempted= model one request/attempt; Lean's =requestOrReject= stutters | Multiple clients, responses and retry progress are outside the Lean theorem |
+| =retirement-safety/g1= | Quint checks =NoOutstandingWork= and =NoPostRetirementStart=; Lean proves =Retirement.Safe= and =RetirementIngress.Safe= for its own =Step= relation | These are two abstract checks, not a proof that either is a faithful refinement of the Scheme contract or deployed effects |
 
 The current source binding tracks changes to these files, but none of the
 remaining gaps can be closed by adding another digest link. In particular,
@@ -486,12 +487,10 @@ the check establishing that it works in Aitia. The integration inventory must
 distinguish candidates from qualified reuse. Package layout alone does not
 establish a stable SDK or independent checker entry point.
 
-TLAPS-Bench is a candidate source of proof tasks and checking components.
-Retain the target statement, trusted inputs and required checks when qualifying
-an entry point. Use TLAPS to check TLA+ proofs; a Lean translation is not a
-prerequisite. TLC model checking and TLAPS proof checking retain their distinct
-propositions. Existing proof evidence kinds can name different producers
-without adding a parallel semantic schema for each tool.
+The maintained finite-state route is Quint with a pinned TLC backend; Lean
+retains its separate theorem lane. TLC state exploration and Lean theorem
+checking make different claims. Existing proof evidence kinds can name
+different producers without adding a parallel semantic schema for each tool.
 
 Specula and its case-study archive are candidate sources of verification tools,
 models, harnesses, traces and reproductions. The archive stores experiment
@@ -545,11 +544,9 @@ causal or Host closure.
 6. Apply an implementation optimization and check both contract preservation
    and measured benefit under the same workload and environment scope.
 
-Qualify one small TLAPS-Bench task and one sufficiently complete upstream bug
-case as reusable methods. These are separate execution qualifications until
-their claims actually refer to the same subject: a GCD proof cannot discharge
-a job-executor guarantee. A known-answer replay is regression evidence; novel
-discovery needs a separate evaluation with unexposed answers.
+Qualify one sufficiently complete upstream bug case as a reusable method.
+A known-answer replay is regression evidence; novel discovery needs a separate
+evaluation with unexposed answers.
 
 * Pending acceptance gates
 
@@ -582,7 +579,7 @@ discovery needs a separate evaluation with unexposed answers.
 - [ ] Frozen Python tool observations reach the actual Scheme Host admission
   path; serialized success cannot substitute for that path.
 - [ ] The maintained POO contract's assumptions and guarantees have reviewed
-  TLA+/Lean interpretations and falsifying controls, followed by concrete
+  Quint/Lean interpretations and falsifying controls, followed by concrete
   Scheme/Runtime transition correspondence. Source identity alone is not
   semantic refinement.
 - [ ] A contract-preserving optimization has conformance and performance
@@ -609,7 +606,6 @@ and their receipts retain their existing scope.
   =161-temporal-causality-and-causal-trajectory-architecture.org= own the generic
   mechanism; Aitia consumes the pinned public library.
 - [[https://github.com/specula-org/Specula#continuous-verification][Specula continuous verification]]
-- [[https://github.com/specula-org/tlaps-bench][TLAPS-Bench tasks and runtime]]
 - [[https://github.com/specula-org/specula-case-studies][Specula experiment archive]]
 
 Upstream references were inspected on 2026-09-24. They identify reuse

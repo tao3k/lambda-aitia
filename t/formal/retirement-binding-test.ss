@@ -22,19 +22,19 @@
   (assurance-artifact id "r1" 'supported digest
                       owner: "lambda-aitia" media-kind: 'formal-source
                       provenance: '("repository-source-bytes")))
-(def tla-source (source "retirement/tla" (source-group-digest job-retirement-tla-sources)))
+(def quint-source (source "retirement/quint" (source-group-digest job-retirement-quint-sources)))
 (def lean-source (source "retirement/lean" (source-group-digest job-retirement-lean-sources)))
-(def (snapshot tla lean)
+(def (snapshot quint lean)
   (assurance-snapshot
    "retirement/formal-cut" "cut-1" "retirement/formal-sources"
-   '(("retirement/tla" . "r1") ("retirement/lean" . "r1")) '()
-   "retirement/design-r1" "formal-review" "r1" (list tla lean) '()))
-(def source-cut (snapshot tla-source lean-source))
+   '(("retirement/quint" . "r1") ("retirement/lean" . "r1")) '()
+   "retirement/design-r1" "formal-review" "r1" (list quint lean) '()))
+(def source-cut (snapshot quint-source lean-source))
 (def links
   (map (lambda (artifact)
          (sdlc-design-implementation-link
           job-retirement-contract job-retirement-safety artifact source-cut))
-       (list tla-source lean-source)))
+       (list quint-source lean-source)))
 
 (def retirement-binding-test
   (test-suite "Retirement POO contract to formal source binding"
@@ -51,8 +51,8 @@
         (check (.ref review 'implementation-conforms?) => #f)
         (check (.ref review 'evidence-admitted?) => #f)
         (check (.ref review 'release-authorized?) => #f)))
-    (test-case "same-revision TLA source mutation invalidates the joined mapping"
-      (let* ((changed (source "retirement/tla" (source-lock-payload-digest "changed model")))
+    (test-case "same-revision Quint source mutation invalidates the joined mapping"
+      (let* ((changed (source "retirement/quint" (source-lock-payload-digest "changed model")))
              (review (sdlc-design-implementation-review
                        job-retirement-contract (snapshot changed lean-source) links)))
         (check (.ref review 'mapping-current?) => #f)
@@ -61,7 +61,7 @@
     (test-case "same-revision Lean source mutation also invalidates the mapping"
       (let* ((changed (source "retirement/lean" (source-lock-payload-digest "changed law")))
              (review (sdlc-design-implementation-review
-                       job-retirement-contract (snapshot tla-source changed) links)))
+                       job-retirement-contract (snapshot quint-source changed) links)))
         (check (.ref review 'mapping-current?) => #f)
         (check (length (.ref review 'blocked-links)) => 2)
         (check (.ref (car (.ref review 'blocked-links)) 'blocker) => 'snapshot-changed)))

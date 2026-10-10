@@ -14,14 +14,14 @@
         "objects.ss"
         "funs.ss")
 
-(export aitia-tla-plus-provider
+(export aitia-quint-provider
         aitia-lean-provider
         aitia-cedar-provider
         aitia-formal-methods-module)
 
-(def aitia-tla-plus-provider
+(def aitia-quint-provider
   (aitia-formal-method-provider
-   'tla+
+   'quint
    'state-transition-model-checking
    '(module model-checking-configuration trace receipt)))
 
@@ -40,6 +40,6 @@
 (def aitia-formal-methods-module
   (poo-flow-proof-module
    "lambda-aitia/modules/formal-methods"
-   (.o (tla+ aitia-tla-plus-provider)
+   (.o (quint aitia-quint-provider)
        (lean aitia-lean-provider)
        (cedar aitia-cedar-provider))))

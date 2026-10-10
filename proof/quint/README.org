@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Quint design-model qualification
+
+:PROPERTIES:
+:STATUS: design-validation-partial
+:DATE: 2026-10-10
+:END:
+
+* Model boundaries
+
+The maintained model source is Quint 0.33.0. =WorkCore.qnt= shares the
+cancellation/completion distinction; =EffectAdmission.qnt= shares the current
+grant predicate. Four finite models preserve the former TLA+ lane's 22 cases:
+
+| Lane | Safe check | Required negative/reachability controls |
+|------+------------+-----------------------------------------|
+| work | cancellation does not drain active or queued work | cancellation and quiescence reachable |
+| retirement | final cut requires quiescence and known inventory | cancellation-as-completion, stale review, unknown inventory, retirement reachable |
+| ingress | retirement fences epoch and rejects later stale authority | unfenced retirement, cached grant, rejection and valid start reachable |
+| lifecycle | current admission, decision, grant and safe effect start | untrusted report, late admission, early grant, after-revoke start, valid start reachable, no-fair progress counterexample |
+
+The =check_contract.py= runner checks all reachable finite states through
+Quint's TLC backend, requires a completed queue for safe cases, and requires
+the expected invariant failure and actual trace for each negative control.
+The lifecycle's weak-fairness case is checked by =check_progress.py=: it compiles
+the Quint source to a temporary TLA+ artifact and asks TLC to check
+=EventuallyEffect= under the Quint-defined =stableSpec=. The same property
+fails under =stableSpecNoFair=. Generated TLA+ is a checker intermediate, not
+a second maintained model. Quint's ordinary =verify --temporal= path cannot
+select that fairness-bearing specification as TLC's =SPECIFICATION=.
+
+#+begin_src sh
+npm ci --prefix proof/quint
+AITIA_QUINT_BIN="$PWD/proof/quint/node_modules/.bin/quint" just check-quint
+AITIA_QUINT_BIN="$PWD/proof/quint/node_modules/.bin/quint" just check-quint ingress
+#+end_src
+
+The lockfile pins Quint 0.33.0 and its npm transitive graph. The checker
+requires Apalache 0.62.1's TLC backend, Java and a local loopback endpoint.
+Each check prints its name and result; a tool error or a stall is not a
+successful counterexample. No implicit dependency on the POO Flow ASCENT pin
+is introduced here: ASCENT belongs to the parent POO Flow dependency graph.
+
+* Claim boundary
+
+These are bounded design experiments, not generated projections of the POO
+Contract, proof of Scheme/Runtime refinement, a live Host handoff, or deployed
+authority. The lifecycle bounds are two source revisions, four clock values
+and three epochs. Ingress isolates one cached grant, one request and one
+attempt; it does not model new grant issuance, multiple clients, persistence,
+crash recovery or inventory truth. Fair progress assumes a stable source and
+clock, no revocation, and weak fairness of each Host stage. It says nothing
+about progress under a changing environment.
+
+The retirement binding test hashes this source cut together with the Lean
+view, but a current mapping is not semantic correspondence or implementation
+conformance. Those obligations remain open.
