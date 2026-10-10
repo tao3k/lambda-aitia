@@ -31,6 +31,12 @@
       (error "retirement Host requires its serialized owner thread"))
     state))
 
+(def (mutation-state host)
+  (let (current-state (host-state host))
+    (when (.ref current-state 'handoff-in-progress?)
+      (error "retirement Host mutation during effect handoff"))
+    current-state))
+
 (def (state-view state)
   (.o kind: 'aitia.retirement-ingress-state.v1
       active?: (.ref state 'active?)
@@ -45,13 +51,14 @@
       authority-epoch: (.ref state 'authority-epoch)
       cached-grant-epoch: (.ref state 'cached-grant-epoch)
       pending?: (.ref state 'pending?)
-      attempted?: (.ref state 'attempted?)))
+      attempted?: (.ref state 'attempted?)
+      handoff-in-progress?: (.ref state 'handoff-in-progress?)))
 
-(def (receipt action state accepted? reason handoff-executed?)
+(def (receipt action-name current-state was-accepted? rejection-reason did-handoff?)
   (.o kind: 'aitia.retirement-ingress-receipt.v1
-      action: action accepted?: accepted? reason: reason
-      state: (state-view state)
-      handoff-executed?: handoff-executed?
+      action: action-name accepted?: was-accepted? reason: rejection-reason
+      state: (state-view current-state)
+      handoff-executed?: did-handoff?
       durable?: #f distributed-authority?: #f))
 
 (def (publish host action state accepted? reason)
@@ -60,27 +67,29 @@
 
 (def (aitia-retirement-host)
   (let ((host (.o kind: 'aitia.retirement-ingress-host.v1))
-        (state (.o owner-thread: (current-thread)
+        (creator-thread (current-thread)))
+    (let (state (.o owner-thread: creator-thread
                    active?: #t queued?: #t inventory-known?: #f
                    reviewed?: #f cancellation-requested?: #f
                    late-activity-found?: #f inventory-gap-found?: #f
                    retired?: #f ingress-open?: #t
                    authority-epoch: 0 cached-grant-epoch: 0
-                   pending?: #f attempted?: #f)))
-    (hash-put! retirement-host-states host state)
-    host))
+                   pending?: #f attempted?: #f
+                   handoff-in-progress?: #f))
+      (hash-put! retirement-host-states host state)
+      host)))
 
 (def (aitia-retirement-host-snapshot host)
   (state-view (host-state host)))
 
 ;;; The named POO handoff is the only effect escape hatch. Its callback is
 ;;; invoked only after the Host has consumed a current pending request.
-(def (aitia-retirement-effect-handoff run)
-  (unless (procedure? run) (error "retirement handoff requires a procedure"))
-  (.o kind: 'aitia.retirement-effect-handoff.v1 run: run))
+(def (aitia-retirement-effect-handoff callback)
+  (unless (procedure? callback) (error "retirement handoff requires a procedure"))
+  (.o kind: 'aitia.retirement-effect-handoff.v1 run: callback))
 
 (def (aitia-retirement-host-request-cancellation! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'request-cancellation state #f 'already-retired #f))
@@ -92,7 +101,7 @@
                #t 'recorded)))))
 
 (def (aitia-retirement-host-observe-completion! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'observe-completion state #f 'already-retired #f))
@@ -103,7 +112,7 @@
                (.o (:: @ state) active?: #f) #t 'observed)))))
 
 (def (aitia-retirement-host-observe-queue-drained! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'observe-queue-drained state #f 'already-retired #f))
@@ -114,7 +123,7 @@
                (.o (:: @ state) queued?: #f) #t 'observed)))))
 
 (def (aitia-retirement-host-complete-inventory! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'complete-inventory state #f 'already-retired #f))
@@ -125,7 +134,7 @@
                (.o (:: @ state) inventory-known?: #t) #t 'observed)))))
 
 (def (aitia-retirement-host-review-cut! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'review-cut state #f 'already-retired #f))
@@ -142,7 +151,7 @@
                #t 'reviewed)))))
 
 (def (aitia-retirement-host-observe-late-activity! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((or (.ref state 'retired?) (not (.ref state 'reviewed?))
           (.ref state 'late-activity-found?))
@@ -153,7 +162,7 @@
                #t 'observed)))))
 
 (def (aitia-retirement-host-observe-inventory-gap! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((or (.ref state 'retired?) (not (.ref state 'reviewed?))
           (.ref state 'inventory-gap-found?))
@@ -165,7 +174,7 @@
 
 ;;; Closure and epoch advancement are one synchronous Host state publication.
 (def (aitia-retirement-host-close-ingress! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (if (.ref state 'ingress-open?)
       (publish host 'close-ingress
                (.o (:: @ state) ingress-open?: #f
@@ -174,14 +183,14 @@
       (receipt 'close-ingress state #f 'already-closed #f))))
 
 (def (aitia-retirement-host-request-start! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (if (or (.ref state 'pending?) (.ref state 'attempted?))
       (receipt 'request-start state #f 'request-already-consumed #f)
       (publish host 'request-start (.o (:: @ state) pending?: #t)
                #t 'pending))))
 
 (def (aitia-retirement-host-attempt-start! host handoff)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (unless (and (object? handoff) (.slot? handoff 'kind)
                  (eq? (.ref handoff 'kind)
                       'aitia.retirement-effect-handoff.v1)
@@ -198,13 +207,16 @@
         (publish host 'attempt-start consumed #f 'ingress-closed))
        (else
         ;; Consume before handoff so a reentrant call cannot start twice.
-        (let (started (.o (:: @ consumed) active?: #t))
+        (let (started (.o (:: @ consumed) active?: #t
+                          handoff-in-progress?: #t))
           (hash-put! retirement-host-states host started)
           ((.ref handoff 'run))
-          (receipt 'attempt-start started #t 'started #t)))))))
+          (let (finished (.o (:: @ started) handoff-in-progress?: #f))
+            (hash-put! retirement-host-states host finished)
+            (receipt 'attempt-start finished #t 'started #t))))))))
 
 (def (aitia-retirement-host-retire! host)
-  (let (state (host-state host))
+  (let (state (mutation-state host))
     (cond
      ((.ref state 'retired?)
       (receipt 'retire state #f 'already-retired #f))

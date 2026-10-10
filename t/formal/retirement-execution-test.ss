@@ -78,6 +78,24 @@
                                  'accepted))))))))
         (check result => 'refused)
         (check (.ref (aitia-retirement-host-snapshot host) 'ingress-open?) => #t)))
+    (test-case "a reentrant handoff cannot retire before it returns"
+      (let* ((host (ready-for-review (aitia-retirement-host)))
+             (premature 'not-attempted)
+             (handoff
+              (aitia-retirement-effect-handoff
+               (lambda ()
+                 (set! premature
+                       (with-catch (lambda (_failure) 'refused)
+                                   (lambda ()
+                                     (aitia-retirement-host-observe-completion! host)
+                                     (aitia-retirement-host-close-ingress! host)
+                                     (accepted? (aitia-retirement-host-retire! host)))))))))
+        (aitia-retirement-host-review-cut! host)
+        (aitia-retirement-host-request-start! host)
+        (check (accepted? (aitia-retirement-host-attempt-start! host handoff)) => #t)
+        (check premature => 'refused)
+        (check (.ref (aitia-retirement-host-snapshot host) 'active?) => #t)
+        (check (.ref (aitia-retirement-host-snapshot host) 'retired?) => #f)))
     (test-case "post-retirement cached grant cannot execute the handoff"
       (let* ((host (ready-for-review (aitia-retirement-host)))
              (calls 0)
