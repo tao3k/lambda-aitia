@@ -5,7 +5,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
+        (only-in :poo-flow/modules/authorization/providers/cedar/interface
                  poo-flow-cedar-runtime-handoff
                  poo-flow-cedar-authorization-request?
                  poo-flow-cedar-authorization-request->runtime)

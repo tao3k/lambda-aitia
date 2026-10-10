@@ -7,11 +7,15 @@
 ;;; Domain selection stays in the maintained Project Profile; POO Flow owns
 ;;; module selection, composition, Case lowering and runtime admission.
 (import (only-in :clan/poo/object .o)
-        (only-in :poo-flow/src/module-system/semantic-module/objects
-                 poo-flow-semantic-identity poo-flow-semantic-module)
-        (only-in :poo-flow/src/module-system/profile-composition/interface
+        (only-in :poo-flow/core/module-system/schema/relations
+                 poo-flow-semantic-identity)
+        (only-in :poo-flow/src/authoring/semantic-module
+                 poo-flow-semantic-module)
+        (only-in :poo-flow/core/profile-composition/profile-bundle
                  poo-flow-profile-export poo-flow-module-profiles
-                 profiles compose use-module user-composition)
+                 profiles compose)
+        (only-in :poo-flow/core/profile-composition/selection-syntax use-module)
+        (only-in :poo-flow/src/scenario/composition-syntax user-composition)
         :poo-flow/lambda-aitia/user-interface/profiles/software-engineering/project)
 
 (export AitiaModule aitia)

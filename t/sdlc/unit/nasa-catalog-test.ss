@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
+        (only-in :clan/poo/object .ref .slot?)
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :std/list/list)
 (export nasa-catalog-test)

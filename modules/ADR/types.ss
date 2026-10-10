@@ -5,8 +5,8 @@
 
 (import (only-in :clan/poo/object .ref .slot?)
         :std/list/list
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/modules/governance/types
+        :poo-flow/core/poo-clos/interface
+        (only-in :poo-flow/modules/governance/types
                  poo-flow-governance-profile?))
 
 (export ADR-profile?
@@ -95,10 +95,10 @@
           (predicate-slot 'informed ADR-text-list?)
           (predicate-slot 'links ADR-link-list?))))
 
-(def (ADR-link? value) (poo-flow-model? ADRLink value))
-(def (ADR-option? value) (poo-flow-model? ADROption value))
-(def (ADR-consequence? value) (poo-flow-model? ADRConsequence value))
-(def (ADR-record? value) (poo-flow-model? ADRRecord value))
+(def (ADR-link? value) (poo-clos-model? ADRLink value))
+(def (ADR-option? value) (poo-clos-model? ADROption value))
+(def (ADR-consequence? value) (poo-clos-model? ADRConsequence value))
+(def (ADR-record? value) (poo-clos-model? ADRRecord value))
 
 (def (unique-by? projection input-values)
   (length=? input-values

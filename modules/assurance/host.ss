@@ -9,14 +9,14 @@
 (import (only-in :clan/poo/object .o .ref .slot? .alist object?)
         (only-in :std/list/list find every filter delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/module-system/contribution/verification
+        :poo-flow/core/poo-clos/interface
+        (only-in :poo-flow/core/contribution/verification
                  poo-flow-verification-adapter poo-flow-verify
                  poo-flow-verification-valid?
                  poo-flow-revoke-verification!)
         (only-in :poo-flow/src/feature-system/source-lock-feature
                  source-lock-payload-digest)
-        (only-in :poo-flow/src/modules/authorization/providers/cedar/interface
+        (only-in :poo-flow/modules/authorization/providers/cedar/interface
                  poo-flow-cedar-runtime-handoff?
                  poo-flow-cedar-authorization-request
                  poo-flow-cedar-authorization-request?)
@@ -445,9 +445,9 @@
            (else
             (admitted-requirement-blocker
              host host-state snapshot obligation admissions)))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssessmentRequiredSupport
-     (.o (:: @ (poo-flow-model-prototype AssessmentRequiredSupport))
+     (.o (:: @ (poo-clos-model-prototype AssessmentRequiredSupport))
          obligation: identity supported?: (not reason) blocker: reason))))
 
 ;;; Inert, explainable input for a later Decision evaluator. Completion means
@@ -504,9 +504,9 @@
                             (assurance-snapshot-semantic-digest snapshot)
                             (assurance-snapshot-semantic-digest final-snapshot)))
                     '() '(source-changed)))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssuranceRequiredSupport
-     (.o (:: @ (poo-flow-model-prototype AssuranceRequiredSupport))
+     (.o (:: @ (poo-clos-model-prototype AssuranceRequiredSupport))
          schema: "lambda-aitia.required-support"
          claim: (.ref claim-value 'identity)
          snapshot-digest: (.ref snapshot 'digest)
@@ -584,9 +584,9 @@
                 (semantic-digest-value
                  (assurance-snapshot-semantic-digest snapshot-value))
                 (preflight
-                 (poo-flow-check-model
+                 (poo-clos-check-model
                   AssuranceDecisionPreflight
-                  (.o (:: @ (poo-flow-model-prototype
+                  (.o (:: @ (poo-clos-model-prototype
                              AssuranceDecisionPreflight))
                       schema: "lambda-aitia.decision-preflight"
                       identity: identity-value issuer: issuer-value

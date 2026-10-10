@@ -5,7 +5,6 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .ref)
-        :poo-flow/src/module-system/profile-composition/interface
         :poo-flow/lambda-aitia/user-interface/config
         :poo-flow/lambda-aitia/user-interface/profiles/nasa/sdlc
         :poo-flow/lambda-aitia/user-interface/scenarios/github-gitops)
@@ -34,10 +33,10 @@
 (def github-workflow-test
   (test-suite "GitHub GitOps SDLC lifecycle"
     (test-case "Dev Staging Production are GitOps Profiles; NASA is one Standard"
-      (check-equal? (poo-flow-scenario-case-name github-gitops-sdlc)
+      (check-equal? (.ref github-gitops-sdlc 'name)
                     'github-gitops-sdlc)
       (check-equal? (map (lambda (profile) (.ref profile 'name))
-                         (poo-flow-scenario-case-profiles github-gitops-sdlc))
+                         (.ref github-gitops-sdlc 'profiles))
                     '(actions dev staging production nasa/sdlc/npr-7150.2))
       (check-equal? (map (lambda (standard) (.ref standard 'identity))
                          (.ref nasa-sdlc-npr7150_2 'standards))

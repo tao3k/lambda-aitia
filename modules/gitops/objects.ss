@@ -7,13 +7,13 @@
 ;;; evaluator strategy axis where provider/runtime specializers may combine.
 (import (only-in :clan/poo/object .def .o)
         (only-in :clan/poo/mop .defgeneric .new)
-        (only-in :poo-flow/src/module-system/poo-clos/interface
+        (only-in :poo-flow/core/poo-clos/interface
                  poo-clos-call
                  poo-clos-class
                  poo-clos-generic-function
                  poo-clos-generic-protocol
                  poo-clos-make-instance)
-        (only-in :poo-flow/src/module-system/contribution/objects
+        (only-in :poo-flow/core/contribution/objects
                  make-contribution)
         :poo-flow/lambda-aitia/modules/gitops/types)
 (export GitOpsEvaluator GitOpsDefaultEvaluator

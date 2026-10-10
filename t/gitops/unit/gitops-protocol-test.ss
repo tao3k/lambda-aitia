@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :clan/poo/object .cc .ref)
         (only-in :clan/poo/mop element?)
-        :poo-flow/src/module-system/poo-clos/interface
+        :poo-flow/core/poo-clos/interface
         :poo-flow/lambda-aitia/modules/gitops/interface)
 (export gitops-protocol-test)
 

@@ -4,7 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/modules/governance/funs
+        (only-in :poo-flow/modules/governance/funs
                  poo-flow-governance-contribution)
         :poo-flow/lambda-aitia/modules/ADR/types
         :poo-flow/lambda-aitia/modules/ADR/objects

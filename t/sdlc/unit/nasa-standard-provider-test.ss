@@ -12,7 +12,7 @@
         (only-in :poo-flow/src/feature-system/interface
                  sources-lock-freeze
                  write-sources-lock-module)
-        (only-in :poo-flow/src/modules/standards/interface
+        (only-in :poo-flow/modules/standards/interface
                  poo-flow-standard-digest
                  poo-flow-standard-materialization-receipt-valid?
                  poo-flow-standard-resolution-receipt-bundle

@@ -6,9 +6,11 @@
 ;;; Organization NASA / domain SDLC / standard family NPR 7150.2.
 ;;; POO Flow owns the typed namespace, Module and Profile selection.
 (import (only-in :clan/poo/object .def)
-        (only-in :poo-flow/src/module-system/semantic-module/objects
-                 poo-flow-semantic-identity poo-flow-semantic-module)
-        (only-in :poo-flow/src/module-system/profile-composition/interface
+        (only-in :poo-flow/core/module-system/schema/relations
+                 poo-flow-semantic-identity)
+        (only-in :poo-flow/src/authoring/semantic-module
+                 poo-flow-semantic-module)
+        (only-in :poo-flow/core/profile-composition/profile-bundle
                  poo-flow-profile-export poo-flow-module-profiles)
         :poo-flow/lambda-aitia/modules/sdlc/config)
 (export NasaSdlcModule nasa-sdlc-npr7150_2)

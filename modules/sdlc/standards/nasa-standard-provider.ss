@@ -12,7 +12,7 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :poo-flow/src/feature-system/source-lock-feature
                  require-source-lock-payload)
-        (only-in :poo-flow/src/modules/standards/interface
+        (only-in :poo-flow/modules/standards/interface
                  PooFlowStandardValidationProvider.
                  poo-flow-standard-artifact
                  poo-flow-standard-artifact-ref

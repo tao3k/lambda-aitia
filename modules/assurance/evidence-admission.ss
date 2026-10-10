@@ -8,8 +8,8 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/module-system/contribution/verification
+        :poo-flow/core/poo-clos/interface
+        (only-in :poo-flow/core/contribution/verification
                  poo-flow-verification-valid?)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest assurance-node-canonical
@@ -28,9 +28,9 @@
 (def (assurance-verifier-input artifact)
   (unless (assurance-artifact? artifact)
     (error "verifier input requires an artifact"))
-  (poo-flow-check-model
+  (poo-clos-check-model
    AssuranceVerifierInput
-   (.o (:: @ (poo-flow-model-prototype AssuranceVerifierInput))
+   (.o (:: @ (poo-clos-model-prototype AssuranceVerifierInput))
        identity: (.ref artifact 'identity)
        revision: (.ref artifact 'revision)
        digest: (.ref artifact 'content-digest))))
@@ -46,9 +46,9 @@
                                  output-digest: (output-value #f)
                                  accountable-authority: (authority-value #f)
                                  review-scope: (review-scope-value #f))
-  (poo-flow-check-model
+  (poo-clos-check-model
    AssuranceVerifierOutcome
-   (.o (:: @ (poo-flow-model-prototype AssuranceVerifierOutcome))
+   (.o (:: @ (poo-clos-model-prototype AssuranceVerifierOutcome))
        identity: identity-value status: status-value
        producer: producer-value tool: tool-value
        tool-version: tool-version-value
@@ -91,9 +91,9 @@
 
 (def (assurance-verification-subject snapshot-value obligation-value
                                      evidence-value outcome-value)
-  (poo-flow-check-model
+  (poo-clos-check-model
    AssuranceVerificationSubject
-   (.o (:: @ (poo-flow-model-prototype AssuranceVerificationSubject))
+   (.o (:: @ (poo-clos-model-prototype AssuranceVerificationSubject))
        snapshot: snapshot-value obligation: obligation-value
        evidence: evidence-value outcome: outcome-value)))
 
@@ -278,9 +278,9 @@
            (list 'lambda-aitia.evidence-admission
                  reported-digest (assurance-node-canonical required-obligation)
                  (.ref current-snapshot 'digest) admission-blocker))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssuranceEvidenceAdmissionReceipt
-     (.o (:: @ (poo-flow-model-prototype AssuranceEvidenceAdmissionReceipt))
+     (.o (:: @ (poo-clos-model-prototype AssuranceEvidenceAdmissionReceipt))
          schema: "lambda-aitia.evidence-admission"
          outcome: (.ref reported-result 'identity)
          obligation: (.ref required-obligation 'identity)

@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
+        (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/sdlc/interface)
 (def project (sdlc-project "flight" "r2" "software" #t))
 (def evidence (sdlc-evidence "ev" "flight" "r2" "software" "nasa" "SWE-052" "test" 'pass))

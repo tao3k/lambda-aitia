@@ -3,9 +3,11 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/load
-        :poo-flow/src/module-system/declaration/interface
-        :poo-flow/src/module-system/contribution/interface
+        (only-in :poo-flow/src/user-interface/module-selection-syntax
+                 poo-flow-modules!)
+        :poo-flow/src/user-interface/module-selection
+        (only-in :clan/poo/object .ref)
+        (only-in :poo-flow/core/contribution/objects admit-contributions)
         :poo-flow/lambda-aitia/modules/sdlc/config)
 (def (selected . flags)
   (sdlc-config (poo-flow-user-module-selection 'custom 'sdlc flags)))

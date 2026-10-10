@@ -10,7 +10,7 @@
         (only-in :poo-flow/src/core/funcs
                  poo-flow-make-value-index poo-flow-value-index-put!
                  poo-flow-value-index-ref)
-        :poo-flow/src/module-system/poo-clos/interface
+        :poo-flow/core/poo-clos/interface
         :poo-flow/lambda-aitia/modules/gitops/types
         :poo-flow/lambda-aitia/modules/gitops/objects)
 (export GitOpsDefaultEvaluationMethod GitOpsDefaultEvaluationMethods

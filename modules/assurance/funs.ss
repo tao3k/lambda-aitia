@@ -13,7 +13,7 @@
                  poo-flow-graph-loop-analysis-receipt
                  poo-flow-graph-reachable-ids
                  poo-flow-graph-topological-order)
-        :poo-flow/src/module-system/contribution/model
+        :poo-flow/core/poo-clos/interface
         :poo-flow/lambda-aitia/modules/assurance/types
         (only-in :poo-flow/lambda-aitia/modules/assurance/invalidation-projection
                  assurance-invalidation-analysis assurance-invalidation-graph)
@@ -268,9 +268,9 @@
                   (canonical-objects ordered-relations assurance-relation-canonical)
                   missing all-conflicts))
            (snapshot-digest (assurance-canonical-digest canonical)))
-      (poo-flow-check-model
+      (poo-clos-check-model
        AssuranceSnapshot
-       (.o (:: @ (poo-flow-model-prototype AssuranceSnapshot))
+       (.o (:: @ (poo-clos-model-prototype AssuranceSnapshot))
            identity: identity-value revision: revision-value
            graph-identity: graph-identity-value
            source-revisions: canonical-source-revisions
@@ -318,7 +318,7 @@
     (error "obligation cannot bind to this snapshot"))
   (let ((bound-revision (.ref snapshot 'revision))
         (bound-context (.ref snapshot 'context-digest)))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssuranceObligation
      (.o (:: @ obligation)
          snapshot-revision: bound-revision
@@ -439,9 +439,9 @@
            (lambda (obligation-id)
              (let ((obligation
                     (node-by-identity (.ref source 'nodes) obligation-id)))
-               (poo-flow-check-model
+               (poo-clos-check-model
                 AssuranceReplacementRequirement
-                (.o (:: @ (poo-flow-model-prototype
+                (.o (:: @ (poo-clos-model-prototype
                            AssuranceReplacementRequirement))
                     source-obligation: obligation-id
                     source-revision: (.ref obligation 'revision)
@@ -470,9 +470,9 @@
                               (.ref requirement 'scope)
                               (.ref requirement 'blocker)))
                       derived-requirements)))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssuranceReplacementDerivation
-     (.o (:: @ (poo-flow-model-prototype AssuranceReplacementDerivation))
+     (.o (:: @ (poo-clos-model-prototype AssuranceReplacementDerivation))
          schema: "lambda-aitia.replacement-requirements"
          identity: derivation-identity
          source-snapshot-digest: (.ref source 'digest)
@@ -599,9 +599,9 @@
                  (.ref draft 'digest) final-digest
                  source-id candidate-id declaration-blocker)))
          (receipt
-          (poo-flow-check-model
+          (poo-clos-check-model
            AssuranceReplacementDeclarationReceipt
-           (.o (:: @ (poo-flow-model-prototype
+           (.o (:: @ (poo-clos-model-prototype
                      AssuranceReplacementDeclarationReceipt))
                schema: "lambda-aitia.replacement-declaration"
                identity: declaration-identity
@@ -715,9 +715,9 @@
                      (composition-requirement-blocker
                       snapshot composition-claim component-ids
                       direct-ids current-ids)))
-               (poo-flow-check-model
+               (poo-clos-check-model
                 AssuranceCompositionRequirement
-                (.o (:: @ (poo-flow-model-prototype
+                (.o (:: @ (poo-clos-model-prototype
                            AssuranceCompositionRequirement))
                     composition-claim: composition-id
                     component-claims: component-ids
@@ -736,9 +736,9 @@
                               (.ref requirement 'current-obligations)
                               (.ref requirement 'blocker)))
                       derived-requirements)))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      AssuranceCompositionDerivation
-     (.o (:: @ (poo-flow-model-prototype AssuranceCompositionDerivation))
+     (.o (:: @ (poo-clos-model-prototype AssuranceCompositionDerivation))
          schema: "lambda-aitia.composition-requirements"
          identity: derivation-identity
          snapshot-digest: (.ref snapshot 'digest)
@@ -853,9 +853,9 @@
                         (request-id obligation-id)
                         (request-dependencies
                          (cdr (assoc obligation-id prerequisites))))
-                   (poo-flow-check-model
+                   (poo-clos-check-model
                     AssuranceVerificationRequest
-                    (.o (:: @ (poo-flow-model-prototype
+                    (.o (:: @ (poo-clos-model-prototype
                                AssuranceVerificationRequest))
                         obligation-identity: request-id
                         subject: (.ref obligation 'subject)
@@ -907,9 +907,9 @@
           (plan-requests requests)
           (plan-unresolved unresolved)
           (plan-conflicts conflicts))
-      (poo-flow-check-model
+      (poo-clos-check-model
        AssuranceVerificationPlan
-       (.o (:: @ (poo-flow-model-prototype AssuranceVerificationPlan))
+       (.o (:: @ (poo-clos-model-prototype AssuranceVerificationPlan))
            schema: "lambda-aitia.planning-result"
            identity: plan-identity snapshot-digest: (.ref snapshot 'digest)
            policy-identity: (.ref policy 'identity)
@@ -985,9 +985,9 @@
                      (let ((choice-reason
                             (verifier-choice-reason
                              candidate request selected-candidate)))
-                       (poo-flow-check-model
+                       (poo-clos-check-model
                         AssuranceVerifierChoice
-                        (.o (:: @ (poo-flow-model-prototype
+                        (.o (:: @ (poo-clos-model-prototype
                                    AssuranceVerifierChoice))
                             obligation-identity:
                             (.ref request 'obligation-identity)
@@ -1026,9 +1026,9 @@
                                 (.ref choice 'reason)))
                         candidate-choices)
                    unassigned-ids))))
-      (poo-flow-check-model
+      (poo-clos-check-model
        AssuranceVerifierChoiceReceipt
-       (.o (:: @ (poo-flow-model-prototype AssuranceVerifierChoiceReceipt))
+       (.o (:: @ (poo-clos-model-prototype AssuranceVerifierChoiceReceipt))
            schema: "lambda-aitia.verifier-choices"
            identity: explanation-identity
            plan-digest: (.ref plan 'digest)

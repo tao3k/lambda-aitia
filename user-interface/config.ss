@@ -5,11 +5,15 @@
 ;;; -*- Gerbil -*-
 ;;; Maintained GitHub/GitOps/SDLC Case. Selection and Case lowering belong to
 ;;; POO Flow; the concrete policy Profiles remain owned by Aitia.
-(import (only-in :poo-flow/src/module-system/profile-composition/interface
-                 profiles compose use-module user-composition
+(import (only-in :poo-flow/core/profile-composition/profile-bundle
+                 profiles compose
                  poo-flow-profile-export poo-flow-module-profiles)
-        (only-in :poo-flow/src/module-system/semantic-module/objects
-                 poo-flow-semantic-identity poo-flow-semantic-module)
+        (only-in :poo-flow/core/profile-composition/selection-syntax use-module)
+        (only-in :poo-flow/src/scenario/composition-syntax user-composition)
+        (only-in :poo-flow/core/module-system/schema/relations
+                 poo-flow-semantic-identity)
+        (only-in :poo-flow/src/authoring/semantic-module
+                 poo-flow-semantic-module)
         :poo-flow/lambda-aitia/user-interface/profiles/github/actions
         :poo-flow/lambda-aitia/user-interface/profiles/gitops/dev
         :poo-flow/lambda-aitia/user-interface/profiles/gitops/staging

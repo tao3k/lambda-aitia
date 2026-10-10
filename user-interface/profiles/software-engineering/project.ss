@@ -7,7 +7,7 @@
 ;;; Invariant: the Profile selects Aitia knowledge and obligations only; module
 ;;; realization and Runtime execution remain separate POO Flow phases.
 
-(import (only-in :poo-flow/src/module-system/declaration/interface
+(import (only-in :poo-flow/src/user-interface/module-selection
                  poo-flow-settings
                  poo-flow-user-module-selection)
         (only-in :poo-flow/src/user-interface/profile-core

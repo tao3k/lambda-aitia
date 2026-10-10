@@ -6,8 +6,8 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/module-system/contribution/model
-                 poo-flow-model-prototype)
+        (only-in :poo-flow/core/poo-clos/interface
+                 poo-clos-model-prototype)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 
 (export required-support-test)
@@ -78,7 +78,7 @@
 (def required-support-test
   (test-suite "Host required support is an inert Decision input"
     (test-case "row model is well formed"
-      (let (row (.o (:: @ (poo-flow-model-prototype AssessmentRequiredSupport))
+      (let (row (.o (:: @ (poo-clos-model-prototype AssessmentRequiredSupport))
                      obligation: "obligation/test" supported?: #t blocker: #f))
         (check-equal? (assessment-required-support? row) #t)))
     (test-case "exact admission and both relations close declared support only"

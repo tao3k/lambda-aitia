@@ -4,7 +4,7 @@
 
 ;;; Deterministic local checks over authenticated inventory projections.
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/src/module-system/contribution/model
+        :poo-flow/core/poo-clos/interface
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/funs
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
@@ -16,14 +16,14 @@
   (every (lambda (s) (equal? (.ref value s) (.ref project s))) '(subject revision scope)))
 (def (base class id project digest-value complete-value)
   (unless (sdlc-project? project) (error "invalid inventory project"))
-  (.o (:: @ (poo-flow-model-prototype class)) identity: id
+  (.o (:: @ (poo-clos-model-prototype class)) identity: id
       subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
       artifact-digest: digest-value complete?: complete-value))
 (def (nasa-safety-inventory id project digest-value components-value complete?: (complete-value #t))
-  (poo-flow-check-model SdlcSafetyInventory
+  (poo-clos-check-model SdlcSafetyInventory
     (.o (:: @ (base SdlcSafetyInventory id project digest-value complete-value)) components: components-value)))
 (def (nasa-trace-inventory id project digest-value nodes-value edges-value complete?: (complete-value #t))
-  (poo-flow-check-model SdlcTraceInventory
+  (poo-clos-check-model SdlcTraceInventory
     (.o (:: @ (base SdlcTraceInventory id project digest-value complete-value)) nodes: nodes-value edges: edges-value)))
 (def (nasa-structured-requirement? id)
   (and (member id '("SWE-052" "SWE-219" "SWE-220")) #t))

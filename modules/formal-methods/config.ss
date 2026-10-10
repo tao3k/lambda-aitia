@@ -8,7 +8,7 @@
 ;;; an engine ran or that a proof/model/policy was admitted.
 
 (import (only-in :clan/poo/object .o)
-        (only-in :poo-flow/src/modules/proof/interface
+        (only-in :poo-flow/modules/proof/interface
                  poo-flow-proof-module)
         "types.ss"
         "objects.ss"

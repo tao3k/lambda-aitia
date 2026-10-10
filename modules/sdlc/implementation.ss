@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/src/module-system/contribution/model
+        :poo-flow/core/poo-clos/interface
         (only-in :poo-flow/lambda-aitia/modules/assurance/interface
                  assurance-artifact? assurance-digest?
                  assurance-snapshot? assurance-snapshot-canonical?)
@@ -34,7 +34,7 @@
           (digest-slot 'snapshot-context-digest))))
 
 (def (sdlc-design-implementation-link? value)
-  (poo-flow-model? SdlcDesignImplementationLink value))
+  (poo-clos-model? SdlcDesignImplementationLink value))
 
 (def (sdlc-design-implementation-link contract-value guarantee-value
                                       source-value snapshot-value)
@@ -44,9 +44,9 @@
                (assurance-artifact? source-value)
                (assurance-snapshot-canonical? snapshot-value))
     (error "invalid design implementation link input"))
-  (poo-flow-check-model
+  (poo-clos-check-model
    SdlcDesignImplementationLink
-   (.o (:: @ (poo-flow-model-prototype SdlcDesignImplementationLink))
+   (.o (:: @ (poo-clos-model-prototype SdlcDesignImplementationLink))
        contract: (.ref contract-value 'identity)
        contract-revision: (.ref contract-value 'revision)
        contract-digest: (sdlc-design-contract-digest contract-value)

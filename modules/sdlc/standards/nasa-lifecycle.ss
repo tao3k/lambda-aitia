@@ -4,8 +4,8 @@
 
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/src/module-system/contribution/verification
+        :poo-flow/core/poo-clos/interface
+        :poo-flow/core/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/types
         (only-in :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-policy
                  nasa-stage-policy
@@ -35,8 +35,8 @@
     (error "verifiable NASA evidence requires a SHA-256 artifact digest"))
   (.o (:: @ evidence) artifact-digest: digest-value))
 (def (request project purpose-value facts-value)
-  (poo-flow-check-model SdlcVerificationRequest
-    (.o (:: @ (poo-flow-model-prototype SdlcVerificationRequest))
+  (poo-clos-check-model SdlcVerificationRequest
+    (.o (:: @ (poo-clos-model-prototype SdlcVerificationRequest))
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
         purpose: purpose-value facts: facts-value)))
 (def (nasa-context-request project class-value context-value)
@@ -179,8 +179,8 @@
         reported-failures: failed
         admitted?: (eq? status-value 'stage-admitted) release-authorized?: #f)))
 (def (make-state project stage-value)
-  (poo-flow-check-model SdlcLifecycleState
-    (.o (:: @ (poo-flow-model-prototype SdlcLifecycleState))
+  (poo-clos-check-model SdlcLifecycleState
+    (.o (:: @ (poo-clos-model-prototype SdlcLifecycleState))
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
         stage: stage-value)))
 (def (nasa-lifecycle-start project)

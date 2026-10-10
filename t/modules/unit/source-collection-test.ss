@@ -3,10 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :std/test check-equal? test-case test-suite)
-        (only-in :poo-flow/src/module-system/loader/source
+        (only-in :poo-flow/core/module-system/source/objects
                  poo-flow-module-source-ref-metadata
                  poo-flow-module-source-ref-value)
-        (only-in :poo-flow/src/module-system/loader/module-source-interface
+        (only-in :poo-flow/src/authoring/module-source-collection
                  make-poo-flow-contribution-module-source
                  poo-flow-load-modules))
 

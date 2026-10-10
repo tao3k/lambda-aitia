@@ -7,7 +7,7 @@
         (only-in :std/error Error?)
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/module-system/contribution/verification
+        (only-in :poo-flow/core/contribution/verification
                  poo-flow-verification-adapter poo-flow-verify)
         :poo-flow/lambda-aitia/modules/assurance/interface)
 

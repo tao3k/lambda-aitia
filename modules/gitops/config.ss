@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-(import :poo-flow/src/module-system/declaration/interface
+(import :poo-flow/src/user-interface/module-selection
         :poo-flow/lambda-aitia/modules/gitops/objects)
 (export gitops-config)
 (def (gitops-config selection)

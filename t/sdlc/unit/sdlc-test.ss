@@ -3,7 +3,8 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
+        (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/core/contribution/objects admit-contributions)
         :poo-flow/lambda-aitia/modules/sdlc/interface
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))

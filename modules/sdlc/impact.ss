@@ -9,7 +9,7 @@
         :gerbil/core
         (only-in :poo-flow/src/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/temporal-causality/funs
+        (only-in :poo-flow/modules/temporal-causality/funs
                  poo-flow-structural-impact-analyze))
 (export sdlc-change-impact)
 (def (same-snapshot? value project)

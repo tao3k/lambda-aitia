@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .o)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/src/module-system/contribution/model
+        :poo-flow/core/poo-clos/interface
         :poo-flow/lambda-aitia/modules/assurance/types)
 
 (export AssurancePolicy assurance-verification-policy)
@@ -29,9 +29,9 @@
 (def (assurance-verification-policy identity-value revision-value capability-values)
   (unless (and (list? capability-values) (every symbol? capability-values))
     (error "verification policy capabilities must be symbols" capability-values))
-  (poo-flow-check-model
+  (poo-clos-check-model
    AssuranceVerificationPolicy
-   (.o (:: @ (poo-flow-model-prototype AssuranceVerificationPolicy))
+   (.o (:: @ (poo-clos-model-prototype AssuranceVerificationPolicy))
        identity: identity-value revision: revision-value
        capabilities:
        (list-sort capability<? (delete-duplicates/hash capability-values))

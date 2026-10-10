@@ -3,8 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/src/module-system/contribution/verification
+        (only-in :clan/poo/object .o .ref)
+        (only-in :poo-flow/core/contribution/verification
+                 poo-flow-verify poo-flow-revoke-verification!)
+        :poo-flow/core/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/interface
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured

@@ -8,7 +8,7 @@
                  poo-flow-graph-topological-order)
         (only-in :poo-flow/src/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/governance/funs
+        (only-in :poo-flow/modules/governance/funs
                  poo-flow-governance-contribution)
         :std/list/list)
 (import :poo-flow/lambda-aitia/modules/sdlc/types :poo-flow/lambda-aitia/modules/sdlc/objects)

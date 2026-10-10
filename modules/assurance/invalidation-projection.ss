@@ -12,7 +12,7 @@
                  poo-flow-graph-loop-analysis-receipt)
         (only-in :poo-flow/src/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/temporal-causality/funs
+        (only-in :poo-flow/modules/temporal-causality/funs
                  poo-flow-structural-impact-analyze)
         (only-in :gerbil/core list-sort)
         :std/list/list

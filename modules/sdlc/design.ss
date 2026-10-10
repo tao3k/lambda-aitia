@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/src/module-system/contribution/model
+        :poo-flow/core/poo-clos/interface
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest)
         :poo-flow/lambda-aitia/modules/sdlc/types)
@@ -61,11 +61,11 @@
           (slot 'variations variation-list?))))
 
 (def (sdlc-design-clause? value)
-  (poo-flow-model? SdlcDesignClause value))
+  (poo-clos-model? SdlcDesignClause value))
 (def (sdlc-design-variation? value)
-  (poo-flow-model? SdlcDesignVariation value))
+  (poo-clos-model? SdlcDesignVariation value))
 (def (sdlc-design-contract? value)
-  (and (poo-flow-model? SdlcDesignContract value)
+  (and (poo-clos-model? SdlcDesignContract value)
        (pair? (.ref value 'responsibilities))
        (pair? (.ref value 'guarantees))
        (let (guarantees (map (lambda (clause) (.ref clause 'identity))
@@ -76,9 +76,9 @@
                 (.ref value 'variations)))))
 
 (def (design-clause kind-value id revision-value statement-value)
-  (poo-flow-check-model
+  (poo-clos-check-model
    SdlcDesignClause
-   (.o (:: @ (poo-flow-model-prototype SdlcDesignClause))
+   (.o (:: @ (poo-clos-model-prototype SdlcDesignClause))
        identity: id revision: revision-value kind: kind-value
        statement: statement-value)))
 (def (sdlc-design-assumption id revision-value statement-value)
@@ -86,18 +86,18 @@
 (def (sdlc-design-guarantee id revision-value statement-value)
   (design-clause 'guarantee id revision-value statement-value))
 (def (sdlc-design-variation id revision-value affected-guarantees)
-  (poo-flow-check-model
+  (poo-clos-check-model
    SdlcDesignVariation
-   (.o (:: @ (poo-flow-model-prototype SdlcDesignVariation))
+   (.o (:: @ (poo-clos-model-prototype SdlcDesignVariation))
        identity: id revision: revision-value
        affects-guarantees: affected-guarantees)))
 (def (sdlc-design-contract id revision-value decision-value responsibility-values
                            owned-state-values effect-values assumption-values
                            guarantee-values variation-values)
   (let (value
-        (poo-flow-check-model
+        (poo-clos-check-model
          SdlcDesignContract
-         (.o (:: @ (poo-flow-model-prototype SdlcDesignContract))
+         (.o (:: @ (poo-clos-model-prototype SdlcDesignContract))
              identity: id revision: revision-value decision: decision-value
              responsibilities: responsibility-values
              owned-state: owned-state-values
