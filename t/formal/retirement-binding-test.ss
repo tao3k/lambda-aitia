@@ -24,21 +24,23 @@
                       provenance: '("repository-source-bytes")))
 (def quint-source (source "retirement/quint" (source-group-digest job-retirement-quint-sources)))
 (def lean-source (source "retirement/lean" (source-group-digest job-retirement-lean-sources)))
-(def (snapshot quint lean)
+(def scheme-source (source "retirement/scheme" (source-group-digest job-retirement-scheme-sources)))
+(def (snapshot quint lean scheme)
   (assurance-snapshot
    "retirement/formal-cut" "cut-1" "retirement/formal-sources"
-   '(("retirement/quint" . "r1") ("retirement/lean" . "r1")) '()
-   "retirement/design-r1" "formal-review" "r1" (list quint lean) '()))
-(def source-cut (snapshot quint-source lean-source))
+   '(("retirement/quint" . "r1") ("retirement/lean" . "r1")
+     ("retirement/scheme" . "r1")) '()
+   "retirement/design-r1" "formal-review" "r1" (list quint lean scheme) '()))
+(def source-cut (snapshot quint-source lean-source scheme-source))
 (def links
   (map (lambda (artifact)
          (sdlc-design-implementation-link
           job-retirement-contract job-retirement-safety artifact source-cut))
-       (list quint-source lean-source)))
+       (list quint-source lean-source scheme-source)))
 
 (def retirement-binding-test
   (test-suite "Retirement POO contract to formal source binding"
-    (test-case "both views bind one declaration without granting conformance"
+    (test-case "three source cuts bind one declaration without granting conformance"
       (let (review (sdlc-design-implementation-review
                     job-retirement-contract source-cut links))
         (check (.ref review 'mapping-current?) => #t)
@@ -54,16 +56,23 @@
     (test-case "same-revision Quint source mutation invalidates the joined mapping"
       (let* ((changed (source "retirement/quint" (source-lock-payload-digest "changed model")))
              (review (sdlc-design-implementation-review
-                       job-retirement-contract (snapshot changed lean-source) links)))
+                       job-retirement-contract (snapshot changed lean-source scheme-source) links)))
         (check (.ref review 'mapping-current?) => #f)
-        (check (length (.ref review 'blocked-links)) => 2)
+        (check (length (.ref review 'blocked-links)) => 3)
         (check (.ref (car (.ref review 'blocked-links)) 'blocker) => 'snapshot-changed)))
     (test-case "same-revision Lean source mutation also invalidates the mapping"
       (let* ((changed (source "retirement/lean" (source-lock-payload-digest "changed law")))
              (review (sdlc-design-implementation-review
-                       job-retirement-contract (snapshot quint-source changed) links)))
+                       job-retirement-contract (snapshot quint-source changed scheme-source) links)))
         (check (.ref review 'mapping-current?) => #f)
-        (check (length (.ref review 'blocked-links)) => 2)
+        (check (length (.ref review 'blocked-links)) => 3)
+        (check (.ref (car (.ref review 'blocked-links)) 'blocker) => 'snapshot-changed)))
+    (test-case "same-revision Scheme implementation mutation invalidates the mapping"
+      (let* ((changed (source "retirement/scheme" (source-lock-payload-digest "changed Host")))
+             (review (sdlc-design-implementation-review
+                       job-retirement-contract (snapshot quint-source lean-source changed) links)))
+        (check (.ref review 'mapping-current?) => #f)
+        (check (length (.ref review 'blocked-links)) => 3)
         (check (.ref (car (.ref review 'blocked-links)) 'blocker) => 'snapshot-changed)))
     (test-case "a changed design premise cannot reuse either formal link"
       (let* ((changed
@@ -77,6 +86,6 @@
                (list job-retirement-safety) '()))
              (review (sdlc-design-implementation-review changed source-cut links)))
         (check (.ref review 'mapping-current?) => #f)
-        (check (length (.ref review 'blocked-links)) => 2)
+        (check (length (.ref review 'blocked-links)) => 3)
         (for-each (lambda (link) (check (.ref link 'blocker) => 'contract-changed))
                   (.ref review 'blocked-links))))))

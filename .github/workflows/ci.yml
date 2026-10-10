@@ -126,7 +126,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/poo-flow
-          ref: ad1524c3b7a5ce0aedb7130cca457b96652e4b9d
+          ref: 120817135c7153465caf19825813c201e1ba2f5e
           path: poo-flow
           submodules: false
 
@@ -184,6 +184,10 @@ jobs:
       - name: Bind Quint and Lean sources to the retirement POO contract
         working-directory: poo-flow
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-binding-test.ss'
+
+      - name: Execute retirement ingress controls against Scheme Host
+        working-directory: poo-flow
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-execution-test.ss'
 
       - name: Run SDLC and GitOps integration
         working-directory: poo-flow

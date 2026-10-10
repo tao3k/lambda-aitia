@@ -6,7 +6,8 @@
 (import (only-in :poo-flow/lambda-aitia/modules/sdlc/design
                  sdlc-design-contract sdlc-design-assumption sdlc-design-guarantee))
 (export job-retirement-contract job-retirement-safety
-        job-retirement-quint-sources job-retirement-lean-sources)
+        job-retirement-quint-sources job-retirement-lean-sources
+        job-retirement-scheme-sources)
 
 (def job-retirement-safety
   (sdlc-design-guarantee
@@ -44,3 +45,7 @@
 (def job-retirement-lean-sources
   '("proof/lean/LambdaAitiaProof/Modules/Sdlc/Retirement.lean"
     "proof/lean/LambdaAitiaProof/Modules/Sdlc/RetirementIngress.lean"))
+(def job-retirement-scheme-sources
+  '("modules/sdlc/retirement-host.ss"
+    "t/formal/retirement-execution-test.ss"
+    "build.ss"))
