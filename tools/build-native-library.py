@@ -128,9 +128,9 @@ def configure_orgize_header() -> None:
         raise RuntimeError("GERBIL_PATH must identify the installed Gerbil packages")
     header_root = (
         Path(gerbil_path).resolve()
-        / "pkg/github.com/tao3k/orgize/bindings/c"
+        / "pkg/github.com/tao3k/orgize/bindings/c/include"
     )
-    if not (header_root / "include/orgize.h").is_file():
+    if not (header_root / "orgize.h").is_file():
         raise RuntimeError(
             "Orgize's public C header is absent; run gxpkg deps --install "
             f"for the pinned POO Flow dependencies: {header_root}"

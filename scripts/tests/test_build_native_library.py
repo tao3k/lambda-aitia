@@ -28,6 +28,25 @@ def build_module():
 
 
 class NativeLinkPolicyTest(unittest.TestCase):
+    def test_orgize_header_search_path_names_the_include_directory(self) -> None:
+        module = build_module()
+        with tempfile.TemporaryDirectory() as directory:
+            header_root = (
+                Path(directory)
+                / "pkg/github.com/tao3k/orgize/bindings/c/include"
+            )
+            header_root.mkdir(parents=True)
+            (header_root / "orgize.h").touch()
+            with patch.dict(
+                os.environ,
+                {"GERBIL_PATH": directory, "C_INCLUDE_PATH": "/caller/include"},
+            ):
+                module.configure_orgize_header()
+                self.assertEqual(
+                    os.environ["C_INCLUDE_PATH"],
+                    f"{header_root.resolve()}:/caller/include",
+                )
+
     def test_gambit_compiler_uses_the_gerbil_release_not_path(self) -> None:
         module = build_module()
         with tempfile.TemporaryDirectory() as directory:
