@@ -67,13 +67,17 @@ bounds. =check-formal= includes source binding, Host controls, MBT replay,
 exhaustive Quint checks and Lean checks; CI runs these distinct evidence lanes.
 
 =just check-lifecycle-scheme= exhausts the lifecycle TLC graph, requires its
-complete 19,042-state queue and 21-field schema, then replays 7,383 spanning
-paths through real Scheme APIs. Their shared prefixes cover every reachable
+complete 19,042-state queue and 21-field schema, then replays 3,084 covering
+paths through real Scheme APIs. A DAG path cover plus real init prefixes covers every reachable
 state, plus all 16 named safe actions. Every field is compared after every
 step; model output is never used to manufacture Scheme receipts. This is
 complete bounded state coverage, not replay of all 62,345 graph edges or a
-general refinement proof. Four native processes retain the existing per-test
-1G heap / 60-second bound; failed batches, missing final =OK=, incomplete
+general refinement proof. Renewal and terminal stutters remain explicit
+API witnesses. The cover executes 64,206 state steps; each native batch is
+bounded by 160 actual steps rather than a fixed number of traces. A single
+oversized trace fails instead of being split or given more time. Four native
+processes retain the existing per-test 1G heap / 60-second bound; failed batches,
+missing final =OK=, incomplete
 graphs, unknown actions and missing fault traces fail closed.
 
 Seven additional traces start at reachable states selected from that graph.
@@ -84,6 +88,10 @@ callback. This covers report-as-authority, stale admission, early grant,
 after-revoke start, stale delivery, pre-start delivery and delivery replay.
 The gate prints SHA-256 hashes of its declared model / Scheme source cut and
 rejects source changes during the run.
+Failed native inputs and partial diagnostics are preserved under
+=.cache/lifecycle-failures/=; the shared checker watchdog terminates the owned
+process group, not just its immediate launcher. Completion counters are
+emitted only after processing a real trace and do not replace final =OK= / exit status.
 
 | Lifecycle stage | Actual Scheme operation | Authority / effect observation |
 |-----------------+-------------------------+--------------------------------|
@@ -103,6 +111,8 @@ observed source ABA, expiry exactly at the boundary, source change during
 authorization, throwing authorization / delivery, reentrancy and blind retry
 after failure or unknown acknowledgement. Unknown acknowledgement may coexist
 with a service-side effect, but is never reported as delivered or retry authority.
+Renewing verification or issuing a fresh grant cannot extend an existing
+reservation's source / epoch / deadline binding.
 
 | Quint cut | Scheme evidence | Remaining boundary |
 |-----------+-----------------+--------------------|
@@ -137,6 +147,13 @@ semantic-root / token validation primitives with private exact-identity
 issuance and one-shot reservation indexes. The configured authorization
 operation must evaluate policy for the frozen request; the configured delivery
 operation owns the actual effect and acknowledgement. The model's successful
+handoff assumes trusted, synchronous callbacks under one serialized owner;
+it does not prove atomic source / authority revalidation at a native service's
+physical effect linearization point. Deferred work or continuation reuse is
+outside this adapter contract. The lifecycle fixture supplies declared source
+snapshot metadata and a controlled verifier, not a proof of verifier truth or
+filesystem bytes. The existing evidence-admission tests remain a separate
+source-reader qualification lane. The model's successful
 authorization and fair delivery assume permit and eventual acknowledgement;
 refusal, failed and unknown outcomes do not satisfy that progress premise.
 The grant's synthetic local binding is not a native buffer / session capability.

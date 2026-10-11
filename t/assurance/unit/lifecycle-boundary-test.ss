@@ -55,6 +55,15 @@
         (check (.ref (lifecycle-action! f 'UnsafeReplay) 'outcome) => 'rejected)
         (check (lifecycle-get f 'delivery-calls) => 1)
         (check (lifecycle-get f 'service-effects) => 1)))
+    (test-case "renewed verification does not renew an old grant or reservation"
+      (let (f (ready))
+        (check (lifecycle-action! f 'Verify) => #t)
+        (check (lifecycle-action! f 'StartEffect) => #t)
+        (check (.ref (lifecycle-action! f 'DeliverEffect) 'delivered?) => #t))
+      (let (f (drive (ready) '(StartEffect Tick Verify Admit Decide Authorize)))
+        (check (.ref (lifecycle-get f 'grant) 'expires-at) => 2)
+        (check (.ref (lifecycle-action! f 'DeliverEffect) 'outcome) => 'rejected)
+        (check (lifecycle-get f 'delivery-calls) => 0)))
     (test-case "expiry revoke and source change between reserve and delivery fail closed"
       (for-each
        (lambda (change)

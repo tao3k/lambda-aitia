@@ -44,7 +44,8 @@ def run(command: Sequence[str], cwd: Path, label: str, *, timeout: float = 60,
                 except subprocess.TimeoutExpired:
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
-                raise TimeoutError(f"{label}: {reason} after {now - last_output:.1f}s without output")
+                partial = b"".join(chunks).decode(errors="replace")
+                raise TimeoutError(f"{label}: {reason} after {now - last_output:.1f}s without output\n{partial[-4000:]}")
             events = selector.select(timeout=min(1.0, silence))
             for key, _ in events:
                 data = os.read(key.fd, 65536)

@@ -48,15 +48,31 @@ class LifecycleReplayTests(unittest.TestCase):
     def test_unreachable_state_fails(self):
         with patch.object(checker, 'ACTIONS', ('Terminal',)):
             with self.assertRaisesRegex(ValueError, 'unreachable'):
-                checker.spanning_traces({'1': {'clock': 0}, '2': {'clock': 1}},
+                checker.covering_traces({'1': {'clock': 0}, '2': {'clock': 1}},
                                         [('1', '1', 'Terminal')], '1')
 
-    def test_spanning_paths_cover_all_states_and_self_loop_action(self):
+    def test_covering_paths_cover_all_states_and_self_loop_action(self):
         with patch.object(checker, 'ACTIONS', ('Verify', 'Terminal')):
-            traces = checker.spanning_traces({'1': {'clock': 0}, '2': {'clock': 1}},
+            traces = checker.covering_traces({'1': {'clock': 0}, '2': {'clock': 1}},
                                             [('1', '2', 'Verify'), ('2', '2', 'Terminal')], '1')
         self.assertEqual({state['clock'] for trace in traces for _, state in trace}, {0, 1})
         self.assertEqual({action for trace in traces for action, _ in trace}, {'init', 'Verify', 'Terminal'})
+
+    def test_non_stuttering_cycle_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, 'not a DAG'):
+            checker.covering_traces({'1': {'clock': 0}, '2': {'clock': 1}},
+                                    [('1', '2', 'Verify'), ('2', '1', 'Revoke')], '1')
+
+    def test_native_batches_preserve_every_trace_and_bound_actual_steps(self):
+        traces = [[('init', {})] * size for size in (80, 80, 21, 140, 20)]
+        packed = list(checker.batches(traces))
+        self.assertEqual([trace for batch in packed for trace in batch], traces)
+        self.assertTrue(all(sum(map(len, batch)) <= 160 for batch in packed))
+        self.assertEqual([sum(map(len, batch)) for batch in packed], [160, 21, 160])
+
+    def test_single_oversized_trace_is_not_split_or_given_a_larger_timeout(self):
+        with self.assertRaisesRegex(ValueError, 'one trace exceeds'):
+            list(checker.batches([[('init', {})] * 161]))
 
 
 if __name__ == '__main__':

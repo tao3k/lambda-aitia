@@ -38,4 +38,6 @@
                     (when (eq? action 'StartEffect)
                       (check (lifecycle-get fixture 'delivery-calls) => 0)
                       (check (lifecycle-get fixture 'service-effects) => 0))))
-                trace))) traces))))))
+                trace)
+               (displayln "LIFECYCLE-TRACE-COMPLETE steps=" (length trace))
+               (force-output))) traces))))))

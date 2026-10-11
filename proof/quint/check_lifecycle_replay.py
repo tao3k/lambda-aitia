@@ -36,6 +36,7 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
 SOURCE_CUT = ("proof/quint/AssuranceLifecycle.qnt", "proof/quint/EffectAdmission.qnt",
               "proof/quint/package-lock.json", "proof/quint/check_lifecycle_replay.py",
               "proof/quint/test_lifecycle_replay.py",
+              "proof/quint/process_runner.py",
               "modules/assurance/host.ss", "modules/assurance/effect-host.ss",
               "modules/assurance/interface.ss", "t/formal/lifecycle-fixture.ss",
               "t/formal/lifecycle-replay-test.ss", "t/assurance/unit/lifecycle-boundary-test.ss")
@@ -104,7 +105,7 @@ def read_graph(path, expected):
     return nodes, edges, initial[0]
 
 
-def spanning_traces(nodes, edges, initial):
+def covering_traces(nodes, edges, initial):
     adjacency = {}
     for origin, target, action in edges:
         adjacency.setdefault(origin, []).append((target, action))
@@ -118,21 +119,81 @@ def spanning_traces(nodes, edges, initial):
                 pending.append(target)
     if set(paths) != set(nodes):
         raise ValueError("TLC dump contains unreachable or missing nodes")
-    # All spanning-tree states occur in its leaf paths. Share prefixes within
-    # a path instead of restarting a Host for every intermediate state.
-    branches = {origin for origin, targets in adjacency.items()
-                if any(paths[target] == paths[origin] + [(action, nodes[target])]
-                       for target, action in targets if target != origin)}
-    traces = [paths[node] for node in nodes if node not in branches]
+    # Ignoring self loops, this bounded lifecycle is a DAG. Its minimum vertex
+    # path cover is a bipartite maximum matching. Each path gets a real safe
+    # prefix from init, then continues through original TLC edges. No Host is
+    # cloned or reset mid-path, and no model state is synthesized in Scheme.
+    distinct = {origin: list(dict.fromkeys(target for target, _ in targets if target != origin))
+                for origin, targets in adjacency.items()}
+    indegree = dict.fromkeys(nodes, 0)
+    for targets in distinct.values():
+        for target in targets:
+            indegree[target] += 1
+    queue = deque(node for node in nodes if not indegree[node])
+    ordered = []
+    while queue:
+        origin = queue.popleft()
+        ordered.append(origin)
+        for target in distinct.get(origin, []):
+            indegree[target] -= 1
+            if not indegree[target]:
+                queue.append(target)
+    if len(ordered) != len(nodes):
+        raise ValueError("non-stuttering lifecycle graph is not a DAG")
+    left, right = {}, {}
+    def augment(origin, seen):
+        for target in distinct.get(origin, []):
+            if target in seen:
+                continue
+            seen.add(target)
+            if target not in right or augment(right[target], seen):
+                left[origin], right[target] = target, origin
+                return True
+        return False
+    for origin in nodes:
+        augment(origin, set())
+    labels = {(origin, target): action for origin, target, action in edges}
+    traces = []
+    for origin in nodes:
+        if origin in right:
+            continue
+        trace = list(paths[origin])
+        while origin in left:
+            target = left[origin]
+            trace.append((labels[origin, target], nodes[target]))
+            origin = target
+        traces.append(trace)
     covered = {action for trace in traces for action, _ in trace}
+    stutters = {action for origin, target, action in edges if origin == target}
     for action in ACTIONS:
-        if action not in covered:
+        if action not in covered and action not in stutters:
             origin, target, _ = next(edge for edge in edges if edge[2] == action)
             traces.append(paths[origin] + [(action, nodes[target])])
+    # Preserve renewal and terminal stutter witnesses as actual API calls.
+    for action in ACTIONS:
+        if action not in stutters:
+            continue
+        origin, target, _ = min((edge for edge in edges if edge[0] == edge[1] and edge[2] == action),
+                                key=lambda edge: len(paths[edge[0]]))
+        traces.append(paths[origin] + [(action, nodes[target])])
     if {json.dumps(state, sort_keys=True) for trace in traces for _, state in trace} != {
             json.dumps(state, sort_keys=True) for state in nodes.values()}:
-        raise ValueError("spanning paths do not cover the complete state space")
+        raise ValueError("covering paths do not cover the complete state space")
     return traces
+
+
+def batches(traces, step_budget=160):
+    batch, steps = [], 0
+    for trace in traces:
+        if len(trace) > step_budget:
+            raise ValueError("one trace exceeds the native step budget")
+        if batch and steps + len(trace) > step_budget:
+            yield batch
+            batch, steps = [], 0
+        batch.append(trace)
+        steps += len(trace)
+    if batch:
+        yield batch
 
 
 def sexpr_trace(trace):
@@ -203,12 +264,20 @@ def negative_traces(quint, work, safe):
 def replay(work, chunk, traces):
     fixture = work / f"traces-{chunk}.scm"
     fixture.write_text("(" + "\n".join(map(sexpr_trace, traces)) + ")\n")
-    environment = dict(os.environ, AITIA_LIFECYCLE_REPLAY=str(fixture))
-    result = subprocess.run(["just", "test-scheme-atomic", "formal", "lifecycle-replay-test.ss"],
-                            cwd=REPO, env=environment, timeout=65, check=False,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    if result.returncode or not re.search(r"^OK$", result.stdout, re.MULTILINE):
-        raise RuntimeError(f"Scheme replay failed: chunk={chunk} exit={result.returncode}\n{result.stdout[-8000:]}")
+    try:
+        status, output = run(["env", f"AITIA_LIFECYCLE_REPLAY={fixture}", "just",
+                              "test-scheme-atomic", "formal", "lifecycle-replay-test.ss"],
+                             REPO, f"native-lifecycle-{chunk}", timeout=65)
+        if status or not re.search(r"^OK$", output, re.MULTILINE):
+            raise RuntimeError(f"Scheme replay failed: chunk={chunk} exit={status}\n{output[-8000:]}")
+    except (RuntimeError, TimeoutError) as error:
+        # Keep the exact failed input after the temporary graph is removed.
+        evidence = REPO / ".cache/lifecycle-failures"
+        evidence.mkdir(parents=True, exist_ok=True)
+        saved = evidence / f"traces-{chunk}.scm"
+        saved.write_bytes(fixture.read_bytes())
+        (evidence / f"traces-{chunk}.log").write_text(str(error))
+        raise RuntimeError(f"{error}\nFAILED-LIFECYCLE-INPUT: {saved}") from error
     return len(traces)
 
 
@@ -223,7 +292,7 @@ def main():
         if count != 19042:
             raise RuntimeError(f"lifecycle state quotient changed: {count} != 19042")
         nodes, edges, initial = read_graph(graph, count)
-        traces = spanning_traces(nodes, edges, initial)
+        traces = covering_traces(nodes, edges, initial)
         covered = {edge[2] for edge in edges}
         if covered != set(ACTIONS):
             raise RuntimeError(f"incomplete action coverage: {covered ^ set(ACTIONS)}")
@@ -233,8 +302,8 @@ def main():
         completed = 0
         # Four bounded native processes; each retains the existing 1G/60s gate.
         with ThreadPoolExecutor(max_workers=4) as pool:
-            jobs = [pool.submit(replay, work, chunk, traces[offset:offset + 32])
-                    for chunk, offset in enumerate(range(0, len(traces), 32))]
+            jobs = [pool.submit(replay, work, chunk, batch)
+                    for chunk, batch in enumerate(batches(traces))]
             try:
                 for job in as_completed(jobs):
                     completed += job.result()
