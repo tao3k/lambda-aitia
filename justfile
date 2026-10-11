@@ -72,10 +72,17 @@ check-proof:
 check-quint module='all':
     python3 proof/quint/check_contract.py '{{module}}'
 
+# Pinned Quint MBT traces, native Scheme execution, and explicit fault refusals.
+[group('check')]
+check-quint-scheme:
+    python3 proof/quint/check_scheme_replay.py
+
 # Every gate must run; none substitutes for semantic implementation refinement.
 [group('check')]
 check-formal:
     just test-scheme-atomic formal retirement-binding-test.ss
+    just test-scheme-atomic formal retirement-execution-test.ss
+    just check-quint-scheme
     just check-quint
     just check-proof
 

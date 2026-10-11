@@ -5,7 +5,7 @@
 
 :PROPERTIES:
 :STATUS: design-validation-partial
-:DATE: 2026-10-10
+:DATE: 2026-10-11
 :END:
 
 * Model boundaries
@@ -44,6 +44,40 @@ successful counterexample. No implicit dependency on the POO Flow ASCENT pin
 is introduced here: ASCENT belongs to the parent POO Flow dependency graph.
 
 * Claim boundary
+
+** Executable correspondence cut
+
+=just check-quint-scheme= runs Quint 0.33.0's TypeScript evaluator with native
+=--mbt= action metadata and ITF traces. A fixed seed (34), 512 samples and an
+18-step bound currently cover 177 of the TLC lane's 248 reachable ingress
+states and all 13 safe actions. This is reproducible sampled correspondence,
+not exhaustive Scheme refinement. The runner fails if sampled state coverage
+falls below 177, or any safe action or the post-retirement rejection witness
+is missing. Every projected field is checked
+after every action against the actual serialized Scheme Host; effect starts
+also check a real callback counter. Model schema changes fail closed.
+
+Two separately generated invariant-failure traces exercise =RetireWithoutFence=
+and =TrustCachedGrant=. Their safe prefixes must match Scheme, while the final
+unsafe transition must be rejected with no effect callback. A tool failure is
+not a negative control. ITF is translated to closed data, never evaluated as
+Scheme code. The tests retain Gerbil's native testing lifecycle and heap/time
+bounds. =check-formal= includes source binding, Host controls, MBT replay,
+exhaustive Quint checks and Lean checks; CI runs these distinct evidence lanes.
+
+| Quint cut | Scheme evidence | Remaining boundary |
+|-----------+-----------------+--------------------|
+| WorkCore / WorkLifecycle | cancellation, completion and queue observations in ingress replay; isolated queued-work refusal | fair completion is an environment assumption |
+| RetirementReview | review, late activity, inventory loss/recovery and retirement in replay; missing-review / unknown-inventory controls | inventory truth is supplied by the local caller |
+| RetirementIngress / EffectAdmission | 13 action projections, sampled state correspondence, unsafe-model refusals and real callbacks | one owner, cached grant, request and attempt only |
+| AssuranceLifecycle | =evidence-admission-test.ss= and =decision-preflight-test.ss= cover source changes, expiry, revocation and preflight | no state-by-state lifecycle replay; authorization and effect delivery remain a POO Flow/runtime boundary |
+
+The Host exception regression additionally verifies that a throwing callback
+propagates its failure and clears the transient handoff fence, without marking
+work complete or permitting a second start. Exceptions, continuation capture
+and process crashes are not transitions of the current Quint ingress model.
+
+** Qualification limits
 
 These are bounded design experiments, not generated projections of the POO
 Contract, proof of Scheme/Runtime refinement, or deployed authority. A separate

@@ -41,6 +41,7 @@
     "proof/quint/package-lock.json"
     "proof/quint/tlc-config.json"
     "proof/quint/check_contract.py"
+    "proof/quint/check_scheme_replay.py"
     "proof/quint/process_runner.py"))
 (def job-retirement-lean-sources
   '("proof/lean/LambdaAitiaProof/Modules/Sdlc/Retirement.lean"
@@ -48,4 +49,7 @@
 (def job-retirement-scheme-sources
   '("modules/sdlc/retirement-host.ss"
     "t/formal/retirement-execution-test.ss"
+    "t/formal/retirement-replay-test.ss"
+    "justfile"
+    ".github/workflows/ci.yml"
     "build.ss"))

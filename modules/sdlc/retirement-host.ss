@@ -211,10 +211,16 @@
         (let (started (.o (:: @ consumed) active?: #t
                           handoff-in-progress?: #t))
           (hash-put! retirement-host-states host started)
-          ((.ref handoff 'run))
-          (let (finished (.o (:: @ started) handoff-in-progress?: #f))
-            (hash-put! retirement-host-states host finished)
-            (receipt 'attempt-start finished #t 'started #t))))))))
+          ;; A failed callback is not completion. Keep work active and the
+          ;; request consumed, but release the transient reentrancy fence even
+          ;; when the callback raises. The original failure still propagates.
+          (dynamic-wind
+            void
+            (lambda () ((.ref handoff 'run)))
+            (lambda ()
+              (hash-put! retirement-host-states host
+                         (.o (:: @ started) handoff-in-progress?: #f))))
+          (receipt 'attempt-start (host-state host) #t 'started #t)))))))
 
 (def (aitia-retirement-host-retire! host)
   (let (state (mutation-state host))
