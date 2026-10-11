@@ -12,21 +12,22 @@
 
 The maintained model source is Quint 0.33.0. =WorkCore.qnt= shares the
 cancellation/completion distinction; =EffectAdmission.qnt= shares the current
-grant predicate. Four finite models preserve the former TLA+ lane's 22 cases:
+grant predicate. Four finite models now check 25 contracts (including two
+temporal cases), extending the former TLA+ lane's 22 cases:
 
 | Lane | Safe check | Required negative/reachability controls |
 |------+------------+-----------------------------------------|
 | work | cancellation does not drain active or queued work | cancellation and quiescence reachable |
 | retirement | final cut requires quiescence and known inventory | cancellation-as-completion, stale review, unknown inventory, retirement reachable |
 | ingress | retirement fences epoch and rejects later stale authority | unfenced retirement, cached grant, rejection and valid start reachable |
-| lifecycle | current admission, decision, grant and safe effect start | untrusted report, late admission, early grant, after-revoke start, valid start reachable, no-fair progress counterexample |
+| lifecycle | current admission, decision, grant, one-shot reservation and delivery | untrusted report, late admission, early grant, after-revoke start, stale delivery, delivery before start, replay, valid start reachable, no-fair delivery counterexample |
 
 The =check_contract.py= runner checks all reachable finite states through
 Quint's TLC backend, requires a completed queue for safe cases, and requires
 the expected invariant failure and actual trace for each negative control.
 The lifecycle's weak-fairness case is checked by =check_progress.py=: it compiles
 the Quint source to a temporary TLA+ artifact and asks TLC to check
-=EventuallyEffect= under the Quint-defined =stableSpec=. The same property
+=EventuallyDelivery= under the Quint-defined =stableSpec=. The same property
 fails under =stableSpecNoFair=. Generated TLA+ is a checker intermediate, not
 a second maintained model. Quint's ordinary =verify --temporal= path cannot
 select that fairness-bearing specification as TLC's =SPECIFICATION=.
@@ -65,12 +66,50 @@ Scheme code. The tests retain Gerbil's native testing lifecycle and heap/time
 bounds. =check-formal= includes source binding, Host controls, MBT replay,
 exhaustive Quint checks and Lean checks; CI runs these distinct evidence lanes.
 
+=just check-lifecycle-scheme= exhausts the lifecycle TLC graph, requires its
+complete 19,042-state queue and 21-field schema, then replays 7,383 spanning
+paths through real Scheme APIs. Their shared prefixes cover every reachable
+state, plus all 16 named safe actions. Every field is compared after every
+step; model output is never used to manufacture Scheme receipts. This is
+complete bounded state coverage, not replay of all 62,345 graph edges or a
+general refinement proof. Four native processes retain the existing per-test
+1G heap / 60-second bound; failed batches, missing final =OK=, incomplete
+graphs, unknown actions and missing fault traces fail closed.
+
+Seven additional traces start at reachable states selected from that graph.
+Quint executes the original unsafe operator and must produce an actual
+invariant-failure ITF trace. Scheme must match the safe prefix, refuse the
+final unsafe operation, preserve the projected state and execute no delivery
+callback. This covers report-as-authority, stale admission, early grant,
+after-revoke start, stale delivery, pre-start delivery and delivery replay.
+The gate prints SHA-256 hashes of its declared model / Scheme source cut and
+rejects source changes during the run.
+
+| Lifecycle stage | Actual Scheme operation | Authority / effect observation |
+|-----------------+-------------------------+--------------------------------|
+| Plan | =assurance-plan-verification= | selects the real obligation, no authority |
+| Verify | =assurance-host-verify= | configured verifier runs and privately issues a seal |
+| Admit | =assurance-host-admit-verified= | exact current seal, no verifier rerun or expiry renewal |
+| Decide | =assurance-host-preflight-decision= | current admission becomes a preflight, not permission |
+| Authorize | =assurance-host-cedar-request= / =assurance-effect-host-authorize!= | exact current request plus configured permit issues a private grant |
+| StartEffect | =assurance-effect-host-reserve!= | consumes grant once; callback count stays zero |
+| Delivery | =assurance-effect-host-deliver!= | rechecks source / epoch / strict expiry; acknowledged, rejected, failed or unknown |
+
+=lifecycle-boundary-test.ss= also checks deny / indeterminate authorization
+(refusal stutters, never a grant), copied or foreign seals / requests / grants
+/ reservations, intent substitution, mutation of an actually issued token,
+in-place request intent / action / handoff payload mutation,
+observed source ABA, expiry exactly at the boundary, source change during
+authorization, throwing authorization / delivery, reentrancy and blind retry
+after failure or unknown acknowledgement. Unknown acknowledgement may coexist
+with a service-side effect, but is never reported as delivered or retry authority.
+
 | Quint cut | Scheme evidence | Remaining boundary |
 |-----------+-----------------+--------------------|
 | WorkCore / WorkLifecycle | cancellation, completion and queue observations in ingress replay; isolated queued-work refusal | fair completion is an environment assumption |
 | RetirementReview | review, late activity, inventory loss/recovery and retirement in replay; missing-review / unknown-inventory controls | inventory truth is supplied by the local caller |
 | RetirementIngress / EffectAdmission | 13 action projections, sampled state correspondence, unsafe-model refusals and real callbacks | one owner, cached grant, request and attempt only |
-| AssuranceLifecycle | =evidence-admission-test.ss= and =decision-preflight-test.ss= cover source changes, expiry, revocation and preflight | no state-by-state lifecycle replay; authorization and effect delivery remain a POO Flow/runtime boundary |
+| AssuranceLifecycle | all 19,042 projected states; 16 safe actions; seven actual unsafe-model refusals; additional authorization / delivery unit controls | one obligation / attempt, serialized local adapter assumptions; no native Cedar evaluator or deployed delivery qualification |
 
 The Host exception regression additionally verifies that a throwing callback
 propagates its failure and clears the transient handoff fence, without marking
@@ -91,6 +130,23 @@ attempt; it does not model new grant issuance, multiple clients, persistence,
 crash recovery or inventory truth. Fair progress assumes a stable source and
 clock, no revocation, and weak fairness of each Host stage. It says nothing
 about progress under a changing environment.
+
+The lifecycle effect Host is an explicit local composition adapter, not a new
+Cedar policy engine or native Runtime Host. It composes existing POO Flow
+semantic-root / token validation primitives with private exact-identity
+issuance and one-shot reservation indexes. The configured authorization
+operation must evaluate policy for the frozen request; the configured delivery
+operation owns the actual effect and acknowledgement. The model's successful
+authorization and fair delivery assume permit and eventual acknowledgement;
+refusal, failed and unknown outcomes do not satisfy that progress premise.
+The grant's synthetic local binding is not a native buffer / session capability.
+Pure Cedar decisions, token-shaped objects and editable delivery receipts have
+no issuing authority. A delivery receipt's =durable?= and
+=distributed-authority?= are explicitly false. Strict expiry requires
+=now < expires-at= even though the underlying pure token validator admits its
+inclusive endpoint. Native dual-engine Cedar evaluation, distributed
+deduplication, continuations, persistence and crash recovery are not qualified
+by this local test cut.
 
 The retirement binding test hashes the declared Lean, Quint and Scheme source
 cut. A current mapping alone is not semantic correspondence; the execution

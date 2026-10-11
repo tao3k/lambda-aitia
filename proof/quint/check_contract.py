@@ -20,7 +20,7 @@ QUINT = os.environ.get("AITIA_QUINT_BIN") or shutil.which("quint")
 COUNTS = re.compile(r"(\d+) states generated, (\d+) distinct states found, (\d+) states left on queue")
 SAFE_DISTINCT = {"work-safe": 8, "work-cancellation": 2,
                  "retirement-safe": 42, "ingress-safe": 248,
-                 "lifecycle-safe": 2202}
+                 "lifecycle-safe": 19042}
 # lane, name, model, transition, invariant(s), expected counterexample
 CASES = (
     ("work", "work-safe", "WorkLifecycle", "step", "TypeOK", False),
@@ -37,12 +37,15 @@ CASES = (
     ("ingress", "ingress-cached-grant", "RetirementIngress", "cachedGrantStep", "NoPostRetirementStart", True),
     ("ingress", "ingress-reject-reachable", "RetirementIngress", "step", "NeverRejectAfterRetirement", True),
     ("ingress", "ingress-start-reachable", "RetirementIngress", "step", "NeverStarted", True),
-    ("lifecycle", "lifecycle-safe", "AssuranceLifecycle", "step", "TypeOK,AdmissionIsCurrent,DecisionRequiresAdmission,GrantRequiresCurrentDecision,NoUnsafeEffectStart", False),
+    ("lifecycle", "lifecycle-safe", "AssuranceLifecycle", "step", "TypeOK,AdmissionIsCurrent,DecisionRequiresAdmission,GrantRequiresCurrentDecision,NoUnsafeEffectStart,NoUnsafeDelivery,DeliveryRequiresStart,AtMostOneDelivery", False),
     ("lifecycle", "lifecycle-start-reachable", "AssuranceLifecycle", "step", "NoEffectStarted", True),
     ("lifecycle", "lifecycle-untrusted-report", "AssuranceLifecycle", "unsafeStep", "NoUnsafeEffectStart", True),
     ("lifecycle", "lifecycle-late-admission", "AssuranceLifecycle", "lateAdmitStep", "AdmissionIsCurrent", True),
     ("lifecycle", "lifecycle-early-grant", "AssuranceLifecycle", "earlyGrantStep", "GrantRequiresCurrentDecision", True),
     ("lifecycle", "lifecycle-after-revoke", "AssuranceLifecycle", "afterRevokeStep", "NoUnsafeEffectStart", True),
+    ("lifecycle", "lifecycle-stale-delivery", "AssuranceLifecycle", "unsafeDeliveryStep", "NoUnsafeDelivery", True),
+    ("lifecycle", "lifecycle-delivery-before-start", "AssuranceLifecycle", "beforeStartStep", "DeliveryRequiresStart", True),
+    ("lifecycle", "lifecycle-replay-delivery", "AssuranceLifecycle", "replayStep", "AtMostOneDelivery", True),
 )
 
 

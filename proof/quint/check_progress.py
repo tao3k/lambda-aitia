@@ -37,7 +37,7 @@ def main() -> int:
     compiled_status, compiled_output = run(
         (QUINT, "compile", str(ROOT / "AssuranceLifecycle.qnt"),
          "--target", "tlaplus", "--step", "stableStep",
-         "--temporal", "EventuallyEffect"),
+         "--temporal", "EventuallyDelivery"),
         ROOT, "quint-compile",
     )
     module_start = compiled_output.find("-------------------------- MODULE AssuranceLifecycle")
@@ -49,11 +49,11 @@ def main() -> int:
         (work / "AssuranceLifecycle.tla").write_text(source)
         for name, spec, expected_code, marker in (
             ("fair", "stableSpec", 0, "Model checking completed. No error has been found."),
-            ("no-fair", "stableSpecNoFair", 13, "Error: Temporal property EventuallyEffect was violated."),
+            ("no-fair", "stableSpecNoFair", 13, "Error: Temporal property EventuallyDelivery was violated."),
         ):
             print(f"QUINT-PROGRESS: checking {name}", flush=True)
             config = work / f"{name}.cfg"
-            config.write_text(f"SPECIFICATION {spec}\nPROPERTY EventuallyEffect\n")
+            config.write_text(f"SPECIFICATION {spec}\nPROPERTY EventuallyDelivery\n")
             meta = work / f"meta-{name}"
             meta.mkdir()
             status, output = run(
@@ -65,7 +65,7 @@ def main() -> int:
             counts = re.search(r"(\d+) states generated, (\d+) distinct states found, (\d+) states left on queue", output)
             if status != expected_code or marker not in output or not counts:
                 raise SystemExit(f"QUINT-PROGRESS-FAILED: {name} exit={status}\n{output[-5000:]}")
-            if int(counts[2]) != 18 or int(counts[3]) != 0:
+            if int(counts[2]) != 20 or int(counts[3]) != 0:
                 raise SystemExit(f"QUINT-PROGRESS-FAILED: unexpected {name} state space")
             if expected_code and "counter-example" not in output:
                 raise SystemExit(f"QUINT-PROGRESS-FAILED: no counterexample for {name}")

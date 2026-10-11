@@ -27,7 +27,8 @@
                  AssuranceRequiredSupport AssessmentRequiredSupport
                  AssuranceDecisionPreflight)
         (only-in :poo-flow/lambda-aitia/modules/assurance/funs
-                 assurance-snapshot-canonical? assurance-node-canonical)
+                 assurance-snapshot-canonical? assurance-node-canonical
+                 assurance-canonical-digest)
         (only-in :poo-flow/lambda-aitia/modules/assurance/evidence-admission
                  assurance-evaluate-evidence-admission
                  assurance-evidence-outcome-bound?
@@ -39,7 +40,8 @@
 
 (export assurance-verification-host assurance-host-verify
         assurance-host-sealed-support? assurance-host-revoke!
-        assurance-host-admit assurance-host-admission-current?
+        assurance-host-admit assurance-host-admit-verified
+        assurance-host-verification-current? assurance-host-admission-current?
         assurance-host-source-current?
         assurance-host-admitted-support?
         assurance-host-required-support
@@ -192,39 +194,54 @@
          (snapshot (host-current-snapshot entry)))
     (and (assurance-evidence-outcome-bound? snapshot evidence outcome)
          (eq? (.ref evidence 'admission-state) 'candidate)
-         (let (receipt
-               (assurance-host-verify
-                host snapshot obligation evidence outcome))
+         (let (receipt (assurance-host-verify host snapshot obligation evidence outcome))
            (and receipt
-                (if (host-snapshot-current?
-                     entry snapshot obligation evidence outcome)
-                  (let* ((next (+ (vector-ref entry 6) 1))
-                         (identity-value
-                          (string-append (vector-ref entry 0) "/admission/"
-                                         (number->string next)))
-                         (subject-digest-value
-                          (assurance-verification-subject-snapshot
-                           (assurance-verification-subject
-                            snapshot obligation evidence outcome)))
-                         (issued-at-value (.ref receipt 'issued-at))
-                         (expires-at-value (.ref receipt 'expires-at))
-                         (admission
-                          (.o identity: identity-value
-                              issuer: (vector-ref entry 0)
-                              issued-at: issued-at-value
-                              expires-at: expires-at-value
-                              subject-digest: subject-digest-value)))
-                    (vector-set! entry 6 next)
-                    (hash-put! issued-admissions admission
-                               (vector host receipt identity-value
-                                       (vector-ref entry 0) issued-at-value
-                                       expires-at-value subject-digest-value
-                                       obligation evidence outcome
-                                       (vector-ref entry 8)))
-                    admission)
-                  (begin
-                    (assurance-host-revoke! host receipt)
-                    #f)))))))
+                (assurance-host-admit-verified host obligation evidence outcome receipt))))))
+
+;;; Verify and Admit can be separate lifecycle stages. Admission consumes an
+;;; exact current Host-issued seal; it must not execute a verifier again or
+;;; refresh an expired seal from a submitted success report.
+(def (assurance-host-verification-current? host receipt snapshot obligation evidence outcome)
+  (let* ((entry (required-host-entry host))
+         (issued (hash-get issued-host-receipts receipt)))
+    (and issued (eq? host (vector-ref issued 0))
+         (host-snapshot-current? entry snapshot obligation evidence outcome)
+         (= (vector-ref issued 1) (vector-ref entry 8))
+         (host-outcome-inputs-current? host snapshot outcome)
+         (assurance-evidence-outcome-bound? snapshot evidence outcome)
+         (poo-flow-verification-valid?
+          (vector-ref entry 1) receipt
+          (assurance-verification-subject snapshot obligation evidence outcome)
+          (host-instant entry))
+         (= (vector-ref issued 1) (vector-ref entry 8)))))
+
+(def (assurance-host-admit-verified host obligation evidence outcome receipt)
+  (let* ((entry (required-host-entry host))
+         (snapshot (host-current-snapshot entry)))
+    (and (assurance-evidence-outcome-bound? snapshot evidence outcome)
+         (eq? (.ref evidence 'admission-state) 'candidate)
+         (assurance-host-verification-current?
+          host receipt snapshot obligation evidence outcome)
+         (if (host-snapshot-current? entry snapshot obligation evidence outcome)
+           (let* ((next (+ (vector-ref entry 6) 1))
+                  (identity-value
+                   (string-append (vector-ref entry 0) "/admission/" (number->string next)))
+                  (subject-digest-value
+                   (assurance-verification-subject-snapshot
+                    (assurance-verification-subject snapshot obligation evidence outcome)))
+                  (issued-at-value (.ref receipt 'issued-at))
+                  (expires-at-value (.ref receipt 'expires-at))
+                  (admission
+                   (.o identity: identity-value issuer: (vector-ref entry 0)
+                       issued-at: issued-at-value expires-at: expires-at-value
+                       subject-digest: subject-digest-value)))
+             (vector-set! entry 6 next)
+             (hash-put! issued-admissions admission
+                        (vector host receipt identity-value (vector-ref entry 0)
+                                issued-at-value expires-at-value subject-digest-value
+                                obligation evidence outcome (vector-ref entry 8)))
+             admission)
+           (begin (assurance-host-revoke! host receipt) #f)))))
 
 (def (admission-entry host admission)
   (let (entry (hash-get issued-admissions admission))
@@ -637,9 +654,11 @@
 ;;; The request is editable input, not a Host seal, Cedar outcome or effect grant.
 ;;; The Runtime Host must independently validate the current source cut at use.
 (def (cedar-request-fingerprint request)
-  (list (.ref request 'principal) (.ref request 'action)
-        (.ref request 'resource) (.alist (.ref request 'context))
-        (.ref request 'intent) (.alist (.ref request 'handoff))))
+  ;; Freeze a value digest, not aliases to caller-visible mutable strings.
+  (assurance-canonical-digest
+   (list (.ref request 'principal) (.ref request 'action)
+         (.ref request 'resource) (.alist (.ref request 'context))
+         (.ref request 'intent) (.alist (.ref request 'handoff)))))
 
 (def (assurance-host-cedar-request host preflight action-value intent-value
                                     handoff-value)

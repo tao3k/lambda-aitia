@@ -77,12 +77,19 @@ check-quint module='all':
 check-quint-scheme:
     python3 proof/quint/check_scheme_replay.py
 
+# Complete reachable lifecycle states, named actions, and fault refusals.
+[group('check')]
+check-lifecycle-scheme: build-scheme
+    python3 proof/quint/test_lifecycle_replay.py
+    python3 proof/quint/check_lifecycle_replay.py
+
 # Every gate must run; none substitutes for semantic implementation refinement.
 [group('check')]
 check-formal:
     just test-scheme-atomic formal retirement-binding-test.ss
     just test-scheme-atomic formal retirement-execution-test.ss
     just check-quint-scheme
+    just check-lifecycle-scheme
     just check-quint
     just check-proof
 
