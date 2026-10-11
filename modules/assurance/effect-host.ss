@@ -66,12 +66,17 @@
        (= (vector-ref state 5) (vector-ref issued 4))
        (< (instant state) (vector-ref issued 5))
        (assurance-host-cedar-request-current? (vector-ref issued 1) (vector-ref issued 2))
-       (.ref (poo-flow-authorized-effect-token-validate
-              (vector-ref issued 3)
-              (poo-flow-token-validation-context
-               (.ref (vector-ref issued 3) 'semantic-root)
-               (.ref (vector-ref issued 3) 'binding)
-               (instant state) (vector-ref state 5) '())) 'accepted?)))
+       ;; Source validation may take time. Apply strict expiry to the same
+       ;; final instant passed to the token validator, whose endpoint is
+       ;; otherwise inclusive; an earlier clock sample must not authorize use.
+       (let (now (instant state))
+         (and (< now (vector-ref issued 5))
+              (.ref (poo-flow-authorized-effect-token-validate
+                     (vector-ref issued 3)
+                     (poo-flow-token-validation-context
+                      (.ref (vector-ref issued 3) 'semantic-root)
+                      (.ref (vector-ref issued 3) 'binding)
+                      now (vector-ref state 5) '())) 'accepted?)))))
 (def (assurance-effect-host-grant-current? host grant)
   (let (state (entry host))
     (and (current? state (grant-entry host grant)) #t)))

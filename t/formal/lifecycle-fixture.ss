@@ -57,7 +57,7 @@
   (let (fixture (make-hash-table-eq))
     (for-each (lambda (key) (lifecycle-set! fixture key #f))
               '(installed reported plan seal admission admission-seal preflight request grant reservation
-                started authorization-hook delivery-hook))
+                started authorization-hook delivery-hook effect-clock-hook))
     (for-each (lambda (key) (lifecycle-set! fixture key 0))
               '(clock verifier-calls authorization-calls delivery-calls service-effects
                 grant-epoch grant-until reservation-revision reservation-epoch reservation-until delivery-status))
@@ -86,7 +86,10 @@
           (unless (eq? (lifecycle-get fixture 'delivery-mode) 'failed)
             (increment! fixture 'service-effects))
           (lifecycle-get fixture 'delivery-mode))
-        (lambda () (lifecycle-get fixture 'clock)) 1))
+        (lambda ()
+          (if (lifecycle-get fixture 'effect-clock-hook)
+            ((lifecycle-get fixture 'effect-clock-hook))
+            (lifecycle-get fixture 'clock))) 1))
     fixture))
 
 (def (lifecycle-action! fixture name)

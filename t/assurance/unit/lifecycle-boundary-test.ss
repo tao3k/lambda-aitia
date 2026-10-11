@@ -78,6 +78,20 @@
           (lambda () (lifecycle-set! f 'cut (lifecycle-cut 2))))
         (check (lifecycle-action! f 'Authorize) => #f)
         (check (lifecycle-get f 'delivery-calls) => 0)))
+    (test-case "permit cannot publish after policy callback expiry or request mutation"
+      (for-each
+       (lambda (change)
+         (let* ((f (ready)) (request (lifecycle-get f 'request)))
+           (lifecycle-set! f 'authorization-hook
+             (lambda ()
+               (case change
+                 ((expiry) (lifecycle-set! f 'clock 1))
+                 ((request) (string-set! (.ref request 'action) 0 #\X)))))
+           (check (assurance-effect-host-authorize! (lifecycle-get f 'effect-host)
+                    (lifecycle-get f 'verification-host) request) => #f)
+           (check (lifecycle-get f 'authorization-calls) => 2)
+           (check (lifecycle-action! f 'StartEffect) => #f)
+           (check (lifecycle-get f 'delivery-calls) => 0))) '(expiry request)))
     (test-case "copied grant extended expiry and copied reservation are refused"
       (let* ((f (ready)) (host (lifecycle-get f 'effect-host))
              (grant (lifecycle-get f 'grant)))
@@ -161,6 +175,24 @@
                            (lifecycle-get f 'reservation)) Error?)
         (check (.ref (lifecycle-action! f 'UnsafeReplay) 'outcome) => 'rejected)
         (check (lifecycle-get f 'delivery-calls) => 1)))
+    (test-case "deadline crossed during grant validation cannot reserve or deliver"
+      (for-each
+       (lambda (reserve-first?)
+         (let ((f (ready)) (reads 0))
+           (when reserve-first? (check (lifecycle-action! f 'StartEffect) => #t))
+           ;; The effect clock advances from 0 to the strict deadline during
+           ;; this API call. The verification Host remains current at 0.
+           (lifecycle-set! f 'effect-clock-hook
+             (lambda ()
+               (let (now (min reads 1))
+                 (set! reads (+ reads 1))
+                 now)))
+           (if reserve-first?
+             (check (.ref (lifecycle-action! f 'DeliverEffect) 'outcome) => 'rejected)
+             (check (lifecycle-action! f 'StartEffect) => #f))
+           (check reads => 2)
+           (check (lifecycle-get f 'delivery-calls) => 0)
+           (check (lifecycle-get f 'service-effects) => 0))) '(#f #t)))
     (test-case "clock rollback cannot restore an expired grant"
       (let* ((f (ready)) (host (lifecycle-get f 'effect-host)))
         (lifecycle-set! f 'clock 1)

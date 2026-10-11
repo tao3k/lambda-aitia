@@ -161,7 +161,13 @@ Pure Cedar decisions, token-shaped objects and editable delivery receipts have
 no issuing authority. A delivery receipt's =durable?= and
 =distributed-authority?= are explicitly false. Strict expiry requires
 =now < expires-at= even though the underlying pure token validator admits its
-inclusive endpoint. Native dual-engine Cedar evaluation, distributed
+inclusive endpoint.
+Strict expiry is rechecked at the final token-validation instant after source
+validation; a clock crossing the deadline within reserve or deliver rejects
+without a delivery callback. A native boundary control covers both operations
+with an advancing effect clock. This is additional within-operation coverage,
+not an asynchronous or physical-effect linearization proof.
+Native dual-engine Cedar evaluation, distributed
 deduplication, continuations, persistence and crash recovery are not qualified
 by this local test cut.
 
