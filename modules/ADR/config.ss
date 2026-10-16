@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/modules/user-interface/module-selection
+(import :core/module-system/selection/objects
         :poo-flow/lambda-aitia/modules/ADR/funs)
 
 (export ADR-config)

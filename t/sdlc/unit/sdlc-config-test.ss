@@ -3,9 +3,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        (only-in :poo-flow/modules/user-interface/module-selection-syntax
+        (only-in :core/module-system/selection/syntax
                  poo-flow-modules!)
-        :poo-flow/modules/user-interface/module-selection
+        :core/module-system/selection/objects
         (only-in :clan/poo/object .ref)
         (only-in :poo-flow/core/contribution/objects admit-contributions)
         :poo-flow/lambda-aitia/modules/sdlc/config)

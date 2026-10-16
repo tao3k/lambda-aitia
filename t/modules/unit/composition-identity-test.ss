@@ -7,10 +7,10 @@
         (only-in :clan/poo/object .ref)
         (only-in :poo-flow/modules/workflow/scenario/case
                  poo-flow-scenario-case?)
-        (only-in :poo-flow/modules/user-interface/module-selection
+        (only-in :core/module-system/selection/objects
                  poo-flow-user-module-selection-flags
                  poo-flow-user-module-selection-key)
-        (only-in :poo-flow/modules/user-interface/profile-core
+        (only-in :core/profile-composition/user-profile
                  poo-flow-user-profile-modules)
         (only-in :poo-flow/modules/proof/interface
                  poo-flow-proof-module?)
