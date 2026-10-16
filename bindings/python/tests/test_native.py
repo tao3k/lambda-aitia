@@ -4,7 +4,13 @@
 
 import pytest
 
-from lambda_aitia import GitOpsDecision, SdlcRuntime, descriptor, evaluate_gitops
+from lambda_aitia import (
+    AitiaNativeSession,
+    GitOpsDecision,
+    SdlcRuntime,
+    descriptor,
+    evaluate_gitops,
+)
 from lambda_aitia.native import AitiaNativeError
 from lambda_aitia.runtime import SdlcFlowPlan
 
@@ -42,6 +48,33 @@ def test_runtime_rejects_invalid_lifecycle_before_native_dispatch() -> None:
         SdlcRuntime().plan("")
 
 
+def test_session_keeps_one_scheme_runtime_for_distinct_calls() -> None:
+    with AitiaNativeSession() as session:
+        runtime = SdlcRuntime(session=session)
+        assert runtime.plan("session/first").lifecycle_id == "session/first"
+        assert runtime.plan("session/second").lifecycle_id == "session/second"
+        assert evaluate_gitops(_gitops_change(), session=session).accepted is True
+        with pytest.raises(AitiaNativeError, match="active session"):
+            AitiaNativeSession()
+        with pytest.raises(AitiaNativeError, match="active session"):
+            descriptor()
+    assert session.closed
+    session.close()
+    with pytest.raises(AitiaNativeError, match="closed"):
+        runtime.plan("session/after-close")
+    assert descriptor()["semanticOwner"] == "lambda-aitia"
+
+
+def test_session_rejects_cross_thread_calls() -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    with AitiaNativeSession() as session:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            failure = pool.submit(SdlcRuntime(session=session).plan, "other/thread")
+            with pytest.raises(AitiaNativeError, match="another thread"):
+                failure.result()
+
+
 @pytest.mark.parametrize("field", ["releaseAuthorized", "runtimeExecuted"])
 def test_runtime_rejects_inert_plan_claiming_effect(field: str) -> None:
     payload = {
@@ -62,23 +95,30 @@ def test_runtime_rejects_inert_plan_claiming_effect(field: str) -> None:
         SdlcFlowPlan.from_payload(payload)
 
 
+def _gitops_change() -> dict[str, object]:
+    return {
+        "event": "pull-request",
+        "repository": "tao3k/poo-flow",
+        "revision": "0123456789abcdef",
+        "source-ref": "feature/aitia",
+        "target-ref": "develop",
+        "pull-request": 42,
+        "checks": [
+            {"name": "commit-policy", "conclusion": "success"},
+            {"name": "build", "conclusion": "success"},
+            {"name": "unit-test", "conclusion": "success"},
+            {
+                "name": "nasa/sdlc/npr-7150.2",
+                "conclusion": "success",
+                "standardEdition": "D",
+                "sourceLockDigest": "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c",
+            },
+        ],
+    }
+
+
 def test_python_delegates_gitops_decision_to_scheme() -> None:
-    decision = evaluate_gitops(
-        {
-            "event": "pull-request",
-            "repository": "tao3k/poo-flow",
-            "revision": "0123456789abcdef",
-            "source-ref": "feature/aitia",
-            "target-ref": "develop",
-            "pull-request": 42,
-            "checks": [
-                {"name": "commit-policy", "conclusion": "success"},
-                {"name": "build", "conclusion": "success"},
-                {"name": "unit-test", "conclusion": "success"},
-                {"name": "nasa-7150-2d", "conclusion": "success"},
-            ],
-        }
-    )
+    decision = evaluate_gitops(_gitops_change())
     assert isinstance(decision, GitOpsDecision)
     assert decision.accepted is True
     assert decision.profile == "dev"
@@ -86,3 +126,28 @@ def test_python_delegates_gitops_decision_to_scheme() -> None:
     assert decision.authority_status == "not-evaluated"
     assert decision.release_authorized is False
     assert decision.runtime_executed is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("standardEdition", "C"),
+        ("sourceLockDigest", "sha256:wrong-lock"),
+        ("sourceLockDigest", None),
+    ],
+)
+def test_python_rejects_stale_standard_assessment(field: str, value: str | None) -> None:
+    change = _gitops_change()
+    checks = change["checks"]
+    assert isinstance(checks, list)
+    standard_check = checks[-1]
+    assert isinstance(standard_check, dict)
+    if value is None:
+        standard_check.pop(field)
+    else:
+        standard_check[field] = value
+
+    decision = evaluate_gitops(change)
+    assert decision.accepted is False
+    assert decision.stale_checks == ("nasa/sdlc/npr-7150.2",)
+    assert decision.reasons == ("standard-assessment-mismatch",)

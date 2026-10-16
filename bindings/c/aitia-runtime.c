@@ -6,6 +6,7 @@
 #include "gambit.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 #ifndef POO_FLOW_AITIA_LINKER
 #error "POO_FLOW_AITIA_LINKER must name the generated Gambit link-unit linker"
@@ -28,7 +29,11 @@ int32_t poo_flow_aitia_runtime_init(void) {
   /* Embedded callers must report uncaught Scheme errors without a REPL. */
   setup_params.debug_settings = ___DEBUG_SETTINGS_INITIAL;
   status = ___setup(&setup_params);
-  if (status != ___FIX(___NO_ERR)) return -1;
+  if (status != ___FIX(___NO_ERR)) {
+    (void)fprintf(stderr, "[lambda-aitia-native] setup-error=%ld\n",
+                  (long)___INT(status));
+    return -1;
+  }
   poo_flow_aitia_runtime_initialized = 1;
   return 0;
 }

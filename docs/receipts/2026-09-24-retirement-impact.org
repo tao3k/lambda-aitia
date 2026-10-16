@@ -1,0 +1,102 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Job-executor retirement Impact — bounded analysis receipt
+#+startup: overview
+
+:PROPERTIES:
+:ID: lambda-aitia-retirement-impact-2026-09-24
+:STATUS: evidence-partial
+:DATE: 2026-09-24
+:RFC_ID: lambda-aitia-rfc-0004
+:END:
+
+* Subject and source boundary
+
+The selected capability is automatic retry in a synthetic job-executor case.
+The candidate successor is reviewed recovery. These are fixture identities,
+not deployed features or evidence that a migration occurred. The case reuses
+POO Flow Graph and its public Temporal Causality interface; no new traversal,
+time classifier, policy evaluator or Runtime is implemented.
+
+The [[file:../../user-interface/scenarios/job-executor-retirement.ss][maintained scenario]] contains pre-removal and candidate post-removal graphs,
+plus an explicitly identified synthetic event history. The [[file:../../t/sdlc/unit/job-retirement-impact-test.ss][Scheme qualification]]
+checks inert analysis receipts. It does not read the Python fixture's SQLite
+ledger; historical results and current activity here are modeled facts.
+
+The shared worktrees were dirty. The parent checkout reported
+=a9a2b331d42fda409ea142fb67137f395721397e= and Aitia reported
+=de65fa2033ce62569147ee5411c05c50051206dd=; the new files below were uncommitted.
+This is not an isolated clean-build or release receipt.
+
+| Source | SHA-256 |
+|--------+---------|
+| Aitia =user-interface/scenarios/job-executor-retirement.ss= | =1977be963e74ef6aabd48ff7b1649f423b1cb2a9b047d273bbfbf98e42c43044= |
+| Aitia =t/sdlc/unit/job-retirement-impact-test.ss= | =8bc2fab67c2249a1433038f7c957e94189a8d65f1b47067ffc849eefc94887a6= |
+| POO Flow =src/modules/temporal-causality/funs.ss= | =4ffc3517b48bba51abafb28f91c3e0a2e0994a1904911509b222e2780c0df00b= |
+| POO Flow =src/modules/temporal-causality/objects.ss= | =19ada4187ad1f380c7dc95f58be97c24681f01b9d8d0ac21afaa582583893454= |
+| POO Flow =src/modules/temporal-causality/types.ss= | =78499931958750bbfb458c14ba92beb3d44a4d1e6f0298f8c87adf1a85fd6a53= |
+
+These are inspected source hashes, not an attestation of all transitive binary
+dependencies. Tests use the existing compiled dependency library and source
+load paths below. No claim of fresh whole-package compilation is made.
+
+* Seven retirement checks
+
+1. The old graph retains the historical result, active job, queued job and its
+   verification dependency; an unrelated export is excluded. The verification
+   witness is =automatic-retry → queued-job → verify-queued-retry=.
+2. Selecting the removed identity in the candidate graph raises an error
+   instead of reporting no impact; the before graph remains available.
+3. An incomplete external-consumer inventory yields =partial-impact=.
+4. The cut at logical position 4 separates past completion/start, explicit
+   current activity, declared future retry, counterfactual retirement and an
+   out-of-horizon retry. No activity is inferred merely from an old start.
+5. Creating the later cut retains the earlier historical cut and its original
+   observed result/payload.
+6. A missing causal parent remains =unknown-consumer-origin= in the unknown
+   frontier and yields partial temporal classification.
+7. The retirement proposal cannot be selected as an observed trigger in the
+   current cut. Neither structural nor temporal analysis grants execution.
+
+* Local replay
+
+From the Aitia root, against the existing parent dependency installation:
+
+#+begin_src sh
+GERBIL_LOADPATH="$PWD:$PWD/../..:$PWD/../../.gerbil/lib" \
+  just test-scheme-atomic sdlc unit/job-retirement-impact-test.ss
+GERBIL_LOADPATH="$PWD:$PWD/../..:$PWD/../../.gerbil/lib" \
+  just test-scheme-atomic sdlc unit/design-contract-test.ss
+env -u SDKROOT GERBIL_PATH="$PWD/.gerbil" \
+  GERBIL_LOADPATH="$PWD:$PWD/../..:$PWD/../../.gerbil/lib" \
+  timeout --foreground --signal=TERM --kill-after=3s 60s \
+  gxi -:max-heap=512M ./run-test.ss ../../t/temporal-causality-core-test.ss
+#+end_src
+
+All three focused modules returned =MODULE-OK= and =HARNESS-OK= with exit 0.
+They contain seven retirement, eight design-replacement and eight core cases.
+Gerbil reported =2591dcd on Gambit dcd677c=. The existing Testing Interface
+selects a 512 MiB isolated test process; the existing Justfile's observer
+process has a separate 1 GiB bound. The direct core observer used 512 MiB.
+
+The initial run with only the child default load path failed to resolve
+=asp-gerbil-scheme/testing-api=. Supplying the parent dependency library via
+=GERBIL_LOADPATH= fixed module discovery; no new root variable, global package
+installation or user-environment mutation was introduced.
+
+* Remaining closure
+
+- [ ] Derive current activity and historical results from actual persisted
+  task/provider observations, rather than this synthetic inventory.
+- [ ] Bind a source-level change and both graph revisions to admitted SDLC
+  facts, then derive reviewed migration/drain obligations with accountable owners.
+- [ ] Exercise actual cancellation/migration through existing authorization and
+  Runtime boundaries, including races and failure/recovery receipts.
+- [ ] Demonstrate replay/interpretation of an old persisted result and prevent
+  a successor from inheriting incompatible historical support.
+- [ ] Qualify the Scheme-owned Org Contract / Rowan presentation separately;
+  these tests do not exercise Org parsing or the old CLI.
+
+The lifecycle retirement gate in RFC 0004 remains open. This receipt qualifies
+one bounded analysis scenario, not safe production deletion or completed SDLC.

@@ -3,12 +3,12 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/graph/algorithms
+        (only-in :core/graph/algorithms
                  poo-flow-graph-cycle-path
                  poo-flow-graph-topological-order)
-        (only-in :poo-flow/src/graph/types
+        (only-in :core/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/governance/funs
+        (only-in :poo-flow/modules/governance/funs
                  poo-flow-governance-contribution)
         :std/list/list)
 (import :poo-flow/lambda-aitia/modules/sdlc/types :poo-flow/lambda-aitia/modules/sdlc/objects)

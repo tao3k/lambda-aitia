@@ -1,0 +1,361 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0005 — Org-native engineering workspace
+#+startup: overview
+
+:PROPERTIES:
+:ID:         lambda-aitia-rfc-0005
+:STATUS:     draft
+:DATE:       2026-09-24
+:PARENT_RFC: lambda-aitia-rfc-0004
+:IMPLEMENTS: lambda-aitia-rfc-0004
+:END:
+
+* Decision and ownership
+
+Native Org is a maintained engineering work surface, not a Markdown document
+decorated with execution commands. Requirements, assumptions, alternatives,
+review work and receipts remain addressable parts of the same design history.
+Orgize owns syntax, lossless structure and semantic queries. POO Flow owns
+generic composition, organization, causal/temporal mechanisms and the reusable
+Org integration. Aitia owns Software/SDLC interpretations and workspaces.
+Existing Cedar and Runtime mechanisms retain effect authority and execution.
+
+The agreed dependency owner is POO Flow. The target is for its =gerbil.pkg=
+to declare a qualified Orgize Scheme package once; the current source graph
+cannot support that edge. Rust/Rowan runtime delivery is a long-term runtime
+direction, not an interim substitute for this package target and not the
+current Python milestone. Aitia, Lambda
+and other POO Flow consumers must not each acquire an independent Org parser
+or duplicate its package pin.
+Package availability does not mean implicit Scheme symbol imports: a public
+POO Flow module/composition still controls what consumers receive.
+
+The C ABI is a transport, not a new semantic owner. Orgize owns Org language
+semantics, and its Scheme/Gambit package owns the generic Org C ABI. POO Flow
+inherits Orgize once and exposes the POO-native Org facade;
+its existing downstream native boundary may forward qualified Org operations
+without redefining their semantics. Aitia depends on POO Flow and does not
+invent a separate Org wire protocol or pin Orgize independently. Rust can call
+the Orgize C ABI when it needs that Scheme runtime boundary, while native Rust
+consumers can continue using the Scheme-generated AOT library API directly.
+Neither path makes the other an implicit fallback or a second authority.
+
+The first maintained surface is [[file:../../user-interface/workspaces/job-executor.org][the job-executor workspace]], connected to
+[[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]]. Its [[file:../../user-interface/contracts/engineering-workspace.org][authoring contract]] uses Orgize's existing =org-contract=
+implementation, not an Aitia parser or evaluator.
+
+** Scheme source authority and Rowan delivery
+
+The selected upstream surface is =scheme :org-elements= and
+=scheme :org-contract=. Org properties hold identity and scope metadata;
+the block markers select bounded Scheme declarations. Org Elements supplies
+POO query values and selection semantics. Org Contract supplies POO assertion
+values and evaluation semantics. Its hygienic forms admit the declarations
+before the upstream Scheme generators emit Rust AOT plans.
+
+Rust consumes these plans over the Scheme-declared lossless Rowan graph.
+The public =parse_org_aot= and generated query/contract packs are the consumer
+path. A legacy =orgize lint= or =contract trace= executable is not evidence
+that this path works, even if its source checkout is on the correct branch.
+Do not build a Python evaluator or translate the old contract syntax into a
+second authority. Our contracts use the upstream Scheme forms directly.
+
+** Implementation horizons
+
+The current executable milestone is Aitia's production, uv-managed Python
+Runtime. It consumes the existing Scheme/C ABI, runs real verification tools
+with AnyIO-owned task lifetimes, and must carry frozen source-bound observations
+to the actual Scheme Host admission path. For this Org workspace, Python may
+coordinate an upstream-qualified Org query/contract result as an observation;
+it must not parse Org independently, evaluate =org-contract= independently,
+or treat a successful CLI exit as admission. Org-specific Python consumption
+remains pending until its upstream result and source identity can be conveyed
+through a qualified boundary.
+
+The current Orgize PR has Scheme declarations and generated Rust/Rowan
+consumer APIs, but no =gerbil.pkg=/=build.ss= Scheme package entrypoint,
+Scheme-exported =c-define= surface, or installed shared-library contract.
+Its Rust =org_aot_edit::apply_org_source_edits= is a typed library function,
+not that ABI. Aitia's existing Scheme/Gambit C ABI proves the mechanism is
+available locally, but does not make Orgize's semantics available through it.
+The initial Scheme ABI must be scoped to semantics that Scheme actually runs
+over admitted graph values, such as Element selection and Contract evaluation;
+do not label it a source-parser ABI until source-to-graph execution and its
+ownership, errors and lifetime are implemented and tested through that path.
+
+The later Rust/Rowan runtime is the intended durable execution path for
+Scheme-generated Org artifacts. Its source, generated packs, Rust consumer,
+the Scheme-owned ABI and POO Flow facade require their own qualification. Its direction
+does not make a Rust FFI build a prerequisite for the current Python/Host work.
+The Scheme package-cycle audit below is a separate dependency-design gate;
+neither postponing it nor qualifying Rust alone satisfies the requested
+=gerbil.pkg= inheritance.
+
+* Native syntax and proposed semantic projection
+
+| Native Org element | Aitia interpretation | Boundary |
+|--------------------+----------------------+----------|
+| Heading and =ID= property | addressable design or review node | title and nesting do not grant identity authority |
+| Property drawer | revision, kind, owner-role and subject references | custom properties below are proposed conventions |
+| TODO keyword and checkboxes | authoring/review work state | DONE is neither assurance support nor authorization |
+| Links and tables | source references and alternative comparison | a link does not admit evidence |
+| LOGBOOK | attributed design-revision narrative | not a substitute for trusted execution receipts |
+| Source/export block | typed content owned by its language/backend | parsing or rendering must not execute it |
+
+=AITIA_KIND=, =OWNER_ROLE= and =SUBJECT_ID= are project conventions in this
+draft, not existing Orgize built-ins or registered POO principal identities.
+Resolve them through an explicit, validated POO-native projection. Reject
+duplicate IDs and unresolved required references instead of guessing a role
+from the heading hierarchy. User-facing defaults belong to the maintained
+Composition; advanced consumers may extend its POO slots.
+
+* Agent collaboration without ambient authority
+
+A role-scoped context contains the selected design node, relevant assumptions,
+alternatives, contrary material and evidence bounds. Organization Bundle
+identities and delegated visibility must be resolved before an Agent runs.
+No heading, TODO transition or =OWNER_ROLE= declaration spawns an Agent.
+
+An edit proposal binds the source digest, stable node ID, original source range
+and expected old content. The owner reviews the proposal before application.
+Any digest/content conflict requires re-query and review; never patch a stale
+offset. Preserve unrelated text, property drawers and comments through Orgize's
+source-owned representation. A new design revision reopens the affected
+obligations through existing POO Flow causal mechanisms, not a parallel graph.
+
+Design status, scoped evidence support, authorization and observed execution
+remain independent. Agent review cannot certify its own external guarantees.
+Historical cases may inspire a judgment; only qualified checks support a claim.
+
+#+begin_export mermaid
+flowchart TD
+    A["Org source<br/>authored"] --> Q["Orgize projection<br/>source-bound"]
+    Q --> R["Role-scoped review<br/>proposed"]
+    R --> P["Edit proposal<br/>owner review pending"]
+    P --> C{"Source still matches?"}
+    C -->|no| Q
+    C -->|yes, accepted| D["Design revision<br/>obligations reopened"]
+    D --> V["Verification<br/>scoped evidence pending"]
+    V --> G["Cedar / Runtime admission<br/>effect authority pending"]
+    G --> E["Execution<br/>receipt observed"]
+    E --> A
+#+end_export
+
+The diagram specifies intended interactions. The authoring/query checks below
+do not qualify this complete loop.
+
+* Package boundary audit — blocking direct installation
+
+At the first 2026-09-24 audit, the selected Orgize branch was
+=codex/scheme-rowan-org-cutover= at
+=4a94883bd47196a175a88f552410d59102f34d24=. Its Scheme definitions live under
+=languages/org/v1/=; =modules/org-elements/interface.ss= exports POO query
+objects and functions. The branch has no root =gerbil.pkg= or =build.ss=.
+Do not infer an installable Gerbil package from the presence of these sources.
+
+The fetched Orgize branch now includes consumer-owned Contract import
+generation at =5cc02a1c5f882a3b182461ce803b8c76c4772c36= and pins
+gerbil-parser to =ca01627c0c5ba1d460c0de83b060bc90d3b961e8=. That
+parser revision's Scheme =gerbil.pkg= still depends on POO Flow at
+=2ce55a9810f8559cc0f40a6c877a52ab7893c166=. In particular,
+=graph-projection-objects.ss= and =line-structure-objects.ss= use POO Flow's
+contract admission and object-family declarations. This is an actual source
+dependency, not just a stale manifest entry.
+
+Adding a source-package edge now would produce:
+
+#+begin_export mermaid
+flowchart LR
+    P["POO Flow"] -. "requested, not installed" .-> O["Orgize Scheme package<br/>entrypoint missing"]
+    O -->|parser declarations| G["gerbil-parser"]
+    G -->|contracts and object families| P
+#+end_export
+
+The integration must first establish an acyclic build/runtime package boundary.
+Two options require review: separate generator dependencies from the delivered
+Org runtime package, or relocate genuinely generic shared foundations below
+both packages. Do not copy POO contracts into Orgize, silently delete parser
+dependencies, or maintain a second parser. This RFC does not authorize or claim
+completion of that cross-repository restructuring.
+
+This cycle concerns installing the Scheme source-package graph. It does not
+describe the existing Cargo runtime graph: committed Scheme-generated AOT
+artifacts are already consumed by Rust without a Gerbil runtime dependency.
+Do not block qualification of that existing consumer path on a hypothetical
+source-package installation, or conflate generator dependencies with delivery.
+
+After a reviewed boundary is qualified, pin the Orgize Scheme dependency in
+POO Flow, expose a public unversioned consumer interface, and verify a clean
+downstream install using only POO Flow. Qualification of the later Rust runtime
+is independent of this source-package gate. Internal grammar versions are not
+consumer namespace versions.
+
+** Source-package cycle cut and qualification order
+
+The requested Scheme source-package direction would be lower-level POO
+primitives → =gerbil-parser= → Orgize → POO Flow → Aitia. At the selected
+Orgize cut, =org-elements/types.ss= imports parser-owned graph projection
+objects. The parser has seven Scheme modules importing POO Flow. These imports
+are not merely incidental helpers: they use =PooFlowContract.= and
+=PooFlowNativeObjectContract.=, evidence-bearing validation and admission,
+=defpoo-object-family=, and the POO Flow debug trace. Replacing them with bare
+=clan/poo= would change semantics; moving or copying those facilities below
+POO Flow is not an approved mechanical refactor.
+
+| Parser source modules | POO Flow-owned dependency | Required observation to retain |
+|-----------------------+---------------------------+--------------------------------|
+| =types.ss=, =graph-projection-types.ss=, =line-structure-types.ss= | contract prototypes, classification and evidence admission | typed values and rejected candidates keep their current identities and failure semantics |
+| =objects.ss=, =graph-projection-objects.ss=, =line-structure-objects.ss= | object-family declaration and evidence-gated constructors | public POO prototypes, slots and constructor rejection remain unchanged |
+| =runtime/observability.ss= | debug trace policy and emission | disabled/enabled phase behavior and receipt shape remain unchanged |
+
+This is a source-level inventory, not a test receipt proving equivalence after
+a refactor. The exact consumer graph and all negative cases must be captured
+before moving ownership.
+
+These are distinct future engineering tracks, neither yet delivered:
+
+1. *Rust/Rowan runtime delivery (long-term target, not current Python work).* Keep
+   Orgize's Scheme declarations and generators in their current source/tooling
+   lane. Package the Scheme-generated Rust AOT consumer as an immutable,
+   independently consumable runtime. It may consume a qualified Scheme C ABI
+   where that is the right runtime boundary, or expose its own native Rust
+   library API; do not require an Orgize-Rust-owned C ABI merely to serve
+   Aitia Python. Orgize already exposes =parse_org_aot=, Element records,
+   source receipts, query and contract evaluation as Rust library APIs, but
+   this is not yet a C ABI, a Gerbil package, or an installed POO Flow
+   dependency. POO Flow owns the POO-native facade and admission; it must call
+   upstream semantics, not reimplement Org queries or contracts.
+   Pin generator and runtime revisions/digests together and qualify a clean
+   binary/runtime install. This can supply a durable POO Flow-owned runtime
+   dependency for downstreams, but it does *not* fulfill the separate request
+   that Orgize Scheme source be inherited through =gerbil.pkg=.
+2. *Scheme source-graph refactor (the stated package target).* Keep the desired
+   source-package inheritance only after resolving parser → POO Flow without
+   losing its contract/evidence, object-family and observability behavior.
+   An existing lower library may own genuinely generic mechanisms only if
+   authority and public observations move together; otherwise the dependency
+   direction must be redesigned. Do not fork these semantics, create a second
+   AST, or add compatibility forwarding simply to make installation pass.
+
+Qualify the stated Scheme package target in this order:
+
+1. Lock positive and negative observations for the seven parser imports,
+   including contract admission, object-family behavior and debug traces.
+2. Review the actual authority-preserving source-graph cut. Only after it is
+   accepted, remove parser → POO Flow and replay parser/compiler/runtime tests
+   from a clean dependency closure.
+3. Add Orgize's source-owned Gerbil package/build entrypoint and qualify its
+   Scheme Elements/Contract declarations and Rowan/AOT generation against
+   that parser revision.
+4. Pin Orgize once in POO Flow's =gerbil.pkg=, expose its POO-native unversioned
+   Org interface, and replay an Aitia workspace with POO Flow as its sole
+   direct Org dependency. Prove clean installation without ambient
+   =GERBIL_LOADPATH= or an old compiled module.
+
+When the later Rust runtime track begins, qualify exact generated
+pack/source/parser identity and stale-pack rejection first; then define an
+upstream-owned stable FFI with explicit ownership, errors and memory limits.
+A Rust =pub fn= or prebuilt executable alone is not that boundary. That runtime
+must not be relabeled as Scheme source-package closure. The existing =4a94883=
+Cargo/AOT checks remain independent evidence, not evidence that either
+package or FFI gate has closed. RFC 0005 stays draft until those gates pass.
+
+* Acceptance and evidence scope
+
+1. Authoring: upstream Rowan/CST tangling reads the native Org metadata and
+   tagged Scheme declarations. Scheme admission and AOT generation qualify the
+   six document and five decision-local assertions. No legacy CLI substitution.
+2. Query/evaluation: run those generated plans over the actual workspace and
+   negative fixtures. Missing content, a single alternative, content under
+   another decision and a receipt link in the wrong section must fail the
+   intended assertion. This checks structure, not evidence truth or authority.
+3. Package: clean, acyclic Orgize Scheme source → POO Flow inheritance;
+   downstreams declare only POO Flow. The later Rust/Rowan runtime has a
+   separate delivery gate. Both remain open, neither blocks the present
+   Python/Host admission work.
+4. Projection: POO-native identity/reference/role resolution plus negative
+   duplicate, missing-reference and unauthorized-visibility tests. Pending.
+5. Mutation: Aitia Python rejects moved spans, stale source digests and
+   overlapping proposals before owner review. Orgize PR #15 now has a
+   Scheme-AOT-graph-backed candidate source transformation that checks unique
+   node =:ID:= ownership, rejects wrong-node spans and preserves unrelated
+   bytes. The transport from Aitia Python to that API and reviewed persistence
+   are still pending; neither preflight nor a candidate is authorization.
+6. Lifecycle: an accepted edit reopens an actual obligation, a real tool runs
+   through existing admission, and its scoped receipt feeds a design review.
+   Pending; a TODO transition or successful lint is not this receipt.
+
+** Correction of the initial receipt — 2026-09-24
+
+The earlier authoring receipt used an installed CLI at
+=52d315155ebbba917f0694068444d3bbde5f9920=, not the selected Scheme/Rowan
+consumer path. Its six passing assertions and task queries do not qualify
+this integration. The later cross-decision negative tests on that old path
+also failed. Neither result establishes behavior of the new Scheme modules.
+The legacy CLI recipe and its Python qualification test have been withdrawn;
+the contract source now uses upstream Scheme declarations.
+
+The earlier fetch/rebase confirmed that =codex/scheme-rowan-org-cutover= and
+its remote were both at =4a94883bd47196a175a88f552410d59102f34d24= at
+that time. The mistake was the
+consumer path, not an unrebased HEAD. New evidence must identify the source
+revision, generated artifact and actual consumer entrypoint separately.
+
+** Correct-path bounded receipt — 2026-09-24
+
+At the fetched/rebased =4a94883= revision, the following upstream checks passed
+using locked, offline Cargo dependencies and two build workers:
+
+| Check | Result | Scope |
+|-------+--------+-------|
+| =integration_test org_parser_aot= | 21 passed | Scheme-generated parser, Rowan graph and existing generated contract execution |
+| =integration_test org_element_query= | 3 passed | generated queries, consumer pack, scope and fail-closed checks |
+| =--example org_contract_tangle= | 5 passed | Scheme block extraction, metadata and ancestry rejection |
+| =--example org_elements_tangle= | 5 passed | Scheme query extraction and existing consumer source/artifact consistency |
+| Upstream =org_contract_tangle= on Aitia's registry | 2 definitions / 11 assertions extracted | actual Org CST to Scheme source, not Scheme admission or AOT execution |
+
+The first build selected Nix's =cc= and failed to link =iconv=. Retrying with
+process-local =CC=/usr/bin/cc= and
+=CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=/usr/bin/cc= passed; no global
+environment or toolchain configuration was changed. Commands also unset
+=SDKROOT= for that process and set =CARGO_BUILD_JOBS= to 2.
+
+At that earlier cut, the extracted Aitia source was temporary and had not
+been compiled/evaluated: the extractor emitted upstream-relative interface
+imports. Consumer-owned module location, Scheme admission, AOT generation and
+cross-decision negatives were still required. The 34 upstream passes did not
+constitute Aitia end-to-end completion.
+
+** Consumer-owned Scheme source and AOT plan slice — 2026-09-24
+
+At the later fetched Orgize =5cc02a1= cut, =org_contract_tangle= accepts an
+optional Contract and Element interface pair. The default output remains
+byte-for-byte equal to upstream's committed generated Scheme file. Six
+generator tests pass, including empty-interface rejection and consumer-owned
+imports. Running that generator on Aitia's actual
+=engineering-workspace.org= yielded two definitions and eleven assertions.
+Gerbil then constructed these declarations and the upstream Scheme AOT
+generator emitted a plan with the current Org graph projection digest
+=sha256:f26d350a0456114b37a9af347b5b4694a9eff8dd787df988296814f1a60f29a8=.
+
+This is a bounded source/plan result, not actual Aitia workspace evaluation.
+The isolated invocation still emitted a POO Flow observability warning from
+mixed local Gerbil objects. A clean package closure and consumer-side Rust
+evaluation with cross-decision negatives remain unqualified. The direct
+Orgize source-package cycle described above is unchanged; do not promote the
+generated plan or this warning-bearing local check to a published interface.
+
+** Source-owned mutation implementation on Orgize PR #15 — 2026-09-24
+
+[[https://github.com/tao3k/orgize/pull/15][Orgize PR #15]] now includes commit =54de4fe=, which adds
+=org_aot_edit::apply_org_source_edits=. It consumes the Scheme-AOT Element
+graph, validates exact source digest, unique headline =:ID:=, UTF-8 byte
+range, expected old text and non-overlap, then reparses the candidate source.
+It does not call the old =Org::replace_range= path or write a file. Local
+integration tests passed 367/367 with two ignored; focused mutation tests
+passed 4/4, and strict Clippy plus formatting passed. This closes the
+Orgize-owned candidate transformation, not Aitia's transport or an
+owner-approved persistent edit. The PR itself remains draft for the broader
+parser cutover and dependency gates.

@@ -65,8 +65,9 @@ assurance closure and authority receipt is required before any effect.
 - [[file:0003-review-poo-flow-contract-allowlist.org][ADR 0003 — Superseded POO Flow contract allowlist]]
 - [[file:0004-own-assurance-proofs-in-aitia.org][ADR 0004 — Own assurance proofs in Aitia]]
 - [[file:0005-canonical-snapshot-persistence.org][ADR 0005 — Canonical snapshot persistence]]
-- [[file:0006-production-python-sdlc-runtime.org][ADR 0006 — Maintain Python as the production SDLC runtime]]
+- [[file:0006-production-python-sdlc-runtime.org][ADR 0006 — Maintain Aitia Python Runtime as a production project]]
 - [[file:0007-consume-poo-flow-public-library.org][ADR 0007 — Consume POO Flow as the mechanism library]]
+- [[file:0008-stable-operation-key-after-lost-ack.org][ADR 0008 — Bind retry identity to the logical operation (proposed)]]
 
 * Standardization Sources
 

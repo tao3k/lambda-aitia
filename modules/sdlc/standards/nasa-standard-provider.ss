@@ -10,9 +10,9 @@
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :core/feature-system/source-lock-feature
                  require-source-lock-payload)
-        (only-in :poo-flow/src/modules/standards/interface
+        (only-in :poo-flow/modules/standards/interface
                  PooFlowStandardValidationProvider.
                  poo-flow-standard-artifact
                  poo-flow-standard-artifact-ref
@@ -44,11 +44,11 @@
         nasa-7150-2d-validation-closure
         nasa-7150-2d-materialize-sources)
 
-(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa-npr-7150.2d")
+(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa/sdlc/npr-7150.2/D")
 
 (def Nasa7150_2DStandardFamily
   (poo-flow-standard-family
-   "nasa/npr-7150.2" "NASA" 'software-engineering
+   "nasa/sdlc/npr-7150.2" "NASA" 'sdlc
    '(html scheme) "publicly-available-nasa-directive"
    '((contributor . lambda-aitia)
      (authority . nasa-nodis))))

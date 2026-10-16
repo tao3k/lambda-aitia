@@ -5,8 +5,8 @@
 ;;; NPR 7150.2D compliance dossier and independently verified authority decision.
 ;;; This module never impersonates NASA, authenticates a signer, or authorizes release.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/src/module-system/contribution/verification
+        :poo-flow/core/poo-clos/interface
+        :poo-flow/core/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :std/list/list
@@ -51,9 +51,9 @@
        'decision type-predicate:
        (lambda (value) (if (memq value '(compliant noncompliant)) #t #f)))))))
 (def (sdlc-compliance-dossier? value)
-  (poo-flow-model? SdlcComplianceDossier value))
+  (poo-clos-model? SdlcComplianceDossier value))
 (def (sdlc-certification-decision? value)
-  (poo-flow-model? SdlcCertificationDecision value))
+  (poo-clos-model? SdlcCertificationDecision value))
 
 (def (bound? value project)
   (every (lambda (slot)
@@ -102,14 +102,14 @@
                                nasa-project-requirement-identities)
                (eligible-gate? institution-gate-value 'institution
                                nasa-institution-requirement-identities))))
-    (poo-flow-check-model
+    (poo-clos-check-model
      SdlcComplianceDossier
-     (.o (:: @ (poo-flow-model-prototype SdlcComplianceDossier))
+     (.o (:: @ (poo-clos-model-prototype SdlcComplianceDossier))
          identity: identity-value
          subject: (.ref project 'subject)
          revision: (.ref project 'revision)
          scope: (.ref project 'scope)
-         standard: "nasa/npr-7150.2d"
+         standard: "nasa/sdlc/npr-7150.2"
          edition: "NPR 7150.2D"
          software-class: class-value
          mapping-matrix-digest: matrix-digest
@@ -121,9 +121,9 @@
                                   signer-value record-value decision-value)
   (unless (sdlc-compliance-dossier? dossier-value)
     (error "invalid NASA compliance dossier"))
-  (poo-flow-check-model
+  (poo-clos-check-model
    SdlcCertificationDecision
-   (.o (:: @ (poo-flow-model-prototype SdlcCertificationDecision))
+   (.o (:: @ (poo-clos-model-prototype SdlcCertificationDecision))
        identity: identity-value
        subject: (.ref dossier-value 'subject)
        revision: (.ref dossier-value 'revision)
@@ -141,9 +141,9 @@
                (equal? (.ref decision-value 'dossier)
                        (.ref dossier-value 'identity)))
     (error "certification decision is not bound to the dossier"))
-  (poo-flow-check-model
+  (poo-clos-check-model
    SdlcVerificationRequest
-   (.o (:: @ (poo-flow-model-prototype SdlcVerificationRequest))
+   (.o (:: @ (poo-clos-model-prototype SdlcVerificationRequest))
        subject: (.ref dossier-value 'subject)
        revision: (.ref dossier-value 'revision)
        scope: (.ref dossier-value 'scope)

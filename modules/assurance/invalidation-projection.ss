@@ -8,11 +8,11 @@
 ;;; owned by POO Flow.
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/algorithms
+        (only-in :core/graph/algorithms
                  poo-flow-graph-loop-analysis-receipt)
-        (only-in :poo-flow/src/graph/types
+        (only-in :core/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/temporal-causality/funs
+        (only-in :poo-flow/modules/temporal-causality/funs
                  poo-flow-structural-impact-analyze)
         (only-in :gerbil/core list-sort)
         :std/list/list
@@ -21,7 +21,7 @@
 (export assurance-invalidation-graph assurance-invalidation-analysis)
 
 (def +assurance-invalidation-relations+
-  '(depends-on implements tests refines supports discharges
+  '(depends-on composes implements tests refines supports discharges
     invalidates defeats authorizes denies requires-review))
 
 (def (invalidation-graph-id identity)
@@ -31,7 +31,7 @@
   (let ((plane (.ref relation 'plane)) (kind (.ref relation 'relation)))
     (cond
      ((and (eq? plane 'structural)
-           (memq kind '(depends-on implements tests refines)))
+           (memq kind '(depends-on composes implements tests refines)))
       (cons (.ref relation 'target) (.ref relation 'source)))
      ((and (eq? plane 'assurance) (memq kind '(supports discharges)))
       (cons (.ref relation 'target) (.ref relation 'source)))

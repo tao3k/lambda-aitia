@@ -8,12 +8,12 @@
 
 (def Nasa7150_2DSourcesLock
   (sources-lock-value
-      "lambda-aitia/nasa-npr-7150.2d/sources"
+      "lambda-aitia/nasa/sdlc/npr-7150.2/D/sources"
       "2022-03-08"
-      "sha256:286dbc723fbad0e596ad07593d95ce56f7bbdf6526d30719ab3bebd29bc772bb"
+      "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c"
       (list
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/appendix-c"
+           identity: "nasa/sdlc/npr-7150.2/D/appendix-c"
            path: "modules/sdlc/standards/sources/appendix-c.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=AppendixC"
            exact-version: "2022-03-08"
@@ -23,7 +23,7 @@
            metadata: '((section . appendix-c))
            )
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/chapter2"
+           identity: "nasa/sdlc/npr-7150.2/D/chapter2"
            path: "modules/sdlc/standards/sources/chapter2.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter2"
            exact-version: "2022-03-08"
@@ -33,7 +33,7 @@
            metadata: '((section . chapter-2))
            )
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/chapter3"
+           identity: "nasa/sdlc/npr-7150.2/D/chapter3"
            path: "modules/sdlc/standards/sources/chapter3.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter3"
            exact-version: "2022-03-08"
@@ -43,7 +43,7 @@
            metadata: '((section . chapter-3))
            )
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/chapter4"
+           identity: "nasa/sdlc/npr-7150.2/D/chapter4"
            path: "modules/sdlc/standards/sources/chapter4.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter4"
            exact-version: "2022-03-08"
@@ -53,7 +53,7 @@
            metadata: '((section . chapter-4))
            )
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/chapter5"
+           identity: "nasa/sdlc/npr-7150.2/D/chapter5"
            path: "modules/sdlc/standards/sources/chapter5.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter5"
            exact-version: "2022-03-08"
@@ -63,7 +63,7 @@
            metadata: '((section . chapter-5))
            )
        (.o (:: @ SourceLockEntry.)
-           identity: "nasa/npr-7150.2d/chapter6"
+           identity: "nasa/sdlc/npr-7150.2/D/chapter6"
            path: "modules/sdlc/standards/sources/chapter6.html"
            canonical-uri: "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter6"
            exact-version: "2022-03-08"

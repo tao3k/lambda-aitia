@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :poo-flow/src/module-system/contribution/verification
+        :poo-flow/core/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-coverage

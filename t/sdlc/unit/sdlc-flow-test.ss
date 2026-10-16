@@ -4,7 +4,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/types
+        (only-in :core/graph/types
                  poo-flow-graph? poo-flow-graph-edges poo-flow-graph-nodes)
         :poo-flow/lambda-aitia/modules/sdlc/interface)
 

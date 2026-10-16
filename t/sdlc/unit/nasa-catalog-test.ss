@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
+        (only-in :clan/poo/object .ref .slot?)
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :std/list/list)
 (export nasa-catalog-test)
@@ -15,7 +15,7 @@
         (check-equal? (length (delete-duplicates/hash (map (lambda (r) (.ref r 'identity)) rows))) 130)
         (check-equal? (length (filter (lambda (r) (.slot? r 'class-matrix)) rows)) 100)
         (for-each (lambda (r)
-                    (check-equal? (.ref r 'standard) "nasa/npr-7150.2d")
+                    (check-equal? (.ref r 'standard) "nasa/sdlc/npr-7150.2")
                     (check-equal? (.ref r 'assessment) 'not-evaluated)) rows)))
     (test-case "matrix blanks never become unconditional exemptions"
       (check-equal? (nasa-matrix-invocation "SWE-013" 'e) 'invoked)

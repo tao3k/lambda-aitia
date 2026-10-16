@@ -8,7 +8,11 @@
 (export github-change github-check github-run-gitops)
 (def (github-change event repository revision source-ref target-ref pull-request)
   (gitops-change 'github event repository revision source-ref target-ref pull-request))
-(def (github-check name repository revision conclusion)
-  (gitops-check name repository revision conclusion))
+(def (github-check name repository revision conclusion
+                   standard-edition: (standard-edition #f)
+                   source-lock-digest: (source-lock-digest #f))
+  (gitops-check name repository revision conclusion
+                standard-edition: standard-edition
+                source-lock-digest: source-lock-digest))
 (def (github-run-gitops composition change checks)
   (gitops-evaluate composition change checks))

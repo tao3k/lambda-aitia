@@ -13,7 +13,7 @@
                  testing-interface-map-profile
                  testing-test-selector)
         :std/list/list
-        (only-in :poo-flow/src/module-system/observability/testing-extension
+        (only-in :poo-flow/modules/testing/testing-extension
                  make-poo-flow-testing-observability-profile
                  poo-flow-testing-observability-extension))
 

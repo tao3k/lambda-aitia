@@ -20,7 +20,7 @@
   (string->json payload +aitia-native-test-json-read-options+))
 
 (def +accepted-change+
-  "{\"event\":\"pull-request\",\"repository\":\"tao3k/poo-flow\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa-7150-2d\",\"conclusion\":\"success\"}]}")
+  "{\"event\":\"pull-request\",\"repository\":\"tao3k/poo-flow\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa/sdlc/npr-7150.2\",\"conclusion\":\"success\",\"standardEdition\":\"D\",\"sourceLockDigest\":\"sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c\"}]}")
 
 (def aitia-native-test
   (test-suite "Aitia Scheme-native C ABI"

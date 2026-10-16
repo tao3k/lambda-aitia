@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Render the executable ledger; no separately maintained requirement table.
-(import :poo-flow/src/module-system/contribution/interface
+(import (only-in :clan/poo/object .ref)
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-coverage)
 (def (main . args)
   (display "#+title: NASA implementation coverage ledger\n\n")
