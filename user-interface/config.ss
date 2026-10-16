@@ -12,8 +12,7 @@
         (only-in :poo-flow/modules/workflow/scenario/composition-syntax user-composition)
         (only-in :poo-flow/core/module-system/schema/relations
                  poo-flow-semantic-identity)
-        (only-in :poo-flow/modules/module-authoring/semantic-module
-                 poo-flow-semantic-module)
+        (only-in :core/module-system/authoring/roles poo-flow-semantic-module)
         :poo-flow/lambda-aitia/user-interface/profiles/github/actions
         :poo-flow/lambda-aitia/user-interface/profiles/gitops/dev
         :poo-flow/lambda-aitia/user-interface/profiles/gitops/staging

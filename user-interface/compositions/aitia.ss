@@ -9,8 +9,7 @@
 (import (only-in :clan/poo/object .o)
         (only-in :poo-flow/core/module-system/schema/relations
                  poo-flow-semantic-identity)
-        (only-in :poo-flow/modules/module-authoring/semantic-module
-                 poo-flow-semantic-module)
+        (only-in :core/module-system/authoring/roles poo-flow-semantic-module)
         (only-in :poo-flow/core/profile-composition/profile-bundle
                  poo-flow-profile-export poo-flow-module-profiles
                  profiles compose)
