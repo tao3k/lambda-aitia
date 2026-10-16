@@ -126,7 +126,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/poo-flow
-          ref: 018d6652b439fefe5ca9c54b0f59fb574d0a8562
+          ref: b00a5e9b3cc8c4f454a3badaf13903b0cf3ceac7
           path: poo-flow
           submodules: false
 
@@ -164,6 +164,10 @@ jobs:
         with:
           path: poo-flow/.gerbil
           key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+
+      - name: Materialize pinned native dependency commits
+        working-directory: poo-flow
+        run: python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg"
 
       - name: Install declared Gerbil package dependencies
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
