@@ -8,9 +8,9 @@
 ;;; owned by POO Flow.
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/algorithms
+        (only-in :core/graph/algorithms
                  poo-flow-graph-loop-analysis-receipt)
-        (only-in :poo-flow/src/graph/types
+        (only-in :core/graph/types
                  poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
         (only-in :poo-flow/modules/temporal-causality/funs
                  poo-flow-structural-impact-analyze)

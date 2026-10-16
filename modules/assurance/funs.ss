@@ -8,7 +8,7 @@
         (only-in :gerbil/core list-sort string->utf8)
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
-        (only-in :poo-flow/src/graph/algorithms
+        (only-in :core/graph/algorithms
                  poo-flow-graph-cycle-path
                  poo-flow-graph-loop-analysis-receipt
                  poo-flow-graph-reachable-ids

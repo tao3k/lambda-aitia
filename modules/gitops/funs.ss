@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .ref .slot?)
         (only-in :clan/poo/mop .new validate)
         :std/list/list
-        (only-in :poo-flow/src/core/funcs
+        (only-in :core/utilities/algorithms
                  poo-flow-make-value-index poo-flow-value-index-put!
                  poo-flow-value-index-ref)
         :poo-flow/core/poo-clos/interface

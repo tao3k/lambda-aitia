@@ -6,7 +6,7 @@
 
 (import (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :core/feature-system/source-lock-feature
                  sources-lock-freeze
                  write-sources-lock-module)
         :poo-flow/lambda-aitia/modules/sdlc/standards/sources)

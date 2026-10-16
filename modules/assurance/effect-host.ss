@@ -7,7 +7,7 @@
 ;;; Editable preflights, requests, tokens and reports never issue capabilities.
 (import (only-in :clan/poo/object .o .ref)
         :poo-flow/lambda-aitia/modules/assurance/host
-        :poo-flow/src/policy/authorized-effect-token
+        :poo-flow/modules/governance/policy/authorized-effect-token
         (only-in :poo-flow/modules/authorization/providers/cedar/decision
                  poo-flow-cedar-decision-permit?
                  poo-flow-cedar-decision->semantic-root

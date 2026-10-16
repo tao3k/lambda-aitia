@@ -3,7 +3,7 @@
 
 ;;; Synthetic qualification facts, not observations from a production service.
 ;;; Algorithms and receipt authority stay with POO Flow's public owners.
-(import (only-in :poo-flow/src/graph/types
+(import (only-in :core/graph/types
                  poo-flow-graph poo-flow-graph-node poo-flow-graph-edge)
         (only-in :poo-flow/modules/temporal-causality/interface
                  poo-flow-temporal-observation poo-flow-causal-event

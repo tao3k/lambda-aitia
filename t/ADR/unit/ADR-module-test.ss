@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .ref)
-        :poo-flow/src/user-interface/module-selection
+        :poo-flow/modules/user-interface/module-selection
         (only-in :poo-flow/lambda-aitia/modules/assurance/interface
                  assurance-decision?)
         :poo-flow/lambda-aitia/modules/ADR/interface)

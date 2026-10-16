@@ -4,7 +4,7 @@
 (import :std/test
         (only-in :std/misc/ports read-all-as-string)
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/feature-system/source-lock-feature source-lock-payload-digest)
+        (only-in :core/feature-system/source-lock-feature source-lock-payload-digest)
         :poo-flow/lambda-aitia/modules/assurance/interface
         :poo-flow/lambda-aitia/modules/sdlc/interface
         :poo-flow/lambda-aitia/user-interface/scenarios/job-retirement-contract)

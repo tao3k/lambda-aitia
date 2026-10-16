@@ -6,7 +6,7 @@
         (only-in :poo-flow/core/module-system/source/objects
                  poo-flow-module-source-ref-metadata
                  poo-flow-module-source-ref-value)
-        (only-in :poo-flow/src/authoring/module-source-collection
+        (only-in :poo-flow/modules/module-authoring/module-source-collection
                  make-poo-flow-contribution-module-source
                  poo-flow-load-modules))
 

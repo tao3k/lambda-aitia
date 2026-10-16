@@ -9,7 +9,7 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :std/test check-equal? check-exception test-case test-suite)
         (only-in :gerbil/core string-suffix?)
-        (only-in :poo-flow/src/feature-system/interface
+        (only-in :core/feature-system/interface
                  sources-lock-freeze
                  write-sources-lock-module)
         (only-in :poo-flow/modules/standards/interface

@@ -4,7 +4,7 @@
 
 ;;; Legacy module-selection projection is standard-free. The NASA Standard is
 ;;; selected through its own typed nasa/sdlc Module Profile, not an SDLC flag.
-(import :poo-flow/src/user-interface/module-selection
+(import :poo-flow/modules/user-interface/module-selection
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/funs

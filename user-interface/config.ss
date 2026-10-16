@@ -9,10 +9,10 @@
                  profiles compose
                  poo-flow-profile-export poo-flow-module-profiles)
         (only-in :poo-flow/core/profile-composition/selection-syntax use-module)
-        (only-in :poo-flow/src/scenario/composition-syntax user-composition)
+        (only-in :poo-flow/modules/workflow/scenario/composition-syntax user-composition)
         (only-in :poo-flow/core/module-system/schema/relations
                  poo-flow-semantic-identity)
-        (only-in :poo-flow/src/authoring/semantic-module
+        (only-in :poo-flow/modules/module-authoring/semantic-module
                  poo-flow-semantic-module)
         :poo-flow/lambda-aitia/user-interface/profiles/github/actions
         :poo-flow/lambda-aitia/user-interface/profiles/gitops/dev

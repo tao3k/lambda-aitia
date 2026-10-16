@@ -14,7 +14,7 @@
                  poo-flow-verification-adapter poo-flow-verify
                  poo-flow-verification-valid?
                  poo-flow-revoke-verification!)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :core/feature-system/source-lock-feature
                  source-lock-payload-digest)
         (only-in :poo-flow/modules/authorization/providers/cedar/interface
                  poo-flow-cedar-runtime-handoff?

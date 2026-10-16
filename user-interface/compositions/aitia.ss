@@ -9,13 +9,13 @@
 (import (only-in :clan/poo/object .o)
         (only-in :poo-flow/core/module-system/schema/relations
                  poo-flow-semantic-identity)
-        (only-in :poo-flow/src/authoring/semantic-module
+        (only-in :poo-flow/modules/module-authoring/semantic-module
                  poo-flow-semantic-module)
         (only-in :poo-flow/core/profile-composition/profile-bundle
                  poo-flow-profile-export poo-flow-module-profiles
                  profiles compose)
         (only-in :poo-flow/core/profile-composition/selection-syntax use-module)
-        (only-in :poo-flow/src/scenario/composition-syntax user-composition)
+        (only-in :poo-flow/modules/workflow/scenario/composition-syntax user-composition)
         :poo-flow/lambda-aitia/user-interface/profiles/software-engineering/project)
 
 (export AitiaModule aitia)

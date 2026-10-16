@@ -3,7 +3,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/types poo-flow-graph-id)
+        (only-in :core/graph/types poo-flow-graph-id)
         (only-in :poo-flow/modules/temporal-causality/interface
                  poo-flow-structural-impact-analyze
                  poo-flow-causal-cut poo-flow-temporal-causal-classify)

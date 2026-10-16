@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :core/feature-system/source-lock-feature
                  source-lock-payload-digest)
         :poo-flow/lambda-aitia/modules/assurance/interface
         :poo-flow/lambda-aitia/modules/sdlc/interface)
