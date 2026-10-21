@@ -5,7 +5,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :poo-flow/modules/governance/objects
                  PooFlowGovernanceProfile.)
-        :poo-flow/core/poo-clos/interface
+        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :poo-flow/lambda-aitia/modules/sdlc/types)
 (export StandardProfile. SdlcProfile)
 (def StandardProfile.

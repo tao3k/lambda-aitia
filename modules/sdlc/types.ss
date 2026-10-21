@@ -3,13 +3,14 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref .slot? object?)
-        :poo-flow/core/poo-clos/interface
+        (only-in :core/poo-clos/model poo-clos-model?)
+        (only-in :core/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition)
         (only-in :poo-flow/modules/governance/types
                  poo-flow-governance-profile?)
         :std/list/list
         :std/list/list)
 (export standard-profile? sdlc-profile? sdlc-text?
-        SdlcStandard SdlcBoundFact SdlcProject SdlcObligation SdlcEvidence
+        SdlcStandard SdlcIdentified SdlcBoundFact SdlcProject SdlcObligation SdlcEvidence
         SdlcTailoringRequest SdlcTraceNode SdlcTraceEdge SdlcTraceRule
         sdlc-bound-fact? sdlc-project? sdlc-obligation? sdlc-evidence?
         sdlc-tailoring-request? sdlc-trace-node? sdlc-trace-edge? sdlc-trace-rule?)
@@ -130,7 +131,7 @@
     direct-slots: (text-slots '(stage))))
 (def SdlcVerificationRequest
   (poo-clos-class 'sdlc/verification-request direct-superclasses: (list SdlcBoundFact)
-    direct-slots: (list (enum-slot 'purpose '(criterion-content classification-and-context tailoring-decision structured-inventory certification-decision))
+    direct-slots: (list (enum-slot 'purpose '(criterion-content classification-and-context tailoring-decision structured-inventory certification-decision history-discovery disposition-approval))
                        (poo-clos-direct-slot-definition 'facts type-predicate: object?))))
 (def (sdlc-stage-policy? value) (poo-clos-model? SdlcStagePolicy value))
 (def (sdlc-lifecycle-state? value) (poo-clos-model? SdlcLifecycleState value))

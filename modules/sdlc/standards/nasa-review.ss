@@ -4,7 +4,7 @@
 
 ;;; Source-bound review across every catalog requirement. No authority execution.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/core/poo-clos/interface
+        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/objects
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
@@ -81,9 +81,19 @@
                           (map (lambda (c) (.ref c 'identity))
                                (nasa-requirement-criteria (.ref e 'requirement)))))
        (error "evidence is not bound to a NASA criterion"))) evidence))
-(def (nasa-assess-project class-value project context evidence)
+;; A stage may request a finite subset. Input validation remains global, and
+;; every selected row uses the same assessment as a complete catalog review.
+(def (assessment-rows requirements)
+  (if requirements
+    (begin
+      (unless (and (list? requirements)
+                   (= (length requirements) (length (delete-duplicates/hash requirements))))
+        (error "invalid assessment requirement selection"))
+      (map nasa-requirement-by-id requirements))
+    nasa-requirement-catalog))
+(def (nasa-assess-project class-value project context evidence requirements: (requirements #f))
   (validate-review-inputs project context evidence)
-  (let* ((rows (map (lambda (row) (assess-one row class-value project context evidence)) nasa-requirement-catalog))
+  (let* ((rows (map (lambda (row) (assess-one row class-value project context evidence)) (assessment-rows requirements)))
          (pending-values (filter (lambda (r) (not (memq (.ref r 'status) '(evidence-present not-invoked)))) rows)))
     (.o kind: 'sdlc.nasa-assessment subject: (.ref project 'subject)
         revision: (.ref project 'revision) scope: (.ref project 'scope)
@@ -196,10 +206,10 @@
 (export nasa-assess-institution)
 ;;; Center/Agency source obligations have their own review scope, so project
 ;;; reports do not silently discharge duties belonging to institutional owners.
-(def (nasa-assess-institution class-value snapshot context evidence)
+(def (nasa-assess-institution class-value snapshot context evidence requirements: (requirements #f))
   (validate-review-inputs snapshot context evidence)
   (unless (memq class-value '(a b c d e f)) (error "invalid NASA software class"))
-  (let* ((institutional (filter (lambda (r) (not (.slot? r 'class-matrix))) nasa-requirement-catalog))
+  (let* ((institutional (filter (lambda (r) (not (.slot? r 'class-matrix))) (assessment-rows requirements)))
          (reviews
           (map (lambda (r)
                  (let* ((id (.ref r 'identity))

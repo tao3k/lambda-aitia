@@ -4,8 +4,8 @@
 
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/core/poo-clos/interface
-        :poo-flow/core/contribution/verification
+        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        :core/contribution/verification
         :poo-flow/lambda-aitia/modules/sdlc/types
         (only-in :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-policy
                  nasa-stage-policy
@@ -99,7 +99,7 @@
                (list? inventory-values)
                (every (lambda (i) (or (sdlc-trace-inventory? i) (sdlc-safety-inventory? i))) inventory-values)
                (exact-integer? now) (>= now 0)) (error "invalid stage gate inputs"))
-  (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence))
+  (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence requirements: (.ref policy 'requirements)))
          (admission (poo-flow-verification-admission adapter receipts now))
          (selected (map (lambda (id)
                           (or (find (lambda (r) (equal? (.ref r 'requirement) id)) (.ref report 'requirements))

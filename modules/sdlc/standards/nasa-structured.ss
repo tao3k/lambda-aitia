@@ -4,7 +4,7 @@
 
 ;;; Deterministic local checks over authenticated inventory projections.
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/core/poo-clos/interface
+        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :poo-flow/lambda-aitia/modules/sdlc/types
         :poo-flow/lambda-aitia/modules/sdlc/funs
         :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
