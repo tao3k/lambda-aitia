@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from .native import AitiaNativeError, _evaluate_gitops_payload
+from .native import AitiaNativeError, AitiaNativeSession, _evaluate_gitops_payload
 from .runtime import _boolean, _string, _strings
 
 
@@ -60,16 +60,20 @@ class GitOpsDecision:
             ),
             runtime_executed=_boolean(payload.get("runtimeExecuted"), "runtimeExecuted"),
         )
-        if decision.semantic_owner != "lambda-aitia" or decision.runtime_owner != "poo-flow":
+        if decision.semantic_owner != "lambda-aitia" or decision.runtime_owner != "agentic-ai-lab":
             raise AitiaNativeError("unexpected GitOps decision owner")
         if decision.authority_status != "not-evaluated":
             raise AitiaNativeError("unexpected GitOps authority status")
         return decision
 
 
-def evaluate_gitops(change: Mapping[str, Any]) -> GitOpsDecision:
+def evaluate_gitops(
+    change: Mapping[str, Any], *, session: AitiaNativeSession | None = None
+) -> GitOpsDecision:
     """Evaluate check evidence without implying release authorization or execution."""
 
     if not isinstance(change, Mapping):
         raise TypeError("change must be a mapping")
-    return GitOpsDecision.from_payload(_evaluate_gitops_payload(change))
+    return GitOpsDecision.from_payload(
+        _evaluate_gitops_payload(change, session=session)
+    )

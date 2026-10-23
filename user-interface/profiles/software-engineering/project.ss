@@ -5,35 +5,37 @@
 
 ;;; Boundary: maintained default Software Engineering Project Profile.
 ;;; Invariant: the Profile selects Aitia knowledge and obligations only; module
-;;; realization and Runtime execution remain separate POO Flow phases.
+;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
-(import (only-in :poo-flow/src/module-system/declaration/interface
-                 poo-flow-settings
-                 poo-flow-user-module-selection)
-        (only-in :poo-flow/src/user-interface/profile-core
-                 pooFlowUserProfile))
+(import (only-in :yuanxu/module-system/selection/objects
+                 agentic-ai-lab-settings
+                 agentic-ai-lab-user-module-selection)
+        (only-in :yuanxu/profile-composition/user-profile
+                 agenticAiLabUserProfile))
 
 (export default-software-engineering-project)
 
 (def default-software-engineering-project
-  (pooFlowUserProfile
+  (agenticAiLabUserProfile
    'default-software-engineering-project
    (list
     (list
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'gitops '(+open-gitops))
-     (poo-flow-user-module-selection
-      'software-engineering 'sdlc '(+nasa-7150-2d))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
+      'software-engineering 'sdlc '())
+     (agentic-ai-lab-user-module-selection
+      'nasa 'sdlc '(+npr-7150.2))
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'ADR '(+rfc-relations))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
-     (poo-flow-user-module-selection
-      'software-engineering 'formal-methods '(+tla+ +lean +cedar))))
-   (poo-flow-settings
+     (agentic-ai-lab-user-module-selection
+      'software-engineering 'formal-methods '(+quint +lean +cedar))))
+   (agentic-ai-lab-settings
     project-kind: 'software-engineering
     composition: 'aitia
-    formal-method-obligations: '(tla+ lean cedar)
+    formal-method-obligations: '(quint lean cedar)
     runtime-executed?: #f)
    '(project-kind
      composition

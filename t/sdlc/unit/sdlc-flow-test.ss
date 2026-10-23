@@ -4,15 +4,15 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/types
-                 poo-flow-graph? poo-flow-graph-edges poo-flow-graph-nodes)
-        :poo-flow/lambda-aitia/modules/sdlc/interface)
+        (only-in :yuanxu/graph/types
+                 agentic-ai-lab-graph? agentic-ai-lab-graph-edges agentic-ai-lab-graph-nodes)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
 
 (export sdlc-flow-test)
 
 (def sdlc-flow-test
   (test-suite "Aitia production SDLC flow projection"
-    (test-case "Aitia semantics project one complete lifecycle onto POO Flow DAG"
+    (test-case "Aitia semantics project one complete lifecycle onto Agentic AI Lab DAG"
       (let (plan (sdlc-flow-plan "release/42"))
         (check-equal?
          (.ref plan 'topological-order)

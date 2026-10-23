@@ -5,9 +5,9 @@
 
 (import (only-in :clan/poo/object .ref .slot?)
         :std/list/list
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/modules/governance/types
-                 poo-flow-governance-profile?))
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/modules/governance/types
+                 agentic-ai-lab-governance-profile?))
 
 (export ADR-profile?
         ADR-text? ADR-date? ADR-status? ADR-link-relation?
@@ -95,10 +95,10 @@
           (predicate-slot 'informed ADR-text-list?)
           (predicate-slot 'links ADR-link-list?))))
 
-(def (ADR-link? value) (poo-flow-model? ADRLink value))
-(def (ADR-option? value) (poo-flow-model? ADROption value))
-(def (ADR-consequence? value) (poo-flow-model? ADRConsequence value))
-(def (ADR-record? value) (poo-flow-model? ADRRecord value))
+(def (ADR-link? value) (poo-clos-model? ADRLink value))
+(def (ADR-option? value) (poo-clos-model? ADROption value))
+(def (ADR-consequence? value) (poo-clos-model? ADRConsequence value))
+(def (ADR-record? value) (poo-clos-model? ADRRecord value))
 
 (def (unique-by? projection input-values)
   (length=? input-values
@@ -145,6 +145,6 @@
            (else #f)))))
 
 (def (ADR-profile? value)
-  (and (poo-flow-governance-profile? value)
+  (and (agentic-ai-lab-governance-profile? value)
        (.slot? value 'module-family)
        (eq? (.ref value 'module-family) 'ADR)))

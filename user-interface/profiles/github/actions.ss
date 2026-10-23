@@ -6,14 +6,14 @@
 ;;; Reusable GitHub workflow Profiles; no scenario or runtime execution lives here.
 
 (import (only-in :clan/poo/object .def)
-        :poo-flow/src/modules/funflow/github-ci-contract)
+        :agentic-ai-lab/modules/funflow/github-ci-contract)
 (export actions)
 
-(.def (actions @ poo-flow-funflow-github-ci-profile)
+(.def (actions @ agentic-ai-lab-funflow-github-ci-profile)
   (name 'actions)
   (owner 'lambda-aitia)
   (features '(pull-request environments deployments schema-validation))
-  (extends poo-flow-funflow-github-ci-profile)
+  (extends agentic-ai-lab-funflow-github-ci-profile)
   (scope '(workflow))
   (capabilities '(pull-request environments deployments))
   (guard '(schema-validated))

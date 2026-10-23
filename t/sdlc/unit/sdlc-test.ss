@@ -3,9 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+        (only-in :clan/poo/object .o .ref)
+        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 (def project-sdlc-module (sdlc-contribution ProjectSdlcProfile))
 (export sdlc-test)
@@ -24,7 +25,7 @@
     (test-case "clause references preserve edition and source location"
       (let ((clause (nasa-requirement-by-id "SWE-013")))
         (check-equal? (.ref clause 'identity) "SWE-013")
-        (check-equal? (.ref clause 'standard) "nasa/npr-7150.2d")
+        (check-equal? (.ref clause 'standard) "nasa/sdlc/npr-7150.2")
         (check-equal? (.ref clause 'section) "3.1.3")
         (check-equal? (.ref clause 'topic) 'lifecycle-planning)))
     (test-case "other standards compose without changing SDLC or NASA"

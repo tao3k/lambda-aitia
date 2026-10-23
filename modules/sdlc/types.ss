@@ -3,13 +3,14 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/modules/governance/types
-                 poo-flow-governance-profile?)
+        (only-in :yuanxu/poo-clos/model poo-clos-model?)
+        (only-in :yuanxu/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition)
+        (only-in :agentic-ai-lab/modules/governance/types
+                 agentic-ai-lab-governance-profile?)
         :std/list/list
         :std/list/list)
 (export standard-profile? sdlc-profile? sdlc-text?
-        SdlcStandard SdlcBoundFact SdlcProject SdlcObligation SdlcEvidence
+        SdlcStandard SdlcIdentified SdlcBoundFact SdlcProject SdlcObligation SdlcEvidence
         SdlcTailoringRequest SdlcTraceNode SdlcTraceEdge SdlcTraceRule
         sdlc-bound-fact? sdlc-project? sdlc-obligation? sdlc-evidence?
         sdlc-tailoring-request? sdlc-trace-node? sdlc-trace-edge? sdlc-trace-rule?)
@@ -68,27 +69,27 @@
                        '(source-category target-category))))
 
 (def (sdlc-profile? value)
-  (and (poo-flow-governance-profile? value) (.slot? value 'standards)
+  (and (agentic-ai-lab-governance-profile? value) (.slot? value 'standards)
        (list? (.ref value 'standards))
        (every standard-profile? (.ref value 'standards))
        (let ((ids (map (lambda (s) (.ref s 'identity)) (.ref value 'standards))))
          (= (length ids) (length (delete-duplicates/hash ids))))))
-(def (standard-profile? value) (poo-flow-model? SdlcStandard value))
-(def (sdlc-bound-fact? value) (poo-flow-model? SdlcBoundFact value))
-(def (sdlc-project? value) (poo-flow-model? SdlcProject value))
-(def (sdlc-obligation? value) (poo-flow-model? SdlcObligation value))
-(def (sdlc-evidence? value) (poo-flow-model? SdlcEvidence value))
-(def (sdlc-tailoring-request? value) (poo-flow-model? SdlcTailoringRequest value))
-(def (sdlc-trace-node? value) (poo-flow-model? SdlcTraceNode value))
-(def (sdlc-trace-edge? value) (poo-flow-model? SdlcTraceEdge value))
-(def (sdlc-trace-rule? value) (poo-flow-model? SdlcTraceRule value))
+(def (standard-profile? value) (poo-clos-model? SdlcStandard value))
+(def (sdlc-bound-fact? value) (poo-clos-model? SdlcBoundFact value))
+(def (sdlc-project? value) (poo-clos-model? SdlcProject value))
+(def (sdlc-obligation? value) (poo-clos-model? SdlcObligation value))
+(def (sdlc-evidence? value) (poo-clos-model? SdlcEvidence value))
+(def (sdlc-tailoring-request? value) (poo-clos-model? SdlcTailoringRequest value))
+(def (sdlc-trace-node? value) (poo-clos-model? SdlcTraceNode value))
+(def (sdlc-trace-edge? value) (poo-clos-model? SdlcTraceEdge value))
+(def (sdlc-trace-rule? value) (poo-clos-model? SdlcTraceRule value))
 
 (export SdlcCriterionEvidence sdlc-criterion-evidence?
         SdlcSafetyComponent sdlc-safety-component?)
 (def SdlcCriterionEvidence
   (poo-clos-class 'sdlc/criterion-evidence direct-superclasses: (list SdlcEvidence)
     direct-slots: (text-slots '(criterion source-digest))))
-(def (sdlc-criterion-evidence? value) (poo-flow-model? SdlcCriterionEvidence value))
+(def (sdlc-criterion-evidence? value) (poo-clos-model? SdlcCriterionEvidence value))
 (def (coverage-or-unknown? value)
   (or (eq? value 'unknown) (and (real? value) (<= 0 value 100))))
 (def (complexity-or-unknown? value)
@@ -99,7 +100,7 @@
       (poo-clos-direct-slot-definition 'safety-critical? type-predicate: boolean?)
       (poo-clos-direct-slot-definition 'mcdc-percent type-predicate: coverage-or-unknown?)
       (poo-clos-direct-slot-definition 'cyclomatic-complexity type-predicate: complexity-or-unknown?))))
-(def (sdlc-safety-component? value) (poo-flow-model? SdlcSafetyComponent value))
+(def (sdlc-safety-component? value) (poo-clos-model? SdlcSafetyComponent value))
 
 (export SdlcTailoringPacket sdlc-tailoring-packet?
         SdlcAuthorityAttestation sdlc-authority-attestation?)
@@ -113,8 +114,8 @@
     direct-slots: (append (text-slots '(request signer record))
       (list (poo-clos-direct-slot-definition 'authority type-predicate: symbol?)
             (enum-slot 'decision '(approved rejected))))))
-(def (sdlc-tailoring-packet? value) (poo-flow-model? SdlcTailoringPacket value))
-(def (sdlc-authority-attestation? value) (poo-flow-model? SdlcAuthorityAttestation value))
+(def (sdlc-tailoring-packet? value) (poo-clos-model? SdlcTailoringPacket value))
+(def (sdlc-authority-attestation? value) (poo-clos-model? SdlcAuthorityAttestation value))
 
 (export SdlcStagePolicy sdlc-stage-policy? SdlcLifecycleState sdlc-lifecycle-state?
         SdlcVerificationRequest sdlc-verification-request?)
@@ -130,11 +131,11 @@
     direct-slots: (text-slots '(stage))))
 (def SdlcVerificationRequest
   (poo-clos-class 'sdlc/verification-request direct-superclasses: (list SdlcBoundFact)
-    direct-slots: (list (enum-slot 'purpose '(criterion-content classification-and-context tailoring-decision structured-inventory certification-decision))
+    direct-slots: (list (enum-slot 'purpose '(criterion-content classification-and-context tailoring-decision structured-inventory certification-decision history-discovery disposition-approval))
                        (poo-clos-direct-slot-definition 'facts type-predicate: object?))))
-(def (sdlc-stage-policy? value) (poo-flow-model? SdlcStagePolicy value))
-(def (sdlc-lifecycle-state? value) (poo-flow-model? SdlcLifecycleState value))
-(def (sdlc-verification-request? value) (poo-flow-model? SdlcVerificationRequest value))
+(def (sdlc-stage-policy? value) (poo-clos-model? SdlcStagePolicy value))
+(def (sdlc-lifecycle-state? value) (poo-clos-model? SdlcLifecycleState value))
+(def (sdlc-verification-request? value) (poo-clos-model? SdlcVerificationRequest value))
 
 (export SdlcSafetyInventory SdlcTraceInventory sdlc-safety-inventory? sdlc-trace-inventory?
         sdlc-artifact-digest?)
@@ -154,5 +155,5 @@
 (def SdlcTraceInventory
   (poo-clos-class 'sdlc/trace-inventory direct-superclasses: (list SdlcInventory)
     direct-slots: (list (instances-slot 'nodes sdlc-trace-node?) (instances-slot 'edges sdlc-trace-edge?))))
-(def (sdlc-safety-inventory? value) (poo-flow-model? SdlcSafetyInventory value))
-(def (sdlc-trace-inventory? value) (poo-flow-model? SdlcTraceInventory value))
+(def (sdlc-safety-inventory? value) (poo-clos-model? SdlcSafetyInventory value))
+(def (sdlc-trace-inventory? value) (poo-clos-model? SdlcTraceInventory value))

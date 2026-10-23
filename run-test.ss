@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :poo-flow/lambda-aitia/testing-observer
+(import (only-in :agentic-ai-lab/lambda-aitia/testing-observer
                  run-observed-test))
 
 (let (arguments (cddr (command-line)))

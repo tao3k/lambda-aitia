@@ -4,7 +4,7 @@
 
 (import :std/test
         (only-in :std/encoding/json JSONReadOptions string->json)
-        (only-in :poo-flow/lambda-aitia/bindings/c/aitia-contract
+        (only-in :agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract
                  aitia-abi-revision
                  aitia-descriptor-payload
                  aitia-sdlc-flow-plan-payload
@@ -20,7 +20,7 @@
   (string->json payload +aitia-native-test-json-read-options+))
 
 (def +accepted-change+
-  "{\"event\":\"pull-request\",\"repository\":\"tao3k/poo-flow\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa-7150-2d\",\"conclusion\":\"success\"}]}")
+  "{\"event\":\"pull-request\",\"repository\":\"tao3k/agentic-ai-lab\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa/sdlc/npr-7150.2\",\"conclusion\":\"success\",\"standardEdition\":\"D\",\"sourceLockDigest\":\"sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c\"}]}")
 
 (def aitia-native-test
   (test-suite "Aitia Scheme-native C ABI"
@@ -47,7 +47,7 @@
                     "release/42/decide" "release/42/authorize"
                     "release/42/effect"))
         (check (hash-get plan "semanticOwner") => "lambda-aitia")
-        (check (hash-get plan "runtimeOwner") => "poo-flow")
+        (check (hash-get plan "runtimeOwner") => "agentic-ai-lab")
         (check (hash-get plan "releaseAuthorized") => #f)
         (check (hash-get plan "runtimeExecuted") => #f)))
     (test-case "Scheme remains the GitOps decision owner"

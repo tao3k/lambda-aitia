@@ -13,9 +13,9 @@
                  testing-interface-map-profile
                  testing-test-selector)
         :std/list/list
-        (only-in :poo-flow/src/module-system/observability/testing-extension
-                 make-poo-flow-testing-observability-profile
-                 poo-flow-testing-observability-extension))
+        (only-in :agentic-ai-lab/dev/modules/testing/testing-extension
+                 make-agentic-ai-lab-testing-observability-profile
+                 agentic-ai-lab-testing-observability-extension))
 
 (export +lambda-aitia-testing-interface+)
 
@@ -46,7 +46,7 @@
    +lambda-aitia-large-memory-selectors+))
 
 (def +lambda-aitia-testing-interface+
-  (poo-flow-testing-observability-extension
+  (agentic-ai-lab-testing-observability-extension
    (testing-interface-map-profile
     (testing-interface-map-profile
      +lambda-aitia-bounded-testing-interface+
@@ -54,5 +54,5 @@
      +testing-process-isolation-profile+)
     +lambda-aitia-source-admission-selector+
     +testing-serial-resource-profile+)
-   (make-poo-flow-testing-observability-profile
+   (make-agentic-ai-lab-testing-observability-profile
     'lambda-aitia/testing 5)))

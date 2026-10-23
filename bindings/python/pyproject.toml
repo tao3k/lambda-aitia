@@ -9,12 +9,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lambda-aitia"
 version = "0.1.0"
-description = "Production Python runtime for Lambda Aitia's Scheme-owned SDLC"
+description = "Production Python runtime for Lambda Aitia"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0 AND LGPL-2.1-or-later"
 license-files = ["LICENSE"]
-dependencies = ["cffi>=2.0"]
+dependencies = ["anyio>=4.14.1", "cffi>=2.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0", "setuptools>=77"]

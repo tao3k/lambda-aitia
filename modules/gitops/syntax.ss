@@ -5,8 +5,8 @@
 ;;; -*- Gerbil -*-
 ;;; Thin one-pattern projection to an ordinary POO Profile declaration.
 (import (only-in :clan/poo/object .def .ref)
-        :poo-flow/lambda-aitia/modules/gitops/types
-        :poo-flow/lambda-aitia/modules/gitops/objects)
+        :agentic-ai-lab/lambda-aitia/modules/gitops/types
+        :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export define-gitops-profile)
 (defrule (define-gitops-profile profile-name base
            environment: environment-value

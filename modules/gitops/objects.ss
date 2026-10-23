@@ -7,15 +7,15 @@
 ;;; evaluator strategy axis where provider/runtime specializers may combine.
 (import (only-in :clan/poo/object .def .o)
         (only-in :clan/poo/mop .defgeneric .new)
-        (only-in :poo-flow/src/module-system/poo-clos/interface
+        (only-in :agentic-ai-lab/core/poo-clos/interface
                  poo-clos-call
                  poo-clos-class
                  poo-clos-generic-function
                  poo-clos-generic-protocol
                  poo-clos-make-instance)
-        (only-in :poo-flow/src/module-system/contribution/objects
+        (only-in :agentic-ai-lab/core/contribution/objects
                  make-contribution)
-        :poo-flow/lambda-aitia/modules/gitops/types)
+        :agentic-ai-lab/lambda-aitia/modules/gitops/types)
 (export GitOpsEvaluator GitOpsDefaultEvaluator
         GitOpsEvaluationProtocol GitOpsEvaluationGeneric
         GitOpsProfile OpenGitOpsProfile GitOpsModule
@@ -71,6 +71,10 @@
     provider: provider-value event: event-value repository: repository-value
     revision: revision-value source-ref: source-ref-value
     target-ref: target-ref-value pull-request: pull-request-value))
-(def (gitops-check name-value repository-value revision-value conclusion-value)
+(def (gitops-check name-value repository-value revision-value conclusion-value
+                   standard-edition: (standard-edition #f)
+                   source-lock-digest: (source-lock-digest #f))
   (.new GitOpsCheck name: name-value repository: repository-value
-        revision: revision-value conclusion: conclusion-value))
+        revision: revision-value conclusion: conclusion-value
+        standard-edition: standard-edition
+        source-lock-digest: source-lock-digest))

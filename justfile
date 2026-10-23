@@ -10,7 +10,8 @@ self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
 export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", self_root + ":" + GERBIL_PATH + "/lib")
 native_root := GERBIL_PATH + "/native"
-native_library := native_root + "/libpoo_flow_aitia.dylib"
+native_library := native_root + "/libagentic_ai_lab_aitia.dylib"
+python_native_dir := self_root + "/bindings/python/src/lambda_aitia/_native"
 gerbil_env := if os() == "macos" { "env -u SDKROOT" } else { "env" }
 export UV_CACHE_DIR := env_var_or_default("UV_CACHE_DIR", self_root + "/.cache/uv")
 darwin_cc := if os() == "macos" { "/usr/bin/cc" } else { "cc" }
@@ -22,7 +23,7 @@ export MACOSX_DEPLOYMENT_TARGET := env_var_or_default("MACOSX_DEPLOYMENT_TARGET"
 default:
     @just --list
 
-# Build this Gerbil package against the installed POO Flow mechanisms.
+# Build this Gerbil package against the installed Agentic AI Lab mechanisms.
 [group('build')]
 build-scheme:
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
@@ -59,10 +60,53 @@ check-semantic:
     just test-scheme gitops
     just test-scheme modules
 
-# Build the Aitia-owned assurance laws independently of POO Flow's proof package.
+# Build the Aitia-owned assurance laws independently of Agentic AI Lab's proof package.
 [group('check')]
 check-proof:
-    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof
+    cd proof/lean && lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
+    cd proof/lean && output="$(lake env lean AxiomAudit.lean)" && printf '%s\n' "$output" && ! grep -q 'sorryAx' <<< "$output"
+
+# Quint 0.33.0 and its Apalache 0.62.1 TLC backend are explicit inputs.
+# The checker exhausts each bounded model and requires negative-control traces.
+[group('check')]
+check-quint module='all':
+    python3 proof/quint/check_contract.py '{{module}}'
+
+# Pinned Quint MBT traces, native Scheme execution, and explicit fault refusals.
+[group('check')]
+check-quint-scheme:
+    python3 proof/quint/check_scheme_replay.py
+
+# Complete reachable lifecycle states, named actions, and fault refusals.
+[group('check')]
+check-lifecycle-scheme: build-scheme
+    python3 proof/quint/test_lifecycle_replay.py
+    python3 proof/quint/check_lifecycle_replay.py
+
+# Every gate must run; none substitutes for semantic implementation refinement.
+[group('check')]
+check-formal:
+    just test-scheme-atomic formal retirement-binding-test.ss
+    just test-scheme-atomic formal retirement-execution-test.ss
+    just check-quint-scheme
+    just check-lifecycle-scheme
+    just check-quint
+    just check-proof
+
+# Refresh the in-place Python extension without rebuilding Agentic AI Lab.
+[group('dev')]
+dev-python:
+    test -f '{{ GERBIL_PATH }}/pkg/github.com/tao3k/orgize/bindings/c/include/orgize.h' || { echo 'Orgize C header missing from GERBIL_PATH; install the declared Agentic AI Lab Gerbil dependencies first' >&2; exit 1; }
+    just clean-python-cffi
+    cd bindings/python && {{ gerbil_env }} uv sync --locked --extra test
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python -c 'from lambda_aitia._native._aitia_cffi import ffi; ffi.typeof("orgize_element_row"); print("aitia-cffi-current")'
+
+# Remove only generated CFFI artifacts, not Python sources or the uv venv.
+[group('clean')]
+clean-python-cffi:
+    find '{{ python_native_dir }}' -maxdepth 1 -type f -name '_aitia_cffi.*' -delete
+    if test -d '{{ python_native_dir }}/_build_temp'; then find '{{ python_native_dir }}/_build_temp' -depth -delete; fi
 
 # Aitia owns its native ABI and Python Runtime checks.
 [group('check')]
@@ -77,9 +121,16 @@ check-native:
     '{{ native_root }}/aitia_dynamic_harness' '{{ native_library }}'
     just test-scheme bindings
     cd bindings/python && {{ gerbil_env }} uv lock --check
+    just clean-python-cffi
     cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py
     cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv run --locked --extra test pytest
     just build-python-wheel '{{ native_library }}'
+    just check-installed-wheel
+
+# Exercise the delivered wheel from a fresh environment outside the checkout.
+[group('check')]
+check-installed-wheel:
+    cd bindings/python && {{ gerbil_env }} uv run --locked --extra test pytest tests/installed_wheel_qualification.py
 
 # Build the production wheel from Aitia's locked uv environment. The preceding
 # sync makes the declared PEP 517 backend available without a second isolated
@@ -87,12 +138,12 @@ check-native:
 [group('build')]
 build-python-wheel native_library:
     test -f '{{ native_library }}'
-    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' env -u SDKROOT uv sync --locked --extra test
-    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' env -u SDKROOT uv build --wheel --offline --no-build-isolation
+    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv sync --locked --extra test
+    cd bindings/python && LAMBDA_AITIA_NATIVE_LIBRARY='{{ native_library }}' {{ gerbil_env }} uv build --wheel --offline --no-build-isolation
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-license-contract check-semantic check-proof test-integration check-native
+check: check-license-contract check-semantic check-proof check-quint test-integration check-native
 
 [group('check')]
 check-all: check

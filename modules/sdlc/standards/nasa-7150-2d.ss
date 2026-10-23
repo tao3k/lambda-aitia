@@ -3,13 +3,13 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/funs
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         (only-in :gerbil/runtime/hash list->hash-table-string))
-(export (import: :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile)
+(export (import: :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile)
         nasa-requirement-by-id nasa-matrix-invocation)
 
 ;;; Complete requirement index and matrix; execution and approvals remain separate.
@@ -125,7 +125,7 @@
                              ((eq? condition-value #t) 'applicable)
                              ((eq? condition-value #f) 'condition-not-triggered)
                              (else 'context-review-required))))
-    (.o kind: 'sdlc.applicability standard: "nasa/npr-7150.2d" requirement: identity-value
+    (.o kind: 'sdlc.applicability standard: "nasa/sdlc/npr-7150.2" requirement: identity-value
         software-class: class-value status: status-value invocation: invocation-value
         source-url: (.ref row 'source-url) section: (.ref row 'section)
         tailoring: 'not-approved assessment: 'not-evaluated)))

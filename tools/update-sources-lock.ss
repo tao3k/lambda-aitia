@@ -6,10 +6,10 @@
 
 (import (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :yuanxu/feature-system/source-lock-feature
                  sources-lock-freeze
                  write-sources-lock-module)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/sources)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/sources)
 
 (def arguments (cddr (command-line)))
 (def root (if (pair? arguments) (car arguments) "."))
@@ -19,7 +19,7 @@
 
 (def lock
   (sources-lock-freeze
-   "lambda-aitia/nasa-npr-7150.2d/sources"
+   "lambda-aitia/nasa/sdlc/npr-7150.2/D/sources"
    "2022-03-08"
    Nasa7150_2DSources
    read-source

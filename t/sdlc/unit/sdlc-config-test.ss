@@ -3,28 +3,30 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/load
-        :poo-flow/src/module-system/declaration/interface
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/lambda-aitia/modules/sdlc/config)
+        (only-in :yuanxu/module-system/selection/syntax
+                 agentic-ai-lab-modules!)
+        :yuanxu/module-system/selection/objects
+        (only-in :clan/poo/object .ref)
+        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/config)
 (def (selected . flags)
-  (sdlc-config (poo-flow-user-module-selection 'custom 'sdlc flags)))
+  (sdlc-config (agentic-ai-lab-user-module-selection 'custom 'sdlc flags)))
 (export sdlc-config-test)
 (def sdlc-config-test
   (test-suite "SDLC init selection projection"
-    (test-case "existing custom module syntax selects the standard"
-      (let* ((bundles (poo-flow-modules!
-                       :custom (sdlc @ "../lambda-aitia/modules/sdlc" +nasa-7150-2d)))
+    (test-case "custom SDLC module is standard-free"
+      (let* ((bundles (agentic-ai-lab-modules!
+                       :custom (sdlc @ "../lambda-aitia/modules/sdlc")))
              (selection (caar bundles))
              (contribution (sdlc-config selection))
              (standards (.ref (.ref contribution 'profile) 'standards)))
-        (check-equal? (poo-flow-user-module-selection-entrypoint selection)
+        (check-equal? (agentic-ai-lab-user-module-selection-entrypoint selection)
                       "../lambda-aitia/modules/sdlc/interface.ss")
-        (check-equal? (map (lambda (s) (.ref s 'identity)) standards) '("nasa/npr-7150.2d"))
+        (check-equal? standards '())
         (check-equal? (.ref (admit-contributions (list contribution) '()) 'accepted?) #t)))
     (test-case "no feature means no NASA selection"
       (check-equal? (.ref (.ref (selected) 'profile) 'standards) '()))
     (test-case "unsupported features and unrelated modules are rejected"
-      (check-exception (selected '+nasa-7150-2c) Error?)
-      (check-exception (selected '+nasa-7150-2d '+nasa-7150-2d) Error?)
-      (check-exception (sdlc-config (poo-flow-user-module-selection 'custom 'other '())) Error?))))
+      (check-exception (selected '+nasa) Error?)
+      (check-exception (selected '+npr-7150.2) Error?)
+      (check-exception (sdlc-config (agentic-ai-lab-user-module-selection 'custom 'other '())) Error?))))

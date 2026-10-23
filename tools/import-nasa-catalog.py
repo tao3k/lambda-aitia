@@ -44,7 +44,7 @@ for tr in tables[0].find_all('tr'):
 assert len(bodies)==130 and len(matrix)==100
 assert {k for k,v in bodies.items() if v['page']!='Chapter2'}==set(matrix)
 lines=[';;; Generated from official NODIS HTML; do not hand edit.',
- '(import :poo-flow/src/module-system/contribution/interface)',
+ '(import :agentic-ai-lab/src/module-system/contribution/interface)',
  '(export nasa-requirement-catalog nasa-catalog-source-digests)',
  '(def nasa-catalog-source-digests', '  (.o']
 for name in ['chapter2','chapter3','chapter4','chapter5','chapter6','appendix-c']:
@@ -55,7 +55,7 @@ lines += ['  ))', ''';;; One macro expansion for the whole catalog; rows remain 
          (page (list-ref row 2)) (excerpt (list-ref row 3))
          (parts (list-ref row 4)) (notes (list-ref row 5))
          (matrix (list-ref row 6))
-         (value (.o identity: id standard: "nasa/npr-7150.2d"
+         (value (.o identity: id standard: "nasa/sdlc/npr-7150.2"
                     section: section-value source-url: (string-append
                       "https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=" page)
                     source-excerpt: excerpt source-parts: parts source-notes: notes

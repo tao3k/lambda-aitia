@@ -8,11 +8,11 @@
                  JSONReadOptions json->string string->json)
         (only-in :clan/poo/object .ref)
         (only-in :gerbil/core call-with-output-string display-exception)
-        (only-in :poo-flow/lambda-aitia/user-interface/config
+        (only-in :agentic-ai-lab/lambda-aitia/user-interface/config
                  github-gitops-sdlc)
-        (only-in :poo-flow/lambda-aitia/modules/sdlc/funs
+        (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
                  sdlc-flow-plan)
-        (only-in :poo-flow/lambda-aitia/user-interface/scenarios/github-gitops
+        (only-in :agentic-ai-lab/lambda-aitia/user-interface/scenarios/github-gitops
                  github-change github-check github-run-gitops))
 
 (export aitia-abi-revision
@@ -67,7 +67,9 @@
 (def (json-check object repository revision)
   (github-check
    (json-symbol object "name") repository revision
-   (json-symbol object "conclusion")))
+   (json-symbol object "conclusion")
+   standard-edition: (hash-get object "standardEdition")
+   source-lock-digest: (hash-get object "sourceLockDigest")))
 
 (def (symbols->json values)
   (list->vector (map symbol->string values)))
@@ -110,7 +112,7 @@
          (staleChecks (symbols->json (.ref decision 'stale-checks)))
          (reasons (symbols->json (.ref decision 'reasons)))
          (semanticOwner "lambda-aitia")
-         (runtimeOwner "poo-flow")
+         (runtimeOwner "agentic-ai-lab")
          (authorityStatus "not-evaluated")
          (releaseAuthorized #f)
          (runtimeExecuted #f))))

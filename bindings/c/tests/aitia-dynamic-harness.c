@@ -27,10 +27,10 @@ typedef void *library_symbol;
 typedef uint32_t (*abi_revision_fn)(void);
 typedef int32_t (*runtime_init_fn)(void);
 typedef void (*runtime_shutdown_fn)(void);
-typedef int32_t (*descriptor_fn)(poo_flow_aitia_result *);
-typedef int32_t (*payload_operation_fn)(char *, poo_flow_aitia_result *);
-typedef void (*result_init_fn)(poo_flow_aitia_result *);
-typedef void (*result_release_fn)(poo_flow_aitia_result *);
+typedef int32_t (*descriptor_fn)(agentic_ai_lab_aitia_result *);
+typedef int32_t (*payload_operation_fn)(char *, agentic_ai_lab_aitia_result *);
+typedef void (*result_init_fn)(agentic_ai_lab_aitia_result *);
+typedef void (*result_release_fn)(agentic_ai_lab_aitia_result *);
 
 static int load_symbol(library_handle library, const char *name,
                        void *destination, size_t destination_size) {
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   payload_operation_fn sdlc_flow_plan;
   result_init_fn result_init;
   result_release_fn result_release;
-  poo_flow_aitia_result result;
+  agentic_ai_lab_aitia_result result;
   char plan_input[] = "{\"lifecycle-id\":\"release/42\"}";
 
   if (argc != 2) return 64;
@@ -69,19 +69,19 @@ int main(int argc, char **argv) {
     return 1;
   }
   native_phase("library-open-complete");
-  if (!load_symbol(library, "poo_flow_aitia_runtime_init", &runtime_init,
+  if (!load_symbol(library, "agentic_ai_lab_aitia_runtime_init", &runtime_init,
                    sizeof(runtime_init)) ||
-      !load_symbol(library, "poo_flow_aitia_runtime_shutdown",
+      !load_symbol(library, "agentic_ai_lab_aitia_runtime_shutdown",
                    &runtime_shutdown, sizeof(runtime_shutdown)) ||
-      !load_symbol(library, "poo_flow_aitia_abi_revision", &abi_revision,
+      !load_symbol(library, "agentic_ai_lab_aitia_abi_revision", &abi_revision,
                    sizeof(abi_revision)) ||
-      !load_symbol(library, "poo_flow_aitia_descriptor", &descriptor,
+      !load_symbol(library, "agentic_ai_lab_aitia_descriptor", &descriptor,
                    sizeof(descriptor)) ||
-      !load_symbol(library, "poo_flow_aitia_sdlc_flow_plan", &sdlc_flow_plan,
+      !load_symbol(library, "agentic_ai_lab_aitia_sdlc_flow_plan", &sdlc_flow_plan,
                    sizeof(sdlc_flow_plan)) ||
-      !load_symbol(library, "poo_flow_aitia_result_init", &result_init,
+      !load_symbol(library, "agentic_ai_lab_aitia_result_init", &result_init,
                    sizeof(result_init)) ||
-      !load_symbol(library, "poo_flow_aitia_result_release", &result_release,
+      !load_symbol(library, "agentic_ai_lab_aitia_result_release", &result_release,
                    sizeof(result_release))) {
     LIBRARY_CLOSE(library);
     return 2;
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
     return 3;
   }
   native_phase("runtime-init-complete");
-  if (abi_revision() != POO_FLOW_AITIA_ABI_REVISION) {
+  if (abi_revision() != AGENTIC_AI_LAB_AITIA_ABI_REVISION) {
     runtime_shutdown();
     LIBRARY_CLOSE(library);
     return 4;

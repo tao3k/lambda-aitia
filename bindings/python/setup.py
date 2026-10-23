@@ -44,9 +44,9 @@ class BuildPyWithAitiaLibrary(build_py):
     def run(self) -> None:
         super().run()
         library_name = {
-            "Darwin": "libpoo_flow_aitia.dylib",
-            "Windows": "poo_flow_aitia.dll",
-        }.get(platform.system(), "libpoo_flow_aitia.so")
+            "Darwin": "libagentic_ai_lab_aitia.dylib",
+            "Windows": "agentic_ai_lab_aitia.dll",
+        }.get(platform.system(), "libagentic_ai_lab_aitia.so")
         target = Path(self.build_lib) / "lambda_aitia" / "_native" / "lib"
         target.mkdir(parents=True, exist_ok=True)
         shutil.copy2(_native_library(), target / library_name)
