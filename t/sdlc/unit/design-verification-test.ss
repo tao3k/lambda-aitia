@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :core/feature-system/source-lock-feature
+        (only-in :yuanxu/feature-system/source-lock-feature
                  source-lock-payload-digest)
         :agentic-ai-lab/lambda-aitia/modules/assurance/interface
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)

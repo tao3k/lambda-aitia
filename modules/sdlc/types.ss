@@ -3,8 +3,8 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref .slot? object?)
-        (only-in :core/poo-clos/model poo-clos-model?)
-        (only-in :core/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition)
+        (only-in :yuanxu/poo-clos/model poo-clos-model?)
+        (only-in :yuanxu/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition)
         (only-in :agentic-ai-lab/modules/governance/types
                  agentic-ai-lab-governance-profile?)
         :std/list/list

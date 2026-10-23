@@ -7,10 +7,10 @@
         (only-in :clan/poo/object .ref)
         (only-in :agentic-ai-lab/modules/workflow/scenario/case
                  agentic-ai-lab-scenario-case?)
-        (only-in :core/module-system/selection/objects
+        (only-in :yuanxu/module-system/selection/objects
                  agentic-ai-lab-user-module-selection-flags
                  agentic-ai-lab-user-module-selection-key)
-        (only-in :core/profile-composition/user-profile
+        (only-in :yuanxu/profile-composition/user-profile
                  agentic-ai-lab-user-profile-modules)
         (only-in :agentic-ai-lab/modules/proof/interface
                  agentic-ai-lab-proof-module?)

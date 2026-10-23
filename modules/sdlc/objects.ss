@@ -5,7 +5,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.)
-        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
 (export StandardProfile. SdlcProfile)
 (def StandardProfile.

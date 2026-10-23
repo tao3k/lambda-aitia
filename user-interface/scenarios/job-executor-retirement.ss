@@ -3,7 +3,7 @@
 
 ;;; Synthetic qualification facts, not observations from a production service.
 ;;; Algorithms and receipt authority stay with Agentic AI Lab's public owners.
-(import (only-in :core/graph/types
+(import (only-in :yuanxu/graph/types
                  agentic-ai-lab-graph agentic-ai-lab-graph-node agentic-ai-lab-graph-edge)
         (only-in :agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-temporal-observation agentic-ai-lab-causal-event

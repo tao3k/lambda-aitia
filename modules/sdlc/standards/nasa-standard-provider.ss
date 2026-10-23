@@ -10,7 +10,7 @@
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :core/feature-system/source-lock-feature
+        (only-in :yuanxu/feature-system/source-lock-feature
                  require-source-lock-payload)
         (only-in :agentic-ai-lab/modules/standards/interface
                  AgenticAILabStandardValidationProvider.

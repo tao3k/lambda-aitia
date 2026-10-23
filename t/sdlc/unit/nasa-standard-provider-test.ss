@@ -9,7 +9,7 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :std/test check-equal? check-exception test-case test-suite)
         (only-in :gerbil/core string-suffix?)
-        (only-in :core/feature-system/interface
+        (only-in :yuanxu/feature-system/interface
                  sources-lock-freeze
                  write-sources-lock-module)
         (only-in :agentic-ai-lab/modules/standards/interface

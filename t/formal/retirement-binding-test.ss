@@ -4,7 +4,7 @@
 (import :std/test
         (only-in :std/misc/ports read-all-as-string)
         (only-in :clan/poo/object .ref)
-        (only-in :core/feature-system/source-lock-feature source-lock-payload-digest)
+        (only-in :yuanxu/feature-system/source-lock-feature source-lock-payload-digest)
         :agentic-ai-lab/lambda-aitia/modules/assurance/interface
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
         :agentic-ai-lab/lambda-aitia/user-interface/scenarios/job-retirement-contract)

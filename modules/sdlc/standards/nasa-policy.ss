@@ -4,7 +4,7 @@
 
 ;;; NPR 7150.2D project/institution baseline policy construction.
 (import (only-in :clan/poo/object .o .ref)
-        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog

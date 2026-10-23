@@ -4,7 +4,7 @@
 
 ;;; Legacy module-selection projection is standard-free. The NASA Standard is
 ;;; selected through its own typed nasa/sdlc Module Profile, not an SDLC flag.
-(import :core/module-system/selection/objects
+(import :yuanxu/module-system/selection/objects
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
         :agentic-ai-lab/lambda-aitia/modules/sdlc/funs

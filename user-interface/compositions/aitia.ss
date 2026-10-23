@@ -9,7 +9,7 @@
 (import (only-in :clan/poo/object .o)
         (only-in :agentic-ai-lab/core/module-system/schema/relations
                  agentic-ai-lab-semantic-identity)
-        (only-in :core/module-system/authoring/roles agentic-ai-lab-semantic-module)
+        (only-in :yuanxu/module-system/authoring/roles agentic-ai-lab-semantic-module)
         (only-in :agentic-ai-lab/core/profile-composition/profile-bundle
                  agentic-ai-lab-profile-export agentic-ai-lab-module-profiles
                  profiles compose)

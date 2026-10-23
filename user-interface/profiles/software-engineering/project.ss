@@ -7,10 +7,10 @@
 ;;; Invariant: the Profile selects Aitia knowledge and obligations only; module
 ;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
-(import (only-in :core/module-system/selection/objects
+(import (only-in :yuanxu/module-system/selection/objects
                  agentic-ai-lab-settings
                  agentic-ai-lab-user-module-selection)
-        (only-in :core/profile-composition/user-profile
+        (only-in :yuanxu/profile-composition/user-profile
                  agenticAiLabUserProfile))
 
 (export default-software-engineering-project)

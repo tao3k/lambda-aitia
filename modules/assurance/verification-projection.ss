@@ -9,7 +9,7 @@
 (import (only-in :clan/poo/object .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        (only-in :core/graph/types
+        (only-in :yuanxu/graph/types
                  agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
         :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 

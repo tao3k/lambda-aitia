@@ -14,7 +14,7 @@
                  agentic-ai-lab-verification-adapter agentic-ai-lab-verify
                  agentic-ai-lab-verification-valid?
                  agentic-ai-lab-revoke-verification!)
-        (only-in :core/feature-system/source-lock-feature
+        (only-in :yuanxu/feature-system/source-lock-feature
                  source-lock-payload-digest)
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
                  agentic-ai-lab-cedar-runtime-handoff?

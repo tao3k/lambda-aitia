@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .ref)
-        :core/module-system/selection/objects
+        :yuanxu/module-system/selection/objects
         (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/interface
                  assurance-decision?)
         :agentic-ai-lab/lambda-aitia/modules/ADR/interface)

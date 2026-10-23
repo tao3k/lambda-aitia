@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-(import :core/module-system/selection/objects
+(import :yuanxu/module-system/selection/objects
         :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export gitops-config)
 (def (gitops-config selection)

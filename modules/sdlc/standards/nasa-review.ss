@@ -4,7 +4,7 @@
 
 ;;; Source-bound review across every catalog requirement. No authority execution.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d

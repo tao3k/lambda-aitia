@@ -3,10 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref)
-        (only-in :core/graph/algorithms
+        (only-in :yuanxu/graph/algorithms
                  agentic-ai-lab-graph-cycle-path
                  agentic-ai-lab-graph-topological-order)
-        (only-in :core/graph/types
+        (only-in :yuanxu/graph/types
                  agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
         (only-in :agentic-ai-lab/modules/governance/funs
                  agentic-ai-lab-governance-contribution)

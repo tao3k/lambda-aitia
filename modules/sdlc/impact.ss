@@ -7,7 +7,7 @@
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :std/list/list
         :gerbil/core
-        (only-in :core/graph/types
+        (only-in :yuanxu/graph/types
                  agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
         (only-in :agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze))

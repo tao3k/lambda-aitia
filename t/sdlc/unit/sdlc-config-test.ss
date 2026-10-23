@@ -3,9 +3,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        (only-in :core/module-system/selection/syntax
+        (only-in :yuanxu/module-system/selection/syntax
                  agentic-ai-lab-modules!)
-        :core/module-system/selection/objects
+        :yuanxu/module-system/selection/objects
         (only-in :clan/poo/object .ref)
         (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/config)

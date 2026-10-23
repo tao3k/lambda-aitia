@@ -4,7 +4,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :core/graph/types
+        (only-in :yuanxu/graph/types
                  agentic-ai-lab-graph? agentic-ai-lab-graph-edges agentic-ai-lab-graph-nodes)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
 

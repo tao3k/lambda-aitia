@@ -8,7 +8,7 @@
         (only-in :gerbil/core list-sort string->utf8)
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
-        (only-in :core/graph/algorithms
+        (only-in :yuanxu/graph/algorithms
                  agentic-ai-lab-graph-cycle-path
                  agentic-ai-lab-graph-loop-analysis-receipt
                  agentic-ai-lab-graph-reachable-ids

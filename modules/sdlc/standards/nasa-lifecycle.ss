@@ -4,8 +4,8 @@
 
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :core/contribution/verification
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-policy
                  nasa-stage-policy

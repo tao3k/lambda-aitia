@@ -12,7 +12,7 @@
         (only-in :agentic-ai-lab/modules/workflow/scenario/composition-syntax user-composition)
         (only-in :agentic-ai-lab/core/module-system/schema/relations
                  agentic-ai-lab-semantic-identity)
-        (only-in :core/module-system/authoring/roles agentic-ai-lab-semantic-module)
+        (only-in :yuanxu/module-system/authoring/roles agentic-ai-lab-semantic-module)
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/github/actions
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/dev
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/staging

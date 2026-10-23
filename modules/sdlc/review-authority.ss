@@ -1,8 +1,8 @@
 ;;; -*- Gerbil -*-
 ;;; Native SDLC authority review. Technical success and authority are separate.
 (import :clan/poo/object :std/list/list
-        (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype poo-clos-model?)
-        (only-in :core/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition) :core/contribution/verification
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype poo-clos-model?)
+        (only-in :yuanxu/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition) :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
 (export SdlcHistorySource SdlcHistoryDiscovery sdlc-history-source sdlc-history-discovery
         sdlc-history-request sdlc-review-approval sdlc-approval-request

@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .ref .slot?)
         (only-in :clan/poo/mop .new validate)
         :std/list/list
-        (only-in :core/utilities/algorithms
+        (only-in :yuanxu/utilities/algorithms
                  agentic-ai-lab-make-value-index agentic-ai-lab-value-index-put!
                  agentic-ai-lab-value-index-ref)
         :agentic-ai-lab/core/poo-clos/interface

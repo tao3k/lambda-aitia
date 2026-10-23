@@ -6,7 +6,7 @@
         (only-in :agentic-ai-lab/core/module-system/source/objects
                  agentic-ai-lab-module-source-ref-metadata
                  agentic-ai-lab-module-source-ref-value)
-        (only-in :core/module-system/source/collection make-agentic-ai-lab-contribution-module-source agentic-ai-lab-module-source-collection-interfaces))
+        (only-in :yuanxu/module-system/source/collection make-agentic-ai-lab-contribution-module-source agentic-ai-lab-module-source-collection-interfaces))
 
 (export lambda-aitia-source-collection-test)
 
