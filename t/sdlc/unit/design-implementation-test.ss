@@ -4,8 +4,8 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .ref)
-        :poo-flow/lambda-aitia/modules/assurance/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
 
 (export design-implementation-test)
 

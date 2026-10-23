@@ -8,9 +8,9 @@
 ;;; standard modules and do not enter the Profile import closure.
 
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        (only-in :poo-flow/lambda-aitia/modules/sdlc/standards/sources
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/sources
                  Nasa7150_2DSourcesLock))
 (export Nasa7150_2D)
 

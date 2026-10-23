@@ -44,7 +44,7 @@ for tr in tables[0].find_all('tr'):
 assert len(bodies)==130 and len(matrix)==100
 assert {k for k,v in bodies.items() if v['page']!='Chapter2'}==set(matrix)
 lines=[';;; Generated from official NODIS HTML; do not hand edit.',
- '(import :poo-flow/src/module-system/contribution/interface)',
+ '(import :agentic-ai-lab/src/module-system/contribution/interface)',
  '(export nasa-requirement-catalog nasa-catalog-source-digests)',
  '(def nasa-catalog-source-digests', '  (.o']
 for name in ['chapter2','chapter3','chapter4','chapter5','chapter6','appendix-c']:

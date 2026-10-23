@@ -6,7 +6,7 @@
 ;;; Host. The callback counter is an actual handoff result, not model metadata.
 (import :std/test
         (only-in :clan/poo/object .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/retirement-host)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/retirement-host)
 (export retirement-execution-test)
 
 (def (accepted? result) (.ref result 'accepted?))

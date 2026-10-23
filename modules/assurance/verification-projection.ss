@@ -3,15 +3,15 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Aitia owns the meaning of obligation dependencies; POO Flow owns Graph
+;;; Aitia owns the meaning of obligation dependencies; Agentic AI Lab owns Graph
 ;;; ordering, reachability and cycle algorithms. No verifier runs here.
 
 (import (only-in :clan/poo/object .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
         (only-in :core/graph/types
-                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        :poo-flow/lambda-aitia/modules/assurance/types)
+                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-verification-dependency-graph)
 
@@ -56,18 +56,18 @@
            (map
             (lambda (entry)
               (map (lambda (prerequisite)
-                     (poo-flow-graph-edge prerequisite (car entry)
+                     (agentic-ai-lab-graph-edge prerequisite (car entry)
                                           'depends-on))
                    (filter (lambda (prerequisite)
                              (member prerequisite ids))
                            (cdr entry))))
             prerequisites)))
          (graph-value
-          (poo-flow-graph
+          (agentic-ai-lab-graph
            (string-append (.ref snapshot 'graph-identity) "/verification")
-           (map poo-flow-graph-node ids)
+           (map agentic-ai-lab-graph-node ids)
            edges
            (list (cons 'semantic-owner 'lambda-aitia)
-                 (cons 'graph-owner 'poo-flow)
+                 (cons 'graph-owner 'agentic-ai-lab)
                  (cons 'purpose 'verification-dependencies)))))
     (values graph-value prerequisites)))

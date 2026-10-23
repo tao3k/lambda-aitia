@@ -4,14 +4,14 @@
 
 ;;; -*- Gerbil -*-
 (import :core/module-system/selection/objects
-        :poo-flow/lambda-aitia/modules/gitops/objects)
+        :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export gitops-config)
 (def (gitops-config selection)
-  (unless (and (poo-flow-user-module-selection? selection)
-               (equal? (poo-flow-user-module-selection-key selection)
+  (unless (and (agentic-ai-lab-user-module-selection? selection)
+               (equal? (agentic-ai-lab-user-module-selection-key selection)
                        '(custom . gitops)))
     (error "expected a custom/gitops selection"))
-  (let (flags (poo-flow-user-module-selection-flags selection))
+  (let (flags (agentic-ai-lab-user-module-selection-flags selection))
     (unless (or (null? flags) (equal? flags '(+open-gitops)))
       (error "unsupported GitOps feature" flags))
     GitOpsModule))

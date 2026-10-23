@@ -9,15 +9,15 @@
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
         (only-in :core/graph/algorithms
-                 poo-flow-graph-cycle-path
-                 poo-flow-graph-loop-analysis-receipt
-                 poo-flow-graph-reachable-ids
-                 poo-flow-graph-topological-order)
-        :poo-flow/core/poo-clos/interface
-        :poo-flow/lambda-aitia/modules/assurance/types
-        (only-in :poo-flow/lambda-aitia/modules/assurance/invalidation-projection
+                 agentic-ai-lab-graph-cycle-path
+                 agentic-ai-lab-graph-loop-analysis-receipt
+                 agentic-ai-lab-graph-reachable-ids
+                 agentic-ai-lab-graph-topological-order)
+        :agentic-ai-lab/core/poo-clos/interface
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/invalidation-projection
                  assurance-invalidation-analysis assurance-invalidation-graph)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/verification-projection
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/verification-projection
                  assurance-verification-dependency-graph))
 
 (export assurance-node-canonical assurance-relation-canonical
@@ -802,13 +802,13 @@
                   (assurance-verification-dependency-graph
                    snapshot obligation-ids)))
       (let* ((cycle-path
-              (or (poo-flow-graph-cycle-path dependency-graph) '()))
+              (or (agentic-ai-lab-graph-cycle-path dependency-graph) '()))
              (cyclic-components
-              (.ref (poo-flow-graph-loop-analysis-receipt dependency-graph)
+              (.ref (agentic-ai-lab-graph-loop-analysis-receipt dependency-graph)
                     'cyclic-components))
              (cyclic-ids (concatenate cyclic-components))
              (cycle-blocked
-              (poo-flow-graph-reachable-ids dependency-graph cyclic-ids))
+              (agentic-ai-lab-graph-reachable-ids dependency-graph cyclic-ids))
              (base-blockers
               (map
                (lambda (obligation-id)
@@ -820,7 +820,7 @@
                    (cdr (assoc obligation-id prerequisites)) obligation-ids)))
                obligation-ids))
              (blocked-closure
-              (poo-flow-graph-reachable-ids
+              (agentic-ai-lab-graph-reachable-ids
                dependency-graph
                (append cycle-blocked
                        (map car (filter (lambda (entry) (cdr entry))
@@ -832,11 +832,11 @@
               (let-values (((available-graph _)
                             (assurance-verification-dependency-graph
                              snapshot available-ids)))
-                (poo-flow-graph-topological-order available-graph)))
+                (agentic-ai-lab-graph-topological-order available-graph)))
              (blocked-order
               (filter (lambda (id) (member id blocked-closure))
                       (if (null? cycle-path)
-                        (poo-flow-graph-topological-order dependency-graph)
+                        (agentic-ai-lab-graph-topological-order dependency-graph)
                         obligation-ids)))
              (ordered-ids (append available-order blocked-order))
              (requests

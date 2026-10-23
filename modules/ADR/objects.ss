@@ -4,16 +4,16 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
-        :poo-flow/core/poo-clos/interface
-        (only-in :poo-flow/modules/governance/objects
-                 PooFlowGovernanceProfile.
-                 poo-flow-governance-source)
-        :poo-flow/lambda-aitia/modules/ADR/types)
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/modules/governance/objects
+                 AgenticAILabGovernanceProfile.
+                 agentic-ai-lab-governance-source)
+        :agentic-ai-lab/lambda-aitia/modules/ADR/types)
 
 (export ADRProfile ADR-link ADR-option ADR-consequence ADR-record)
 
 (def ADRProfile
-  (.o (:: @ PooFlowGovernanceProfile.) identity: "lambda-aitia/ADR"
+  (.o (:: @ AgenticAILabGovernanceProfile.) identity: "lambda-aitia/ADR"
       revision: "1" owner: "lambda-aitia"
       module-family: 'ADR
       ontology: (.o decision-label: 'Decision reference-edge: 'REFERENCES
@@ -27,7 +27,7 @@
                     authority: (.o accepted-is-authority?: #f
                                    effect-authorization: 'separate-receipt))
       source-assets:
-      (list (poo-flow-governance-source
+      (list (agentic-ai-lab-governance-source
              "ADR/expired-reference-witnesses"
              "modules/ADR/expired-references.gql" 'gql))))
 

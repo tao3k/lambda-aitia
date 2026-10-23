@@ -29,10 +29,10 @@ typedef void *lambda_aitia_symbol;
 typedef uint32_t (*lambda_aitia_revision_fn)(void);
 typedef int32_t (*lambda_aitia_runtime_init_fn)(void);
 typedef void (*lambda_aitia_runtime_shutdown_fn)(void);
-typedef void (*lambda_aitia_result_init_fn)(poo_flow_aitia_result *);
-typedef void (*lambda_aitia_result_release_fn)(poo_flow_aitia_result *);
-typedef int32_t (*lambda_aitia_descriptor_fn)(poo_flow_aitia_result *);
-typedef int32_t (*lambda_aitia_evaluate_fn)(char *, poo_flow_aitia_result *);
+typedef void (*lambda_aitia_result_init_fn)(agentic_ai_lab_aitia_result *);
+typedef void (*lambda_aitia_result_release_fn)(agentic_ai_lab_aitia_result *);
+typedef int32_t (*lambda_aitia_descriptor_fn)(agentic_ai_lab_aitia_result *);
+typedef int32_t (*lambda_aitia_evaluate_fn)(char *, agentic_ai_lab_aitia_result *);
 typedef uint32_t (*orgize_revision_fn)(void);
 typedef int32_t (*orgize_evaluate_fn)(const orgize_element_row *, uint32_t,
                                       int64_t, const char *, const char *,
@@ -102,24 +102,24 @@ lambda_aitia_python_session *lambda_aitia_python_open(
     lambda_aitia_write_error(error, error_capacity, lambda_aitia_loader_error());
     goto fail_session;
   }
-  if (!lambda_aitia_load_symbol(session->library, "poo_flow_aitia_abi_revision",
+  if (!lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_abi_revision",
                                 &revision, sizeof(revision)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_runtime_init",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_runtime_init",
                                 &runtime_init, sizeof(runtime_init)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_runtime_shutdown",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_runtime_shutdown",
                                 &session->runtime_shutdown,
                                 sizeof(session->runtime_shutdown)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_result_init",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_result_init",
                                 &session->result_init, sizeof(session->result_init)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_result_release",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_result_release",
                                 &session->result_release,
                                 sizeof(session->result_release)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_descriptor",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_descriptor",
                                 &session->descriptor, sizeof(session->descriptor)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_sdlc_flow_plan",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_sdlc_flow_plan",
                                 &session->sdlc_flow_plan,
                                 sizeof(session->sdlc_flow_plan)) ||
-      !lambda_aitia_load_symbol(session->library, "poo_flow_aitia_gitops_evaluate",
+      !lambda_aitia_load_symbol(session->library, "agentic_ai_lab_aitia_gitops_evaluate",
                                 &session->evaluate, sizeof(session->evaluate))) {
     lambda_aitia_write_error(error, error_capacity,
                              "Lambda Aitia ABI symbol is absent");
@@ -130,7 +130,7 @@ lambda_aitia_python_session *lambda_aitia_python_open(
                              "Lambda Aitia runtime initialization failed");
     goto fail_library;
   }
-  if (revision() != POO_FLOW_AITIA_ABI_REVISION) {
+  if (revision() != AGENTIC_AI_LAB_AITIA_ABI_REVISION) {
     lambda_aitia_write_error(error, error_capacity,
                              "Lambda Aitia ABI revision mismatch");
     session->runtime_shutdown();
@@ -161,7 +161,7 @@ int lambda_aitia_python_session_call(
     lambda_aitia_python_session *session, const char *operation,
     const uint8_t *payload, size_t payload_length, uint8_t **output,
     size_t *output_length, char *error, size_t error_capacity) {
-  poo_flow_aitia_result result;
+  agentic_ai_lab_aitia_result result;
   char *input = NULL;
   int32_t status;
 

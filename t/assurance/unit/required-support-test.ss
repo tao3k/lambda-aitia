@@ -6,9 +6,9 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/core/poo-clos/interface
+        (only-in :agentic-ai-lab/core/poo-clos/interface
                  poo-clos-model-prototype)
-        :poo-flow/lambda-aitia/modules/assurance/interface)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 
 (export required-support-test)
 

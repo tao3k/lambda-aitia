@@ -9,7 +9,7 @@
         (only-in :core/feature-system/source-lock-feature
                  sources-lock-freeze
                  write-sources-lock-module)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/sources)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/sources)
 
 (def arguments (cddr (command-line)))
 (def root (if (pair? arguments) (car arguments) "."))

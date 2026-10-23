@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        (only-in :poo-flow/lambda-aitia/modules/assurance/interface
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/interface
                  assurance-claim? assurance-node-canonical
                  assurance-relation? assurance-snapshot-canonical?
                  assurance-verification-subject?
@@ -16,8 +16,8 @@
                  assurance-host-source-current?
                  assurance-host-admitted-support?
                  assurance-host-required-support)
-        :poo-flow/lambda-aitia/modules/sdlc/design
-        :poo-flow/lambda-aitia/modules/sdlc/implementation)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/design
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/implementation)
 
 (export sdlc-design-guarantee-support-review)
 

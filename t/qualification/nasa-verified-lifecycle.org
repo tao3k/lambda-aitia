@@ -24,7 +24,7 @@ their selected requirements. Mixed project/institutional policies fail.
 flowchart LR
   A["POO project and evidence snapshots"] --> B["NASA verification request"]
   B --> C["Host configured verification operation"]
-  C --> D["POO Flow session receipt issuance"]
+  C --> D["Agentic AI Lab session receipt issuance"]
   D --> E["NASA current snapshot and expiry checks"]
   A --> E
   E --> F["Cumulative stage decision"]
@@ -50,7 +50,7 @@ contains no default approval callback.
 
 * Native qualification
 
-The Lambda Aitia vertical now also closes over POO Flow's domain-neutral
+The Lambda Aitia vertical now also closes over Agentic AI Lab's domain-neutral
 Standards protocol. The focused Provider test proves that exact resolution
 selects one edition and six source references without source I/O, explicit
 materialization admits 198,644 source bytes only after content identity checks,
@@ -72,7 +72,7 @@ commands. Final totals and warm measurements follow below. The complete 100- and
 named synthetic verifiers and all source-paragraph records; missing evidence
 and revoked receipts independently block those baselines.
 
-Current reproduction from the containing POO Flow checkout:
+Current reproduction from the containing Agentic AI Lab checkout:
 
 #+begin_src sh
 just check-contribute lambda-aitia sdlc
@@ -117,7 +117,7 @@ silently recomputed from the newer child-only run.
 
 | Lane | Native checks | Result |
 |---+---+---|
-| POO Flow contribution contract/build/testing/model/verification | 50 | passed |
+| Agentic AI Lab contribution contract/build/testing/model/verification | 50 | passed |
 | Independent contribution unit | 448 | passed |
 | Independent contribution user-interface | 78 | passed |
 | Independent contribution source | 12 | passed |

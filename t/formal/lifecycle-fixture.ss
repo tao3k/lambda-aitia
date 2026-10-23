@@ -6,9 +6,9 @@
 ;;; token / reservation APIs. It never imports model expected states.
 ;;; Configured local runtime callbacks are controls, not a native Cedar proof.
 (import :std/test (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/assurance/interface
-        (only-in :poo-flow/modules/authorization/providers/cedar/interface
-                 poo-flow-cedar-decision poo-flow-cedar-runtime-handoff))
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
+                 agentic-ai-lab-cedar-decision agentic-ai-lab-cedar-runtime-handoff))
 (export make-lifecycle-fixture lifecycle-action! lifecycle-state
         lifecycle-get lifecycle-set! lifecycle-cut)
 
@@ -77,7 +77,7 @@
           (increment! fixture 'authorization-calls)
           (when (lifecycle-get fixture 'authorization-hook)
             ((lifecycle-get fixture 'authorization-hook)))
-          (poo-flow-cedar-decision "local-runtime-decision" (lifecycle-get fixture 'policy-mode)
+          (agentic-ai-lab-cedar-decision "local-runtime-decision" (lifecycle-get fixture 'policy-mode)
             "policy" digest-a digest-b '()))
         (lambda (request token)
           (increment! fixture 'delivery-calls)
@@ -126,7 +126,7 @@
          (if preflight #t #f)))
       ((Authorize UnsafeEarlyGrant)
        (let* ((request (assurance-host-cedar-request vh (lifecycle-get fixture 'preflight)
-                         (string-copy "Release") (string-copy digest-a) (poo-flow-cedar-runtime-handoff
+                         (string-copy "Release") (string-copy digest-a) (agentic-ai-lab-cedar-runtime-handoff
                                               1 #u8(1) digest-a digest-a digest-b digest-b)))
               (grant (and request (assurance-effect-host-authorize! rh vh request))))
          (when grant

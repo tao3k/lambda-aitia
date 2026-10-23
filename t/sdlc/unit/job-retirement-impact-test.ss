@@ -3,21 +3,21 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :core/graph/types poo-flow-graph-id)
-        (only-in :poo-flow/modules/temporal-causality/interface
-                 poo-flow-structural-impact-analyze
-                 poo-flow-causal-cut poo-flow-temporal-causal-classify)
-        :poo-flow/lambda-aitia/user-interface/scenarios/job-executor-retirement)
+        (only-in :core/graph/types agentic-ai-lab-graph-id)
+        (only-in :agentic-ai-lab/modules/temporal-causality/interface
+                 agentic-ai-lab-structural-impact-analyze
+                 agentic-ai-lab-causal-cut agentic-ai-lab-temporal-causal-classify)
+        :agentic-ai-lab/lambda-aitia/user-interface/scenarios/job-executor-retirement)
 
 (export job-retirement-impact-test)
 
 (def (impact graph (complete? #t))
-  (poo-flow-structural-impact-analyze
+  (agentic-ai-lab-structural-impact-analyze
    graph '(automatic-retry) job-retirement-relations 'dependents complete?))
 
 (def (classify graph)
-  (poo-flow-temporal-causal-classify
-   graph (poo-flow-causal-cut graph 4) "retry-enabled" 7))
+  (agentic-ai-lab-temporal-causal-classify
+   graph (agentic-ai-lab-causal-cut graph 4) "retry-enabled" 7))
 
 (def job-retirement-impact-test
   (test-suite "Job-executor retirement Impact qualification"
@@ -41,7 +41,7 @@
     (test-case "candidate graph cannot turn missing retired identity into no impact"
       (let (before (impact job-retirement-before))
         (check-exception (impact job-retirement-candidate) true)
-        (check (poo-flow-graph-id job-retirement-before)
+        (check (agentic-ai-lab-graph-id job-retirement-before)
                => 'job-executor/before-retirement)
         (check (.ref (impact job-retirement-before) 'affected-node-ids)
                => (.ref before 'affected-node-ids))))
@@ -50,7 +50,7 @@
         (check (.ref receipt 'status) => 'partial-impact)
         (check (.ref receipt 'release-authorized?) => #f)))
     (test-case "past occurrence and current activity remain separate facts"
-      (let* ((cut (poo-flow-causal-cut job-retirement-event-graph 4))
+      (let* ((cut (agentic-ai-lab-causal-cut job-retirement-event-graph 4))
              (receipt (classify job-retirement-event-graph)))
         (check (.ref receipt 'past-event-ids)
                => '("retry-enabled" "historical-result" "job-started"))
@@ -66,8 +66,8 @@
         (check (.ref receipt 'assurance-closed?) => #f)
         (check (.ref receipt 'runtime-executed?) => #f)))
     (test-case "later review does not rewrite the earlier historical cut"
-      (let* ((old (poo-flow-causal-cut job-retirement-event-graph 2))
-             (current (poo-flow-causal-cut job-retirement-event-graph 4))
+      (let* ((old (agentic-ai-lab-causal-cut job-retirement-event-graph 2))
+             (current (agentic-ai-lab-causal-cut job-retirement-event-graph 4))
              (old-events (.ref old 'events))
              (historical (cadr old-events)))
         (check (map (lambda (event) (.ref event 'identity)) old-events)
@@ -85,7 +85,7 @@
         (check (.ref receipt 'release-authorized?) => #f)))
     (test-case "a proposal cannot be promoted to the observed change trigger"
       (check-exception
-       (poo-flow-temporal-causal-classify
-        job-retirement-event-graph (poo-flow-causal-cut job-retirement-event-graph 4)
+       (agentic-ai-lab-temporal-causal-classify
+        job-retirement-event-graph (agentic-ai-lab-causal-cut job-retirement-event-graph 4)
         "retire-retry" 7)
        true))))

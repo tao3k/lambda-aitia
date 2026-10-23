@@ -56,5 +56,5 @@ This receipt supports a candidate dynamic lifecycle contract. It does not
 promote a reported result to admitted evidence, establish a trusted Host
 adapter/clock, cryptographically bind a Runtime grant, or close Phase 5.
 Unconditional progress, counterfactual transition authority, source-bound CI
-replay, and the executable Host handoff remain open. The existing POO Flow Cedar
+replay, and the executable Host handoff remain open. The existing Agentic AI Lab Cedar
 =governance_admitted= field is not an Aitia evidence-admission decision.

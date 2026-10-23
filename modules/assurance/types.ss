@@ -4,7 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/core/poo-clos/interface
+        :agentic-ai-lab/core/poo-clos/interface
         :std/list/list)
 
 (export assurance-text? assurance-digest?
@@ -486,7 +486,7 @@
           (enum-slot 'verifier-executed? (one-of '(#f)))
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
-;;; Exact subject for a Host-owned POO Flow verification adapter.  No
+;;; Exact subject for a Host-owned Agentic AI Lab verification adapter.  No
 ;;; caller-authored presentation slot is an execution attestation by itself.
 (def AssuranceVerificationSubject
   (poo-clos-class 'aitia/verification-subject

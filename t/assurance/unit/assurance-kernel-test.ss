@@ -7,9 +7,9 @@
         (only-in :std/error Error?)
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/core/contribution/verification
-                 poo-flow-verification-adapter poo-flow-verify)
-        :poo-flow/lambda-aitia/modules/assurance/interface)
+        (only-in :agentic-ai-lab/core/contribution/verification
+                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 
 (export assurance-kernel-test)
 
@@ -126,11 +126,11 @@
    inputs: (list (assurance-verifier-input artifact))
    output-digest: digest-b))
 (def support-adapter
-  (poo-flow-verification-adapter
+  (agentic-ai-lab-verification-adapter
    "test/kernel-support" (lambda (subject-value now-value until-value) #t)
    assurance-verification-subject-snapshot))
 (def support-receipt
-  (poo-flow-verify
+  (agentic-ai-lab-verify
    support-adapter
    (assurance-verification-subject
     full-software-snapshot current-obligation evidence support-outcome)

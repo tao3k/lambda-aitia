@@ -14,16 +14,16 @@
 * Source cut
 
 - Aitia base: =9ea6385de909bcde784132532e1e3db7a99a53e4=.
-- POO Flow verification owner: =90d1c79f474f89a4f975b282611de55662301b74=.
+- Agentic AI Lab verification owner: =90d1c79f474f89a4f975b282611de55662301b74=.
 - Isolated Darwin arm64 checkouts; the Aitia load path selected that exact
-  POO Flow source before the older installed library. Child tests retained
+  Agentic AI Lab source before the older installed library. Child tests retained
   the runner's =-:max-heap=512M= limit; no global environment was modified.
 
 * Evidence and negative contracts
 
 =assurance-host-admit= reads the Host-configured current snapshot and clock,
 checks candidate evidence and an exactly bound successful outcome, executes
-the configured POO Flow verifier, then issues a private-indexed POO admission.
+the configured Agentic AI Lab verifier, then issues a private-indexed POO admission.
 It does not alter =AssuranceEvidence.admission-state= or the source snapshot.
 Currentness rechecks the full semantic snapshot, Host epoch, verifier seal,
 candidate evidence, outcome binding and lease. The Host also reconstructs each
@@ -38,7 +38,7 @@ and verifier refusal cannot provide current admission. A source cut returning
 to an older value does not revive its earlier admission or Host seal.
 
 Local =just build-scheme= and =just check-semantic= passed, including the
-assurance, ADR, SDLC, GitOps and composition test groups. POO Flow's focused
+assurance, ADR, SDLC, GitOps and composition test groups. Agentic AI Lab's focused
 verification test passed with its weak-key issued-receipt registry and a GC
 case proving a live indexed admission retains its receipt.
 

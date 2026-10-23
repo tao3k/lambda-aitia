@@ -8,13 +8,13 @@
 * Source and architecture
 
 The contribution has no =gerbil.pkg= and owns no executable build script.
-POO Flow's default =build.ss= contains only its six maintained public roots:
+Agentic AI Lab's default =build.ss= contains only its six maintained public roots:
 core API, Module System API, Feature System interface, Agent loop, kernel
 profiles, and the hygienic User Interface init declaration owner.
-The POO Flow-owned =build-contribute.ss= adapter constructs the contribution
+The Agentic AI Lab-owned =build-contribute.ss= adapter constructs the contribution
 source internally, consumes Lambda's source-neutral module bundle, and submits each selected module
 tree to the ASP Build API as an independent source stage. The source files are
-derived by POO Flow's shared deterministic tree walk. Shared governance
+derived by Agentic AI Lab's shared deterministic tree walk. Shared governance
 and the User Interface scenario are explicit non-module stages. There is no
 =modules= override, =all-gerbil-modules= call, implementation-file enumeration,
 second compiler, scheduler, or artifact cache.
@@ -43,7 +43,7 @@ not present on its load path. No SDLC result grants release authority.
 
 ** Superseded eager contribution closure (2026-09-14)
 
-After adding the contribution roots to POO Flow's PackageSpec, six unchanged
+After adding the contribution roots to Agentic AI Lab's PackageSpec, six unchanged
 invocations completed in 101.89, 103.49, 90.77, 67.03, 84.89 and 100.46
 seconds. Every invocation still emitted native compile jobs. A subsequent
 production build after the focused core =gxtest= run rebuilt the broad closure
@@ -57,13 +57,13 @@ the full =src/module-system/api.ss= facade.
 The linked ASP source is exactly the =gerbil.pkg= revision
 =2a69a080976a0c0b80a78f5b6d05204fc7b4c653= and contains the linear import
 closure projection. The failure therefore is not caused by a child-owned API,
-an old ASP checkout, or a second PackageSpec. POO Flow does not patch the
+an old ASP checkout, or a second PackageSpec. Agentic AI Lab does not patch the
 upstream executor. The successful source build and 580 test checks establish
 structural and behavioral evidence only; they do not establish build-performance
 closure.
 
 The table below is a historical observation of the superseded child-package
-layout. It must not be cited as evidence for the current POO Flow-owned
+layout. It must not be cited as evidence for the current Agentic AI Lab-owned
 =build.ss= path.
 
 The same isolated child output was built repeatedly without source changes.
@@ -92,7 +92,7 @@ ordered 39-module closure.
 | content-bound hit | 1.501, 0.534, 0.454 | 0.534 |
 
 The isolated projection reduced p50 by 94.4 percent, but it measured only the
-PackageSpec projection. Complete POO Flow warm-build comparison later measured
+PackageSpec projection. Complete Agentic AI Lab warm-build comparison later measured
 a 38.24-second native-projection p50 and a 39.80-second receipt-hit p50. A hit
 returned only paths and forced =std/make= to reconstruct contexts that a fresh
 projection had already loaded. The receipt therefore moved work across the
@@ -114,7 +114,7 @@ recompile waves from the new shared tree function settled, the stable warm
 
 Lambda's top-level interface now exports only its contribution identity. POO
 Flow's core loader constructs contributor and user source objects from
-repository-root inputs; =poo-flow-load-modules= discovers the five direct module
+repository-root inputs; =agentic-ai-lab-load-modules= discovers the five direct module
 directories without a contributor =modules/init.ss=. Lambda contains no =modules/source.ss= and no
 =user-interface/modules/interface.ss=. The root-owned contribution adapter
 derives five public =interface.ss= entrypoints from the source collection and adds fixed stages for
@@ -135,17 +135,17 @@ and init were separately visible at 6ms, 217ms, 281ms and 2ms.
 
 Every stage emits its source, full package prefix, executor, elapsed time, and
 receipt count before advancing. The core and contributor build gates are now
-separate, while both install under the existing =poo-flow= package namespace.
+separate, while both install under the existing =agentic-ai-lab= package namespace.
 
 The User Interface layout gate accepts only top-level =init.ss= and =config.ss=
 before ASP/std-make begins. A temporary =unclassified.ss= negative
-fixture failed in 1.19 seconds with =POO-FLOW-UI-E002= and named the offending
-file. The corrected top-level =init.ss= owns only =poo-flow!= module selection.
+fixture failed in 1.19 seconds with =AGENTIC-AI-LAB-UI-E002= and named the offending
+file. The corrected top-level =init.ss= owns only =agentic-ai-lab!= module selection.
 The core-owned configuration =use-composition= discovers =profiles/= and
 =scenarios/= once per expansion context, imports them into =config.ss=, and
 establishes each named composition directly. A temporary incomplete
 =modules/incomplete/config.ss= fixture failed in 1.21 seconds with
-=POO-FLOW-UI-E005= and named the four missing roles. Local module directories
+=AGENTIC-AI-LAB-UI-E005= and named the four missing roles. Local module directories
 are ignored by Git until explicitly promoted to the contribution's top-level
 =modules/= tree.
 
@@ -177,36 +177,36 @@ reported 1.08 seconds inside ASP and 2.71 seconds for the process. The complete
 undefined-symbol warning or process crash.
 
 During the rejected experiment, reversing the qualification load path exposed
-stale copied =poo-flow= artifacts inside the ASP build directory and failed
+stale copied =agentic-ai-lab= artifacts inside the ASP build directory and failed
 before timing; that result was not counted as a performance sample.
 
 * Limits
 
 The verification uses isolated output plus linked dependency libraries, not a
-clean release installation or the whole POO Flow suite. NASA source and local
+clean release installation or the whole Agentic AI Lab suite. NASA source and local
 structured gates are implemented; authenticated institutional approval,
 external parser execution, runtime execution, and automatic content identity
 for an in-place dirty linked dependency remain separate authority boundaries.
 The measurements do not establish a fully clean release installation or the
-whole POO Flow suite. The prior 13--19 second floor and the later minute-scale
+whole Agentic AI Lab suite. The prior 13--19 second floor and the later minute-scale
 warm rebuilds do not apply to the corrected separated path; no upstream code
 was modified and no replacement scheduler or cache was introduced.
 
 * Unified module-source and atomic phase receipts (2026-09-14)
 
 Lambda has no =modules/init.ss=. Its =user-interface/init.ss= contains module
-identities and flags. POO Flow constructs contribution and User Interface source objects through
-=make-poo-flow-contribution-module-*= and
-=make-poo-flow-user-interface-module-*=. Core and contributor lookup use the
-same =poo-flow-module-selection-source-refs= function; an explicit private
+identities and flags. Agentic AI Lab constructs contribution and User Interface source objects through
+=make-agentic-ai-lab-contribution-module-*= and
+=make-agentic-ai-lab-user-interface-module-*=. Core and contributor lookup use the
+same =agentic-ai-lab-module-selection-source-refs= function; an explicit private
 =@ modules-path= uses the loader's internal config-role projection, while
-=poo-flow-load-modules= remains fixed to public =interface.ss=. The core-owned official
+=agentic-ai-lab-load-modules= remains fixed to public =interface.ss=. The core-owned official
 registry maps both =lambda-episteme= and its module names to the immutable
 submodule revision; an absent checkout produces a registry materialization
 source instead of performing network I/O during =init.ss= expansion.
 
 The contributor-owned =t/modules/unit/source-collection-test.ss= proves that
-the default order is =(poo-flow-maintained lambda-episteme)=, that core and
+the default order is =(agentic-ai-lab-maintained lambda-episteme)=, that core and
 Lambda selections resolve through their respective source objects, that source
 metadata retains collection ownership, and that a missing module raises the
 typed =missing-module-source= control-plane failure. Its immediate warm exact
@@ -230,7 +230,7 @@ implementation receipts, not NASA institutional certification.
 
 * Atomic observability and import-closure qualification (2026-09-14)
 
-The POO Flow-owned =test-contribute-atomic= target now performs a reader-only
+The Agentic AI Lab-owned =test-contribute-atomic= target now performs a reader-only
 POO authoring preflight before loading the exact =t/<module-name>/...= test.
 For the certification file it scanned 17 files and 389 slot observations; for
 the lifecycle file it scanned 17 files and 411 observations. Both reported zero
@@ -246,7 +246,7 @@ or type-predicate diagnostic, so the same class of failure no longer appears as
 an opaque =invalid POO model= error.
 
 The exact contribution load path now places the isolated contribution test
-library before POO Flow's production library. This prevents stale production
+library before Agentic AI Lab's production library. This prevents stale production
 copies of contribution modules from shadowing the test closure. Static CLOS
 indexes use Gerbil's =list->hash-table-eq/string= constructors; the NASA rule
 mode lookup returns the constructor's stored value directly instead of applying
@@ -278,7 +278,7 @@ failed its 60-second warm bound; its own selected test body receipt was 254ms.
 The upstream downstream-framework scenario passed the relevant incremental
 selection assertions but required 33.31 seconds as a complete gxtest process.
 Its fixture's 1ms policy/collection measurement therefore does not establish
-startup wall-clock performance. POO Flow does not add a cache, scheduler or
+startup wall-clock performance. Agentic AI Lab does not add a cache, scheduler or
 replacement build API to hide this remaining failure.
 
 The atomic build path now passes its exact test file to the same ASP PackageSpec
@@ -297,7 +297,7 @@ and asking =std/make= to reconstruct it again was redundant. Certification now
 projects exactly one target in 0ms. Its isolated cold build completed in 21.17
 seconds; the immediate zero-compile warm build completed in 13.38 seconds. The
 atomic image contains only selected test artifacts and consumes the production
-POO Flow library after it, preventing test-built production copies from
+Agentic AI Lab library after it, preventing test-built production copies from
 shadowing the production image.
 
 A same-target, same-image warm A/B invoked native Gerbil =defbuild-script=
@@ -349,7 +349,7 @@ qualification identified as the remaining dominant error.
 The Lambda entry then exposed a second, independent over-import:
 =user-interface/init.ss= imported the complete UI syntax facade, including
 doctor, presentation, sandbox, durable-memory and loop policy owners, although
-its only operation was =poo-flow!= declaration lowering. The canonical macro
+its only operation was =agentic-ai-lab!= declaration lowering. The canonical macro
 now lives in =src/user-interface/init-declaration-syntax.ss= and the complete
 facade reexports it. Lambda and root init files import that owner directly.
 Lambda init compilation changed from exceeding a 25-second bound to 7.50
@@ -388,10 +388,10 @@ compiled-library dependency loading from recursive source-context expansion.
 ** Retired root-scoped test BuildSpec
 
 Gerbil 0.18.2 =defbuild-script= derives =srcdir= from the directory containing
-the script. Because =build-contribute-tests.ss= is POO Flow-owned at the
+the script. Because =build-contribute-tests.ss= is Agentic AI Lab-owned at the
 repository root, its old invocation added the complete checkout to the source
 load path. The selected test was one BuildSpec target, but its imports could be
-resolved from POO Flow and Lambda sources instead of the already-built
+resolved from Agentic AI Lab and Lambda sources instead of the already-built
 =.gerbil/lib= image. This violated the intended contribution-test boundary and
 made the one-target currentness check reconstruct a large source context.
 
@@ -402,7 +402,7 @@ probe took about 5.02 seconds. The difference is the source-root boundary, not
 the =use-composition= macro body and not a fixed native initialization charge.
 
 That intermediate repair was later removed with =build-contribute-tests.ss=.
-The current POO Flow entry builds contribution production owners once and
+The current Agentic AI Lab entry builds contribution production owners once and
 passes module trees or exact files directly to native =gxtest=. The retained
 =build-root.ss= fixtures express shared test imports; they no longer define or
 seed a separate BuildSpec.
@@ -425,7 +425,7 @@ The production projection is now closed over nine native public entrypoints:
 the contribution identity, governance, five discovered module =interface.ss=
 files, and the User Interface =init.ss=/=config.ss= pair. An immediate warm run
 reported nine receipts, no compile row, 318ms inside the ASP Build API and
-1.54 seconds wall time. =poo-flow-load-modules= accepts only the source
+1.54 seconds wall time. =agentic-ai-lab-load-modules= accepts only the source
 collection and always projects =modules/<module-name>/interface.ss=.  Role-level
 projection remains an internal function excluded from the public loader facade;
 normal selection, loading and build declarations cannot substitute =config.ss=
@@ -440,8 +440,8 @@ atomic tests now exit normally from an attached terminal.
 
 * Repository-wide public interface closure (2026-09-14)
 
-The root =build.ss= now invokes =poo-flow-load-modules= over
-=poo-flow-maintained-module-source= and uses the resulting source-ref values as
+The root =build.ss= now invokes =agentic-ai-lab-load-modules= over
+=agentic-ai-lab-maintained-module-source= and uses the resulting source-ref values as
 the complete ASP PackageSpec public-root set.  It does not list the 17 maintained
 module names a second time and does not add a compiler, scheduler, cache or
 =all-gerbil-modules= scan.  The first build compiled all 17
@@ -483,7 +483,7 @@ cases normally.
 
 The root PackageSpec no longer passes =all-gerbil-modules= as its =modules=
 slot.  Maintained module roots are derived once through
-=poo-flow-load-modules= and each value is the conventional
+=agentic-ai-lab-load-modules= and each value is the conventional
 =src/modules/<module-name>/interface.ss=.  The resulting 27-root BuildSpec is
 handed directly to ASP Build API and upstream =std/make=; user-owned
 =user-interface/custom= sources and contribution test scripts do not enter the
@@ -516,10 +516,10 @@ final architecture.  Treating every discovered module interface as a native
 build target makes package planning proportional to the available catalog and
 does not support a Doom-like contribution ecosystem.
 
-At this stage the parent POO Flow PackageSpec became a clean-image bootstrap
+At this stage the parent Agentic AI Lab PackageSpec became a clean-image bootstrap
 containing seven
 stable framework targets and zero catalog targets. It imports only ASP's Build
-API: importing a =:poo-flow= loader before the package exists failed in the
+API: importing a =:agentic-ai-lab= loader before the package exists failed in the
 hermetic Bazel image and exposed the stale local =.ssi= dependency. Module
 selection begins after this bootstrap through the ordinary POO module load
 path. Adding 100 or 1,000 available-but-unselected module source refs therefore
@@ -586,10 +586,10 @@ unrelated facade with a much wider closure.
 * Module owner admission and Observability correction (2026-09-15)
 
 Every maintained module role is now inspected by the reader-native owner-import
-policy before =poo-flow-load-modules= admits its =interface.ss=. Importing an
+policy before =agentic-ai-lab-load-modules= admits its =interface.ss=. Importing an
 aggregate framework surface from an implementation role produces a native
-=poo-flow.module-owner-import-observation.v1= receipt and fails with
-=POO-FLOW-MODULE-E008=. The receipt retains the source scope, aggregate owner,
+=agentic-ai-lab.module-owner-import-observation.v1= receipt and fails with
+=AGENTIC-AI-LAB-MODULE-E008=. The receipt retains the source scope, aggregate owner,
 =module-admission= phase, =aggregate-owner-import= status, stable code, and
 =import-precise-owner= recommendation without expanding or evaluating source.
 

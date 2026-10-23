@@ -11,7 +11,7 @@
 :UPDATED:         2026-09-24
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-maintainers
+:CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 
@@ -53,7 +53,7 @@ The responsibilities remain layered:
 
 - Lambda Aitia Scheme owns SDLC stages, assurance semantics, decisions and
   attributable receipts.
-- POO Flow owns reusable Graph/DAG algorithms and generic runtime mechanisms.
+- Agentic AI Lab owns reusable Graph/DAG algorithms and generic runtime mechanisms.
 - The stable C ABI transfers owned JSON request and receipt bytes.
 - Python validates and materializes those receipts for production consumers;
   it does not reproduce the semantic algorithms.
@@ -71,12 +71,12 @@ runtime execution.
 - Downstream users depend on =lambda-aitia= as a real uv-managed project.
 - Python API stability is a release concern, not example-code maintenance.
 - No stage may be presented as executed until its Scheme operation publishes a
-  source-bound receipt and the POO Flow runtime actually executes it.
+  source-bound receipt and the Agentic AI Lab runtime actually executes it.
 - The full SDLC organizes the Python project; the planning API is one capability
   within it. Executable capabilities are delivered only with owned operations
   and attributable receipts.
 - Generic temporal/causal trajectories and execution mechanisms are reused
-  from POO Flow. Upstream tools, checkers and assets are qualified at their
+  from Agentic AI Lab. Upstream tools, checkers and assets are qualified at their
   usable boundaries; MRR integration is deferred beyond this Python stage.
 
 * Confirmation

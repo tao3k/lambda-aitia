@@ -20,7 +20,7 @@ retirement. Its POO-native assurance kernel models why an engineering claim is
 justified, what defeats or invalidates that justification, which obligations
 follow, and which decisions/effects must remain blocked. Software semantics
 belong to Aitia's modules; generic graph, temporal/causal and runtime mechanisms
-remain POO Flow-owned, and existing verifiers retain their checking semantics.
+remain Agentic AI Lab-owned, and existing verifiers retain their checking semantics.
 
 The core abstraction is an executable causal assurance case, not a collection
 of verification result flags:
@@ -57,30 +57,30 @@ through named, checked functions that emit receipts.
 |-------+------+--------------|
 | Lambda Episteme | vertical knowledge, Profiles, Cases and non-SDLC domain sources | Software/SDLC causal assurance or runtime authority |
 | Lambda Aitia | Software/SDLC, ADR and standards modules; claims, assumptions, relation semantics, obligations, evidence admission, invalidation and planning | non-software vertical truth, graph runtime, verifier semantics or effect execution |
-| POO Flow | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
-| POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
-| Aitia Python Runtime | production APIs across Aitia's SDLC capabilities, CFFI transport, tool execution integration and typed observations/receipts | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
+| Agentic AI Lab | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
+| Agentic AI Lab Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
+| Aitia Python Runtime | production APIs across Aitia's SDLC capabilities, CFFI transport, tool execution integration and typed observations/receipts | reimplementing Scheme decisions or Agentic AI Lab's generic Runtime mechanisms |
 | Lean | general proof terms and assurance laws | current runtime state or action authority |
 | Quint/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
 | Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
 | Runtime Host | final typed boundary for authorized execution | manufacturing missing evidence or guessing transport/runtime state |
 | Application | explicit selection, composition and policy | redefining source-owned semantics |
 
-Dependency rule: POO Flow core must remain usable without Lambda Aitia.
-Lambda Aitia consumes POO Flow as its public mechanism library and may use the
+Dependency rule: Agentic AI Lab core must remain usable without Lambda Aitia.
+Lambda Aitia consumes Agentic AI Lab as its public mechanism library and may use the
 complete reviewed public surface needed by Software/SDLC.  The constraint is
 one-way semantic ownership and public API stability, not a minimal dependency.
 Integration belongs to an application or an isolated contribution adapter;
-POO Flow core never imports Lambda Aitia, and the parent Git submodule causes no
+Agentic AI Lab core never imports Lambda Aitia, and the parent Git submodule causes no
 implicit activation.
 
 Lambda Aitia owns its Python project under =bindings/python=.  Its Scheme
 semantic surface is compiled AOT and exposed through a dedicated C ABI using
-the owned result/release convention established by POO Flow's Scheme-native
+the owned result/release convention established by Agentic AI Lab's Scheme-native
 ABI.  Public Scheme and Python namespaces remain unversioned; ABI revision is
 explicit descriptor metadata rather than part of those names.  The production
 Python package validates and materializes lifecycle requests and receipts;
-Scheme remains the decision owner.  POO Flow's =packages/python-runtime=
+Scheme remains the decision owner.  Agentic AI Lab's =packages/python-runtime=
 remains the separate generic execution/lifecycle mechanism consumed by the
 Aitia Python Runtime rather than becoming a second SDLC semantic API. AnyIO
 provides the runtime-wide concurrency foundation; thread-affine native sessions
@@ -192,7 +192,7 @@ itself manufacture a derivation or causal claim.
 
 Representative relations: =depends-on=, =composes=, =implements=, =tests= and
 =refines=.  =composes= points from a composite claim to a component claim;
-its reverse impact projection uses the shared POO Flow Graph.
+its reverse impact projection uses the shared Agentic AI Lab Graph.
 This plane supports reverse impact and obligation selection.  Its output is
 explicitly structural and has no release or runtime authority.
 
@@ -203,7 +203,7 @@ Representative relations: =precedes=, =causal-parent=, =enables= and
 counterfactual.  Missing parents and temporal contradictions create an unknown
 frontier.  Earlier-than never automatically promotes to caused-by.
 
-POO Flow's Temporal Causality owns generic event graphs, causal cuts, trajectory
+Agentic AI Lab's Temporal Causality owns generic event graphs, causal cuts, trajectory
 assessment and witness paths. Aitia connects scoped system behavior to the
 evolution of design decisions and their assurance using checked projections.
 Late observations create new assessment cuts; observed failures, model traces
@@ -313,16 +313,16 @@ The Host may now issue a weak-key-indexed Decision preflight for an exact
 current required support; currentness rechecks the Host source epoch and the
 admissions. Copies, revocation, source changes and rollback cannot reuse it.
 This preflight carries =release-authorized? #f= and is not a Cedar result,
-an =allow= Decision or an effect token. The POO Flow Cedar Provider constructs
+an =allow= Decision or an effect token. The Agentic AI Lab Cedar Provider constructs
 inert inputs; the independent Runtime Host still owns policy evaluation and
 effect admission.
 =assurance-host-cedar-request= now rechecks that exact preflight and projects
 its Decision authority, claim subject, policy identity/revision and full
-semantic snapshot digest into POO Flow's POO-native Cedar request family.
-The application supplies the action, intent and POO Flow runtime handoff.
+semantic snapshot digest into Agentic AI Lab's POO-native Cedar request family.
+The application supplies the action, intent and Agentic AI Lab runtime handoff.
 The resulting request and its context are editable input, not a second Host
 seal; copying or changing them cannot establish Aitia admission. The Runtime
-Host rejects the projected =poo_flow_preflight_only= marker before policy
+Host rejects the projected =agentic_ai_lab_preflight_only= marker before policy
 evaluation, regardless of its value. This fail-closed check blocks accidental
 promotion of the official preflight path; it does not attest an edited request
 with the marker removed. A future Runtime-owned admission must independently
@@ -333,7 +333,7 @@ request and the current source cut, rejecting copied or edited presentations,
 revocation, source change and rollback. This is a source-owned predicate, not
 Runtime admission: no Runtime path calls it yet, and its truth cannot authorize
 an effect. The Scheme projection does not evaluate Cedar or gate an effect.
-The POO Flow Cedar capability may require Runtime-owned source admission for
+The Agentic AI Lab Cedar capability may require Runtime-owned source admission for
 an action independently of caller context. Aitia's eventual release action
 must use that administrative requirement, and the unmarked request path must
 remain closed until an admitted =allow= Decision and exact current source are
@@ -344,8 +344,8 @@ promotion transition.
 The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
 caller-supplied adapter and time; it is not an authority or effect gate.
 It checks structural relationships, the current snapshot, exact
-evidence/outcome bindings and a POO Flow verification seal over the complete
-semantic subject. POO Flow rejects copied or forged adapter presentations as
+evidence/outcome bindings and a Agentic AI Lab verification seal over the complete
+semantic subject. Agentic AI Lab rejects copied or forged adapter presentations as
 well as copied, modified, expired or revoked receipts. This proves issuance by
 the exact adapter instance, not that a caller-supplied adapter was installed
 by a trusted Host. Adapter selection and the evaluation clock must both be
@@ -441,7 +441,7 @@ standards compliance, release certification or unrestricted causal inference.
 3. Copying Software/SDLC standards into the assurance kernel: rejected because
    standards already have an Aitia-owned SDLC module and hard-coding them into
    the kernel would collapse the domain/module boundary.
-4. A second Graph implementation: rejected because POO Flow owns the graph
+4. A second Graph implementation: rejected because Agentic AI Lab owns the graph
    substrate and algorithms.
 5. Green-check aggregation: rejected because it loses revisions, assumptions,
    provenance, invalidation and effect boundaries.
@@ -451,11 +451,11 @@ standards compliance, release certification or unrestricted causal inference.
 * Closed architecture decisions and remaining acceptance work
 
 The repository license is closed as =Apache-2.0 AND
-LGPL-2.1-or-later=, matching POO Flow.  The former open decisions are closed by:
+LGPL-2.1-or-later=, matching Agentic AI Lab.  The former open decisions are closed by:
 
 1. ADR 0004 r2: Aitia owns assurance-specific Lean/Quint sources and may consume a
-   pinned POO Flow proof package for generic laws.
-2. ADR 0007 supersedes ADR 0003: POO Flow is Aitia's public mechanism library;
+   pinned Agentic AI Lab proof package for generic laws.
+2. ADR 0007 supersedes ADR 0003: Agentic AI Lab is Aitia's public mechanism library;
    additions require a stable public owner, not an artificially small
    allowlist.
 3. ADR 0005: canonical JSON snapshots are persistence projections, never

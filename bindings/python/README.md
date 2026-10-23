@@ -32,7 +32,7 @@ executed transitions. Admission, decision, authorization and execution each
 require their own checked receipt.
 
 Lambda Aitia Scheme owns the lifecycle vocabulary, assurance semantics,
-decisions and receipts. POO Flow owns the reusable Graph/DAG and runtime
+decisions and receipts. Agentic AI Lab owns the reusable Graph/DAG and runtime
 mechanisms. The Python package consumes those contracts through the stable C
 ABI and does not reimplement either owner's semantics.
 
@@ -56,7 +56,7 @@ added only as each real Scheme operation and attributable receipt becomes
 available; the package will never simulate completion with Python callbacks.
 
 [RFC 0004](../../docs/rfcs/0004-sdlc-design-and-causal-trajectories.org) defines
-the connected design and trajectory qualification. POO Flow owns generic
+the connected design and trajectory qualification. Agentic AI Lab owns generic
 temporal/causal mechanisms; this project integrates actual tool execution and
 scoped observations through its native boundary. Reusable upstream checker,
 model and harness qualification is pending. MRR integration is deferred beyond
@@ -142,10 +142,10 @@ To remove only stale generated CFFI modules and their temporary C objects:
 just clean-python-cffi
 ```
 
-`dev-python` requires the declared POO Flow/Gerbil dependencies, including
+`dev-python` requires the declared Agentic AI Lab/Gerbil dependencies, including
 Orgize's C header, in the selected `GERBIL_PATH`. It cleans and rebuilds only
-the in-place CFFI extension, without compiling POO Flow or replacing the native
-library. Run `just check-native` against the qualified POO Flow version for
+the in-place CFFI extension, without compiling Agentic AI Lab or replacing the native
+library. Run `just check-native` against the qualified Agentic AI Lab version for
 the complete Scheme/native/Python and wheel qualification.
 The `justfile` removes `SDKROOT` only on Darwin; it does not alter that
 environment variable on Linux.

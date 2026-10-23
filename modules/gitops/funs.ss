@@ -8,11 +8,11 @@
         (only-in :clan/poo/mop .new validate)
         :std/list/list
         (only-in :core/utilities/algorithms
-                 poo-flow-make-value-index poo-flow-value-index-put!
-                 poo-flow-value-index-ref)
-        :poo-flow/core/poo-clos/interface
-        :poo-flow/lambda-aitia/modules/gitops/types
-        :poo-flow/lambda-aitia/modules/gitops/objects)
+                 agentic-ai-lab-make-value-index agentic-ai-lab-value-index-put!
+                 agentic-ai-lab-value-index-ref)
+        :agentic-ai-lab/core/poo-clos/interface
+        :agentic-ai-lab/lambda-aitia/modules/gitops/types
+        :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export GitOpsDefaultEvaluationMethod GitOpsDefaultEvaluationMethods
         gitops-evaluate-default)
 
@@ -36,14 +36,14 @@
        (equal? (.ref check 'source-lock-digest)
                (.ref standard 'source-lock-digest))))
 (def (check-index checks)
-  (let (index (poo-flow-make-value-index))
+  (let (index (agentic-ai-lab-make-value-index))
     (for-each
      (lambda (check)
        (validate GitOpsCheck check)
        (let-values (((present? previous)
-                     (poo-flow-value-index-ref index (.ref check 'name))))
+                     (agentic-ai-lab-value-index-ref index (.ref check 'name))))
          (when present? (error "duplicate GitOps check" (.ref check 'name)))
-         (poo-flow-value-index-put! index (.ref check 'name) check)))
+         (agentic-ai-lab-value-index-put! index (.ref check 'name) check)))
      checks)
     index))
 (def (gitops-profile-decision profile standard-bindings change checks)
@@ -55,7 +55,7 @@
          (standard-mismatch? #f))
     (for-each
      (lambda (name)
-       (let-values (((present? check) (poo-flow-value-index-ref index name)))
+       (let-values (((present? check) (agentic-ai-lab-value-index-ref index name)))
          (cond ((not present?) (set! missing (cons name missing)))
                ((or (not (equal? (.ref check 'repository) (.ref change 'repository)))
                     (not (equal? (.ref check 'revision) (.ref change 'revision))))

@@ -29,9 +29,9 @@ def _library_path() -> Path:
         candidate = Path(configured).expanduser().resolve()
     else:
         library_name = {
-            "Darwin": "libpoo_flow_aitia.dylib",
-            "Windows": "poo_flow_aitia.dll",
-        }.get(platform.system(), "libpoo_flow_aitia.so")
+            "Darwin": "libagentic_ai_lab_aitia.dylib",
+            "Windows": "agentic_ai_lab_aitia.dll",
+        }.get(platform.system(), "libagentic_ai_lab_aitia.so")
         candidate = Path(__file__).parent / "_native" / "lib" / library_name
     if not candidate.is_file():
         raise AitiaNativeError(f"Lambda Aitia native library is absent: {candidate}")
@@ -164,7 +164,7 @@ def descriptor() -> dict[str, Any]:
 def sdlc_flow_plan(
     lifecycle_id: str, *, session: AitiaNativeSession | None = None
 ) -> dict[str, Any]:
-    """Ask Scheme to project an SDLC lifecycle onto the POO Flow DAG."""
+    """Ask Scheme to project an SDLC lifecycle onto the Agentic AI Lab DAG."""
 
     payload = json.dumps(
         {"lifecycle-id": lifecycle_id}, separators=(",", ":"), ensure_ascii=False

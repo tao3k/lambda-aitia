@@ -13,7 +13,7 @@
 
 * Exact source cut
 
-- POO Flow mechanism library: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=
+- Agentic AI Lab mechanism library: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=
 - Lambda Aitia: =6b1476b38888080c03e514bc36a6d5789056ac64=
 - Aitia PR CI: =35847725375= (license, Lean, Scheme/integration/Python passed)
 - Local host: Darwin arm64, Gerbil v0.19, =GERBIL_BUILD_CORES=12=,
@@ -27,7 +27,7 @@ used isolated checkouts rather than the dirty shared parent worktree. Its
 
 The public planner in =modules/assurance/funs.ss= consumes a typed snapshot,
 changed identities and a matching POO-native verification policy. It uses the
-POO Flow Graph dependency order and loop analysis; the plan and verifier-choice
+Agentic AI Lab Graph dependency order and loop analysis; the plan and verifier-choice
 receipts cannot claim verifier execution, release authority or Runtime work.
 
 =t/assurance/unit/assurance-kernel-test.ss= directly checks:

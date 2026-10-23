@@ -5,8 +5,8 @@
 (import (only-in :clan/poo/object .ref .slot? object?)
         (only-in :core/poo-clos/model poo-clos-model?)
         (only-in :core/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition)
-        (only-in :poo-flow/modules/governance/types
-                 poo-flow-governance-profile?)
+        (only-in :agentic-ai-lab/modules/governance/types
+                 agentic-ai-lab-governance-profile?)
         :std/list/list
         :std/list/list)
 (export standard-profile? sdlc-profile? sdlc-text?
@@ -69,7 +69,7 @@
                        '(source-category target-category))))
 
 (def (sdlc-profile? value)
-  (and (poo-flow-governance-profile? value) (.slot? value 'standards)
+  (and (agentic-ai-lab-governance-profile? value) (.slot? value 'standards)
        (list? (.ref value 'standards))
        (every standard-profile? (.ref value 'standards))
        (let ((ids (map (lambda (s) (.ref s 'identity)) (.ref value 'standards))))

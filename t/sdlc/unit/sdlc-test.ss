@@ -4,9 +4,9 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/core/contribution/objects admit-contributions)
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 (def project-sdlc-module (sdlc-contribution ProjectSdlcProfile))
 (export sdlc-test)

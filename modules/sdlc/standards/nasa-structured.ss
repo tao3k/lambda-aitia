@@ -5,10 +5,10 @@
 ;;; Deterministic local checks over authenticated inventory projections.
 (import (only-in :clan/poo/object .o .ref)
         (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/funs
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
         :std/list/list)
 (export nasa-safety-inventory nasa-trace-inventory nasa-structured-requirement?
         nasa-inventory-for? nasa-inventory-snapshot nasa-structured-review)

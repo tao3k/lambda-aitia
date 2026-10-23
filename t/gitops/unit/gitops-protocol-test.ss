@@ -5,8 +5,8 @@
 (import :std/test
         (only-in :clan/poo/object .cc .ref)
         (only-in :clan/poo/mop element?)
-        :poo-flow/core/poo-clos/interface
-        :poo-flow/lambda-aitia/modules/gitops/interface)
+        :agentic-ai-lab/core/poo-clos/interface
+        :agentic-ai-lab/lambda-aitia/modules/gitops/interface)
 (export gitops-protocol-test)
 
 (.defclass TestGitOpsEvaluator (GitOpsEvaluator) ())

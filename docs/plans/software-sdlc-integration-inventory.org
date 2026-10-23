@@ -23,8 +23,8 @@ The software Architecture Decision Record module is also Aitia-owned and is
 published as =ADR=.  No lowercase compatibility module is retained.
 
 The Aitia-side source migration and parity inventory are complete.  The
-Episteme deletion is published, and the POO Flow main gitlink already pins a
-clean Episteme cut.  The Aitia PR head is newer than the POO Flow main gitlink
+Episteme deletion is published, and the Agentic AI Lab main gitlink already pins a
+clean Episteme cut.  The Aitia PR head is newer than the Agentic AI Lab main gitlink
 and requires a separate pin update after acceptance.  This inventory governs
 the post-migration boundary and prevents either repository from reintroducing
 compatibility aliases or duplicate semantic owners.
@@ -44,7 +44,7 @@ flowchart TD
     A["Lambda Aitia<br/>Software Engineering, SDLC, NASA standards and GitOps"]
     A --> S["Aitia assurance semantics<br/>claims, assumptions and typed relations"]
     S --> I["Impact, invalidation and obligation planning<br/>inert plans and receipts"]
-    I -->|consumes public mechanisms| P["POO Flow<br/>composition, graph, temporal / causal algorithms and Runtime"]
+    I -->|consumes public mechanisms| P["Agentic AI Lab<br/>composition, graph, temporal / causal algorithms and Runtime"]
     A --> Py["Aitia Python Runtime<br/>tools and observations"]
     Py -->|owned runtime boundaries| P
     Py -->|candidate evidence, not authority| S
@@ -52,7 +52,7 @@ flowchart TD
 
 Lambda Episteme composes beside Aitia when an application needs non-SDLC
 vertical knowledge; it is not an upstream owner for Aitia's SDLC semantics.
-POO Flow execution does not redefine Aitia reasoning.
+Agentic AI Lab execution does not redefine Aitia reasoning.
 
 The complete SDLC organizes requirements, design, algorithm/implementation
 strategies, testing, delivery, operation and evolution. RFC 0004 specifies how
@@ -71,15 +71,15 @@ eight-step assurance/execution protocol is one mechanism within this framework.
 | =t/sdlc/=, NASA source snapshots, import/report tools and SDLC Profiles | Lambda Aitia | migrated with SDLC | qualification evidence and reproducible sources | production, tests, tools and Profiles share one owner |
 | =modules/gitops/=, GitOps/GitHub Profiles and scenario adapter | Lambda Aitia | migrated | repository revision, check and delivery-decision facts | stable public namespace has no version suffix; revision is evidence metadata |
 | =modules/decision-kind/= | Lambda Episteme | keep, reference | accountable software decision kinds and conflicts | Aitia links decisions but does not redefine their domain meaning |
-| =src/graph/= | POO Flow | reference | graph substrate and typed traversal | Aitia creates no second graph engine |
-| =src/modules/temporal-causality/= | POO Flow | reference | event graphs, cuts, trajectory contracts and temporal classification | Aitia supplies software meaning; complete behavior/design trajectory integration remains pending |
-| POO Flow verification contribution contracts | POO Flow | reference | verifier capability and receipt handoff | a plan never invokes a verifier directly |
-| =bindings/runtime-c/include/poo_flow/scheme_native_v1.h= pattern | POO Flow | reference | owned-byte AOT Scheme ABI convention | Aitia uses stable unversioned language namespaces; ABI revision is descriptor metadata |
+| =src/graph/= | Agentic AI Lab | reference | graph substrate and typed traversal | Aitia creates no second graph engine |
+| =src/modules/temporal-causality/= | Agentic AI Lab | reference | event graphs, cuts, trajectory contracts and temporal classification | Aitia supplies software meaning; complete behavior/design trajectory integration remains pending |
+| Agentic AI Lab verification contribution contracts | Agentic AI Lab | reference | verifier capability and receipt handoff | a plan never invokes a verifier directly |
+| =bindings/runtime-c/include/agentic_ai_lab/scheme_native_v1.h= pattern | Agentic AI Lab | reference | owned-byte AOT Scheme ABI convention | Aitia uses stable unversioned language namespaces; ABI revision is descriptor metadata |
 | =bindings/python= | Lambda Aitia | maintained | production Runtime across Aitia's SDLC capabilities, CFFI, tool observations and AnyIO dependency | async execution and tool-to-Host admission remain pending; Scheme retains semantic ownership |
-| =packages/python-runtime= | POO Flow | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
-| =packages/proof/lean/PooFlowProof/Enterprise/EvidenceFreshness.lean= | POO Flow proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
+| =packages/python-runtime= | Agentic AI Lab | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
+| =packages/proof/lean/AgenticAILabProof/Enterprise/EvidenceFreshness.lean= | Agentic AI Lab proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
 | =proof/quint/AssuranceLifecycle.qnt= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
-| Cedar adapter and Runtime Host | POO Flow | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
+| Cedar adapter and Runtime Host | Agentic AI Lab | reference | current release/effect authority and final execution gate | no fallback or locally manufactured authority |
 
 * Candidate reuse qualification
 
@@ -99,7 +99,7 @@ dependencies, applicability assumptions, mandatory checks and replay receipt.
 
 The production code follows upstream reuse only after qualification. No new
 proof scorer, Agent kernel or Specula workflow state machine is authorized by
-this inventory. Use existing POO composition and POO Flow runtime mechanisms
+this inventory. Use existing POO composition and Agentic AI Lab runtime mechanisms
 to organize the selected operations. See
 [[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] and the [[file:../../ROADMAP.org][current work queue]].
 
@@ -121,7 +121,7 @@ weaken:
 
 * Target abstraction map
 
-| Source/POO Flow concept | Aitia abstraction |
+| Source/Agentic AI Lab concept | Aitia abstraction |
 |---------------------------+--------------------|
 | software requirement or standard clause | source-owned Artifact plus Claim/Assumption input |
 | implementation artifact/revision | changed Artifact and structural dependency seed |
@@ -168,7 +168,7 @@ Required negative cases:
 1. Freeze the software fixture and negative contracts in Aitia.
 2. Implement relation-plane and status vocabulary without importing a concrete
    standard, provider or vertical domain.
-3. Implement snapshot and invalidation semantics with the POO Flow Graph
+3. Implement snapshot and invalidation semantics with the Agentic AI Lab Graph
    library and reuse its impact, trajectory and SCC algorithms.
 4. Preserve the completed SDLC/GitOps ownership cutover with source-collection
    and negative namespace tests.
@@ -185,10 +185,10 @@ Required negative cases:
 - deterministic canonical-output comparison;
 - negative-contract parity;
 - standard/proof/model dependency audit;
-- POO Flow core bootstrap proving it does not import Lambda Aitia;
+- Agentic AI Lab core bootstrap proving it does not import Lambda Aitia;
 - application integration test showing stale software evidence blocks release
   and deployment effects;
 - rollback plan retaining the original source owner until acceptance.
 
 No item in this document authorizes moving SDLC, GitOps or Aitia Python
-semantics back into Lambda Episteme or POO Flow's generic Python runtime.
+semantics back into Lambda Episteme or Agentic AI Lab's generic Python runtime.

@@ -6,13 +6,13 @@
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
         :core/contribution/verification
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        (only-in :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-policy
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-policy
                  nasa-stage-policy
                  nasa-baseline-policy)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-structured
         :std/list/list)
 (export nasa-stage-policy nasa-baseline-policy nasa-context-request nasa-evidence-request
         nasa-verifiable-evidence nasa-verification-adapter nasa-stage-gate nasa-inventory-request
@@ -90,9 +90,9 @@
                      (slots value '(subject revision scope)) payload
                      (slots nasa-catalog-source-digests '(chapter2 chapter3 chapter4 chapter5 chapter6 appendix-c))) port)))))
 (def (nasa-verification-adapter id operation)
-  (poo-flow-verification-adapter id operation request-snapshot))
+  (agentic-ai-lab-verification-adapter id operation request-snapshot))
 (def (verified? admission value)
-  (poo-flow-verification-admission-valid? admission value))
+  (agentic-ai-lab-verification-admission-valid? admission value))
 (def (nasa-stage-gate policy project class-value context evidence adapter receipts now
                          tailorings: (tailoring-values '()) inventories: (inventory-values '()))
   (unless (and (sdlc-stage-policy? policy) (list? receipts) (list? tailoring-values)
@@ -100,7 +100,7 @@
                (every (lambda (i) (or (sdlc-trace-inventory? i) (sdlc-safety-inventory? i))) inventory-values)
                (exact-integer? now) (>= now 0)) (error "invalid stage gate inputs"))
   (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence requirements: (.ref policy 'requirements)))
-         (admission (poo-flow-verification-admission adapter receipts now))
+         (admission (agentic-ai-lab-verification-admission adapter receipts now))
          (selected (map (lambda (id)
                           (or (find (lambda (r) (equal? (.ref r 'requirement) id)) (.ref report 'requirements))
                               (error "unknown stage requirement" id))) (.ref policy 'requirements)))

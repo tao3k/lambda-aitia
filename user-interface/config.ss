@@ -4,31 +4,31 @@
 
 ;;; -*- Gerbil -*-
 ;;; Maintained GitHub/GitOps/SDLC Case. Selection and Case lowering belong to
-;;; POO Flow; the concrete policy Profiles remain owned by Aitia.
-(import (only-in :poo-flow/core/profile-composition/profile-bundle
+;;; Agentic AI Lab; the concrete policy Profiles remain owned by Aitia.
+(import (only-in :agentic-ai-lab/core/profile-composition/profile-bundle
                  profiles compose
-                 poo-flow-profile-export poo-flow-module-profiles)
-        (only-in :poo-flow/core/profile-composition/selection-syntax use-module)
-        (only-in :poo-flow/modules/workflow/scenario/composition-syntax user-composition)
-        (only-in :poo-flow/core/module-system/schema/relations
-                 poo-flow-semantic-identity)
-        (only-in :core/module-system/authoring/roles poo-flow-semantic-module)
-        :poo-flow/lambda-aitia/user-interface/profiles/github/actions
-        :poo-flow/lambda-aitia/user-interface/profiles/gitops/dev
-        :poo-flow/lambda-aitia/user-interface/profiles/gitops/staging
-        :poo-flow/lambda-aitia/user-interface/profiles/gitops/production
-        :poo-flow/lambda-aitia/user-interface/profiles/nasa/sdlc)
+                 agentic-ai-lab-profile-export agentic-ai-lab-module-profiles)
+        (only-in :agentic-ai-lab/core/profile-composition/selection-syntax use-module)
+        (only-in :agentic-ai-lab/modules/workflow/scenario/composition-syntax user-composition)
+        (only-in :agentic-ai-lab/core/module-system/schema/relations
+                 agentic-ai-lab-semantic-identity)
+        (only-in :core/module-system/authoring/roles agentic-ai-lab-semantic-module)
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/github/actions
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/dev
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/staging
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/production
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/nasa/sdlc)
 (export AitiaDeliveryModule github-gitops-sdlc)
 
 (def AitiaDeliveryModule
-  (poo-flow-semantic-module
-   (poo-flow-semantic-identity 'software-engineering 'delivery)
+  (agentic-ai-lab-semantic-module
+   (agentic-ai-lab-semantic-identity 'software-engineering 'delivery)
    profiles:
-   (poo-flow-module-profiles
-    (poo-flow-profile-export 'actions actions)
-    (poo-flow-profile-export 'dev dev)
-    (poo-flow-profile-export 'staging staging)
-    (poo-flow-profile-export 'production production))))
+   (agentic-ai-lab-module-profiles
+    (agentic-ai-lab-profile-export 'actions actions)
+    (agentic-ai-lab-profile-export 'dev dev)
+    (agentic-ai-lab-profile-export 'staging staging)
+    (agentic-ai-lab-profile-export 'production production))))
 
 (user-composition github-gitops-sdlc
   (compose profiles

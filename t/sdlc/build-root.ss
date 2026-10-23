@@ -4,7 +4,7 @@
 
 ;;; -*- Gerbil -*-
 ;;; Atomic fixture root for t/sdlc/...
-(import :poo-flow/lambda-aitia/modules/sdlc/standards/interface)
+(import :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/interface)
 (include "support/inventories.ss")
 (export sdlc-test-fixtures-loaded?)
 (def sdlc-test-fixtures-loaded? #t)

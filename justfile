@@ -10,7 +10,7 @@ self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
 export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", self_root + ":" + GERBIL_PATH + "/lib")
 native_root := GERBIL_PATH + "/native"
-native_library := native_root + "/libpoo_flow_aitia.dylib"
+native_library := native_root + "/libagentic_ai_lab_aitia.dylib"
 python_native_dir := self_root + "/bindings/python/src/lambda_aitia/_native"
 gerbil_env := if os() == "macos" { "env -u SDKROOT" } else { "env" }
 export UV_CACHE_DIR := env_var_or_default("UV_CACHE_DIR", self_root + "/.cache/uv")
@@ -23,7 +23,7 @@ export MACOSX_DEPLOYMENT_TARGET := env_var_or_default("MACOSX_DEPLOYMENT_TARGET"
 default:
     @just --list
 
-# Build this Gerbil package against the installed POO Flow mechanisms.
+# Build this Gerbil package against the installed Agentic AI Lab mechanisms.
 [group('build')]
 build-scheme:
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
@@ -60,7 +60,7 @@ check-semantic:
     just test-scheme gitops
     just test-scheme modules
 
-# Build the Aitia-owned assurance laws independently of POO Flow's proof package.
+# Build the Aitia-owned assurance laws independently of Agentic AI Lab's proof package.
 [group('check')]
 check-proof:
     cd proof/lean && lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
@@ -93,10 +93,10 @@ check-formal:
     just check-quint
     just check-proof
 
-# Refresh the in-place Python extension without rebuilding POO Flow.
+# Refresh the in-place Python extension without rebuilding Agentic AI Lab.
 [group('dev')]
 dev-python:
-    test -f '{{ GERBIL_PATH }}/pkg/github.com/tao3k/orgize/bindings/c/include/orgize.h' || { echo 'Orgize C header missing from GERBIL_PATH; install the declared POO Flow Gerbil dependencies first' >&2; exit 1; }
+    test -f '{{ GERBIL_PATH }}/pkg/github.com/tao3k/orgize/bindings/c/include/orgize.h' || { echo 'Orgize C header missing from GERBIL_PATH; install the declared Agentic AI Lab Gerbil dependencies first' >&2; exit 1; }
     just clean-python-cffi
     cd bindings/python && {{ gerbil_env }} uv sync --locked --extra test
     cd bindings/python && {{ gerbil_env }} uv run --locked --extra test python src/lambda_aitia/_native/_build.py

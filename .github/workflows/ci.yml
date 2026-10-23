@@ -119,24 +119,24 @@ jobs:
     timeout-minutes: 90
     env:
       GERBIL_BUILD_CORES: 12
-      GERBIL_PATH: ${{ github.workspace }}/poo-flow/.gerbil
-      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow/packages/lambda-aitia:${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
+      GERBIL_PATH: ${{ github.workspace }}/agentic-ai-lab/.gerbil
+      GERBIL_LOADPATH: ${{ github.workspace }}/agentic-ai-lab/packages/lambda-aitia:${{ github.workspace }}/agentic-ai-lab:${{ github.workspace }}/agentic-ai-lab/.gerbil/lib
     steps:
-      - name: Checkout pinned POO Flow mechanism library
+      - name: Checkout pinned Agentic AI Lab mechanism library
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          repository: tao3k/poo-flow
+          repository: tao3k/agentic-ai-lab
           ref: f721d112f1d27569e404d979607007f4a6de6552
-          path: poo-flow
+          path: agentic-ai-lab
           submodules: false
 
       - name: Checkout Lambda Aitia under packages
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          path: poo-flow/packages/lambda-aitia
+          path: agentic-ai-lab/packages/lambda-aitia
 
       - name: Initialize pinned Core source directory
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: git submodule update --init core
 
       - name: Install Just
@@ -155,46 +155,46 @@ jobs:
           repository-cache: true
 
       - name: Resolve immutable Gerbil release and module graph
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk mod deps --lockfile_mode=error
 
       - name: Restore pinned Gerbil package cache
         id: gerbil-package-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: poo-flow/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+          path: agentic-ai-lab/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel') }}
 
       - name: Materialize pinned native dependency commits
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg"
 
       - name: Install declared Gerbil package dependencies
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:install_dependencies
 
       - name: Save pinned Gerbil package cache
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: poo-flow/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+          path: agentic-ai-lab/.gerbil
+          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel') }}
 
-      - name: Build POO Flow mechanism library
-        working-directory: poo-flow
+      - name: Build Agentic AI Lab mechanism library
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && just build'
 
       - name: Run Scheme semantic closure
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-semantic'
 
       - name: Bind Quint and Lean sources to the retirement POO contract
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-binding-test.ss'
 
       - name: Execute retirement ingress controls against Scheme Host
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-execution-test.ss'
 
       - name: Set up Node for pinned Quint correspondence traces
@@ -203,7 +203,7 @@ jobs:
           node-version: '22'
 
       - name: Replay Quint states and unsafe-model controls through Scheme
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: |
           npm ci --prefix packages/lambda-aitia/proof/quint
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-quint-scheme'
@@ -215,13 +215,13 @@ jobs:
           java-version: '21'
 
       - name: Replay every reachable lifecycle state and authorization delivery fault
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-lifecycle-scheme'
 
       - name: Run SDLC and GitOps integration
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-integration'
 
       - name: Build and test native ABI and Python runtime
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'

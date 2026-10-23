@@ -5,10 +5,10 @@
 ;;; Legacy module-selection projection is standard-free. The NASA Standard is
 ;;; selected through its own typed nasa/sdlc Module Profile, not an SDLC flag.
 (import :core/module-system/selection/objects
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/funs
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
         :std/list/list)
 (export sdlc-config sdlc-nasa-7150-profile)
 
@@ -18,10 +18,10 @@
   (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 
 (def (sdlc-config selection)
-  (unless (and (poo-flow-user-module-selection? selection)
-               (equal? (poo-flow-user-module-selection-key selection) '(custom . sdlc)))
+  (unless (and (agentic-ai-lab-user-module-selection? selection)
+               (equal? (agentic-ai-lab-user-module-selection-key selection) '(custom . sdlc)))
     (error "expected a custom/sdlc selection"))
-  (let ((flags (poo-flow-user-module-selection-flags selection)))
+  (let ((flags (agentic-ai-lab-user-module-selection-flags selection)))
     (unless (null? flags)
       (error "SDLC has no feature flags; select standards as Modules" flags))
     (sdlc-contribution SdlcProfile)))

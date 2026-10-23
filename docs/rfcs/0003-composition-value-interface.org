@@ -16,12 +16,12 @@
 * Decision and present boundary
 
 Lambda Aitia owns Software Engineering Profile values and the maintained
-=aitia= Case. POO Flow owns semantic Module identities, Profile exports,
+=aitia= Case. Agentic AI Lab owns semantic Module identities, Profile exports,
 =use-module=, =compose profiles=, =user-composition=, Case lowering, admission
 and Session behavior. The ordinary value is POO-native; Aitia does not own a
 parallel selector, catalog, graph or runtime.
 
-POO Flow's current public expression surface is:
+Agentic AI Lab's current public expression surface is:
 
 #+begin_src scheme
 (user-composition project
@@ -36,7 +36,7 @@ Declaration alone neither executes a verifier nor establishes compliance or
 release authority.
 
 The former =(use-composition aitia)=, implicit catalog and single-expression
-file loader were removed from POO Flow's public surface by its native Profile
+file loader were removed from Agentic AI Lab's public surface by its native Profile
 algebra migration. Their earlier tests no longer qualify the current API.
 The no-import, one-expression downstream convenience requested for ordinary
 users remains open. Aitia will not recreate the removed loader locally or
@@ -80,7 +80,7 @@ consumed; those remain application Host responsibilities.
 The default path composes maintained POO Profile values; advanced users may
 extend those values with ordinary POO slot operations before composition.
 Profile selection preserves Module definition, instance, Profile identity,
-revision and generation in POO Flow selection proofs. The resulting Case owns
+revision and generation in Agentic AI Lab selection proofs. The resulting Case owns
 one execution-plan projection and fresh Sessions. Importing or composing
 values has no Runtime effect.
 
@@ -103,7 +103,7 @@ Recipe qualification and behavior/design trajectory projection remain pending.
 | Owner | Responsibility |
 |-------+----------------|
 | Aitia | Software Engineering/NASA semantics, maintained Profiles and Case, qualification scenarios |
-| POO Flow | Module/Profile algebra, composition, Graph, Case admission, Session and Runtime handoff |
+| Agentic AI Lab | Module/Profile algebra, composition, Graph, Case admission, Session and Runtime handoff |
 | Application Host | source reads, verifier execution, authority and effects |
 
 The Python project under =bindings/python= consumes Aitia's native C ABI; it
@@ -113,12 +113,12 @@ that ordinary users must type.
 
 * Acceptance gates
 
-- [X] Official Aitia and NASA identities lower through POO Flow's public
+- [X] Official Aitia and NASA identities lower through Agentic AI Lab's public
   =user-composition=, =use-module= and Profile algebra.
 - [X] The maintained Aitia Case and GitOps/NASA Scenario construct without
   Runtime execution and have focused tests.
 - [ ] A zero-override downstream file can select =aitia= without imports or
-  exposing POO internals, through a POO Flow-owned public mechanism.
+  exposing POO internals, through a Agentic AI Lab-owned public mechanism.
 - [ ] An advanced override extends the same maintained Project Profile and
   preserves selection/provenance receipts.
 - [X] The pure GitOps decision rejects a same-name green check lacking the
@@ -135,6 +135,6 @@ that ordinary users must type.
 - RFC 0001 defines the Assurance vocabulary carried by the Project Profile.
 - RFC 0002 defines canonical snapshots and invalidation.
 - RFC 0004 defines lifecycle design, trajectory scope and reusable Recipes.
-- ADR 0007 keeps POO Flow as the mechanism library.
+- ADR 0007 keeps Agentic AI Lab as the mechanism library.
 - ADR 0006 keeps Python as a production Runtime consumer, not a second
   semantic owner.

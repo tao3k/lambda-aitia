@@ -60,7 +60,7 @@ class GitOpsDecision:
             ),
             runtime_executed=_boolean(payload.get("runtimeExecuted"), "runtimeExecuted"),
         )
-        if decision.semantic_owner != "lambda-aitia" or decision.runtime_owner != "poo-flow":
+        if decision.semantic_owner != "lambda-aitia" or decision.runtime_owner != "agentic-ai-lab":
             raise AitiaNativeError("unexpected GitOps decision owner")
         if decision.authority_status != "not-evaluated":
             raise AitiaNativeError("unexpected GitOps authority status")

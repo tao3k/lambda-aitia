@@ -38,7 +38,7 @@ def test_production_runtime_materializes_scheme_owned_sdlc_plan() -> None:
     )
     assert plan.topological_order[-1] == "release/42/effect"
     assert plan.semantic_owner == "lambda-aitia"
-    assert plan.runtime_owner == "poo-flow"
+    assert plan.runtime_owner == "agentic-ai-lab"
     assert plan.release_authorized is False
     assert plan.runtime_executed is False
 
@@ -85,7 +85,7 @@ def test_runtime_rejects_inert_plan_claiming_effect(field: str) -> None:
         "cyclePath": None,
         "accepted": True,
         "semanticOwner": "lambda-aitia",
-        "runtimeOwner": "poo-flow",
+        "runtimeOwner": "agentic-ai-lab",
         "releaseAuthorized": False,
         "runtimeExecuted": False,
     }
@@ -98,7 +98,7 @@ def test_runtime_rejects_inert_plan_claiming_effect(field: str) -> None:
 def _gitops_change() -> dict[str, object]:
     return {
         "event": "pull-request",
-        "repository": "tao3k/poo-flow",
+        "repository": "tao3k/agentic-ai-lab",
         "revision": "0123456789abcdef",
         "source-ref": "feature/aitia",
         "target-ref": "develop",

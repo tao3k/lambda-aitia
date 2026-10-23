@@ -8,13 +8,13 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
-        :poo-flow/core/poo-clos/interface
-        (only-in :poo-flow/core/contribution/verification
-                 poo-flow-verification-valid?)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/core/contribution/verification
+                 agentic-ai-lab-verification-valid?)
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest assurance-node-canonical
                  assurance-relation-canonical)
-        :poo-flow/lambda-aitia/modules/assurance/types)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-verifier-input assurance-verifier-outcome
         assurance-evaluate-evidence-admission
@@ -125,7 +125,7 @@
    (cons 'lambda-aitia.snapshot-semantic
          (snapshot-semantic-fields snapshot-value))))
 
-;;; POO Flow's adapter freezes this string before and after its host-trusted
+;;; Agentic AI Lab's adapter freezes this string before and after its host-trusted
 ;;; operation. Recompute from every semantic field: mutating only a displayed
 ;;; snapshot digest must not preserve an issued seal.
 (def (assurance-verification-subject-snapshot subject-value)
@@ -214,7 +214,7 @@
               (equal? (assurance-relation-canonical current-relation)
                       (assurance-relation-canonical relation))
               (.ref structural 'eligible?)
-              (poo-flow-verification-valid?
+              (agentic-ai-lab-verification-valid?
                adapter issued-receipt
                (assurance-verification-subject
                 snapshot obligation evidence outcome)

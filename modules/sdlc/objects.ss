@@ -3,10 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/modules/governance/objects
-                 PooFlowGovernanceProfile.)
+        (only-in :agentic-ai-lab/modules/governance/objects
+                 AgenticAILabGovernanceProfile.)
         (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :poo-flow/lambda-aitia/modules/sdlc/types)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
 (export StandardProfile. SdlcProfile)
 (def StandardProfile.
   (.o (:: @ (poo-clos-model-prototype SdlcStandard)) kind: 'lambda-aitia.sdlc-standard coverage: 'partial
@@ -17,7 +17,7 @@
       relations: '(REFINES IMPLEMENTS VERIFIES EVIDENCES REVIEWS BASELINED_IN
                    DERIVED_FROM REQUESTS_RELIEF APPROVED_BY)))
 (def SdlcProfile
-  (.o (:: @ PooFlowGovernanceProfile.) identity: "lambda-aitia/sdlc"
+  (.o (:: @ AgenticAILabGovernanceProfile.) identity: "lambda-aitia/sdlc"
       revision: "1" owner: "lambda-aitia"
       ontology: sdlc-ontology standards: '()
       activities: '(planning requirements architecture design implementation

@@ -5,9 +5,9 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :clan/poo/object .ref)
         (only-in :core/feature-system/source-lock-feature source-lock-payload-digest)
-        :poo-flow/lambda-aitia/modules/assurance/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/user-interface/scenarios/job-retirement-contract)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
+        :agentic-ai-lab/lambda-aitia/user-interface/scenarios/job-retirement-contract)
 (export retirement-binding-test)
 
 ;;; IO belongs to the qualification fixture, not the public design value.

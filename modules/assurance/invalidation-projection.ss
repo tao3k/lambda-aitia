@@ -3,20 +3,20 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Boundary: Aitia only maps assurance relation semantics onto a POO Flow
+;;; Boundary: Aitia only maps assurance relation semantics onto a Agentic AI Lab
 ;;; Graph. Impact traversal, relation trajectories, and SCC analysis remain
-;;; owned by POO Flow.
+;;; owned by Agentic AI Lab.
 
 (import (only-in :clan/poo/object .ref)
         (only-in :core/graph/algorithms
-                 poo-flow-graph-loop-analysis-receipt)
+                 agentic-ai-lab-graph-loop-analysis-receipt)
         (only-in :core/graph/types
-                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/modules/temporal-causality/funs
-                 poo-flow-structural-impact-analyze)
+                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+        (only-in :agentic-ai-lab/modules/temporal-causality/funs
+                 agentic-ai-lab-structural-impact-analyze)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/lambda-aitia/modules/assurance/types)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-invalidation-graph assurance-invalidation-analysis)
 
@@ -54,7 +54,7 @@
          (relations (.ref snapshot 'relations))
          (graph-nodes
           (map (lambda (node)
-                 (poo-flow-graph-node
+                 (agentic-ai-lab-graph-node
                   (invalidation-graph-id (.ref node 'identity)) (.ref node 'kind)
                   (list (cons 'semantic-owner 'lambda-aitia)
                         (cons 'assurance-identity (.ref node 'identity))
@@ -63,7 +63,7 @@
          (graph-edges
           (map (lambda (entry)
                  (let ((relation (car entry)) (direction (cdr entry)))
-                   (poo-flow-graph-edge
+                   (agentic-ai-lab-graph-edge
                     (invalidation-graph-id (car direction))
                     (invalidation-graph-id (cdr direction))
                     (.ref relation 'relation)
@@ -74,11 +74,11 @@
                        (map (lambda (relation)
                               (cons relation (invalidation-direction relation)))
                             relations)))))
-    (poo-flow-graph
+    (agentic-ai-lab-graph
      (invalidation-graph-id (.ref snapshot 'graph-identity))
      graph-nodes graph-edges
      (list (cons 'semantic-owner 'lambda-aitia)
-           (cons 'graph-owner 'poo-flow)
+           (cons 'graph-owner 'agentic-ai-lab)
            (cons 'purpose 'structural-invalidation)))))
 
 (def (components->identities components)
@@ -94,13 +94,13 @@
 
 (def (assurance-invalidation-analysis snapshot seeds)
   (let* ((graph-value (assurance-invalidation-graph snapshot))
-         (loop-analysis (poo-flow-graph-loop-analysis-receipt graph-value)))
+         (loop-analysis (agentic-ai-lab-graph-loop-analysis-receipt graph-value)))
     (if (null? seeds)
       (values '() '()
               (components->identities (.ref loop-analysis 'components))
               (components->identities (.ref loop-analysis 'cyclic-components)))
       (let* ((impact
-              (poo-flow-structural-impact-analyze
+              (agentic-ai-lab-structural-impact-analyze
                graph-value
                (map invalidation-graph-id seeds)
                +assurance-invalidation-relations+

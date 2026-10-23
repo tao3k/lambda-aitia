@@ -4,7 +4,7 @@
 
 ;;; -*- Gerbil -*-
 ;;; Provider adapter only. The GitOps module performs the pure policy decision.
-(import :poo-flow/lambda-aitia/modules/gitops/interface)
+(import :agentic-ai-lab/lambda-aitia/modules/gitops/interface)
 (export github-change github-check github-run-gitops)
 (def (github-change event repository revision source-ref target-ref pull-request)
   (gitops-change 'github event repository revision source-ref target-ref pull-request))

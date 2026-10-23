@@ -6,10 +6,10 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/core/contribution/verification
-                 poo-flow-verification-adapter poo-flow-verify
-                 poo-flow-revoke-verification!)
-        :poo-flow/lambda-aitia/modules/assurance/interface)
+        (only-in :agentic-ai-lab/core/contribution/verification
+                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify
+                 agentic-ai-lab-revoke-verification!)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 
 (export evidence-admission-test)
 
@@ -92,7 +92,7 @@
   (.o (:: @ outcome)
       snapshot-context-digest: (.ref candidate-snapshot 'context-digest)))
 (def trusted-adapter
-  (poo-flow-verification-adapter
+  (agentic-ai-lab-verification-adapter
    "host/native-test"
    (lambda (subject-value now until)
      (and (eq? (.ref (.ref subject-value 'outcome) 'status) 'succeeded)
@@ -103,9 +103,9 @@
   (assurance-verification-subject
    trusted-snapshot trusted-obligation trusted-evidence trusted-outcome))
 (def trusted-receipt
-  (poo-flow-verify trusted-adapter trusted-subject 10 20))
+  (agentic-ai-lab-verify trusted-adapter trusted-subject 10 20))
 (def untrusted-adapter
-  (poo-flow-verification-adapter
+  (agentic-ai-lab-verification-adapter
    "other/native-test"
    (lambda (subject-value now until) #t)
    assurance-verification-subject-snapshot))
@@ -585,7 +585,7 @@
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome trusted-receipt 20)
        #f)
-      (poo-flow-revoke-verification! trusted-adapter trusted-receipt)
+      (agentic-ai-lab-revoke-verification! trusted-adapter trusted-receipt)
       (check-equal?
        (verified-support
         trusted-discharge trusted-evidence trusted-obligation

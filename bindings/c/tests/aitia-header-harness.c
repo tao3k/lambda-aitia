@@ -6,13 +6,13 @@
 
 #include <stddef.h>
 
-_Static_assert(offsetof(poo_flow_aitia_result, status) == 0u,
+_Static_assert(offsetof(agentic_ai_lab_aitia_result, status) == 0u,
                "status must be the first field");
-_Static_assert(offsetof(poo_flow_aitia_result, payload) >
-                   offsetof(poo_flow_aitia_result, status),
+_Static_assert(offsetof(agentic_ai_lab_aitia_result, payload) >
+                   offsetof(agentic_ai_lab_aitia_result, status),
                "payload must follow status");
-_Static_assert(offsetof(poo_flow_aitia_result, length) >
-                   offsetof(poo_flow_aitia_result, payload),
+_Static_assert(offsetof(agentic_ai_lab_aitia_result, length) >
+                   offsetof(agentic_ai_lab_aitia_result, payload),
                "length must follow payload");
 
-int main(void) { return POO_FLOW_AITIA_ABI_REVISION == 2u ? 0 : 1; }
+int main(void) { return AGENTIC_AI_LAB_AITIA_ABI_REVISION == 2u ? 0 : 1; }

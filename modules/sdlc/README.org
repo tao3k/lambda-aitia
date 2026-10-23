@@ -69,7 +69,7 @@ on the application-configured Host; it does not establish verifier
 independence, semantic implementation conformance or trusted deployment.
 An application may configure the Assurance Host's =source-reader:= capability.
 With that reader, Host issuance and currentness check every declared verifier
-input against its Artifact SHA-256 using POO Flow's Source Lock algorithm.
+input against its Artifact SHA-256 using Agentic AI Lab's Source Lock algorithm.
 The configured verification operation then receives Host-materialized POO input
 values as its fourth argument, each with =identity=, =revision=, =digest= and a
 copy of the validated =payload=. The Host rechecks those values after the
@@ -86,17 +86,17 @@ Host independence nor semantic implementation conformance.
 
 SDLC does not own CI providers or deployment environments. It contributes the
 standard, project, obligation, evidence, traceability, tailoring and lifecycle
-models. Applications combine these POO-native Profiles through POO Flow's
+models. Applications combine these POO-native Profiles through Agentic AI Lab's
 =use-module= and =compose profiles=.
 
 #+begin_export mermaid
 flowchart LR
-  Core[Existing POO Flow] --> SDLC[SDLC contribution]
+  Core[Existing Agentic AI Lab] --> SDLC[SDLC contribution]
   SDLC --> Project[Project profile]
   NASA[NASA standard profile] --> Project
   Other[Other standard profiles] --> Project
   Project --> Consumer[Application assessment and execution]
-  Workflow[POO Flow workflow module] --> Consumer
+  Workflow[Agentic AI Lab workflow module] --> Consumer
   Consumer -->|"host-owned execution"| Runtime[GitHub Actions or another CI host]
 #+end_export
 
@@ -104,8 +104,8 @@ The maintained software-engineering Project selects base SDLC and NASA's
 standard-family contribution separately:
 
 #+begin_src scheme
-(poo-flow-user-module-selection 'software-engineering 'sdlc '())
-(poo-flow-user-module-selection 'nasa 'sdlc '(+npr-7150.2))
+(agentic-ai-lab-user-module-selection 'software-engineering 'sdlc '())
+(agentic-ai-lab-user-module-selection 'nasa 'sdlc '(+npr-7150.2))
 #+end_src
 
 Omit the NASA selection for standard-free SDLC. =config.ss= owns the pure
@@ -151,10 +151,10 @@ does not assume all NASA requirements apply to every software project.
 [[https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_&page_name=Chapter2][Chapter 2]] governs tailoring and authority; a local profile override is not
 approval. No automatic NASA compliance or certification claim is produced.
 
-** POO Flow Standards Provider boundary
+** Agentic AI Lab Standards Provider boundary
 
 =standards/nasa-standard-provider.ss= projects this vertical into the
-domain-neutral POO Flow Standards module. It owns one exact NPR 7150.2D
+domain-neutral Agentic AI Lab Standards module. It owns one exact NPR 7150.2D
 =StandardEdition=, six lightweight source =ArtifactRef= values, one
 =StandardConstraintProfile= containing the 130 reviewed requirements, and a
 fail-closed validation Provider identity. Import and exact resolution perform
@@ -168,7 +168,7 @@ not a compliance or certification decision: an authenticated execution engine,
 the lifecycle evidence, and the authority verification boundary remain
 separate.
 
-Source identity is supplied by the reusable POO Flow Sources Lock Feature.
+Source identity is supplied by the reusable Agentic AI Lab Sources Lock Feature.
 =standards/sources.ss= is the concise, editable POO declaration of the NASA
 source identities and locations. =standards/source.lock.ss= is an include-only,
 generated artifact containing the observed digest and byte count for every
@@ -215,16 +215,16 @@ selection, duplicate/malformed selection rejection and source-only admission.
 optional NASA flag and rejected selections. The parent application keeps its
 actual init-to-contribution integration test separately under
 =t/contribution/integration/sdlc-ui-test.ss=; child tests do not import it.
-Run =just test-scheme= after building against installed POO Flow.
+Run =just test-scheme= after building against installed Agentic AI Lab.
 No GQL, gerbil-parser, Rust or Python is needed by this module or its tests.
 The application owns separate tests for evidence freshness, missing traceability
 under complete/incomplete scopes, unauthorized tailoring and standard conflicts.
 
 2026-09-12 working-source qualification after the init integration: native child
-build passed with the POO Flow contribution and module declaration libraries.
+build passed with the Agentic AI Lab contribution and module declaration libraries.
 =gxtest t/sdlc/unit/sdlc-test.ss t/sdlc/unit/sdlc-config-test.ss= passed 17 SDLC and 7 config checks.
 The earlier 18 governance checks are recorded in =t/qualification/authoring.org=.
-The child lane uses isolated output plus POO Flow library paths and does not
+The child lane uses isolated output plus Agentic AI Lab library paths and does not
 import the parent user configuration. The separate application lane passed
 4 checks using the actual parent init and user projection sources. Its compiled
 init attempt exposed source-form .ssi artifacts under the local parent library;
@@ -260,7 +260,7 @@ outside this contribution module.
 
 * Change impact
 =impact.ss= owns the SDLC projection for =sdlc-change-impact= over explicitly
-supplied trace nodes/edges. POO Flow Graph owns traversal, cycle termination and
+supplied trace nodes/edges. Agentic AI Lab Graph owns traversal, cycle termination and
 shortest relation trajectories; Aitia projects revision-scoped SDLC facts into
 that mechanism and retains its POO-native relation trajectory witnesses. Callers select
 changed node identities and relation names. Edges are traversed source-to-target
@@ -284,7 +284,7 @@ chain and keeps an unrelated verification outside the impact set.
 * CLOS model ownership
 =types.ss= declares native =poo-clos= classes. Evidence and trace objects reuse
 subject/revision/scope, clause references and identity through class inheritance.
-The POO Flow =contribution/model= interface checks native prototype ancestry
+The Agentic AI Lab =contribution/model= interface checks native prototype ancestry
 and all effective-slot predicates. =objects.ss= constructs immutable-by-convention
 POO snapshots; callers derive new values with =.o= rather than mutate them.
 =review.ss= and the trace/impact functions recheck contracts at their boundaries,
@@ -296,7 +296,7 @@ owned =t/sdlc/unit/sdlc-model-test.ss= covers inherited constraints, impersonati
 invalid overrides and preservation of the previous snapshot.
 
 * Complete source review surface
-=:poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review= exports:
+=:agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review= exports:
 
 - =nasa-requirement-criteria=: authoritative paragraph and subparagraph criteria,
   bound to a source URL and SHA-256 snapshot. Notes are preserved separately.
@@ -322,7 +322,7 @@ invalid overrides and preservation of the previous snapshot.
 =user-interface/scenarios/nasa-audit.ss= is the independent complex example. Its synthetic
 planning evidence, safety gaps and claimed tailoring signature yield a review
 packet, not a NASA compliance or release decision. All module contracts remain
-pure Scheme and use existing POO Flow/CLOS primitives. Full natural-language
+pure Scheme and use existing Agentic AI Lab/CLOS primitives. Full natural-language
 proof, external NASA standards and signature authentication are not claimed by
 paragraph-level evidence coverage.
 
@@ -345,7 +345,7 @@ appropriate to the request purpose. Supplying a digest or an approved flag does
 not perform this verification. Trust configuration and the clock belong to the
 host, outside submitted project facts.
 
-The generic issuance/revocation mechanism belongs to POO Flow's
+The generic issuance/revocation mechanism belongs to Agentic AI Lab's
 =contribution/verification=; NASA request projection belongs here. Receipts are
 session-local capabilities: clones, stale snapshots, altered fields, expired
 intervals and revoked receipts are rejected. They are not persistent signatures

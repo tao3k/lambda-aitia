@@ -2,8 +2,8 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 (import :std/test :std/error (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/assurance/interface
-        :poo-flow/lambda-aitia/t/formal/lifecycle-fixture)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
+        :agentic-ai-lab/lambda-aitia/t/formal/lifecycle-fixture)
 (export lifecycle-boundary-test)
 (def (drive fixture actions)
   (for-each (lambda (action) (check (lifecycle-action! fixture action) => #t)) actions)

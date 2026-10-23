@@ -5,11 +5,11 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/modules/authorization/providers/cedar/interface
-                 poo-flow-cedar-runtime-handoff
-                 poo-flow-cedar-authorization-request?
-                 poo-flow-cedar-authorization-request->runtime)
-        :poo-flow/lambda-aitia/modules/assurance/interface)
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
+                 agentic-ai-lab-cedar-runtime-handoff
+                 agentic-ai-lab-cedar-authorization-request?
+                 agentic-ai-lab-cedar-authorization-request->runtime)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 
 (export decision-preflight-test)
 
@@ -83,7 +83,7 @@
    (lambda (subject-value issued-at expires-at) #t)
    (lambda () 11) 9 source))
 (def handoff
-  (poo-flow-cedar-runtime-handoff
+  (agentic-ai-lab-cedar-runtime-handoff
    1 #u8(1 2 3) digest-a digest-a digest-b digest-b))
 
 (def decision-preflight-test
@@ -149,9 +149,9 @@
                host preflight "Release" digest-a handoff))
              (other-host (make-host (lambda () snapshot-value)))
              (runtime-value
-              (poo-flow-cedar-authorization-request->runtime request))
+              (agentic-ai-lab-cedar-authorization-request->runtime request))
              (context-value (hash-get runtime-value "context")))
-        (check-equal? (poo-flow-cedar-authorization-request? request) #t)
+        (check-equal? (agentic-ai-lab-cedar-authorization-request? request) #t)
         (check-equal? (assurance-host-cedar-request-current? host request) #t)
         (check-equal?
          (assurance-host-cedar-request-current?
@@ -167,7 +167,7 @@
                       (.ref preflight 'identity))
         (check-equal? (hash-get context-value "aitia_policy") "policy/release")
         (check-equal? (hash-get context-value "aitia_preflight_only") #t)
-        (check-equal? (hash-get context-value "poo_flow_preflight_only") #t)
+        (check-equal? (hash-get context-value "agentic_ai_lab_preflight_only") #t)
         (check-equal?
          (assurance-host-cedar-request
           host (.o (:: @ preflight)) "Release" digest-a handoff) #f)

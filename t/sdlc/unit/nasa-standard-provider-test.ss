@@ -12,15 +12,15 @@
         (only-in :core/feature-system/interface
                  sources-lock-freeze
                  write-sources-lock-module)
-        (only-in :poo-flow/modules/standards/interface
-                 poo-flow-standard-digest
-                 poo-flow-standard-materialization-receipt-valid?
-                 poo-flow-standard-resolution-receipt-bundle
-                 poo-flow-standard-resolution-receipt-valid?
-                 poo-flow-standard-validate
-                 poo-flow-standard-validation-closure?)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/sources
-        :poo-flow/lambda-aitia/modules/sdlc/standards/interface)
+        (only-in :agentic-ai-lab/modules/standards/interface
+                 agentic-ai-lab-standard-digest
+                 agentic-ai-lab-standard-materialization-receipt-valid?
+                 agentic-ai-lab-standard-resolution-receipt-bundle
+                 agentic-ai-lab-standard-resolution-receipt-valid?
+                 agentic-ai-lab-standard-validate
+                 agentic-ai-lab-standard-validation-closure?)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/sources
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/interface)
 
 (export nasa-standard-provider-test)
 
@@ -90,12 +90,12 @@
             (begin
               (provider-phase 'resolve-start)
               (nasa-7150-2d-resolve
-               module (poo-flow-standard-digest 'nasa-test-terminology))))
+               module (agentic-ai-lab-standard-digest 'nasa-test-terminology))))
            (bundle
             (begin
               (provider-phase 'resolve-complete)
-              (poo-flow-standard-resolution-receipt-bundle receipt))))
-      (check-equal? (poo-flow-standard-resolution-receipt-valid? receipt) #t)
+              (agentic-ai-lab-standard-resolution-receipt-bundle receipt))))
+      (check-equal? (agentic-ai-lab-standard-resolution-receipt-valid? receipt) #t)
       (check-equal? (.ref bundle 'edition-count) 1)
       (check-equal? (.ref bundle 'artifact-count) 6)
       (check-equal? (.ref bundle 'byte-count) 197510)
@@ -108,7 +108,7 @@
            (receipts (nasa-7150-2d-materialize-sources module)))
       (check-equal? (length receipts) 6)
       (check-equal?
-       (andmap poo-flow-standard-materialization-receipt-valid? receipts)
+       (andmap agentic-ai-lab-standard-materialization-receipt-valid? receipts)
        #t)
       (check-equal?
        (apply +
@@ -143,11 +143,11 @@
            (closure
             (nasa-7150-2d-validation-closure
              module 'sdlc-project
-             (poo-flow-standard-digest 'nasa-project-snapshot)))
+             (agentic-ai-lab-standard-digest 'nasa-project-snapshot)))
            (provider (.ref (.ref module 'providers) 'nasa)))
-      (check-equal? (poo-flow-standard-validation-closure? closure) #t)
+      (check-equal? (agentic-ai-lab-standard-validation-closure? closure) #t)
       (check-equal? (length (.ref closure 'constraints)) 130)
       (check-equal? (.ref closure 'runtime-executed?) #f)
       (check-exception
-       (poo-flow-standard-validate provider closure (.o))
+       (agentic-ai-lab-standard-validate provider closure (.o))
        Error?)))))

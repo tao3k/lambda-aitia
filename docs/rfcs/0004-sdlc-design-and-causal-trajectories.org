@@ -38,7 +38,7 @@ This RFC records the agreed direction and pending executable acceptance work.
 Its draft status does not promote the capabilities below to implemented APIs.
 
 [[file:0005-org-native-engineering-workspace.org][RFC 0005]] specifies the native Org engineering work surface and source-bound
-Agent review, with generic Org integration owned by POO Flow. Its initial
+Agent review, with generic Org integration owned by Agentic AI Lab. Its initial
 authoring checks are distinct from the pending connected execution loop.
 
 The lifecycle workflow below names engineering states, not implementation
@@ -215,7 +215,7 @@ the safety of their composition.
 
 * System behavior and design evolution trajectories
 
-POO Flow owns Temporal Causality, event graphs, causal cuts, trajectory
+Agentic AI Lab owns Temporal Causality, event graphs, causal cuts, trajectory
 contracts, witness paths and traversal. Aitia supplies software event meaning
 and the links from behavior to requirements, assumptions, design decisions and
 assurance. Python transports observations and invokes tools through the owned
@@ -263,10 +263,10 @@ assumptions even when the explanation remains unresolved.
 | RFC/ADR and assurance evolution | recorded choices and changes in justification, without rewriting earlier facts or granting runtime authority |
 
 An observed failure remains observed in its original environment. The current
-POO Flow trajectory contract reserves =error-event-paths= for uncommitted
+Agentic AI Lab trajectory contract reserves =error-event-paths= for uncommitted
 counterfactuals; actual bug replays must not be relabeled to fit that slot.
 Use the existing observed event graph, and place any missing generic trajectory
-mechanism in its POO Flow owner before exposing an Aitia projection.
+mechanism in its Agentic AI Lab owner before exposing an Aitia projection.
 
 An assessment binds the event graph, immutable causal cut, explicit time
 observation, source/design/policy revisions and horizon. Occurrence order,
@@ -274,7 +274,7 @@ ingress order and revision order must not be conflated. A late observation
 creates a new assessment cut and may invalidate current support while leaving
 the earlier cut intact. Missing causal parents, incompatible clock domains
 and incomplete coverage retain an unknown frontier. Cross-clock mapping or
-additional time axes require a qualified POO Flow contract; this RFC does not
+additional time axes require a qualified Agentic AI Lab contract; this RFC does not
 claim that every such mapping already exists.
 
 * Lifecycle Impact of introduction, change and retirement
@@ -283,7 +283,7 @@ Design direction agreed on 2026-09-24; implementation qualification remains
 pending. Impact is a lifecycle view of a change, not only a list of files to
 rebuild. It asks which historical interpretations and obligations, current
 conditions, and future options are changed by introducing, modifying or
-retiring a capability. POO Flow retains generic Impact and Temporal Causality
+retiring a capability. Agentic AI Lab retains generic Impact and Temporal Causality
 ownership; Aitia supplies Software/SDLC relations and domain obligations.
 
 | Perspective | Introduce or modify a capability | Retire a capability |
@@ -321,11 +321,11 @@ recommended obligation and responsible role. This is an analysis/proposal,
 not execution authority. Existing Cedar/Runtime admission remains necessary
 before a proposed migration, cancellation or other external effect.
 
-The existing POO Flow classifier partitions events by logical position.
+The existing Agentic AI Lab classifier partitions events by logical position.
 That alone does not establish current exposure: an old task, authorization or
 stored object can still be active now. Current applicability needs an explicit
 state or validity-interval projection, including its source and uncertainty.
-Any missing generic mechanism belongs in POO Flow, not a parallel Aitia engine.
+Any missing generic mechanism belongs in Agentic AI Lab, not a parallel Aitia engine.
 
 Dynamic callers, unregistered deployments, external consumers and missing
 history remain an unknown frontier. No discovered dependency is not evidence
@@ -374,7 +374,7 @@ where execution is claimed. Replaying an old result must retain its original
 version/scope; a replacement cannot silently acquire the old evidence.
 
 The [[file:../receipts/2026-09-24-retirement-impact.org][first bounded analysis receipt]] exercises the automatic-retry fixture through
-POO Flow's existing public mechanisms. It uses synthetic facts and does not
+Agentic AI Lab's existing public mechanisms. It uses synthetic facts and does not
 close the persisted-state, obligation derivation or execution requirements above.
 
 * Historical engineering cases as design inputs
@@ -440,7 +440,7 @@ and unreviewed transfer can coexist.
 Use existing Artifact, Claim, Assumption, Finding, Evidence, Decision and
 Obligation projections and POO composition. These conceptual correspondences
 are not new implemented constructors or permission to add arbitrary edge names.
-POO Flow retains generic temporal/causal and query ownership. No parallel case
+Agentic AI Lab retains generic temporal/causal and query ownership. No parallel case
 graph engine, universal crawler, confidence scorer or MRR integration is
 required to qualify the first case.
 
@@ -451,7 +451,7 @@ article supplies design questions, not evidence that Aitia or the fixture meets
 the AWS contract. The source/coverage matrix in that ADR distinguishes the
 existing replay from untested parameter, retention and crash boundaries.
 
-Authorization conditions belong in the existing POO Flow Cedar Provider, using
+Authorization conditions belong in the existing Agentic AI Lab Cedar Provider, using
 trusted context supplied by the Host; do not create an Aitia policy evaluator.
 Cedar decides whether an action is allowed for the supplied principal, resource
 and context. Runtime must enforce that decision at use. Provider-side atomic
@@ -505,7 +505,7 @@ obligations and changing justification rather than that feature alone.
 
 The production Aitia Python Runtime under =bindings/python= serves all Aitia
 capabilities across the SDLC. AnyIO is its asynchronous foundation for task
-lifetime, cancellation, bounded concurrency and I/O. POO Flow continues to own
+lifetime, cancellation, bounded concurrency and I/O. Agentic AI Lab continues to own
 generic Graph/FunFlow execution and temporal/causal algorithms. Scheme/POO owns
 Aitia's semantic composition, and the C ABI carries typed projections.
 Native session thread affinity must be preserved at asynchronous boundaries.
@@ -568,7 +568,7 @@ evaluation with unexposed answers.
   prevents stale support from being reused.
 - [ ] Introduction/change/retirement Impact binds pre/post snapshots, typed
   relations and explicit temporal scope; proposal and observed effect remain
-  separate. Generic analysis stays in POO Flow.
+  separate. Generic analysis stays in Agentic AI Lab.
 - [ ] The retirement case covers historical data/results, current consumers
   and queued work; old-but-active subjects are not lost to past-event filtering.
   Removed graph nodes cannot hide their old dependents. Unrelated controls are
@@ -602,7 +602,7 @@ and their receipts retain their existing scope.
 - [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 — Stable logical-operation identity]]
 - [[file:../../ROADMAP.org][Roadmap and current implementation evidence]]
 - [[file:../plans/engineering-case-source-inventory.org][Engineering case sources and transfer judgments]]
-- POO Flow =src/modules/temporal-causality/interface.ss= and architecture
+- Agentic AI Lab =src/modules/temporal-causality/interface.ss= and architecture
   =161-temporal-causality-and-causal-trajectory-architecture.org= own the generic
   mechanism; Aitia consumes the pinned public library.
 - [[https://github.com/specula-org/Specula#continuous-verification][Specula continuous verification]]

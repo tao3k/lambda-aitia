@@ -3,13 +3,13 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Boundary: Aitia-owned formal-method providers over the POO Flow Proof core.
+;;; Boundary: Aitia-owned formal-method providers over the Agentic AI Lab Proof core.
 ;;; Invariant: provider declarations create obligations; they never claim that
 ;;; an engine ran or that a proof/model/policy was admitted.
 
 (import (only-in :clan/poo/object .o)
-        (only-in :poo-flow/modules/proof/interface
-                 poo-flow-proof-module)
+        (only-in :agentic-ai-lab/modules/proof/interface
+                 agentic-ai-lab-proof-module)
         "types.ss"
         "objects.ss"
         "funs.ss")
@@ -38,7 +38,7 @@
    '(schema policy entities request validation-receipt)))
 
 (def aitia-formal-methods-module
-  (poo-flow-proof-module
+  (agentic-ai-lab-proof-module
    "lambda-aitia/modules/formal-methods"
    (.o (quint aitia-quint-provider)
        (lean aitia-lean-provider)

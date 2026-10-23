@@ -5,10 +5,10 @@
 ;;; Source-bound review across every catalog requirement. No authority execution.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :std/list/list)
 (export nasa-requirement-criteria nasa-criterion-evidence nasa-assess-project
         nasa-tailoring-requirements nasa-safety-component nasa-safety-review)

@@ -7,15 +7,15 @@
 ;;; evaluator strategy axis where provider/runtime specializers may combine.
 (import (only-in :clan/poo/object .def .o)
         (only-in :clan/poo/mop .defgeneric .new)
-        (only-in :poo-flow/core/poo-clos/interface
+        (only-in :agentic-ai-lab/core/poo-clos/interface
                  poo-clos-call
                  poo-clos-class
                  poo-clos-generic-function
                  poo-clos-generic-protocol
                  poo-clos-make-instance)
-        (only-in :poo-flow/core/contribution/objects
+        (only-in :agentic-ai-lab/core/contribution/objects
                  make-contribution)
-        :poo-flow/lambda-aitia/modules/gitops/types)
+        :agentic-ai-lab/lambda-aitia/modules/gitops/types)
 (export GitOpsEvaluator GitOpsDefaultEvaluator
         GitOpsEvaluationProtocol GitOpsEvaluationGeneric
         GitOpsProfile OpenGitOpsProfile GitOpsModule

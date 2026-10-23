@@ -3,7 +3,7 @@
 
 ;;; Maintained POO design declaration for the bounded formal experiment.
 ;;; Source bindings are not Host evidence admission or implementation refinement.
-(import (only-in :poo-flow/lambda-aitia/modules/sdlc/design
+(import (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/design
                  sdlc-design-contract sdlc-design-assumption sdlc-design-guarantee))
 (export job-retirement-contract job-retirement-safety
         job-retirement-quint-sources job-retirement-lean-sources

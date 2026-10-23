@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+title: ADR 0003 — Review the POO Flow contract allowlist
+#+title: ADR 0003 — Review the Agentic AI Lab contract allowlist
 
 :PROPERTIES:
 :ID:              lambda-aitia-adr-0003
@@ -11,25 +11,25 @@
 :SUPERSEDED_BY:   lambda-aitia-adr-0007
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-maintainers
+:CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 
 * Context and Problem Statement
 
-Lambda Aitia depends on POO Flow mechanisms but must not track arbitrary parent
+Lambda Aitia depends on Agentic AI Lab mechanisms but must not track arbitrary parent
 internals.  RFC 0001 requires a reviewed stable dependency boundary.
 
 * Decision Drivers
 
-- Keep POO Flow independently usable without Aitia.
+- Keep Agentic AI Lab independently usable without Aitia.
 - Make every imported mechanism owner auditable.
 - Prevent convenience imports from silently expanding the dependency surface.
 
 * Considered Options
 
-1. Permit any =:poo-flow/src/= import.
-2. Copy POO Flow mechanisms into Aitia.
+1. Permit any =:agentic-ai-lab/src/= import.
+2. Copy Agentic AI Lab mechanisms into Aitia.
 3. Maintain an exact reviewed owner allowlist and require an ADR revision for
    additions.
 
@@ -49,7 +49,7 @@ required by the migrated implementation:
 Aggregate parent facades, runtime lifecycle owners, Cedar authority and effect
 execution are not implicitly allowed.  A new owner path requires review and a
 new ADR revision.  Moving an allowlisted contract is a coordinated breaking
-change until POO Flow publishes a stable facade for it.
+change until Agentic AI Lab publishes a stable facade for it.
 
 * Consequences
 
@@ -62,14 +62,14 @@ change until POO Flow publishes a stable facade for it.
 
 - Review compares Scheme imports against the owner set; an executable
   repository gate remains required before this check can be called automatic.
-- POO Flow core import-policy tests continue to reject Aitia imports.
+- Agentic AI Lab core import-policy tests continue to reject Aitia imports.
 - RFC acceptance remains blocked if the allowlist and actual imports diverge.
 
 * More Information
 
 - [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
 - [[file:0001-dependency-direction.org][ADR 0001 — Contribution Dependency Direction]]
-- [[file:0007-consume-poo-flow-public-library.org][ADR 0007 — Consume POO Flow as the mechanism library]]
+- [[file:0007-consume-agentic-ai-lab-public-library.org][ADR 0007 — Consume Agentic AI Lab as the mechanism library]]
 
 This decision was superseded because an exact owner allowlist incorrectly
 treated dependency count as an architectural objective.  The retained

@@ -66,7 +66,7 @@ orgize_c_dir = (
     / "pkg/github.com/tao3k/orgize/bindings/c/include"
 )
 if not (orgize_c_dir / "orgize.h").is_file():
-    raise RuntimeError("Orgize's public C header is absent; install POO Flow dependencies")
+    raise RuntimeError("Orgize's public C header is absent; install Agentic AI Lab dependencies")
 ffibuilder.set_source(
     "lambda_aitia._native._aitia_cffi",
     '#include "aitia_shim.c"',

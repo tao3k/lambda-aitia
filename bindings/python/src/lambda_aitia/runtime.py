@@ -71,7 +71,7 @@ class SdlcFlowPlan:
             ),
             runtime_executed=_boolean(payload.get("runtimeExecuted"), "runtimeExecuted"),
         )
-        if plan.semantic_owner != "lambda-aitia" or plan.runtime_owner != "poo-flow":
+        if plan.semantic_owner != "lambda-aitia" or plan.runtime_owner != "agentic-ai-lab":
             raise AitiaNativeError("unexpected SDLC flow-plan owner")
         if plan.release_authorized or plan.runtime_executed:
             raise AitiaNativeError(
@@ -91,7 +91,7 @@ class SdlcRuntime:
         self._session = session
 
     def plan(self, lifecycle_id: str) -> SdlcFlowPlan:
-        """Build and validate the canonical POO Flow DAG for a lifecycle."""
+        """Build and validate the canonical Agentic AI Lab DAG for a lifecycle."""
 
         if not isinstance(lifecycle_id, str) or not lifecycle_id:
             raise ValueError("lifecycle_id must be a non-empty string")

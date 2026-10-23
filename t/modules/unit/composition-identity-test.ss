@@ -5,17 +5,17 @@
 
 (import (only-in :std/test check-equal? test-case test-suite)
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/modules/workflow/scenario/case
-                 poo-flow-scenario-case?)
+        (only-in :agentic-ai-lab/modules/workflow/scenario/case
+                 agentic-ai-lab-scenario-case?)
         (only-in :core/module-system/selection/objects
-                 poo-flow-user-module-selection-flags
-                 poo-flow-user-module-selection-key)
+                 agentic-ai-lab-user-module-selection-flags
+                 agentic-ai-lab-user-module-selection-key)
         (only-in :core/profile-composition/user-profile
-                 poo-flow-user-profile-modules)
-        (only-in :poo-flow/modules/proof/interface
-                 poo-flow-proof-module?)
-        :poo-flow/lambda-aitia/modules/formal-methods/interface
-        :poo-flow/lambda-aitia/user-interface/compositions/aitia)
+                 agentic-ai-lab-user-profile-modules)
+        (only-in :agentic-ai-lab/modules/proof/interface
+                 agentic-ai-lab-proof-module?)
+        :agentic-ai-lab/lambda-aitia/modules/formal-methods/interface
+        :agentic-ai-lab/lambda-aitia/user-interface/compositions/aitia)
 
 (export lambda-aitia-composition-identity-test)
 
@@ -26,8 +26,8 @@
      (check-equal? (.ref (.ref AitiaModule 'identity) 'namespace)
                    'software-engineering)
      (check-equal? (.ref (.ref AitiaModule 'identity) 'name) 'aitia))
-   (test-case "root is one closed POO Flow Case"
-     (check-equal? (poo-flow-scenario-case? aitia) #t)
+   (test-case "root is one closed Agentic AI Lab Case"
+     (check-equal? (agentic-ai-lab-scenario-case? aitia) #t)
      (check-equal? (.ref aitia 'name) 'aitia)
      (check-equal? (length (.ref aitia 'profiles)) 1)
      (check-equal? (length (.ref aitia 'profile-bindings)) 1)
@@ -36,9 +36,9 @@
      (check-equal? (.ref aitia 'runtime-executed?) #f))
    (test-case "default Project selects the complete software engineering closure"
      (let (modules
-           (poo-flow-user-profile-modules (car (.ref aitia 'profiles))))
+           (agentic-ai-lab-user-profile-modules (car (.ref aitia 'profiles))))
        (check-equal?
-        (map poo-flow-user-module-selection-key modules)
+        (map agentic-ai-lab-user-module-selection-key modules)
         '((software-engineering . gitops)
           (software-engineering . sdlc)
           (nasa . sdlc)
@@ -46,10 +46,10 @@
           (software-engineering . assurance)
           (software-engineering . formal-methods)))
        (check-equal?
-        (poo-flow-user-module-selection-flags (list-ref modules 5))
+        (agentic-ai-lab-user-module-selection-flags (list-ref modules 5))
         '(+quint +lean +cedar))))
-   (test-case "formal-method declarations reuse the POO Flow Proof module"
-     (check-equal? (poo-flow-proof-module? aitia-formal-methods-module) #t)
+   (test-case "formal-method declarations reuse the Agentic AI Lab Proof module"
+     (check-equal? (agentic-ai-lab-proof-module? aitia-formal-methods-module) #t)
      (check-equal? (.ref aitia-quint-provider 'runtime-executed?) #f)
      (check-equal? (.ref aitia-lean-provider 'obligation-only?) #t)
      (check-equal? (.ref aitia-cedar-provider 'role)

@@ -41,8 +41,8 @@ AITIA_QUINT_BIN="$PWD/proof/quint/node_modules/.bin/quint" just check-quint ingr
 The lockfile pins Quint 0.33.0 and its npm transitive graph. The checker
 requires Apalache 0.62.1's TLC backend, Java and a local loopback endpoint.
 Each check prints its name and result; a tool error or a stall is not a
-successful counterexample. No implicit dependency on the POO Flow ASCENT pin
-is introduced here: ASCENT belongs to the parent POO Flow dependency graph.
+successful counterexample. No implicit dependency on the Agentic AI Lab ASCENT pin
+is introduced here: ASCENT belongs to the parent Agentic AI Lab dependency graph.
 
 * Claim boundary
 
@@ -142,7 +142,7 @@ clock, no revocation, and weak fairness of each Host stage. It says nothing
 about progress under a changing environment.
 
 The lifecycle effect Host is an explicit local composition adapter, not a new
-Cedar policy engine or native Runtime Host. It composes existing POO Flow
+Cedar policy engine or native Runtime Host. It composes existing Agentic AI Lab
 semantic-root / token validation primitives with private exact-identity
 issuance and one-shot reservation indexes. The configured authorization
 operation must evaluate policy for the frozen request; the configured delivery

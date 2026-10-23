@@ -14,18 +14,18 @@
 
 * Exact source cut
 
-- POO Flow: =43bf47869c48b0944984b64aefec80846129c949=
+- Agentic AI Lab: =43bf47869c48b0944984b64aefec80846129c949=
 - Lambda Aitia: =d5d3c2cba1251069cca98d387034c833515505aa=
 - Host: Darwin arm64
 - Build concurrency: =GERBIL_BUILD_CORES=12=
 
 The replay started from an empty project-local =.gerbil= tree in an isolated
-clone.  It did not depend on the dirty shared POO Flow checkout or on a
+clone.  It did not depend on the dirty shared Agentic AI Lab checkout or on a
 user-global Gerbil installation.
 
 * Toolchain boundary
 
-POO Flow now detects whether the active =gsc= is the Homebrew Gambit runtime.
+Agentic AI Lab now detects whether the active =gsc= is the Homebrew Gambit runtime.
 Only for that runtime, and only for each =just= child process, the build:
 
 - removes =SDKROOT=;
@@ -42,9 +42,9 @@ is changed.  If the active Gerbil runtime is not the Homebrew Cellar runtime,
 including a Nix-provided Gerbil/Gambit toolchain, the boundary evaluates to
 plain =env= and preserves the toolchain selected by Nix.
 
-* Published POO Flow library closure
+* Published Agentic AI Lab library closure
 
-The replayed POO Flow revision publishes the mechanism owners consumed by
+The replayed Agentic AI Lab revision publishes the mechanism owners consumed by
 Aitia rather than copying them into Aitia:
 
 - Graph types, algorithms and structural-impact trajectories;

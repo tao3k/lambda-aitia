@@ -4,23 +4,23 @@
 
 (import :std/test :std/error
         (only-in :core/module-system/selection/syntax
-                 poo-flow-modules!)
+                 agentic-ai-lab-modules!)
         :core/module-system/selection/objects
         (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/core/contribution/objects admit-contributions)
-        :poo-flow/lambda-aitia/modules/sdlc/config)
+        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/config)
 (def (selected . flags)
-  (sdlc-config (poo-flow-user-module-selection 'custom 'sdlc flags)))
+  (sdlc-config (agentic-ai-lab-user-module-selection 'custom 'sdlc flags)))
 (export sdlc-config-test)
 (def sdlc-config-test
   (test-suite "SDLC init selection projection"
     (test-case "custom SDLC module is standard-free"
-      (let* ((bundles (poo-flow-modules!
+      (let* ((bundles (agentic-ai-lab-modules!
                        :custom (sdlc @ "../lambda-aitia/modules/sdlc")))
              (selection (caar bundles))
              (contribution (sdlc-config selection))
              (standards (.ref (.ref contribution 'profile) 'standards)))
-        (check-equal? (poo-flow-user-module-selection-entrypoint selection)
+        (check-equal? (agentic-ai-lab-user-module-selection-entrypoint selection)
                       "../lambda-aitia/modules/sdlc/interface.ss")
         (check-equal? standards '())
         (check-equal? (.ref (admit-contributions (list contribution) '()) 'accepted?) #t)))
@@ -29,4 +29,4 @@
     (test-case "unsupported features and unrelated modules are rejected"
       (check-exception (selected '+nasa) Error?)
       (check-exception (selected '+npr-7150.2) Error?)
-      (check-exception (sdlc-config (poo-flow-user-module-selection 'custom 'other '())) Error?))))
+      (check-exception (sdlc-config (agentic-ai-lab-user-module-selection 'custom 'other '())) Error?))))

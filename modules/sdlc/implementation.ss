@@ -7,12 +7,12 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/core/poo-clos/interface
-        (only-in :poo-flow/lambda-aitia/modules/assurance/interface
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/interface
                  assurance-artifact? assurance-digest?
                  assurance-snapshot? assurance-snapshot-canonical?)
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/design)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/design)
 
 (export SdlcDesignImplementationLink sdlc-design-implementation-link?
         sdlc-design-implementation-link sdlc-design-implementation-review)

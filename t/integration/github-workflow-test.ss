@@ -5,12 +5,12 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .ref)
-        :poo-flow/lambda-aitia/user-interface/config
-        :poo-flow/lambda-aitia/user-interface/profiles/nasa/sdlc
-        :poo-flow/lambda-aitia/user-interface/scenarios/github-gitops)
+        :agentic-ai-lab/lambda-aitia/user-interface/config
+        :agentic-ai-lab/lambda-aitia/user-interface/profiles/nasa/sdlc
+        :agentic-ai-lab/lambda-aitia/user-interface/scenarios/github-gitops)
 (export github-workflow-test)
 
-(def repository "tao3k/poo-flow")
+(def repository "tao3k/agentic-ai-lab")
 (def revision "0123456789abcdef")
 (def nasa-standard (car (.ref nasa-sdlc-npr7150_2 'standards)))
 (def (nasa-check (edition (.ref nasa-standard 'edition))

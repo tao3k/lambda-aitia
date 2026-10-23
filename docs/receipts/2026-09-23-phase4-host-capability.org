@@ -14,9 +14,9 @@
 * Source cut and boundary
 
 - Aitia base: =742291f3c0bbef5df8a7e6c3fcaba93c0c8afe8c=.
-- POO Flow verification mechanism: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=.
+- Agentic AI Lab verification mechanism: =8aa14eafe87ed63d32295f3eac5e5a4eda6658f5=.
 - The application-configured =assurance-verification-host= keeps the exact
-  POO Flow adapter, clock and lease in private weak-key storage. Its POO
+  Agentic AI Lab adapter, clock and lease in private weak-key storage. Its POO
   presentation cannot be copied or edited into a capability.
 - Verification refuses an ineligible outcome or evidence not bound to the
   current snapshot/outcome before invoking the configured operation. The
@@ -27,9 +27,9 @@
 
 * Replay
 
-The isolated local checkout used the current POO Flow source before the older
+The isolated local checkout used the current Agentic AI Lab source before the older
 installed library in =GERBIL_LOADPATH=. The first attempted test with only the
-older installed POO Flow failed an existing fake-adapter rejection assertion;
+older installed Agentic AI Lab failed an existing fake-adapter rejection assertion;
 that run is not accepted as evidence for this source cut. With the pinned
 source in the load path, the atomic evidence-admission and assurance-kernel
 tests passed, as did =just build-scheme=, the complete assurance test group,

@@ -3,7 +3,7 @@
 (import :clan/poo/object :std/list/list
         (only-in :core/poo-clos/model poo-clos-check-model poo-clos-model-prototype poo-clos-model?)
         (only-in :core/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition) :core/contribution/verification
-        :poo-flow/lambda-aitia/modules/sdlc/types)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
 (export SdlcHistorySource SdlcHistoryDiscovery sdlc-history-source sdlc-history-discovery
         sdlc-history-request sdlc-review-approval sdlc-approval-request
         sdlc-review-authority-adapter sdlc-review-authority-gate sdlc-review-authority-snapshot)
@@ -78,7 +78,7 @@
          (slots approval '(identity subject revision scope standard requirement request authority signer record decision)))))
       (else (error "unsupported SDLC authority purpose"))))
   (call-with-output-string (lambda (port) (write (list 'sdlc-review-authority/v1 (.ref value 'purpose) data) port))))
-(def (sdlc-review-authority-adapter id operation) (poo-flow-verification-adapter id operation sdlc-review-authority-snapshot))
+(def (sdlc-review-authority-adapter id operation) (agentic-ai-lab-verification-adapter id operation sdlc-review-authority-snapshot))
 (def (complete? discovery)
   (def required (.ref discovery 'required))
   (def sources (.ref discovery 'sources))
@@ -91,11 +91,11 @@
     (error "invalid native authority gate binding"))
   (def discovery-request (sdlc-history-request discovery))
   (def discovered (and (complete? discovery)
-    (any (lambda (r) (poo-flow-verification-valid? adapter r discovery-request now)) receipts)))
+    (any (lambda (r) (agentic-ai-lab-verification-valid? adapter r discovery-request now)) receipts)))
   (def (verified? request)
     (and (eq? (.ref request 'purpose) 'disposition-approval) (bound? request discovery)
          (equal? (discovery-data (.ref (.ref request 'facts) 'discovery)) (discovery-data discovery))
-         (any (lambda (r) (poo-flow-verification-valid? adapter r request now)) receipts)))
+         (any (lambda (r) (agentic-ai-lab-verification-valid? adapter r request now)) receipts)))
   (def verified (filter verified? approval-requests))
   (def approvals (filter (lambda (r)
     (def facts (.ref r 'facts))

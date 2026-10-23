@@ -6,7 +6,7 @@
 ;;; execution; the Quint runner only supplies model states and action names.
 (import :std/test
         (only-in :clan/poo/object .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/retirement-host)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/retirement-host)
 (export retirement-replay-test)
 
 (def (invoke-action name host handoff)

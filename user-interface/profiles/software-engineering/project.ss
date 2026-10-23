@@ -5,34 +5,34 @@
 
 ;;; Boundary: maintained default Software Engineering Project Profile.
 ;;; Invariant: the Profile selects Aitia knowledge and obligations only; module
-;;; realization and Runtime execution remain separate POO Flow phases.
+;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
 (import (only-in :core/module-system/selection/objects
-                 poo-flow-settings
-                 poo-flow-user-module-selection)
+                 agentic-ai-lab-settings
+                 agentic-ai-lab-user-module-selection)
         (only-in :core/profile-composition/user-profile
-                 pooFlowUserProfile))
+                 agenticAiLabUserProfile))
 
 (export default-software-engineering-project)
 
 (def default-software-engineering-project
-  (pooFlowUserProfile
+  (agenticAiLabUserProfile
    'default-software-engineering-project
    (list
     (list
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'gitops '(+open-gitops))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'sdlc '())
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'nasa 'sdlc '(+npr-7150.2))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'ADR '(+rfc-relations))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
-     (poo-flow-user-module-selection
+     (agentic-ai-lab-user-module-selection
       'software-engineering 'formal-methods '(+quint +lean +cedar))))
-   (poo-flow-settings
+   (agentic-ai-lab-settings
     project-kind: 'software-engineering
     composition: 'aitia
     formal-method-obligations: '(quint lean cedar)

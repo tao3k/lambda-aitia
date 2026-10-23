@@ -4,7 +4,7 @@
 #+title: Lambda Aitia Assurance and SDLC Proofs
 
 This is Lambda Aitia's source-owned Lean package.  It states laws over Aitia
-assurance vocabulary and does not import or copy POO Flow's generic proof
+assurance vocabulary and does not import or copy Agentic AI Lab's generic proof
 package.
 
 Run the bounded proof target from the repository root:

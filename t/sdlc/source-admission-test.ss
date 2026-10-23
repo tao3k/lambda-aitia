@@ -16,10 +16,10 @@
         (only-in :asp-gerbil-scheme/testing-source-admission-api
                  testing-interface-prepared-source-admission-suite)
         (only-in :std/test check)
-        (only-in :poo-flow/dev/modules/testing/source-admission
-                 poo-flow-source-admission-observability-profile-prototype
-                 poo-flow-observe-source-admission!
-                 poo-flow-source-admission)
+        (only-in :agentic-ai-lab/dev/modules/testing/source-admission
+                 agentic-ai-lab-source-admission-observability-profile-prototype
+                 agentic-ai-lab-observe-source-admission!
+                 agentic-ai-lab-source-admission)
         "./build-root")
 
 (export sdlc-source-admission-test)
@@ -35,7 +35,7 @@
 (def +prepared-graph-budget-us+ 100000)
 
 (def +sdlc-source-admission-observability+
-  (.o (:: @ poo-flow-source-admission-observability-profile-prototype)
+  (.o (:: @ agentic-ai-lab-source-admission-observability-profile-prototype)
       (identity 'lambda-aitia/sdlc-source-admission)
       (owner 'lambda-aitia)
       (module 'sdlc)
@@ -49,9 +49,9 @@
        .admit-prepared-source-graph:
        (lambda (_test entries)
          (let* ((root +lambda-contributor-root+)
-                (receipt (poo-flow-observe-source-admission!
+                (receipt (agentic-ai-lab-observe-source-admission!
                           +sdlc-source-admission-observability+
-                          (poo-flow-source-admission root entries))))
+                          (agentic-ai-lab-source-admission root entries))))
            (check (.ref receipt 'admitted?) => #t)
            ;; The ASP source-admission slot is specifically a prepared-graph
            ;; contract.  A cold import-closure replay can satisfy the broader

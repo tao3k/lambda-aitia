@@ -17,26 +17,26 @@
 Native Org is a maintained engineering work surface, not a Markdown document
 decorated with execution commands. Requirements, assumptions, alternatives,
 review work and receipts remain addressable parts of the same design history.
-Orgize owns syntax, lossless structure and semantic queries. POO Flow owns
+Orgize owns syntax, lossless structure and semantic queries. Agentic AI Lab owns
 generic composition, organization, causal/temporal mechanisms and the reusable
 Org integration. Aitia owns Software/SDLC interpretations and workspaces.
 Existing Cedar and Runtime mechanisms retain effect authority and execution.
 
-The agreed dependency owner is POO Flow. The target is for its =gerbil.pkg=
+The agreed dependency owner is Agentic AI Lab. The target is for its =gerbil.pkg=
 to declare a qualified Orgize Scheme package once; the current source graph
 cannot support that edge. Rust/Rowan runtime delivery is a long-term runtime
 direction, not an interim substitute for this package target and not the
 current Python milestone. Aitia, Lambda
-and other POO Flow consumers must not each acquire an independent Org parser
+and other Agentic AI Lab consumers must not each acquire an independent Org parser
 or duplicate its package pin.
 Package availability does not mean implicit Scheme symbol imports: a public
-POO Flow module/composition still controls what consumers receive.
+Agentic AI Lab module/composition still controls what consumers receive.
 
 The C ABI is a transport, not a new semantic owner. Orgize owns Org language
-semantics, and its Scheme/Gambit package owns the generic Org C ABI. POO Flow
+semantics, and its Scheme/Gambit package owns the generic Org C ABI. Agentic AI Lab
 inherits Orgize once and exposes the POO-native Org facade;
 its existing downstream native boundary may forward qualified Org operations
-without redefining their semantics. Aitia depends on POO Flow and does not
+without redefining their semantics. Aitia depends on Agentic AI Lab and does not
 invent a separate Org wire protocol or pin Orgize independently. Rust can call
 the Orgize C ABI when it needs that Scheme runtime boundary, while native Rust
 consumers can continue using the Scheme-generated AOT library API directly.
@@ -87,7 +87,7 @@ ownership, errors and lifetime are implemented and tested through that path.
 
 The later Rust/Rowan runtime is the intended durable execution path for
 Scheme-generated Org artifacts. Its source, generated packs, Rust consumer,
-the Scheme-owned ABI and POO Flow facade require their own qualification. Its direction
+the Scheme-owned ABI and Agentic AI Lab facade require their own qualification. Its direction
 does not make a Rust FFI build a prerequisite for the current Python/Host work.
 The Scheme package-cycle audit below is a separate dependency-design gate;
 neither postponing it nor qualifying Rust alone satisfies the requested
@@ -123,7 +123,7 @@ and expected old content. The owner reviews the proposal before application.
 Any digest/content conflict requires re-query and review; never patch a stale
 offset. Preserve unrelated text, property drawers and comments through Orgize's
 source-owned representation. A new design revision reopens the affected
-obligations through existing POO Flow causal mechanisms, not a parallel graph.
+obligations through existing Agentic AI Lab causal mechanisms, not a parallel graph.
 
 Design status, scoped evidence support, authorization and observed execution
 remain independent. Agent review cannot certify its own external guarantees.
@@ -158,9 +158,9 @@ Do not infer an installable Gerbil package from the presence of these sources.
 The fetched Orgize branch now includes consumer-owned Contract import
 generation at =5cc02a1c5f882a3b182461ce803b8c76c4772c36= and pins
 gerbil-parser to =ca01627c0c5ba1d460c0de83b060bc90d3b961e8=. That
-parser revision's Scheme =gerbil.pkg= still depends on POO Flow at
+parser revision's Scheme =gerbil.pkg= still depends on Agentic AI Lab at
 =2ce55a9810f8559cc0f40a6c877a52ab7893c166=. In particular,
-=graph-projection-objects.ss= and =line-structure-objects.ss= use POO Flow's
+=graph-projection-objects.ss= and =line-structure-objects.ss= use Agentic AI Lab's
 contract admission and object-family declarations. This is an actual source
 dependency, not just a stale manifest entry.
 
@@ -168,7 +168,7 @@ Adding a source-package edge now would produce:
 
 #+begin_export mermaid
 flowchart LR
-    P["POO Flow"] -. "requested, not installed" .-> O["Orgize Scheme package<br/>entrypoint missing"]
+    P["Agentic AI Lab"] -. "requested, not installed" .-> O["Orgize Scheme package<br/>entrypoint missing"]
     O -->|parser declarations| G["gerbil-parser"]
     G -->|contracts and object families| P
 #+end_export
@@ -187,24 +187,24 @@ Do not block qualification of that existing consumer path on a hypothetical
 source-package installation, or conflate generator dependencies with delivery.
 
 After a reviewed boundary is qualified, pin the Orgize Scheme dependency in
-POO Flow, expose a public unversioned consumer interface, and verify a clean
-downstream install using only POO Flow. Qualification of the later Rust runtime
+Agentic AI Lab, expose a public unversioned consumer interface, and verify a clean
+downstream install using only Agentic AI Lab. Qualification of the later Rust runtime
 is independent of this source-package gate. Internal grammar versions are not
 consumer namespace versions.
 
 ** Source-package cycle cut and qualification order
 
 The requested Scheme source-package direction would be lower-level POO
-primitives → =gerbil-parser= → Orgize → POO Flow → Aitia. At the selected
+primitives → =gerbil-parser= → Orgize → Agentic AI Lab → Aitia. At the selected
 Orgize cut, =org-elements/types.ss= imports parser-owned graph projection
-objects. The parser has seven Scheme modules importing POO Flow. These imports
-are not merely incidental helpers: they use =PooFlowContract.= and
-=PooFlowNativeObjectContract.=, evidence-bearing validation and admission,
-=defpoo-object-family=, and the POO Flow debug trace. Replacing them with bare
+objects. The parser has seven Scheme modules importing Agentic AI Lab. These imports
+are not merely incidental helpers: they use =AgenticAILabContract.= and
+=AgenticAILabNativeObjectContract.=, evidence-bearing validation and admission,
+=defpoo-object-family=, and the Agentic AI Lab debug trace. Replacing them with bare
 =clan/poo= would change semantics; moving or copying those facilities below
-POO Flow is not an approved mechanical refactor.
+Agentic AI Lab is not an approved mechanical refactor.
 
-| Parser source modules | POO Flow-owned dependency | Required observation to retain |
+| Parser source modules | Agentic AI Lab-owned dependency | Required observation to retain |
 |-----------------------+---------------------------+--------------------------------|
 | =types.ss=, =graph-projection-types.ss=, =line-structure-types.ss= | contract prototypes, classification and evidence admission | typed values and rejected candidates keep their current identities and failure semantics |
 | =objects.ss=, =graph-projection-objects.ss=, =line-structure-objects.ss= | object-family declaration and evidence-gated constructors | public POO prototypes, slots and constructor rejection remain unchanged |
@@ -224,15 +224,15 @@ These are distinct future engineering tracks, neither yet delivered:
    library API; do not require an Orgize-Rust-owned C ABI merely to serve
    Aitia Python. Orgize already exposes =parse_org_aot=, Element records,
    source receipts, query and contract evaluation as Rust library APIs, but
-   this is not yet a C ABI, a Gerbil package, or an installed POO Flow
-   dependency. POO Flow owns the POO-native facade and admission; it must call
+   this is not yet a C ABI, a Gerbil package, or an installed Agentic AI Lab
+   dependency. Agentic AI Lab owns the POO-native facade and admission; it must call
    upstream semantics, not reimplement Org queries or contracts.
    Pin generator and runtime revisions/digests together and qualify a clean
-   binary/runtime install. This can supply a durable POO Flow-owned runtime
+   binary/runtime install. This can supply a durable Agentic AI Lab-owned runtime
    dependency for downstreams, but it does *not* fulfill the separate request
    that Orgize Scheme source be inherited through =gerbil.pkg=.
 2. *Scheme source-graph refactor (the stated package target).* Keep the desired
-   source-package inheritance only after resolving parser → POO Flow without
+   source-package inheritance only after resolving parser → Agentic AI Lab without
    losing its contract/evidence, object-family and observability behavior.
    An existing lower library may own genuinely generic mechanisms only if
    authority and public observations move together; otherwise the dependency
@@ -244,13 +244,13 @@ Qualify the stated Scheme package target in this order:
 1. Lock positive and negative observations for the seven parser imports,
    including contract admission, object-family behavior and debug traces.
 2. Review the actual authority-preserving source-graph cut. Only after it is
-   accepted, remove parser → POO Flow and replay parser/compiler/runtime tests
+   accepted, remove parser → Agentic AI Lab and replay parser/compiler/runtime tests
    from a clean dependency closure.
 3. Add Orgize's source-owned Gerbil package/build entrypoint and qualify its
    Scheme Elements/Contract declarations and Rowan/AOT generation against
    that parser revision.
-4. Pin Orgize once in POO Flow's =gerbil.pkg=, expose its POO-native unversioned
-   Org interface, and replay an Aitia workspace with POO Flow as its sole
+4. Pin Orgize once in Agentic AI Lab's =gerbil.pkg=, expose its POO-native unversioned
+   Org interface, and replay an Aitia workspace with Agentic AI Lab as its sole
    direct Org dependency. Prove clean installation without ambient
    =GERBIL_LOADPATH= or an old compiled module.
 
@@ -271,8 +271,8 @@ package or FFI gate has closed. RFC 0005 stays draft until those gates pass.
    negative fixtures. Missing content, a single alternative, content under
    another decision and a receipt link in the wrong section must fail the
    intended assertion. This checks structure, not evidence truth or authority.
-3. Package: clean, acyclic Orgize Scheme source → POO Flow inheritance;
-   downstreams declare only POO Flow. The later Rust/Rowan runtime has a
+3. Package: clean, acyclic Orgize Scheme source → Agentic AI Lab inheritance;
+   downstreams declare only Agentic AI Lab. The later Rust/Rowan runtime has a
    separate delivery gate. Both remain open, neither blocks the present
    Python/Host admission work.
 4. Projection: POO-native identity/reference/role resolution plus negative
@@ -341,7 +341,7 @@ generator emitted a plan with the current Org graph projection digest
 =sha256:f26d350a0456114b37a9af347b5b4694a9eff8dd787df988296814f1a60f29a8=.
 
 This is a bounded source/plan result, not actual Aitia workspace evaluation.
-The isolated invocation still emitted a POO Flow observability warning from
+The isolated invocation still emitted a Agentic AI Lab observability warning from
 mixed local Gerbil objects. A clean package closure and consumer-side Rust
 evaluation with cross-decision negatives remain unqualified. The direct
 Orgize source-package cycle described above is unchanged; do not promote the

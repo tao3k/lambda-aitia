@@ -46,8 +46,8 @@ to the effect target.  Temporal precedence is never promoted into causality and
 does not participate in structural invalidation.
 
 The current implementation projects the Aitia-owned relation directions into
-POO Flow Graph values and delegates reachability, relation trajectories and SCC
-analysis to the POO Flow structural-impact algorithms.  Aitia does not retain a
+Agentic AI Lab Graph values and delegates reachability, relation trajectories and SCC
+analysis to the Agentic AI Lab structural-impact algorithms.  Aitia does not retain a
 second traversal engine.  Dangling relations remain in the snapshot frontier
 but are excluded from the executable Graph projection, so an incomplete
 snapshot produces an inert receipt rather than an invalid Graph.
@@ -77,7 +77,7 @@ outcomes and evidence admission.  The Runtime Host owns effect execution.
 
 * Acceptance gates
 
-- [X] Replace the local traversal with the POO Flow Graph library projection.
+- [X] Replace the local traversal with the Agentic AI Lab Graph library projection.
 - [X] Add deterministic SCC and complete witness-path behavior.
 - [X] Exercise monotone invalidation for the bounded fixed snapshot.
 - [X] Reject stale or revision-mismatched evidence before obligation discharge.
@@ -90,14 +90,14 @@ The bounded executable fixture validates the implementation, while
 general fixed-snapshot monotonicity law and the unresolved-frontier boundary.
 
 The isolated replay recorded by
-=docs/receipts/2026-09-18-phase2-clean-replay.org= admits the complete POO Flow
+=docs/receipts/2026-09-18-phase2-clean-replay.org= admits the complete Agentic AI Lab
 library closure, Assurance fixture, modular Lean gate, integration lane and
-native Scheme/C/Python package at exact commits.  POO Flow remains Aitia's
+native Scheme/C/Python package at exact commits.  Agentic AI Lab remains Aitia's
 public mechanism library; the closure was achieved by publishing its mechanism
 owners, not by duplicating or minimizing them in Aitia.
 
 * Relationship to ADRs
 
-- ADR 0007 establishes POO Flow as Aitia's public mechanism library.
+- ADR 0007 establishes Agentic AI Lab as Aitia's public mechanism library.
 - ADR 0004 assigns the general laws and lifecycle models to Aitia.
 - ADR 0005 defines persistence as a canonical non-authoritative projection.

@@ -2,15 +2,15 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Aitia owns software-design meaning; POO Flow owns graph traversal and
+;;; Aitia owns software-design meaning; Agentic AI Lab owns graph traversal and
 ;;; runtime authority. This is an inert declaration-level replacement check.
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/core/poo-clos/interface
-        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest)
-        :poo-flow/lambda-aitia/modules/sdlc/types)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
 
 (export SdlcDesignClause SdlcDesignVariation SdlcDesignContract
         sdlc-design-clause? sdlc-design-variation? sdlc-design-contract?

@@ -4,10 +4,10 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
         :std/list/list)
 (def project (sdlc-project "flight" "r1" "software" #t))
 (def known-context

@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .ref .slot?)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :std/list/list)
 (export nasa-catalog-test)
 (def nasa-catalog-test

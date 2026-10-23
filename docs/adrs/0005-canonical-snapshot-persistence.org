@@ -10,7 +10,7 @@
 :REVISION:        r1
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-maintainers
+:CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 

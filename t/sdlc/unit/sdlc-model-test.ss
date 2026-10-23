@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/interface)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
 (def project (sdlc-project "flight" "r2" "software" #t))
 (def evidence (sdlc-evidence "ev" "flight" "r2" "software" "nasa" "SWE-052" "test" 'pass))
 (export sdlc-model-test)

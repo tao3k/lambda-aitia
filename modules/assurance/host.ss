@@ -9,27 +9,27 @@
 (import (only-in :clan/poo/object .o .ref .slot? .alist object?)
         (only-in :std/list/list find every filter delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
-        :poo-flow/core/poo-clos/interface
-        (only-in :poo-flow/core/contribution/verification
-                 poo-flow-verification-adapter poo-flow-verify
-                 poo-flow-verification-valid?
-                 poo-flow-revoke-verification!)
+        :agentic-ai-lab/core/poo-clos/interface
+        (only-in :agentic-ai-lab/core/contribution/verification
+                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify
+                 agentic-ai-lab-verification-valid?
+                 agentic-ai-lab-revoke-verification!)
         (only-in :core/feature-system/source-lock-feature
                  source-lock-payload-digest)
-        (only-in :poo-flow/modules/authorization/providers/cedar/interface
-                 poo-flow-cedar-runtime-handoff?
-                 poo-flow-cedar-authorization-request
-                 poo-flow-cedar-authorization-request?)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/types
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
+                 agentic-ai-lab-cedar-runtime-handoff?
+                 agentic-ai-lab-cedar-authorization-request
+                 agentic-ai-lab-cedar-authorization-request?)
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/types
                  assurance-snapshot? assurance-artifact? assurance-claim?
                  assurance-obligation?
                  assurance-decision? assurance-decision-preflight?
                  AssuranceRequiredSupport AssessmentRequiredSupport
                  AssuranceDecisionPreflight)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
                  assurance-snapshot-canonical? assurance-node-canonical
                  assurance-canonical-digest)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/evidence-admission
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/evidence-admission
                  assurance-evaluate-evidence-admission
                  assurance-evidence-outcome-bound?
                  assurance-verification-subject
@@ -115,7 +115,7 @@
     (error "invalid assurance verification Host configuration"))
   (let* ((host (.o identity: (string-copy identity-value)))
          (adapter
-          (poo-flow-verification-adapter
+          (agentic-ai-lab-verification-adapter
            identity-value
            (lambda (subject now until)
              (if source-reader
@@ -150,7 +150,7 @@
          (host-outcome-inputs-current? host snapshot outcome)
          (let (now (host-instant entry))
            (let (receipt
-                 (poo-flow-verify
+                 (agentic-ai-lab-verify
                   (vector-ref entry 1)
                   (assurance-verification-subject
                    snapshot obligation evidence outcome)
@@ -162,7 +162,7 @@
                                  (vector host (vector-ref entry 8)))
                       receipt)
                     (begin
-                      (poo-flow-revoke-verification! (vector-ref entry 1)
+                      (agentic-ai-lab-revoke-verification! (vector-ref entry 1)
                                                      receipt)
                       #f))))))))
 
@@ -185,7 +185,7 @@
     (unless (and issued (eq? host (vector-ref issued 0)))
       (error "receipt was not issued by this assurance Host"))
     (hash-remove! issued-host-receipts receipt)
-    (poo-flow-revoke-verification! (vector-ref entry 1) receipt)))
+    (agentic-ai-lab-revoke-verification! (vector-ref entry 1) receipt)))
 
 ;;; Admission is a separate Host-issued capability over the candidate cut.
 ;;; It does not mutate AssuranceEvidence or the snapshot that the outcome names.
@@ -209,7 +209,7 @@
          (= (vector-ref issued 1) (vector-ref entry 8))
          (host-outcome-inputs-current? host snapshot outcome)
          (assurance-evidence-outcome-bound? snapshot evidence outcome)
-         (poo-flow-verification-valid?
+         (agentic-ai-lab-verification-valid?
           (vector-ref entry 1) receipt
           (assurance-verification-subject snapshot obligation evidence outcome)
           (host-instant entry))
@@ -281,7 +281,7 @@
               (eq? (.ref evidence 'admission-state) 'candidate)
               (equal? (assurance-verification-subject-snapshot subject)
                       (vector-ref issued 6))
-              (poo-flow-verification-valid?
+              (agentic-ai-lab-verification-valid?
                (vector-ref host-state 1) (vector-ref issued 1)
                subject now)
               snapshot))))
@@ -650,7 +650,7 @@
                 (same-host-cut?
                  host-state snapshot-value (vector-ref issued 7)))))))
 
-;;; Project a current preflight into POO Flow's inert Cedar request family.
+;;; Project a current preflight into Agentic AI Lab's inert Cedar request family.
 ;;; The request is editable input, not a Host seal, Cedar outcome or effect grant.
 ;;; The Runtime Host must independently validate the current source cut at use.
 (def (cedar-request-fingerprint request)
@@ -662,8 +662,8 @@
 
 (def (assurance-host-cedar-request host preflight action-value intent-value
                                     handoff-value)
-  (unless (poo-flow-cedar-runtime-handoff? handoff-value)
-    (error "Decision Cedar projection requires a POO Flow runtime handoff"))
+  (unless (agentic-ai-lab-cedar-runtime-handoff? handoff-value)
+    (error "Decision Cedar projection requires a Agentic AI Lab runtime handoff"))
   (let* ((host-state (required-host-entry host))
          (issued (decision-preflight-entry host preflight)))
     (and issued
@@ -674,7 +674,7 @@
                 (claim-value (vector-ref issued 9))
                 (context-value
                  (.o aitia_schema: "lambda-aitia.cedar-preflight.v1"
-                     poo_flow_preflight_only: #t
+                     agentic_ai_lab_preflight_only: #t
                      aitia_preflight: (vector-ref issued 1)
                      aitia_decision: (vector-ref issued 3)
                      aitia_claim: (vector-ref issued 4)
@@ -684,7 +684,7 @@
                      aitia_policy_revision: (.ref snapshot-value 'policy-revision)
                      aitia_preflight_only: #t))
                 (request
-                 (poo-flow-cedar-authorization-request
+                 (agentic-ai-lab-cedar-authorization-request
                   (.ref decision-value 'authority) action-value
                   (.ref claim-value 'subject) context-value intent-value
                   handoff-value)))
@@ -705,9 +705,9 @@
          (issued (hash-get issued-cedar-requests request)))
     (and issued
          (eq? host (vector-ref issued 0))
-         (poo-flow-cedar-authorization-request? request)
+         (agentic-ai-lab-cedar-authorization-request? request)
          (object? (.ref request 'context))
-         (poo-flow-cedar-runtime-handoff? (.ref request 'handoff))
+         (agentic-ai-lab-cedar-runtime-handoff? (.ref request 'handoff))
          (= (vector-ref issued 2) (vector-ref host-state 8))
          (equal? (cedar-request-fingerprint request) (vector-ref issued 3))
          (assurance-host-decision-preflight-current?

@@ -43,7 +43,7 @@ pending under [[file:../../docs/rfcs/0005-org-native-engineering-workspace.org][
 :ID: aitia-job-executor-organization
 :END:
 
-Roles refer to the existing POO Flow Organization Bundle concepts. An
+Roles refer to the existing Agentic AI Lab Organization Bundle concepts. An
 application must resolve actual principal/role/Agent identities, visibility
 and delegations before scheduling. Org nesting does not confer authority.
 
@@ -220,7 +220,7 @@ effect uniqueness. Do not add a second policy evaluator.
 
 The Scheme sources are located on Orgize's =codex/scheme-rowan-org-cutover=
 branch. Qualify an installable package boundary before wiring this projection:
-the current gerbil-parser Scheme dependency points back to POO Flow, and Orgize
+the current gerbil-parser Scheme dependency points back to Agentic AI Lab, and Orgize
 does not yet have a Gerbil package entrypoint. See RFC 0005's package audit.
 Reuse parser-owned identities/ranges and POO objects. Do not implement an Org
 parser in Python or infer supported bindings from the existence of the CLI.
@@ -253,7 +253,7 @@ a new run produced by opening this document or a trusted Host-issued admission.
 | Org contract check | workspace sections and decision-local review structure | identity resolution, role authority, evidence freshness or execution |
 
 The separate [[file:../../docs/receipts/2026-09-24-retirement-impact.org][retirement Impact receipt]] qualifies a synthetic automatic-retry
-removal analysis through POO Flow. It is not a new run of the persistent Python
+removal analysis through Agentic AI Lab. It is not a new run of the persistent Python
 worker or evidence that queued tasks were migrated or cancelled.
 
 * Revision journal

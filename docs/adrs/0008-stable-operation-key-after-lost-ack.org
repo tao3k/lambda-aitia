@@ -11,7 +11,7 @@
 :UPDATED:         2026-09-24
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-maintainers
+:CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 
@@ -86,13 +86,13 @@ first ACK. This covers a bounded lost-ACK/restart scenario; it has no separate
 external effect, expiry, parameter-conflict check or tenant namespace. The
 =fixed= mode name denotes the repair to that specific injected fault only.
 The inspected sources are the [[file:../../bindings/python/qualification/job_executor/worker.py][worker]],
-[[file:../../bindings/python/qualification/job_executor/test_unique_effect.py][provider/test fixture]] and [[file:../../modules/assurance/host.ss][Host preflight projection]]. The reused POO Flow boundary is
+[[file:../../bindings/python/qualification/job_executor/test_unique_effect.py][provider/test fixture]] and [[file:../../modules/assurance/host.ss][Host preflight projection]]. The reused Agentic AI Lab boundary is
 =src/modules/authorization/providers/cedar/interface.ss= and its existing
 decision/effect-token projection, not a new Aitia-owned authorization module.
 
 | Contract question | Existing mechanism / evidence boundary | Remaining obligation and owner |
 |-------------------+----------------------------------------+--------------------------------|
-| Is this attempt currently permitted? | POO Flow Cedar Provider and effect-token machinery exist; Aitia projects preflight requests and rechecks their currentness | Host supplies trusted facts; existing Cedar evaluates policy; Runtime enforces at use. The Aitia-to-Runtime path remains unqualified; no new local authorization engine |
+| Is this attempt currently permitted? | Agentic AI Lab Cedar Provider and effect-token machinery exist; Aitia projects preflight requests and rechecks their currentness | Host supplies trusted facts; existing Cedar evaluates policy; Runtime enforces at use. The Aitia-to-Runtime path remains unqualified; no new local authorization engine |
 | Does retry preserve logical identity? | fixed mode uses one job identity across two sequential worker processes | Aitia task-state contract and actual provider must qualify tenant/job/operation scope, persistence and concurrent attempts |
 | Can the same identity change its intent? | payload is constant; provider does not compare an incoming payload with the stored payload | provider rejects inconsistent reuse; Host/Runtime bind authorized intent to dispatched bytes. Test mismatch rejection without an additional effect |
 | What if the deduplication record expires? | no expiry or cleanup is modeled | provider owns retention guarantee; Aitia records retry horizon and review conditions. Test boundary/late requests and explicit reconciliation or rejection outside the guarantee |
@@ -109,7 +109,7 @@ prove whether an unacknowledged attempt committed.
 Retry identity and authorization identity are distinct: a logical operation
 keeps its identity after restart, but an old permit need not remain valid.
 An unknown result must retain that uncertainty until the provider's qualified
-retry/reconciliation contract resolves it. Generic POO Flow reconciliation
+retry/reconciliation contract resolves it. Generic Agentic AI Lab reconciliation
 cannot be assumed to establish uniqueness of an external provider effect.
 
 The desired design remains stable logical identity with current authorization
