@@ -16,7 +16,7 @@
         (only-in :asp-gerbil-scheme/testing-source-admission-api
                  testing-interface-prepared-source-admission-suite)
         (only-in :std/test check)
-        (only-in :poo-flow/modules/testing/source-admission
+        (only-in :poo-flow/dev/modules/testing/source-admission
                  poo-flow-source-admission-observability-profile-prototype
                  poo-flow-observe-source-admission!
                  poo-flow-source-admission)
