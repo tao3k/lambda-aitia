@@ -23,6 +23,9 @@ FIELDS = ("revision", "planned", "verified", "admitted", "decided", "granted",
           "grantEpoch", "epoch", "clock", "sealUntil", "grantUntil", "adapterInstalled",
           "reportedSuccess", "effectStarted", "startSafe", "reservationRevision",
           "reservationEpoch", "reservationUntil", "deliveryStatus", "deliveryCalls", "deliverySafe")
+# Bound work, including worker completion, inside the unchanged 65s watchdog.
+NATIVE_BATCH_STEP_BUDGET = 64
+
 INVARIANTS = ("TypeOK", "AdmissionIsCurrent", "DecisionRequiresAdmission",
               "GrantRequiresCurrentDecision", "NoUnsafeEffectStart", "NoUnsafeDelivery",
               "DeliveryRequiresStart", "AtMostOneDelivery")
@@ -305,7 +308,7 @@ def main():
         # Four bounded processes retain the 65s outer watchdog and native test profiles.
         with ThreadPoolExecutor(max_workers=4) as pool:
             jobs = [pool.submit(replay, work, chunk, batch)
-                    for chunk, batch in enumerate(batches(traces))]
+                    for chunk, batch in enumerate(batches(traces, step_budget=NATIVE_BATCH_STEP_BUDGET))]
             try:
                 for job in as_completed(jobs):
                     completed += job.result()

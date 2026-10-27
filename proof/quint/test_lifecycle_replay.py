@@ -70,6 +70,18 @@ class LifecycleReplayTests(unittest.TestCase):
         self.assertTrue(all(sum(map(len, batch)) <= 160 for batch in packed))
         self.assertEqual([sum(map(len, batch)) for batch in packed], [160, 21, 160])
 
+    def test_ci_quantum_preserves_atomic_trace_identity_and_order(self):
+        traces = [[('init', {})] * size for size in (64, 1, 63, 64)]
+        packed = list(checker.batches(traces, step_budget=checker.NATIVE_BATCH_STEP_BUDGET))
+        flattened = [trace for batch in packed for trace in batch]
+        self.assertEqual([sum(map(len, batch)) for batch in packed], [64, 64, 64])
+        self.assertEqual(len(flattened), len(traces))
+        for original, replayed in zip(traces, flattened):
+            self.assertIs(replayed, original)
+        with self.assertRaisesRegex(ValueError, 'one trace exceeds'):
+            list(checker.batches([[('init', {})] * 65],
+                                 step_budget=checker.NATIVE_BATCH_STEP_BUDGET))
+
     def test_single_oversized_trace_is_not_split_or_given_a_larger_timeout(self):
         with self.assertRaisesRegex(ValueError, 'one trace exceeds'):
             list(checker.batches([[('init', {})] * 161]))
