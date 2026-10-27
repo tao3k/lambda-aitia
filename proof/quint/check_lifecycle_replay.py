@@ -33,7 +33,9 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
           ("unsafeDeliveryStep", "NoUnsafeDelivery", "UnsafeDelivery"),
           ("beforeStartStep", "DeliveryRequiresStart", "UnsafeBeforeStart"),
           ("replayStep", "AtMostOneDelivery", "UnsafeReplay"))
-SOURCE_CUT = ("proof/quint/AssuranceLifecycle.qnt", "proof/quint/EffectAdmission.qnt",
+SOURCE_CUT = ("build.ss", "gerbil.pkg", "testing-interface.ss",
+              "testing-observer.ss", "run-test.ss",
+              "proof/quint/AssuranceLifecycle.qnt", "proof/quint/EffectAdmission.qnt",
               "proof/quint/package-lock.json", "proof/quint/check_lifecycle_replay.py",
               "proof/quint/test_lifecycle_replay.py",
               "proof/quint/process_runner.py",
@@ -300,7 +302,7 @@ def main():
         faults = negative_traces(quint, work, traces)
         replay(work, "faults", faults)
         completed = 0
-        # Four bounded native processes; each retains the existing 1G/60s gate.
+        # Four bounded processes retain the 65s outer watchdog and native test profiles.
         with ThreadPoolExecutor(max_workers=4) as pool:
             jobs = [pool.submit(replay, work, chunk, batch)
                     for chunk, batch in enumerate(batches(traces))]

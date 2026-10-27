@@ -40,7 +40,9 @@
  (generated-modules lambda-aitia-generated-build-inputs)
  (extra-spec
   '((gxc: "testing-interface")
-    (gxc: "testing-observer"))))
+    (gxc: "testing-observer")
+    ;; Native support for exhaustive model replay; expected states remain input.
+    (gxc: "t/formal/lifecycle-fixture"))))
 
 (cond-expand
  (darwin
