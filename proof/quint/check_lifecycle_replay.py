@@ -23,8 +23,9 @@ FIELDS = ("revision", "planned", "verified", "admitted", "decided", "granted",
           "grantEpoch", "epoch", "clock", "sealUntil", "grantUntil", "adapterInstalled",
           "reportedSuccess", "effectStarted", "startSafe", "reservationRevision",
           "reservationEpoch", "reservationUntil", "deliveryStatus", "deliveryCalls", "deliverySafe")
-# Bound work, including worker completion, inside the unchanged 65s watchdog.
-NATIVE_BATCH_STEP_BUDGET = 64
+# The native atomic entry uses the current 2 GiB / 180-second contract.
+NATIVE_BATCH_STEP_BUDGET = 160
+NATIVE_REPLAY_TIMEOUT_SECONDS = 180
 
 INVARIANTS = ("TypeOK", "AdmissionIsCurrent", "DecisionRequiresAdmission",
               "GrantRequiresCurrentDecision", "NoUnsafeEffectStart", "NoUnsafeDelivery",
@@ -36,8 +37,9 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
           ("unsafeDeliveryStep", "NoUnsafeDelivery", "UnsafeDelivery"),
           ("beforeStartStep", "DeliveryRequiresStart", "UnsafeBeforeStart"),
           ("replayStep", "AtMostOneDelivery", "UnsafeReplay"))
-SOURCE_CUT = ("build.ss", "gerbil.pkg", "testing-interface.ss",
+SOURCE_CUT = ("Justfile", "build.ss", "gerbil.pkg", "testing-interface.ss",
               "testing-observer.ss", "run-test.ss",
+              "t/modules/unit/testing-resource-test.ss",
               "proof/quint/AssuranceLifecycle.qnt", "proof/quint/EffectAdmission.qnt",
               "proof/quint/package-lock.json", "proof/quint/check_lifecycle_replay.py",
               "proof/quint/test_lifecycle_replay.py",
@@ -272,7 +274,7 @@ def replay(work, chunk, traces):
     try:
         status, output = run(["env", f"AITIA_LIFECYCLE_REPLAY={fixture}", "just",
                               "test-scheme-atomic", "formal", "lifecycle-replay-test.ss"],
-                             REPO, f"native-lifecycle-{chunk}", timeout=65)
+                             REPO, f"native-lifecycle-{chunk}", timeout=NATIVE_REPLAY_TIMEOUT_SECONDS)
         if status or not re.search(r"^OK$", output, re.MULTILINE):
             raise RuntimeError(f"Scheme replay failed: chunk={chunk} exit={status}\n{output[-8000:]}")
     except (RuntimeError, TimeoutError) as error:
@@ -305,7 +307,7 @@ def main():
         faults = negative_traces(quint, work, traces)
         replay(work, "faults", faults)
         completed = 0
-        # Four bounded processes retain the 65s outer watchdog and native test profiles.
+        # Four bounded processes use the native resource profile and 180s envelope.
         with ThreadPoolExecutor(max_workers=4) as pool:
             jobs = [pool.submit(replay, work, chunk, batch)
                     for chunk, batch in enumerate(batches(traces, step_budget=NATIVE_BATCH_STEP_BUDGET))]

@@ -25,21 +25,22 @@
 (def +lambda-aitia-source-admission-selector+
   (testing-test-selector 'contains "source-admission-test.ss"))
 
-(def +lambda-aitia-catalog-memory-profile+
+(def +lambda-aitia-large-memory-profile+
   (.cc +testing-memory-profile+ maxHeapMiB: 2048))
 
 ;;; The default test process is 512 MiB. Only tests that load the complete NASA
-;;; catalog or prepare the complete SDLC source graph receive the bounded 2 GiB
+;;; catalog, SDLC source graph or lifecycle replay receive the bounded 2 GiB
 ;;; profile; no Aitia test is allowed to inherit an unbounded Gambit heap.
 (def +lambda-aitia-large-memory-selectors+
   (map (lambda (fragment) (testing-test-selector 'contains fragment))
-       '("nasa-" "sdlc-trace-test.ss" "source-admission-test.ss")))
+       '("nasa-" "sdlc-trace-test.ss" "source-admission-test.ss"
+         "lifecycle-replay-test.ss")))
 
 (def +lambda-aitia-bounded-testing-interface+
   (foldl
    (lambda (selector testing)
      (testing-interface-map-profile
-      testing selector +lambda-aitia-catalog-memory-profile+))
+      testing selector +lambda-aitia-large-memory-profile+))
    (testing-interface-add-profile
     +asp-testing-interface+
     (.cc +testing-memory-profile+ maxHeapMiB: 512))
