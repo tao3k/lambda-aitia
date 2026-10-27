@@ -10,7 +10,7 @@
   (sources-lock-value
       "lambda-aitia/nasa/sdlc/npr-7150.2/D/sources"
       "2022-03-08"
-      "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c"
+      "sha256:68113744771506840ed6d7abb4873f87fc6b490d405b9637d446ba4b2ba39108"
       (list
        (.o (:: @ SourceLockEntry.)
            identity: "nasa/sdlc/npr-7150.2/D/appendix-c"

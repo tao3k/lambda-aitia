@@ -165,9 +165,11 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: agentic-ai-lab/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+          key: lambda-aitia-native-cohort-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
 
-          restore-keys: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel') }}
+          restore-keys: |
+            lambda-aitia-gerbil-pkgs-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+            lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel') }}
 
       - name: Materialize pinned native dependency commits
         working-directory: agentic-ai-lab
@@ -203,27 +205,34 @@ jobs:
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '"'"'(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'"'"' '
 
-      - name: Save checked native library build inputs
-        if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: agentic-ai-lab/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
-
-      - name: Install Aitia-owned native build and testing dependency
+      - name: Build manifest-owned native Core and ASP dependencies
         working-directory: agentic-ai-lab
         run: |
           python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest packages/lambda-aitia/gerbil.pkg
-          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-asp.ss packages/lambda-aitia/gerbil.pkg'
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/gebril-yuanxu
+            test "$(git -C core rev-parse HEAD)" = "$(git -C "$GERBIL_PATH/pkg/github.com/tao3k/gebril-yuanxu" rev-parse HEAD)"
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/asp-gerbil-scheme
+          '
 
-      - name: Build native Core and the parent Library demanded by Aitia
+      - name: Build the native parent Library demanded by Aitia
         working-directory: agentic-ai-lab
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s just build-core && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-parent.ss'
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-parent.ss'
 
       - name: Build published native testing support
         working-directory: agentic-ai-lab
         run: |
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/testing-extension.ss && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/source-admission.ss'
+
+      - name: Save completed native dependency build inputs
+        if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: agentic-ai-lab/.gerbil
+          key: lambda-aitia-native-cohort-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
 
       - name: Run Scheme semantic closure
         working-directory: agentic-ai-lab

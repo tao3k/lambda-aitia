@@ -86,3 +86,17 @@ namespace. This is a pinned SDK dependency, not a stable public API promise.
 If the SPI is absent the entry fails. It never writes a replacement manifest
 schema or marks the entire parent product built. Native product checks and
 all Aitia runtime gates remain separate requirements.
+
+Sources Lock data is a versioned integrity input, not a compiler interface.
+Regenerate it with =tools/update-sources-lock.ss= after a lock-domain change;
+verify each original payload independently. Both native package specs share
+=build-inputs.ss= and ASP's verified-generated-module declaration, which
+projects the included lock into ordinary std/make =extra-inputs:=. Updating
+the lock must rebuild =sources.ss= without touching unrelated source files.
+
+CI builds the manifest-owned Yuanxu package through the same native SDK
+entry used for ASP and checks its commit against the parent's Core gitlink.
+This preserves the full Core package build while reusing its existing source
+checkout. A completed native-cohort cache is saved only after Core, ASP,
+the demanded parent Library and published testing support pass. Builds and
+all runtime tests still execute after restoration; no verdict is cached.
