@@ -38,3 +38,24 @@ just check-license-contract
 
 Do not add compatibility aliases, version suffixes to the public Scheme or
 Python namespace, or duplicate Aitia semantics in Python.
+
+* Native compiler products and dependency completion
+
+Keep generated =.ssi=, =.ssxi.ss=, numbered dynamic objects and
+=.gxc-complete= files outside Git. Authored =.scm= test fixtures remain source.
+A package directory or generated interface does not establish a completed
+runtime or macro-phase family.
+
+The Scheme workflow requests ASCENT's actual =build.ss spec= and passes its
+library declarations, with their original options, to native =std/make=.
+Existing Core =repair-build-products!= invalidates interrupted units and
+=require-build-products!= checks completion. Executable delivery remains a
+separate demand; this library repair issues no package publication receipt.
+See [[file:scripts/check-native-products.ss][the native completion entry]] and
+[[file:t/native-products-test.ss][the real-product negative controls]].
+
+Preserve the test runner's returned status explicitly when invoking its Scheme
+API: a printed failure with an ignored return value must not become success.
+All added native checks and library repairs use the 2 GiB heap and 180-second
+process deadline. A failed install resource receipt cannot be replaced by a
+successful directory-existence probe or saved as admitted dependency output.

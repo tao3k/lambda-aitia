@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      GERBIL_BUILD_CORES: 2
+      GERBIL_BUILD_CORES: 12
       GAMBOPT: max-heap=2G,debug=q
       GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS: 180
       GERBIL_PATH: ${{ github.workspace }}/agentic-ai-lab/.gerbil
@@ -195,9 +195,7 @@ jobs:
             checker=packages/lambda-aitia/scripts/check-native-products.ss
             spec="$GERBIL_PATH/ascent-native-spec.ss"
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-ascent/build.ss" spec > "$spec"
-            if ! timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" invalidate-incomplete gerbil-ascent "$spec"; then
-              timeout --signal=TERM --kill-after=5s 180s gxpkg build github.com/tao3k/gerbil-ascent
-            fi
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" repair gerbil-ascent "$spec" "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-ascent"
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" check gerbil-ascent "$spec"
           '
 
@@ -209,7 +207,7 @@ jobs:
 
       - name: Reject missing macro phases and tracked generated products
         working-directory: agentic-ai-lab
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && timeout --signal=TERM --kill-after=5s 180s gerbil test t/native-products-test.ss'
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '"'"'(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'"'"' '
 
       - name: Save pinned Gerbil package cache
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
