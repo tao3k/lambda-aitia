@@ -126,7 +126,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/agentic-ai-lab
-          ref: f721d112f1d27569e404d979607007f4a6de6552
+          ref: 177ac1c448aa846345cde7a1538ab6f788548692
           path: agentic-ai-lab
           submodules: false
 
@@ -184,6 +184,11 @@ jobs:
       - name: Build Agentic AI Lab mechanism library
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && just build'
+
+      - name: Build published native testing support
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/testing-extension.ss && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/source-admission.ss'
 
       - name: Run Scheme semantic closure
         working-directory: agentic-ai-lab

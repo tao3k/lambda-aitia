@@ -1,3 +1,7 @@
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;;
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+;;;
 ;;; -*- Gerbil -*-
 ;;; Native SDLC authority review. Technical success and authority are separate.
 (import :clan/poo/object :std/list/list
