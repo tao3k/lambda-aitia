@@ -46,7 +46,7 @@
       (check-equal? (.ref ADRProfile 'module-family) 'ADR))
     (test-case "only the public ADR selection resolves"
       (check-equal?
-       (ADR-config (agentic-ai-lab-user-module-selection 'custom 'ADR '()))
+       (ADR-config (yuanxu-user-module-selection 'custom 'ADR '()))
        ADR-module))
 
     (test-case "standard record retains drivers, options and consequences"

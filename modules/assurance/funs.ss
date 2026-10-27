@@ -9,11 +9,11 @@
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
         (only-in :yuanxu/graph/algorithms
-                 agentic-ai-lab-graph-cycle-path
-                 agentic-ai-lab-graph-loop-analysis-receipt
-                 agentic-ai-lab-graph-reachable-ids
-                 agentic-ai-lab-graph-topological-order)
-        :agentic-ai-lab/core/poo-clos/interface
+                 yuanxu-graph-cycle-path
+                 yuanxu-graph-loop-analysis-receipt
+                 yuanxu-graph-reachable-ids
+                 yuanxu-graph-topological-order)
+        :yuanxu/poo-clos/interface
         :agentic-ai-lab/lambda-aitia/modules/assurance/types
         (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/invalidation-projection
                  assurance-invalidation-analysis assurance-invalidation-graph)
@@ -802,13 +802,13 @@
                   (assurance-verification-dependency-graph
                    snapshot obligation-ids)))
       (let* ((cycle-path
-              (or (agentic-ai-lab-graph-cycle-path dependency-graph) '()))
+              (or (yuanxu-graph-cycle-path dependency-graph) '()))
              (cyclic-components
-              (.ref (agentic-ai-lab-graph-loop-analysis-receipt dependency-graph)
+              (.ref (yuanxu-graph-loop-analysis-receipt dependency-graph)
                     'cyclic-components))
              (cyclic-ids (concatenate cyclic-components))
              (cycle-blocked
-              (agentic-ai-lab-graph-reachable-ids dependency-graph cyclic-ids))
+              (yuanxu-graph-reachable-ids dependency-graph cyclic-ids))
              (base-blockers
               (map
                (lambda (obligation-id)
@@ -820,7 +820,7 @@
                    (cdr (assoc obligation-id prerequisites)) obligation-ids)))
                obligation-ids))
              (blocked-closure
-              (agentic-ai-lab-graph-reachable-ids
+              (yuanxu-graph-reachable-ids
                dependency-graph
                (append cycle-blocked
                        (map car (filter (lambda (entry) (cdr entry))
@@ -832,11 +832,11 @@
               (let-values (((available-graph _)
                             (assurance-verification-dependency-graph
                              snapshot available-ids)))
-                (agentic-ai-lab-graph-topological-order available-graph)))
+                (yuanxu-graph-topological-order available-graph)))
              (blocked-order
               (filter (lambda (id) (member id blocked-closure))
                       (if (null? cycle-path)
-                        (agentic-ai-lab-graph-topological-order dependency-graph)
+                        (yuanxu-graph-topological-order dependency-graph)
                         obligation-ids)))
              (ordered-ids (append available-order blocked-order))
              (requests

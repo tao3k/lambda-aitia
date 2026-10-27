@@ -8,9 +8,9 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
-        :agentic-ai-lab/core/poo-clos/interface
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verification-valid?)
+        :yuanxu/poo-clos/interface
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verification-valid?)
         (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest assurance-node-canonical
                  assurance-relation-canonical)
@@ -214,7 +214,7 @@
               (equal? (assurance-relation-canonical current-relation)
                       (assurance-relation-canonical relation))
               (.ref structural 'eligible?)
-              (agentic-ai-lab-verification-valid?
+              (yuanxu-verification-valid?
                adapter issued-receipt
                (assurance-verification-subject
                 snapshot obligation evidence outcome)

@@ -6,11 +6,11 @@
 ;;; Organization NASA / domain SDLC / standard family NPR 7150.2.
 ;;; Agentic AI Lab owns the typed namespace, Module and Profile selection.
 (import (only-in :clan/poo/object .def)
-        (only-in :agentic-ai-lab/core/module-system/schema/relations
-                 agentic-ai-lab-semantic-identity)
-        (only-in :yuanxu/module-system/authoring/roles agentic-ai-lab-semantic-module)
-        (only-in :agentic-ai-lab/core/profile-composition/profile-bundle
-                 agentic-ai-lab-profile-export agentic-ai-lab-module-profiles)
+        (only-in :yuanxu/module-system/schema/relations
+                 yuanxu-semantic-identity)
+        (only-in :yuanxu/module-system/authoring/roles yuanxu-semantic-module)
+        (only-in :yuanxu/profile-composition/profile-bundle
+                 yuanxu-profile-export yuanxu-module-profiles)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/config)
 (export NasaSdlcModule nasa-sdlc-npr7150_2)
 
@@ -23,8 +23,8 @@
   (runtime-executed #f))
 
 (def NasaSdlcModule
-  (agentic-ai-lab-semantic-module
-   (agentic-ai-lab-semantic-identity 'nasa 'sdlc)
+  (yuanxu-semantic-module
+   (yuanxu-semantic-identity 'nasa 'sdlc)
    profiles:
-   (agentic-ai-lab-module-profiles
-    (agentic-ai-lab-profile-export 'npr-7150.2 nasa-sdlc-npr7150_2))))
+   (yuanxu-module-profiles
+    (yuanxu-profile-export 'npr-7150.2 nasa-sdlc-npr7150_2))))

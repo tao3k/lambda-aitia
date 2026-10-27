@@ -4,7 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         :std/list/list)
 
 (export assurance-text? assurance-digest?

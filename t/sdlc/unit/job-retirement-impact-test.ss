@@ -3,7 +3,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .ref)
-        (only-in :yuanxu/graph/types agentic-ai-lab-graph-id)
+        (only-in :yuanxu/graph/types yuanxu-graph-id)
         (only-in :agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-structural-impact-analyze
                  agentic-ai-lab-causal-cut agentic-ai-lab-temporal-causal-classify)
@@ -41,7 +41,7 @@
     (test-case "candidate graph cannot turn missing retired identity into no impact"
       (let (before (impact job-retirement-before))
         (check-exception (impact job-retirement-candidate) true)
-        (check (agentic-ai-lab-graph-id job-retirement-before)
+        (check (yuanxu-graph-id job-retirement-before)
                => 'job-executor/before-retirement)
         (check (.ref (impact job-retirement-before) 'affected-node-ids)
                => (.ref before 'affected-node-ids))))

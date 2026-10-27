@@ -4,7 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         (only-in :agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.
                  agentic-ai-lab-governance-source)

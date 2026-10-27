@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :clan/poo/object .ref)
         (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph? agentic-ai-lab-graph-edges agentic-ai-lab-graph-nodes)
+                 yuanxu-graph? yuanxu-graph-edges yuanxu-graph-nodes)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
 
 (export sdlc-flow-test)

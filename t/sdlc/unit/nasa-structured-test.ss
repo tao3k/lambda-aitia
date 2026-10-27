@@ -4,9 +4,9 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verify agentic-ai-lab-revoke-verification!)
-        :agentic-ai-lab/core/contribution/verification
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verify yuanxu-revoke-verification!)
+        :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-structured
@@ -40,7 +40,7 @@
                (nasa-requirement-criteria id)))
         ids)))
 (def (receipts adapter records inventory-values)
-  (map (lambda (r) (agentic-ai-lab-verify adapter r 0 10))
+  (map (lambda (r) (yuanxu-verify adapter r 0 10))
        (append (list (nasa-context-request project 'a context))
                (map nasa-evidence-request records)
                (map (lambda (i) (nasa-inventory-request i 'a)) inventory-values))))
@@ -78,7 +78,7 @@
         (check-equal? (.ref (gate (list (safety-with 100 14) trace) proofs) 'admitted?) #f)
         (check-equal? (.ref (gate (cons safety inventories) proofs) 'admitted?) #f)
         (check-equal? (.ref (nasa-stage-gate policy project 'a context records a proofs 10 inventories: inventories) 'admitted?) #f)
-        (agentic-ai-lab-revoke-verification! a (car (reverse proofs)))
+        (yuanxu-revoke-verification! a (car (reverse proofs)))
         (check-equal? (.ref (gate inventories proofs) 'admitted?) #f)))
     (test-case "cumulative transitions preserve inventory requirements"
       (let* ((p (nasa-stage-policy "safety" '("SWE-219")))

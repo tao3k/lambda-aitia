@@ -21,6 +21,7 @@
     "modules/gitops/interface.ss"
     "modules/sdlc/interface.ss"
     "modules/sdlc/retirement-host.ss"
+    "modules/sdlc/review-authority.ss"
     "modules/sdlc/standards/interface.ss"
     "user-interface/compositions/aitia.ss"
     "user-interface/profiles/software-engineering/project.ss"

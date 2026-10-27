@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/core/contribution/verification
+        :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-coverage
@@ -30,8 +30,8 @@
          ((tailoring-decision) (equal? (.ref (.ref (.ref value 'facts) 'packet) 'identity) "waiver-test"))
          (else #f))))
 (def (adapter) (nasa-verification-adapter "test-only" test-verifier))
-(def (context-receipt a) (agentic-ai-lab-verify a (nasa-context-request project 'a context) 10 20))
-(def (evidence-receipt a) (agentic-ai-lab-verify a (nasa-evidence-request record) 10 20))
+(def (context-receipt a) (yuanxu-verify a (nasa-context-request project 'a context) 10 20))
+(def (evidence-receipt a) (yuanxu-verify a (nasa-evidence-request record) 10 20))
 (def (gate a receipts records (now 11)) (nasa-stage-gate policy project 'a context records a receipts now))
 (export nasa-lifecycle-test)
 (def nasa-lifecycle-test
@@ -64,7 +64,7 @@
     (check-exception (nasa-stage-policy "wrong-owner" '("SWE-013") scope: 'institution) Error?)
     (let* ((a (adapter))
            (e (nasa-verifiable-evidence (nasa-criterion-evidence "institution" project "SWE-002" "SWE-002/p1" "test-reviewer" 'pass) digest))
-           (receipt (agentic-ai-lab-verify a (nasa-evidence-request e) 10 20)))
+           (receipt (yuanxu-verify a (nasa-evidence-request e) 10 20)))
       (check-equal? (.ref (nasa-stage-gate (nasa-stage-policy "institution" '("SWE-002") scope: 'institution)
                                          project 'a context (list e) a (list (context-receipt a) receipt) 11) 'admitted?) #t)))
   (test-case "claimed pass is insufficient and context is independently verified"
@@ -79,7 +79,7 @@
       (check-equal? (.ref (gate a (list c e) (list (.o (:: @ record) source-digest: "stale"))) 'admitted?) #f)
       (check-equal? (.ref (nasa-stage-gate policy project 'a (.o (:: @ context) safety-critical?: #t) (list record) a (list c e) 11) 'admitted?) #f)
       (check-equal? (.ref (gate a (list c e) (list record (.o (:: @ record) identity: "failure" outcome: 'fail))) 'status) 'requirements-blocked)
-      (agentic-ai-lab-revoke-verification! a e)
+      (yuanxu-revoke-verification! a e)
       (check-equal? (.ref (gate a (list c e) (list record)) 'admitted?) #f)))
   (test-case "all 130 requirements traverse the verifier in their separate baselines"
     (let (all-context
@@ -98,14 +98,14 @@
                                    (nasa-verifiable-evidence
                                     (nasa-criterion-evidence (.ref criterion 'identity) project id (.ref criterion 'identity) "test-reviewer" 'pass) digest))
                                  (nasa-requirement-criteria id))) (.ref p 'requirements))))
-                (c (agentic-ai-lab-verify a (nasa-context-request project 'a all-context) 10 20))
+                (c (yuanxu-verify a (nasa-context-request project 'a all-context) 10 20))
                 (inventory-values (if (eq? owner 'project) (test-inventories project 'a digest) '()))
                 (receipts (append (list c)
-                                  (map (lambda (e) (agentic-ai-lab-verify a (nasa-evidence-request e) 10 20)) records)
-                                  (map (lambda (i) (agentic-ai-lab-verify a (nasa-inventory-request i 'a) 10 20)) inventory-values))))
+                                  (map (lambda (e) (yuanxu-verify a (nasa-evidence-request e) 10 20)) records)
+                                  (map (lambda (i) (yuanxu-verify a (nasa-inventory-request i 'a) 10 20)) inventory-values))))
            (check-equal? (.ref (nasa-stage-gate p project 'a all-context records a receipts 11 inventories: inventory-values) 'status) 'stage-admitted)
            (check-equal? (.ref (nasa-stage-gate p project 'a all-context (cdr records) a receipts 11 inventories: inventory-values) 'admitted?) #f)
-           (agentic-ai-lab-revoke-verification! a (cadr receipts))
+           (yuanxu-revoke-verification! a (cadr receipts))
            (check-equal? (.ref (nasa-stage-gate p project 'a all-context records a receipts 11 inventories: inventory-values) 'admitted?) #f)))
        '(project institution))))
   (test-case "a later stage cannot substitute its own evidence for earlier obligations"
@@ -113,7 +113,7 @@
            (records (map (lambda (c) (nasa-verifiable-evidence
                                       (nasa-criterion-evidence (.ref c 'identity) project "SWE-015" (.ref c 'identity) "test-reviewer" 'pass) digest))
                          (nasa-requirement-criteria "SWE-015")))
-           (receipts (cons (context-receipt a) (map (lambda (e) (agentic-ai-lab-verify a (nasa-evidence-request e) 10 20)) records)))
+           (receipts (cons (context-receipt a) (map (lambda (e) (yuanxu-verify a (nasa-evidence-request e) 10 20)) records)))
            (forged (.o (:: @ (nasa-lifecycle-start project)) stage: "planning")))
       (check-equal? (.ref (nasa-stage-gate later project 'a context records a receipts 11) 'admitted?) #t)
       (check-equal? (.ref (nasa-transition forged (list policy later) "later" project 'a context records a receipts 11) 'advanced?) #f)))
@@ -136,7 +136,7 @@
            (packet (nasa-tailoring-packet "waiver-test" project "SWE-141" "test" "risk" "mitigation" "risk/R" "matrix/M"))
            (attestation (nasa-authority-attestation "signature" packet 'hq-osma "test-signer" "record/R" 'approved))
            (submission (nasa-tailoring-verification-request project 'a context packet (list attestation)))
-           (c (context-receipt a)) (approval (agentic-ai-lab-verify a submission 10 20)))
+           (c (context-receipt a)) (approval (yuanxu-verify a submission 10 20)))
       (check-equal? (.ref (nasa-stage-gate p project 'a context '() a (list c) 11 tailorings: (list submission)) 'admitted?) #f)
       (check-equal? (.ref (nasa-stage-gate p project 'a context '() a (list c approval) 11 tailorings: (list submission)) 'admitted?) #t)
       (check-equal? (.ref (nasa-stage-gate p project 'a context
@@ -144,5 +144,5 @@
                             a (list c approval) 11 tailorings: (list submission)) 'admitted?) #f)
       (check-exception (nasa-tailoring-verification-request project 'a context packet '()) Error?)
       (check-exception (nasa-tailoring-verification-request project 'a context packet (list (.o (:: @ attestation) decision: 'rejected))) Error?)
-      (agentic-ai-lab-revoke-verification! a approval)
+      (yuanxu-revoke-verification! a approval)
       (check-equal? (.ref (nasa-stage-gate p project 'a context '() a (list c approval) 11 tailorings: (list submission)) 'admitted?) #f)))))

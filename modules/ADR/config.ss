@@ -9,9 +9,9 @@
 (export ADR-config)
 
 (def (ADR-config selection)
-  (unless (and (agentic-ai-lab-user-module-selection? selection)
-               (equal? (agentic-ai-lab-user-module-selection-key selection)
+  (unless (and (yuanxu-user-module-selection? selection)
+               (equal? (yuanxu-user-module-selection-key selection)
                        '(custom . ADR))
-               (null? (agentic-ai-lab-user-module-selection-flags selection)))
+               (null? (yuanxu-user-module-selection-flags selection)))
     (error "invalid ADR module selection"))
   ADR-module)

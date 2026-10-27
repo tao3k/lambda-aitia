@@ -7,24 +7,24 @@
 ;;; Domain selection stays in the maintained Project Profile; Agentic AI Lab owns
 ;;; module selection, composition, Case lowering and runtime admission.
 (import (only-in :clan/poo/object .o)
-        (only-in :agentic-ai-lab/core/module-system/schema/relations
-                 agentic-ai-lab-semantic-identity)
-        (only-in :yuanxu/module-system/authoring/roles agentic-ai-lab-semantic-module)
-        (only-in :agentic-ai-lab/core/profile-composition/profile-bundle
-                 agentic-ai-lab-profile-export agentic-ai-lab-module-profiles
+        (only-in :yuanxu/module-system/schema/relations
+                 yuanxu-semantic-identity)
+        (only-in :yuanxu/module-system/authoring/roles yuanxu-semantic-module)
+        (only-in :yuanxu/profile-composition/profile-bundle
+                 yuanxu-profile-export yuanxu-module-profiles
                  profiles compose)
-        (only-in :agentic-ai-lab/core/profile-composition/selection-syntax use-module)
+        (only-in :yuanxu/profile-composition/selection-syntax use-module)
         (only-in :agentic-ai-lab/modules/workflow/scenario/composition-syntax user-composition)
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/software-engineering/project)
 
 (export AitiaModule aitia)
 
 (def AitiaModule
-  (agentic-ai-lab-semantic-module
-   (agentic-ai-lab-semantic-identity 'software-engineering 'aitia)
+  (yuanxu-semantic-module
+   (yuanxu-semantic-identity 'software-engineering 'aitia)
    profiles:
-   (agentic-ai-lab-module-profiles
-    (agentic-ai-lab-profile-export
+   (yuanxu-module-profiles
+    (yuanxu-profile-export
      'default
      (.o (:: @ default-software-engineering-project)
          stages: (.o software-engineering-project: (.o)))))))

@@ -8,31 +8,31 @@
 ;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
 (import (only-in :yuanxu/module-system/selection/objects
-                 agentic-ai-lab-settings
-                 agentic-ai-lab-user-module-selection)
+                 yuanxu-settings
+                 yuanxu-user-module-selection)
         (only-in :yuanxu/profile-composition/user-profile
-                 agenticAiLabUserProfile))
+                 yuanxuUserProfile))
 
 (export default-software-engineering-project)
 
 (def default-software-engineering-project
-  (agenticAiLabUserProfile
+  (yuanxuUserProfile
    'default-software-engineering-project
    (list
     (list
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'gitops '(+open-gitops))
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'sdlc '())
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'nasa 'sdlc '(+npr-7150.2))
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'ADR '(+rfc-relations))
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
-     (agentic-ai-lab-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'formal-methods '(+quint +lean +cedar))))
-   (agentic-ai-lab-settings
+   (yuanxu-settings
     project-kind: 'software-engineering
     composition: 'aitia
     formal-method-obligations: '(quint lean cedar)

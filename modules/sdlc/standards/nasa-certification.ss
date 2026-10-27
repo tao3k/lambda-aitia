@@ -5,8 +5,8 @@
 ;;; NPR 7150.2D compliance dossier and independently verified authority decision.
 ;;; This module never impersonates NASA, authenticates a signer, or authorizes release.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :agentic-ai-lab/core/poo-clos/interface
-        :agentic-ai-lab/core/contribution/verification
+        :yuanxu/poo-clos/interface
+        :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :std/list/list
@@ -186,7 +186,7 @@
                               '(chapter2 chapter3 chapter4 chapter5 chapter6 appendix-c)))
         port)))))
 (def (nasa-certification-verification-adapter identity-value operation)
-  (agentic-ai-lab-verification-adapter
+  (yuanxu-verification-adapter
    identity-value operation certification-request-snapshot))
 
 (def (nasa-certification-review dossier-value decision-value adapter receipts now)
@@ -196,9 +196,9 @@
     (error "invalid NASA certification review inputs"))
   (let* ((request (nasa-certification-verification-request
                    dossier-value decision-value))
-         (admission (agentic-ai-lab-verification-admission adapter receipts now))
+         (admission (yuanxu-verification-admission adapter receipts now))
          (verified?
-          (agentic-ai-lab-verification-admission-valid? admission request))
+          (yuanxu-verification-admission-valid? admission request))
          (status-value
           (cond
            ((not (.ref dossier-value 'complete?)) 'dossier-incomplete)

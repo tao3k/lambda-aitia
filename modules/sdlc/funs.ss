@@ -4,10 +4,10 @@
 
 (import (only-in :clan/poo/object .o .ref)
         (only-in :yuanxu/graph/algorithms
-                 agentic-ai-lab-graph-cycle-path
-                 agentic-ai-lab-graph-topological-order)
+                 yuanxu-graph-cycle-path
+                 yuanxu-graph-topological-order)
         (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         (only-in :agentic-ai-lab/modules/governance/funs
                  agentic-ai-lab-governance-contribution)
         :std/list/list)
@@ -29,30 +29,30 @@
     (error "SDLC flow requires a non-empty lifecycle identity" lifecycle-id))
   (let ((nodes
          (map (lambda (stage)
-                (agentic-ai-lab-graph-node
+                (yuanxu-graph-node
                  (sdlc-flow-node-id lifecycle-id stage)
                  stage
                  (list (cons 'semantic-owner 'lambda-aitia))))
               +sdlc-flow-stages+))
         (edges
          (map (lambda (source-stage target-stage)
-                (agentic-ai-lab-graph-edge
+                (yuanxu-graph-edge
                  (sdlc-flow-node-id lifecycle-id source-stage)
                  (sdlc-flow-node-id lifecycle-id target-stage)
                  'sdlc-next
                  (list (cons 'semantic-owner 'lambda-aitia))))
               +sdlc-flow-stages+
               (cdr +sdlc-flow-stages+))))
-    (agentic-ai-lab-graph
+    (yuanxu-graph
      lifecycle-id nodes edges
      (list (cons 'semantic-owner 'lambda-aitia)
            (cons 'runtime-owner 'agentic-ai-lab)))))
 
 (def (sdlc-flow-plan lifecycle-identity)
   (let* ((graph-value (sdlc-flow-graph lifecycle-identity))
-         (detected-cycle-path (agentic-ai-lab-graph-cycle-path graph-value))
+         (detected-cycle-path (yuanxu-graph-cycle-path graph-value))
          (order (and (not detected-cycle-path)
-                     (agentic-ai-lab-graph-topological-order graph-value))))
+                     (yuanxu-graph-topological-order graph-value))))
     (.o schema: 'lambda-aitia.sdlc-flow-plan
         lifecycle-id: lifecycle-identity
         graph: graph-value

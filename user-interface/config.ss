@@ -5,14 +5,14 @@
 ;;; -*- Gerbil -*-
 ;;; Maintained GitHub/GitOps/SDLC Case. Selection and Case lowering belong to
 ;;; Agentic AI Lab; the concrete policy Profiles remain owned by Aitia.
-(import (only-in :agentic-ai-lab/core/profile-composition/profile-bundle
+(import (only-in :yuanxu/profile-composition/profile-bundle
                  profiles compose
-                 agentic-ai-lab-profile-export agentic-ai-lab-module-profiles)
-        (only-in :agentic-ai-lab/core/profile-composition/selection-syntax use-module)
+                 yuanxu-profile-export yuanxu-module-profiles)
+        (only-in :yuanxu/profile-composition/selection-syntax use-module)
         (only-in :agentic-ai-lab/modules/workflow/scenario/composition-syntax user-composition)
-        (only-in :agentic-ai-lab/core/module-system/schema/relations
-                 agentic-ai-lab-semantic-identity)
-        (only-in :yuanxu/module-system/authoring/roles agentic-ai-lab-semantic-module)
+        (only-in :yuanxu/module-system/schema/relations
+                 yuanxu-semantic-identity)
+        (only-in :yuanxu/module-system/authoring/roles yuanxu-semantic-module)
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/github/actions
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/dev
         :agentic-ai-lab/lambda-aitia/user-interface/profiles/gitops/staging
@@ -21,14 +21,14 @@
 (export AitiaDeliveryModule github-gitops-sdlc)
 
 (def AitiaDeliveryModule
-  (agentic-ai-lab-semantic-module
-   (agentic-ai-lab-semantic-identity 'software-engineering 'delivery)
+  (yuanxu-semantic-module
+   (yuanxu-semantic-identity 'software-engineering 'delivery)
    profiles:
-   (agentic-ai-lab-module-profiles
-    (agentic-ai-lab-profile-export 'actions actions)
-    (agentic-ai-lab-profile-export 'dev dev)
-    (agentic-ai-lab-profile-export 'staging staging)
-    (agentic-ai-lab-profile-export 'production production))))
+   (yuanxu-module-profiles
+    (yuanxu-profile-export 'actions actions)
+    (yuanxu-profile-export 'dev dev)
+    (yuanxu-profile-export 'staging staging)
+    (yuanxu-profile-export 'production production))))
 
 (user-composition github-gitops-sdlc
   (compose profiles

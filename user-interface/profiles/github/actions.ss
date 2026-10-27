@@ -6,7 +6,7 @@
 ;;; Reusable GitHub workflow Profiles; no scenario or runtime execution lives here.
 
 (import (only-in :clan/poo/object .def)
-        :agentic-ai-lab/modules/funflow/github-ci-contract)
+        :agentic-ai-lab/modules/workflow/profiles/github-ci-contract)
 (export actions)
 
 (.def (actions @ agentic-ai-lab-funflow-github-ci-profile)

@@ -18,10 +18,10 @@
   (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 
 (def (sdlc-config selection)
-  (unless (and (agentic-ai-lab-user-module-selection? selection)
-               (equal? (agentic-ai-lab-user-module-selection-key selection) '(custom . sdlc)))
+  (unless (and (yuanxu-user-module-selection? selection)
+               (equal? (yuanxu-user-module-selection-key selection) '(custom . sdlc)))
     (error "expected a custom/sdlc selection"))
-  (let ((flags (agentic-ai-lab-user-module-selection-flags selection)))
+  (let ((flags (yuanxu-user-module-selection-flags selection)))
     (unless (null? flags)
       (error "SDLC has no feature flags; select standards as Modules" flags))
     (sdlc-contribution SdlcProfile)))

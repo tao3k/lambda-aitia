@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
+        (only-in :yuanxu/contribution/objects admit-contributions)
         :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))

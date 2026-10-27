@@ -4,7 +4,7 @@
 ;;; Synthetic qualification facts, not observations from a production service.
 ;;; Algorithms and receipt authority stay with Agentic AI Lab's public owners.
 (import (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph agentic-ai-lab-graph-node agentic-ai-lab-graph-edge)
+                 yuanxu-graph yuanxu-graph-node yuanxu-graph-edge)
         (only-in :agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-temporal-observation agentic-ai-lab-causal-event
                  agentic-ai-lab-causal-event-graph))
@@ -16,29 +16,29 @@
 (def job-retirement-relations '(PRODUCED_UNDER USES_CAPABILITY VERIFIES))
 
 (def job-retirement-before
-  (agentic-ai-lab-graph
+  (yuanxu-graph
    'job-executor/before-retirement
-   (map agentic-ai-lab-graph-node
+   (map yuanxu-graph-node
         '(automatic-retry historical-result active-job queued-job
           verify-queued-retry unrelated-export))
    (list
-    (agentic-ai-lab-graph-edge 'historical-result 'automatic-retry 'PRODUCED_UNDER)
-    (agentic-ai-lab-graph-edge 'active-job 'automatic-retry 'USES_CAPABILITY)
-    (agentic-ai-lab-graph-edge 'queued-job 'automatic-retry 'USES_CAPABILITY)
-    (agentic-ai-lab-graph-edge 'verify-queued-retry 'queued-job 'VERIFIES))))
+    (yuanxu-graph-edge 'historical-result 'automatic-retry 'PRODUCED_UNDER)
+    (yuanxu-graph-edge 'active-job 'automatic-retry 'USES_CAPABILITY)
+    (yuanxu-graph-edge 'queued-job 'automatic-retry 'USES_CAPABILITY)
+    (yuanxu-graph-edge 'verify-queued-retry 'queued-job 'VERIFIES))))
 
 ;;; Candidate topology only: moving these edges is not a migration receipt.
 ;;; Historical interpretation still binds job-retirement-before, not this graph.
 (def job-retirement-candidate
-  (agentic-ai-lab-graph
+  (yuanxu-graph
    'job-executor/candidate-after-retirement
-   (map agentic-ai-lab-graph-node
+   (map yuanxu-graph-node
         '(reviewed-recovery historical-result active-job queued-job
           verify-queued-retry unrelated-export))
    (list
-    (agentic-ai-lab-graph-edge 'active-job 'reviewed-recovery 'USES_CAPABILITY)
-    (agentic-ai-lab-graph-edge 'queued-job 'reviewed-recovery 'USES_CAPABILITY)
-    (agentic-ai-lab-graph-edge 'verify-queued-retry 'queued-job 'VERIFIES))))
+    (yuanxu-graph-edge 'active-job 'reviewed-recovery 'USES_CAPABILITY)
+    (yuanxu-graph-edge 'queued-job 'reviewed-recovery 'USES_CAPABILITY)
+    (yuanxu-graph-edge 'verify-queued-retry 'queued-job 'VERIFIES))))
 
 (def (fixture-event id kind position parents modality committed?)
   (agentic-ai-lab-causal-event

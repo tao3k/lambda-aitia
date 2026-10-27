@@ -5,7 +5,7 @@
 
 (import (only-in :clan/poo/object .ref .slot?)
         :std/list/list
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         (only-in :agentic-ai-lab/modules/governance/types
                  agentic-ai-lab-governance-profile?))
 

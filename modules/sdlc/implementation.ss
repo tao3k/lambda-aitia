@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/interface
                  assurance-artifact? assurance-digest?
                  assurance-snapshot? assurance-snapshot-canonical?)

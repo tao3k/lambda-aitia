@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .o)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-artifact assurance-claim assurance-assumption

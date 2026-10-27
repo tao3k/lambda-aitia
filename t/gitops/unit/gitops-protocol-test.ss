@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :clan/poo/object .cc .ref)
         (only-in :clan/poo/mop element?)
-        :agentic-ai-lab/core/poo-clos/interface
+        :yuanxu/poo-clos/interface
         :agentic-ai-lab/lambda-aitia/modules/gitops/interface)
 (export gitops-protocol-test)
 

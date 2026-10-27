@@ -9,9 +9,9 @@
 
 (import (only-in :clan/poo/object .ref)
         (only-in :yuanxu/graph/algorithms
-                 agentic-ai-lab-graph-loop-analysis-receipt)
+                 yuanxu-graph-loop-analysis-receipt)
         (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         (only-in :agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze)
         (only-in :gerbil/core list-sort)
@@ -54,7 +54,7 @@
          (relations (.ref snapshot 'relations))
          (graph-nodes
           (map (lambda (node)
-                 (agentic-ai-lab-graph-node
+                 (yuanxu-graph-node
                   (invalidation-graph-id (.ref node 'identity)) (.ref node 'kind)
                   (list (cons 'semantic-owner 'lambda-aitia)
                         (cons 'assurance-identity (.ref node 'identity))
@@ -63,7 +63,7 @@
          (graph-edges
           (map (lambda (entry)
                  (let ((relation (car entry)) (direction (cdr entry)))
-                   (agentic-ai-lab-graph-edge
+                   (yuanxu-graph-edge
                     (invalidation-graph-id (car direction))
                     (invalidation-graph-id (cdr direction))
                     (.ref relation 'relation)
@@ -74,7 +74,7 @@
                        (map (lambda (relation)
                               (cons relation (invalidation-direction relation)))
                             relations)))))
-    (agentic-ai-lab-graph
+    (yuanxu-graph
      (invalidation-graph-id (.ref snapshot 'graph-identity))
      graph-nodes graph-edges
      (list (cons 'semantic-owner 'lambda-aitia)
@@ -94,7 +94,7 @@
 
 (def (assurance-invalidation-analysis snapshot seeds)
   (let* ((graph-value (assurance-invalidation-graph snapshot))
-         (loop-analysis (agentic-ai-lab-graph-loop-analysis-receipt graph-value)))
+         (loop-analysis (yuanxu-graph-loop-analysis-receipt graph-value)))
     (if (null? seeds)
       (values '() '()
               (components->identities (.ref loop-analysis 'components))

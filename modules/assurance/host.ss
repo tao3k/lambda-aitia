@@ -9,11 +9,11 @@
 (import (only-in :clan/poo/object .o .ref .slot? .alist object?)
         (only-in :std/list/list find every filter delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
-        :agentic-ai-lab/core/poo-clos/interface
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify
-                 agentic-ai-lab-verification-valid?
-                 agentic-ai-lab-revoke-verification!)
+        :yuanxu/poo-clos/interface
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verification-adapter yuanxu-verify
+                 yuanxu-verification-valid?
+                 yuanxu-revoke-verification!)
         (only-in :yuanxu/feature-system/source-lock-feature
                  source-lock-payload-digest)
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
@@ -115,7 +115,7 @@
     (error "invalid assurance verification Host configuration"))
   (let* ((host (.o identity: (string-copy identity-value)))
          (adapter
-          (agentic-ai-lab-verification-adapter
+          (yuanxu-verification-adapter
            identity-value
            (lambda (subject now until)
              (if source-reader
@@ -150,7 +150,7 @@
          (host-outcome-inputs-current? host snapshot outcome)
          (let (now (host-instant entry))
            (let (receipt
-                 (agentic-ai-lab-verify
+                 (yuanxu-verify
                   (vector-ref entry 1)
                   (assurance-verification-subject
                    snapshot obligation evidence outcome)
@@ -162,7 +162,7 @@
                                  (vector host (vector-ref entry 8)))
                       receipt)
                     (begin
-                      (agentic-ai-lab-revoke-verification! (vector-ref entry 1)
+                      (yuanxu-revoke-verification! (vector-ref entry 1)
                                                      receipt)
                       #f))))))))
 
@@ -185,7 +185,7 @@
     (unless (and issued (eq? host (vector-ref issued 0)))
       (error "receipt was not issued by this assurance Host"))
     (hash-remove! issued-host-receipts receipt)
-    (agentic-ai-lab-revoke-verification! (vector-ref entry 1) receipt)))
+    (yuanxu-revoke-verification! (vector-ref entry 1) receipt)))
 
 ;;; Admission is a separate Host-issued capability over the candidate cut.
 ;;; It does not mutate AssuranceEvidence or the snapshot that the outcome names.
@@ -209,7 +209,7 @@
          (= (vector-ref issued 1) (vector-ref entry 8))
          (host-outcome-inputs-current? host snapshot outcome)
          (assurance-evidence-outcome-bound? snapshot evidence outcome)
-         (agentic-ai-lab-verification-valid?
+         (yuanxu-verification-valid?
           (vector-ref entry 1) receipt
           (assurance-verification-subject snapshot obligation evidence outcome)
           (host-instant entry))
@@ -281,7 +281,7 @@
               (eq? (.ref evidence 'admission-state) 'candidate)
               (equal? (assurance-verification-subject-snapshot subject)
                       (vector-ref issued 6))
-              (agentic-ai-lab-verification-valid?
+              (yuanxu-verification-valid?
                (vector-ref host-state 1) (vector-ref issued 1)
                subject now)
               snapshot))))

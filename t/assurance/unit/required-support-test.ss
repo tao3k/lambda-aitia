@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/poo-clos/interface
+        (only-in :yuanxu/poo-clos/interface
                  poo-clos-model-prototype)
         :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 

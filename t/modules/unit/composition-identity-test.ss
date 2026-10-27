@@ -8,10 +8,10 @@
         (only-in :agentic-ai-lab/modules/workflow/scenario/case
                  agentic-ai-lab-scenario-case?)
         (only-in :yuanxu/module-system/selection/objects
-                 agentic-ai-lab-user-module-selection-flags
-                 agentic-ai-lab-user-module-selection-key)
+                 yuanxu-user-module-selection-flags
+                 yuanxu-user-module-selection-key)
         (only-in :yuanxu/profile-composition/user-profile
-                 agentic-ai-lab-user-profile-modules)
+                 yuanxu-user-profile-modules)
         (only-in :agentic-ai-lab/modules/proof/interface
                  agentic-ai-lab-proof-module?)
         :agentic-ai-lab/lambda-aitia/modules/formal-methods/interface
@@ -36,9 +36,9 @@
      (check-equal? (.ref aitia 'runtime-executed?) #f))
    (test-case "default Project selects the complete software engineering closure"
      (let (modules
-           (agentic-ai-lab-user-profile-modules (car (.ref aitia 'profiles))))
+           (yuanxu-user-profile-modules (car (.ref aitia 'profiles))))
        (check-equal?
-        (map agentic-ai-lab-user-module-selection-key modules)
+        (map yuanxu-user-module-selection-key modules)
         '((software-engineering . gitops)
           (software-engineering . sdlc)
           (nasa . sdlc)
@@ -46,7 +46,7 @@
           (software-engineering . assurance)
           (software-engineering . formal-methods)))
        (check-equal?
-        (agentic-ai-lab-user-module-selection-flags (list-ref modules 5))
+        (yuanxu-user-module-selection-flags (list-ref modules 5))
         '(+quint +lean +cedar))))
    (test-case "formal-method declarations reuse the Agentic AI Lab Proof module"
      (check-equal? (agentic-ai-lab-proof-module? aitia-formal-methods-module) #t)

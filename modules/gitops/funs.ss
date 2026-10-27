@@ -8,9 +8,9 @@
         (only-in :clan/poo/mop .new validate)
         :std/list/list
         (only-in :yuanxu/utilities/algorithms
-                 agentic-ai-lab-make-value-index agentic-ai-lab-value-index-put!
-                 agentic-ai-lab-value-index-ref)
-        :agentic-ai-lab/core/poo-clos/interface
+                 yuanxu-make-value-index yuanxu-value-index-put!
+                 yuanxu-value-index-ref)
+        :yuanxu/poo-clos/interface
         :agentic-ai-lab/lambda-aitia/modules/gitops/types
         :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export GitOpsDefaultEvaluationMethod GitOpsDefaultEvaluationMethods
@@ -36,14 +36,14 @@
        (equal? (.ref check 'source-lock-digest)
                (.ref standard 'source-lock-digest))))
 (def (check-index checks)
-  (let (index (agentic-ai-lab-make-value-index))
+  (let (index (yuanxu-make-value-index))
     (for-each
      (lambda (check)
        (validate GitOpsCheck check)
        (let-values (((present? previous)
-                     (agentic-ai-lab-value-index-ref index (.ref check 'name))))
+                     (yuanxu-value-index-ref index (.ref check 'name))))
          (when present? (error "duplicate GitOps check" (.ref check 'name)))
-         (agentic-ai-lab-value-index-put! index (.ref check 'name) check)))
+         (yuanxu-value-index-put! index (.ref check 'name) check)))
      checks)
     index))
 (def (gitops-profile-decision profile standard-bindings change checks)
@@ -55,7 +55,7 @@
          (standard-mismatch? #f))
     (for-each
      (lambda (name)
-       (let-values (((present? check) (agentic-ai-lab-value-index-ref index name)))
+       (let-values (((present? check) (yuanxu-value-index-ref index name)))
          (cond ((not present?) (set! missing (cons name missing)))
                ((or (not (equal? (.ref check 'repository) (.ref change 'repository)))
                     (not (equal? (.ref check 'revision) (.ref change 'revision))))

@@ -8,7 +8,7 @@
         :std/list/list
         :gerbil/core
         (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         (only-in :agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze))
 (export sdlc-change-impact)
@@ -50,17 +50,17 @@
     ;; to Agentic AI Lab Graph. Aitia only projects its revision-scoped SDLC facts
     ;; into that mechanism and retains its native trajectory witnesses.
     (let* ((graph
-            (agentic-ai-lab-graph
+            (yuanxu-graph
              (impact-symbol
               (string-append (.ref project 'subject) "@"
                              (.ref project 'revision) ":"
                              (.ref project 'scope)))
              (map (lambda (node)
-                    (agentic-ai-lab-graph-node
+                    (yuanxu-graph-node
                      (impact-symbol (.ref node 'identity))))
                   current)
              (map (lambda (edge)
-                    (agentic-ai-lab-graph-edge
+                    (yuanxu-graph-edge
                      (impact-symbol (.ref edge 'source))
                      (impact-symbol (.ref edge 'target))
                      (impact-symbol (.ref edge 'relation))))

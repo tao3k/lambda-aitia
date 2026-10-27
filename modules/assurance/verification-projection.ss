@@ -10,7 +10,7 @@
         (only-in :gerbil/core list-sort)
         :std/list/list
         (only-in :yuanxu/graph/types
-                 agentic-ai-lab-graph agentic-ai-lab-graph-edge agentic-ai-lab-graph-node)
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-verification-dependency-graph)
@@ -56,16 +56,16 @@
            (map
             (lambda (entry)
               (map (lambda (prerequisite)
-                     (agentic-ai-lab-graph-edge prerequisite (car entry)
+                     (yuanxu-graph-edge prerequisite (car entry)
                                           'depends-on))
                    (filter (lambda (prerequisite)
                              (member prerequisite ids))
                            (cdr entry))))
             prerequisites)))
          (graph-value
-          (agentic-ai-lab-graph
+          (yuanxu-graph
            (string-append (.ref snapshot 'graph-identity) "/verification")
-           (map agentic-ai-lab-graph-node ids)
+           (map yuanxu-graph-node ids)
            edges
            (list (cons 'semantic-owner 'lambda-aitia)
                  (cons 'graph-owner 'agentic-ai-lab)

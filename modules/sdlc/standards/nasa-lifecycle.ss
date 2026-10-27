@@ -90,9 +90,9 @@
                      (slots value '(subject revision scope)) payload
                      (slots nasa-catalog-source-digests '(chapter2 chapter3 chapter4 chapter5 chapter6 appendix-c))) port)))))
 (def (nasa-verification-adapter id operation)
-  (agentic-ai-lab-verification-adapter id operation request-snapshot))
+  (yuanxu-verification-adapter id operation request-snapshot))
 (def (verified? admission value)
-  (agentic-ai-lab-verification-admission-valid? admission value))
+  (yuanxu-verification-admission-valid? admission value))
 (def (nasa-stage-gate policy project class-value context evidence adapter receipts now
                          tailorings: (tailoring-values '()) inventories: (inventory-values '()))
   (unless (and (sdlc-stage-policy? policy) (list? receipts) (list? tailoring-values)
@@ -100,7 +100,7 @@
                (every (lambda (i) (or (sdlc-trace-inventory? i) (sdlc-safety-inventory? i))) inventory-values)
                (exact-integer? now) (>= now 0)) (error "invalid stage gate inputs"))
   (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence requirements: (.ref policy 'requirements)))
-         (admission (agentic-ai-lab-verification-admission adapter receipts now))
+         (admission (yuanxu-verification-admission adapter receipts now))
          (selected (map (lambda (id)
                           (or (find (lambda (r) (equal? (.ref r 'requirement) id)) (.ref report 'requirements))
                               (error "unknown stage requirement" id))) (.ref policy 'requirements)))

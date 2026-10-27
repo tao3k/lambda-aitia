@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/core/contribution/verification
+        :yuanxu/contribution/verification
         :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-policy
         :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-certification)
@@ -76,7 +76,7 @@
     (let* ((a (adapter))
            (request (nasa-certification-verification-request
                      dossier compliant-decision))
-           (receipt (agentic-ai-lab-verify a request 10 20))
+           (receipt (yuanxu-verify a request 10 20))
            (review (nasa-certification-review
                     dossier compliant-decision a (list receipt) 11)))
       (check-equal? (.ref review 'status)
@@ -102,7 +102,7 @@
              "decision-rejected" dossier 'responsible-nasa-official
              "authorized-reviewer" "records/rmm-rejection-7" 'noncompliant))
            (request (nasa-certification-verification-request dossier decision))
-           (receipt (agentic-ai-lab-verify a request 10 20))
+           (receipt (yuanxu-verify a request 10 20))
            (review (nasa-certification-review dossier decision a (list receipt) 11)))
       (check-equal? (.ref review 'status)
                     'noncompliant-by-verified-authority)
