@@ -111,7 +111,7 @@ def _gitops_change() -> dict[str, object]:
                 "name": "nasa/sdlc/npr-7150.2",
                 "conclusion": "success",
                 "standardEdition": "D",
-                "sourceLockDigest": "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c",
+                "sourceLockDigest": "sha256:68113744771506840ed6d7abb4873f87fc6b490d405b9637d446ba4b2ba39108",
             },
         ],
     }
@@ -132,6 +132,7 @@ def test_python_delegates_gitops_decision_to_scheme() -> None:
     ("field", "value"),
     [
         ("standardEdition", "C"),
+        ("sourceLockDigest", "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c"),
         ("sourceLockDigest", "sha256:wrong-lock"),
         ("sourceLockDigest", None),
     ],

@@ -3,6 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test
+        (only-in :std/string/misc string-subst)
         (only-in :std/encoding/json JSONReadOptions string->json)
         (only-in :agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract
                  aitia-abi-revision
@@ -20,7 +21,7 @@
   (string->json payload +aitia-native-test-json-read-options+))
 
 (def +accepted-change+
-  "{\"event\":\"pull-request\",\"repository\":\"tao3k/agentic-ai-lab\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa/sdlc/npr-7150.2\",\"conclusion\":\"success\",\"standardEdition\":\"D\",\"sourceLockDigest\":\"sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c\"}]}")
+  "{\"event\":\"pull-request\",\"repository\":\"tao3k/agentic-ai-lab\",\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\",\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":[{\"name\":\"commit-policy\",\"conclusion\":\"success\"},{\"name\":\"build\",\"conclusion\":\"success\"},{\"name\":\"unit-test\",\"conclusion\":\"success\"},{\"name\":\"nasa/sdlc/npr-7150.2\",\"conclusion\":\"success\",\"standardEdition\":\"D\",\"sourceLockDigest\":\"sha256:68113744771506840ed6d7abb4873f87fc6b490d405b9637d446ba4b2ba39108\"}]}")
 
 (def aitia-native-test
   (test-suite "Aitia Scheme-native C ABI"
@@ -57,4 +58,14 @@
         (check (hash-get decision "accepted") => #t)
         (check (hash-get decision "profile") => "dev")
         (check (hash-get decision "revision") => "0123456789abcdef")))
+    (test-case "the predecessor lock cannot authorize the current source domain"
+      (let* ((old-change
+               (string-subst +accepted-change+
+                 "sha256:68113744771506840ed6d7abb4873f87fc6b490d405b9637d446ba4b2ba39108"
+                 "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c" count: 1))
+             (decision (read-aitia-json (aitia-gitops-evaluate-payload old-change))))
+        (check (hash-get decision "accepted") => #f)
+        (check (hash-get decision "staleChecks") => '("nasa/sdlc/npr-7150.2"))
+        (check (hash-get decision "releaseAuthorized") => #f)
+        (check (hash-get decision "runtimeExecuted") => #f)))
     ))
