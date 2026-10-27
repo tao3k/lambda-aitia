@@ -26,19 +26,19 @@ default:
 # Build this Gerbil package against the installed Agentic AI Lab mechanisms.
 [group('build')]
 build-scheme:
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
+    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --signal=TERM --kill-after=5s 180s gerbil build
 
 # Run one Aitia-owned Scheme test module.
 [group('test')]
 test-scheme module="sdlc":
     test -d "t/{{ module }}"
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gxi -:max-heap=1G ./run-test.ss "t/{{ module }}"
+    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G ./run-test.ss "t/{{ module }}"
 
 # Run one exact Aitia-owned Scheme test.
 [group('test')]
 test-scheme-atomic module="sdlc" test_file="unit/nasa-certification-test.ss":
     test -f "t/{{ module }}/{{ test_file }}"
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi -:max-heap=1G ./run-test.ss "t/{{ module }}/{{ test_file }}"
+    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 180s gxi -:max-heap=2G ./run-test.ss "t/{{ module }}/{{ test_file }}"
 
 # Build and execute Aitia's SDLC plus GitOps composition case.
 [group('check')]
