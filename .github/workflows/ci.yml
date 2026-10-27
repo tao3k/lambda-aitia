@@ -199,22 +199,22 @@ jobs:
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" check gerbil-ascent "$spec"
           '
 
-      - name: Install Aitia-owned native build and testing dependency
-        working-directory: agentic-ai-lab
-        run: |
-          python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest packages/lambda-aitia/gerbil.pkg
-          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxpkg install "$(python3 -c '"'"'import sys; sys.path.insert(0, "packages/automation"); from gerbil_dependency_pin import parse_package_pins; from pathlib import Path; p = parse_package_pins(Path("packages/lambda-aitia/gerbil.pkg").read_text())["asp-gerbil-scheme"]; print("@".join(p))'"'"')"'
-
       - name: Reject missing macro phases and tracked generated products
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '"'"'(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'"'"' '
 
-      - name: Save pinned Gerbil package cache
+      - name: Save checked native library build inputs
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: agentic-ai-lab/.gerbil
           key: lambda-aitia-gerbil-pkgs-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+
+      - name: Install Aitia-owned native build and testing dependency
+        working-directory: agentic-ai-lab
+        run: |
+          python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest packages/lambda-aitia/gerbil.pkg
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-asp.ss packages/lambda-aitia/gerbil.pkg'
 
       - name: Build Agentic AI Lab mechanism library
         working-directory: agentic-ai-lab

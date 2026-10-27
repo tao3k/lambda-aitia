@@ -59,3 +59,9 @@ API: a printed failure with an ignored return value must not become success.
 All added native checks and library repairs use the 2 GiB heap and 180-second
 process deadline. A failed install resource receipt cannot be replaced by a
 successful directory-existence probe or saved as admitted dependency output.
+
+Aitia's native ASP requirement is built through the SDK's public =pkg-update=
+and =pkg-build= operations, with its revision read from =gerbil.pkg=.
+The real native manifest and original build entry remain required. CI does
+not request the global editor =gxtags= index: indexing every acquired source
+checkout is a separate developer demand, not a compiler or runtime receipt.
