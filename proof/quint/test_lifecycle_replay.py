@@ -82,6 +82,13 @@ class LifecycleReplayTests(unittest.TestCase):
             list(checker.batches([[('init', {})] * 65],
                                  step_budget=64))
 
+    def test_source_cut_uses_exact_directory_entry_spelling(self):
+        for name in checker.SOURCE_CUT:
+            directory = checker.REPO
+            for part in Path(name).parts:
+                self.assertIn(part, {entry.name for entry in directory.iterdir()}, name)
+                directory = directory / part
+
     def test_replay_propagates_the_current_native_process_budget(self):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)

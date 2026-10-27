@@ -37,7 +37,7 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
           ("unsafeDeliveryStep", "NoUnsafeDelivery", "UnsafeDelivery"),
           ("beforeStartStep", "DeliveryRequiresStart", "UnsafeBeforeStart"),
           ("replayStep", "AtMostOneDelivery", "UnsafeReplay"))
-SOURCE_CUT = ("Justfile", "build.ss", "gerbil.pkg", "testing-interface.ss",
+SOURCE_CUT = ("justfile", "build.ss", "gerbil.pkg", "testing-interface.ss",
               "testing-observer.ss", "run-test.ss",
               "t/modules/unit/testing-resource-test.ss",
               "proof/quint/AssuranceLifecycle.qnt", "proof/quint/EffectAdmission.qnt",
