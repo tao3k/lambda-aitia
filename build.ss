@@ -7,7 +7,8 @@
 ;;; Native Lambda Aitia build.  ASP owns closure projection and std/make owns
 ;;; currentness, scheduling, and clean.
 
-(import (only-in :std/build-script defbuild-script)
+(import (only-in :std/source this-source-file)
+        (only-in :std/build-script defbuild-script)
         (only-in :asp-gerbil-scheme/building-api
                  asp-gerbil-scheme-package-spec!
                  asp-gerbil-scheme-library-package-prototype))
@@ -46,3 +47,6 @@
   (defbuild-script (lambda-aitia-native-spec) optimize: #f))
  (else
   (defbuild-script (lambda-aitia-native-spec))))
+
+;; Consumers request this same native declaration; no parallel source inventory.
+(export lambda-aitia-native-spec)

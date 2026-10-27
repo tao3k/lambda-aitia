@@ -216,9 +216,9 @@ jobs:
           python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest packages/lambda-aitia/gerbil.pkg
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-asp.ss packages/lambda-aitia/gerbil.pkg'
 
-      - name: Build Agentic AI Lab mechanism library
+      - name: Build native Core and the parent Library demanded by Aitia
         working-directory: agentic-ai-lab
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s just build-core && timeout --signal=TERM --kill-after=5s 180s just build-library'
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s just build-core && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-parent.ss'
 
       - name: Build published native testing support
         working-directory: agentic-ai-lab

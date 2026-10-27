@@ -65,3 +65,24 @@ and =pkg-build= operations, with its revision read from =gerbil.pkg=.
 The real native manifest and original build entry remain required. CI does
 not request the global editor =gxtags= index: indexing every acquired source
 checkout is a separate developer demand, not a compiler or runtime receipt.
+
+The parent Library demand comes from Aitia's exported native production and
+integration specs plus =lambda-aitia-selected-test-files=, the same discovery
+owner used for execution. Core =for-each-build-module= traverses those real
+imports. The parent's own =agentic-ai-lab-build-spec= supplies its compiler
+and FFI options; Core checks the resulting native products. This does not run
+the parent's unrelated product qualification build or claim its acceptance.
+All existing Aitia CI test commands and assertions remain required.
+
+Build declarations explicitly import =this-source-file= so they can be
+consumed as native Scheme modules as well as executed by gxpkg. Source
+collection tests use the public Yuanxu constructor and compare the exact
+canonical paths, module keys and owner identities required by its contract.
+
+The selected parent build still requires SDK-generated dependency manifests.
+Gerbil v0.19 does not export its metadata-only =pkg-manifest!= operation;
+the CI entry binds that existing SDK SPI explicitly through its native
+namespace. This is a pinned SDK dependency, not a stable public API promise.
+If the SPI is absent the entry fails. It never writes a replacement manifest
+schema or marks the entire parent product built. Native product checks and
+all Aitia runtime gates remain separate requirements.
