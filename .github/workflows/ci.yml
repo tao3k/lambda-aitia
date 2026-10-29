@@ -199,9 +199,33 @@ jobs:
             test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
             # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
             # The native provider already selected the runner worker count.
-            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install &
+            build_pid=$!
+            # Observe only commands referring to this unique cold prefix. This
+            # never changes admission, worker capacity or the native deadline.
+            (
+              while kill -0 "$build_pid" 2>/dev/null; do
+                date -u +%s.%N
+                ps -eo pid=,ppid=,etimes=,cputimes=,rss=,comm=,args= \
+                  | grep -F -- "$cold_root" | grep -v grep || true
+                sleep 0.5
+              done
+            ) > "$RUNNER_TEMP/aitia-poo-cold-processes.log" &
+            observer_pid=$!
+            build_status=0
+            wait "$build_pid" || build_status=$?
+            wait "$observer_pid" || true
+            if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
             printf "AITIA-COLD-POO-NATIVE-BUILD-OK\n"
           '
+
+      - name: Preserve actual cold compiler process observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aitia-poo-cold-processes
+          path: ${{ runner.temp }}/aitia-poo-cold-processes.log
+          if-no-files-found: ignore
 
       - name: Restore pinned Gerbil package cache
         id: gerbil-package-cache
