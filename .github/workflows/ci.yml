@@ -172,6 +172,10 @@ jobs:
         run: bazelisk mod deps --lockfile_mode=error
 
       - name: Cold-build the Core-declared POO package without project caches
+        id: native-cold
+        # Collect independent runtime evidence after a budget refusal. The final
+        # always-run admission below still requires this original outcome.
+        continue-on-error: true
         working-directory: agentic-ai-lab
         run: |
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
@@ -381,3 +385,8 @@ jobs:
       - name: Replay every reachable lifecycle state and authorization delivery fault
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-lifecycle-scheme'
+
+      - name: Require original cold-build admission
+        if: always()
+        run: |
+          test "${{ steps.native-cold.outcome }}" = success
