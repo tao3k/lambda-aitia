@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/agentic-ai-lab
-          ref: 250196b821625690418f6d56ca7ee42ab4cc007d
+          ref: 761cdfdddc6ade66f42619ea87288663e2324012
           path: agentic-ai-lab
           submodules: false
 
@@ -197,6 +197,7 @@ jobs:
             test ! -e "$GERBIL_PATH/lib/clan/poo"
             test ! -e "$GERBIL_PATH/bin/representation-main"
             test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
+            test ! -e "$GERBIL_PATH/pkg/TAGS"
             # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
             # The native provider already selected the runner worker count.
             /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install &
@@ -221,6 +222,12 @@ jobs:
             wait "$build_pid" || build_status=$?
             wait "$observer_pid" || true
             if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
+            # A successful tag command that skipped the package is not content
+            # admission. Require the actual cold source and its module identity.
+            test -s "$GERBIL_PATH/pkg/TAGS"
+            grep -F -- "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo/object.ss," \
+              "$GERBIL_PATH/pkg/TAGS"
+            grep -F -- ":clan/poo/object" "$GERBIL_PATH/pkg/TAGS"
             printf "AITIA-COLD-POO-NATIVE-BUILD-OK\n"
           '
 
