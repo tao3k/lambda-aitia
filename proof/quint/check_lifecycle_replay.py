@@ -268,6 +268,17 @@ def negative_traces(quint, work, safe):
     return traces
 
 
+def native_replay_workers(environment=None):
+    """Consume the official native environment, preserving caller CPU limits."""
+    environment = os.environ if environment is None else environment
+    cores = int(environment.get("GERBIL_BUILD_CORES", "0"))
+    memory = int(environment.get("GERBIL_BAZEL_MEMORY_BYTES", "0"))
+    if cores <= 0 or memory < 0:
+        raise ValueError("run lifecycle replay through the native environment or Just entry")
+    # The heap bound applies to each Scheme worker, not the whole process tree.
+    return min(cores, max(1, memory // (2 * 1024**3))) if memory else cores
+
+
 def replay(work, chunk, traces):
     fixture = work / f"traces-{chunk}.scm"
     fixture.write_text("(" + "\n".join(map(sexpr_trace, traces)) + ")\n")
@@ -307,8 +318,9 @@ def main():
         faults = negative_traces(quint, work, traces)
         replay(work, "faults", faults)
         completed = 0
-        # Four bounded processes use the native resource profile and 180s envelope.
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        workers = native_replay_workers()
+        print(f"LIFECYCLE-NATIVE-RESOURCES: workers={workers} heap=2GiB deadline=180s steps={NATIVE_BATCH_STEP_BUDGET}", flush=True)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             jobs = [pool.submit(replay, work, chunk, batch)
                     for chunk, batch in enumerate(batches(traces, step_budget=NATIVE_BATCH_STEP_BUDGET))]
             try:

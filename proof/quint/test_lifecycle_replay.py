@@ -63,6 +63,26 @@ class LifecycleReplayTests(unittest.TestCase):
             checker.covering_traces({'1': {'clock': 0}, '2': {'clock': 1}},
                                     [('1', '2', 'Verify'), ('2', '1', 'Revoke')], '1')
 
+    def test_native_workers_follow_machine_and_preserve_explicit_cpu_limits(self):
+        memory = str(32 * 1024**3)
+        self.assertEqual(checker.native_replay_workers(
+            {"GERBIL_BUILD_CORES": "12", "GERBIL_BAZEL_MEMORY_BYTES": memory}), 12)
+        self.assertEqual(checker.native_replay_workers(
+            {"GERBIL_BUILD_CORES": "3", "GERBIL_BAZEL_MEMORY_BYTES": memory}), 3)
+
+    def test_native_workers_bound_each_heap_without_a_two_gib_tree_cap(self):
+        self.assertEqual(checker.native_replay_workers(
+            {"GERBIL_BUILD_CORES": "12", "GERBIL_BAZEL_MEMORY_BYTES": str(8 * 1024**3)}), 4)
+        self.assertEqual(checker.native_replay_workers({"GERBIL_BUILD_CORES": "6"}), 6)
+
+    def test_native_workers_refuse_missing_or_invalid_resource_context(self):
+        for environment in ({}, {"GERBIL_BUILD_CORES": "0"},
+                            {"GERBIL_BUILD_CORES": "-1"},
+                            {"GERBIL_BUILD_CORES": "two"},
+                            {"GERBIL_BUILD_CORES": "4", "GERBIL_BAZEL_MEMORY_BYTES": "-1"}):
+            with self.assertRaises(ValueError):
+                checker.native_replay_workers(environment)
+
     def test_native_batches_preserve_every_trace_and_bound_actual_steps(self):
         traces = [[('init', {})] * size for size in (80, 80, 21, 140, 20)]
         packed = list(checker.batches(traces))

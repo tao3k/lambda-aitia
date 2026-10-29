@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/agentic-ai-lab
-          ref: 177ac1c448aa846345cde7a1538ab6f788548692
+          ref: edfedec8efd41ffb2842cc629856f0abc92d4767
           path: agentic-ai-lab
           submodules: false
 
@@ -192,6 +192,28 @@ jobs:
         working-directory: agentic-ai-lab
         run: python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg"
 
+      - name: Cold-build native dependency owners with individual deadlines
+        if: steps.gerbil-package-cache.outputs.cache-matched-key == ''
+        working-directory: agentic-ai-lab
+        run: |
+          # Source prefetch never registers tags, manifests or compiled products.
+          python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest packages/lambda-aitia/gerbil.pkg
+          python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest core/gerbil.pkg
+          python3 packages/automation/gerbil_dependency_pin.py prepare-native --package-root "$PWD/.gerbil/pkg" --manifest "$PWD/.gerbil/pkg/github.com/tao3k/orgize/gerbil.pkg"
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            # Existing native package declarations own every revision. The SDK
+            # owns tag transitions, manifests, compiler jobs and complete specs.
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" core/gerbil.pkg github.com/tao3k/gerbil-poo
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/gebril-yuanxu
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-parser
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-ascent
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" "$GERBIL_PATH/pkg/github.com/tao3k/orgize/gerbil.pkg" github.com/tao3k/gerbil-scheme-rust
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/orgize
+          '
+
       - name: Install declared Gerbil package dependencies
         if: steps.gerbil-package-cache.outputs.cache-matched-key == ''
         working-directory: agentic-ai-lab
@@ -230,6 +252,9 @@ jobs:
             set -euo pipefail
             cd "$BUILD_WORKSPACE_DIRECTORY"
             builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            # Demand compilation later writes the real Parent manifest. This
+            # native update first registers its exact tag without a full build.
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/agentic-ai-lab register
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/gebril-yuanxu
             test "$(git -C core rev-parse HEAD)" = "$(git -C "$GERBIL_PATH/pkg/github.com/tao3k/gebril-yuanxu" rev-parse HEAD)"
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/asp-gerbil-scheme
@@ -280,10 +305,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Replay every reachable lifecycle state and authorization delivery fault
-        working-directory: agentic-ai-lab
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-lifecycle-scheme'
-
       - name: Run SDLC and GitOps integration
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-integration'
@@ -291,3 +312,7 @@ jobs:
       - name: Build and test native ABI and Python runtime
         working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'
+
+      - name: Replay every reachable lifecycle state and authorization delivery fault
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-lifecycle-scheme'
