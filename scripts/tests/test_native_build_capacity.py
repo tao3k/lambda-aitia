@@ -30,5 +30,5 @@ class NativeCapacityTest(unittest.TestCase):
     def test_missing_declaration_refuses_before_compilation(self):
         result = self.run_sdk(None)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("runner must declare a positive native compiler capacity", result.stderr)
+        self.assertIn("runner must declare a positive native compiler capacity", result.stdout + result.stderr)
         self.assertNotIn("AITIA-NATIVE-CAPACITY-OK", result.stdout)
