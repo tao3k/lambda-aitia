@@ -183,6 +183,15 @@ jobs:
             unset GERBIL_LOADPATH
             export GERBIL_PATH="$cold_root"
             test ! -e "$GERBIL_PATH/lib"
+            # Source acquisition has an independent deadline and creates no SDK
+            # tags, manifests or binary products. The compile gate stays cold.
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s \
+              python3 ../packages/automation/gerbil_dependency_pin.py prepare-native \
+                --manifest "$PWD/gerbil.pkg" --package-root "$GERBIL_PATH/pkg"
+            test ! -e "$GERBIL_PATH/lib"
+            test ! -e "$GERBIL_PATH/bin"
+            test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.tag"
+            test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
             # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
             # The native provider already selected the runner worker count.
             /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install
