@@ -206,6 +206,11 @@ jobs:
             (
               while kill -0 "$build_pid" 2>/dev/null; do
                 date -u +%s.%N
+                # Numeric parent links include C compiler children whose input
+                # arrives through a pipe and has no cold-prefix argument.
+                printf "PROCESS-TABLE\n"
+                ps -eo pid=,ppid=,etimes=,cputimes=,rss=,comm=
+                printf "PREFIX-ARGS\n"
                 ps -eo pid=,ppid=,etimes=,cputimes=,rss=,comm=,args= \
                   | grep -F -- "$cold_root" | grep -v grep || true
                 sleep 0.5
