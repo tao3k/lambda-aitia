@@ -197,7 +197,10 @@ jobs:
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q \
               ../packages/lambda-aitia/scripts/build-native-dependency.ss \
               gerbil.pkg github.com/tao3k/gerbil-poo register
-            test ! -e "$GERBIL_PATH/lib"
+            # The native SDK creates empty prefix lib/bin directories itself.
+            # Package products, rather than these directories, must stay absent.
+            test ! -e "$GERBIL_PATH/lib/clan/poo"
+            test ! -e "$GERBIL_PATH/bin/representation-main"
             test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
             # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
             # The native provider already selected the runner worker count.
