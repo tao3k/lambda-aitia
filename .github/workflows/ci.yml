@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/agentic-ai-lab
-          ref: edfedec8efd41ffb2842cc629856f0abc92d4767
+          ref: ba6d5e151a12a96d9db931f70661d1c66e0bda9e
           path: agentic-ai-lab
           submodules: false
 
