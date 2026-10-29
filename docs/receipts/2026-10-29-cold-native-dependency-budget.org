@@ -8,10 +8,12 @@
 * Status and source applicability
 :PROPERTIES:
 :CUSTOM_ID: aitia-cold-20261029
-:STATUS: not-admitted
+:STATUS: historical-mis-scoped-probes
 :END:
 
-The cold dependency budget remains open for Aitia source
+The probes below used an incorrectly scoped aggregate 2 GiB limit.
+The corrected [[file:2026-10-29-machine-derived-native-concurrency.org][native concurrency receipt]] now admits local cold POO builds.
+Full Aitia cold closure remains separate. The historical probes used Aitia source
 =2c418d5e6377077dded87d1c347f5ace53f712e8=. Prior successful restored-input
 Linux CI remains separate. No production compiler change has been admitted.
 

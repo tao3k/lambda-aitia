@@ -4,7 +4,9 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", "12")
+# The SDK derives its default from the host; preserve caller-supplied limits.
+# GAMBOPT heap limits apply per process, not to the whole compiler tree.
+export GERBIL_BUILD_CORES := `gxi -:max-heap=2G -e '(import :gerbil/compiler/base) (display (available-build-cores))'`
 
 self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
