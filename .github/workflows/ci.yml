@@ -157,6 +157,16 @@ jobs:
           disk-cache: lambda-aitia-${{ runner.os }}-gerbil-release-v1
           repository-cache: true
 
+      - name: Declare runner native compiler capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cores="${GERBIL_BUILD_CORES:-$(getconf _NPROCESSORS_ONLN)}"
+          [[ "$cores" =~ ^[1-9][0-9]*$ ]]
+          printf 'GERBIL_BUILD_CORES=%s\n' "$cores" >> "$GITHUB_ENV"
+          printf 'AITIA-RUNNER-CAPACITY configured=%s online=%s affinity=%s\n' \
+            "$cores" "$(getconf _NPROCESSORS_ONLN)" "$(nproc)"
+
       - name: Resolve immutable Gerbil release and module graph
         working-directory: agentic-ai-lab
         run: bazelisk mod deps --lockfile_mode=error
@@ -166,7 +176,9 @@ jobs:
         run: |
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
             set -euo pipefail
-            cd "$BUILD_WORKSPACE_DIRECTORY/core"
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/check-native-build-capacity.ss
+            cd core
             cold_root=$(mktemp -d "$RUNNER_TEMP/lambda-aitia-poo-cold.XXXXXX")
             unset GERBIL_LOADPATH
             export GERBIL_PATH="$cold_root"
