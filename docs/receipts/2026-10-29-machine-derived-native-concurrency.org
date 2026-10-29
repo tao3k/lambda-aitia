@@ -61,6 +61,18 @@ lifecycle 2048M / retirement 512M assertions and real Just/GXI host/caller
 propagation. The engineering suite executes two further propagation cases.
 Existing sixteen Python controls and the license contract pass.
 
+* Cache-independent CI gate
+
+The Scheme job now invokes the native SDK from the checked-out Core directory
+before restoring any project package cache. Its existing =gerbil.pkg= owns the
+POO dependency revision. A fresh =mktemp= package root and an unset project
+LOADPATH prevent restored project products from entering the invocation.
+Native =gxpkg deps --install= keeps original pin negotiation, manifests and
+build entrypoints. The existing provider selects the runner's worker count;
+the 2 GiB process heaps and 180-second outer deadline remain unchanged.
+The step emits =AITIA-COLD-POO-NATIVE-BUILD-OK= only after actual success.
+No failed prefix can be admitted through directory presence or cache restore.
+
 * Revision and closure boundaries
 
 Full source, actual native manifests, guard receipts, holder attribution and

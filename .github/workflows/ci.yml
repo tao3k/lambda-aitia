@@ -161,6 +161,22 @@ jobs:
         working-directory: agentic-ai-lab
         run: bazelisk mod deps --lockfile_mode=error
 
+      - name: Cold-build the Core-declared POO package without project caches
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY/core"
+            cold_root=$(mktemp -d "$RUNNER_TEMP/lambda-aitia-poo-cold.XXXXXX")
+            unset GERBIL_LOADPATH
+            export GERBIL_PATH="$cold_root"
+            test ! -e "$GERBIL_PATH/lib"
+            # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
+            # The native provider already selected the runner worker count.
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install
+            printf "AITIA-COLD-POO-NATIVE-BUILD-OK\n"
+          '
+
       - name: Restore pinned Gerbil package cache
         id: gerbil-package-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
