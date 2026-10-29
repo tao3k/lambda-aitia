@@ -18,7 +18,7 @@
         (run-process
           (list "env" "-u" "GERBIL_BUILD_CORES" "just" "--justfile" justfile
                 "--command" "gxi" "-:max-heap=2G" "-e"
-                "(import :gerbil/compiler/base) (write (list (getenv \"GERBIL_BUILD_CORES\" #f) (available-build-cores)))")
+                "(import :gerbil/compiler/base) (write (list (getenv \"GERBIL_BUILD_CORES\" #f) __available-cores))")
           coprocess: read))
       (check observed => (list (number->string (##core-count)) (##core-count))))
     (test-case "Just preserves an explicit caller worker limit"
@@ -28,7 +28,7 @@
         (run-process
           (list "env" "GERBIL_BUILD_CORES=3" "just" "--justfile" justfile
                 "--command" "gxi" "-:max-heap=2G" "-e"
-                "(import :gerbil/compiler/base) (write (list (getenv \"GERBIL_BUILD_CORES\" #f) (available-build-cores)))")
+                "(import :gerbil/compiler/base) (write (list (getenv \"GERBIL_BUILD_CORES\" #f) __available-cores))")
           coprocess: read)
         => '("3" 3)))
     (test-case "lifecycle receives the current bounded 2 GiB profile"

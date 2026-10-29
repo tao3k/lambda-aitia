@@ -16,8 +16,9 @@ The resource contract is 2 GiB heap *per Gerbil/Gambit process* and a
 and preserves explicit caller limits. The earlier aggregate 2 GiB tree limit
 was an incorrect diagnostic assumption, not a native POO requirement.
 
-Aitia's Just entry now asks the existing SDK =available-build-cores= for the
-host-derived default instead of hard-coding 12. Aitia CI uses the existing
+Aitia's Just entry now asks Gambit's native =##core-count= for the
+host-derived default and retains caller overrides through Just's existing
+=env_var_or_default= declaration instead of hard-coding 12. Aitia CI uses the existing
 native provider's machine/resource admission. The engineering entry similarly
 removes its unconditional two-worker setting. The explicit SDK query matters:
 this cohort's std/make would otherwise default an unset variable to serial
@@ -26,6 +27,14 @@ frontend compilation, while its backend separately discovers cores.
 The SDK scheduler, source contexts, native manifests, complete package specs,
 heap bounds and assertions retain their existing owners. There is no compiler
 compatibility layer or replacement executor.
+
+The initial helper-based revision failed the Linux Scheme step in
+[[https://github.com/tao3k/lambda-aitia/actions/runs/40815816373][run 40815816373]] before semantic tests: =available-build-cores= was present in
+the Darwin SDK but absent from the fixed Linux SDK. The portable query uses
+=##core-count= directly. Regression children inspect the native compiler's
+actual =__available-cores=, and the query is also exercised under released
+SDK 2591dcd. The failed remote run remains failed evidence.
+
 
 * Real cold products and independent controls
 
