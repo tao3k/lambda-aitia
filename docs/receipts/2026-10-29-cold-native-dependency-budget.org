@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Cold Native Dependency Budget: First Failing Owner
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Status and source applicability
+:PROPERTIES:
+:CUSTOM_ID: aitia-cold-20261029
+:STATUS: not-admitted
+:END:
+
+The cold dependency budget remains open for Aitia source
+=2c418d5e6377077dded87d1c347f5ace53f712e8=. Prior successful restored-input
+Linux CI remains separate. No production compiler change has been admitted.
+
+Seven real fresh-root build probes preserve 2,147,483,648 bytes / 180 seconds,
+original assertions, the native package manager and original build entrypoints.
+They stop in the first dependency, POO at
+=c0d47633c2aad7591944f874eaf730ee9c0e451e=. None establishes the complete
+Aitia dependency closure. No dependency or package is removed.
+
+* Measured boundary
+
+| Native experiment | Guard elapsed seconds | Peak tree bytes | Result |
+|-------------------+-----------------------+-----------------+--------|
+| Default two-worker install | 67.408 | 2256656744 | Memory rejection |
+| Serial multiple-host, live ratio 95 | 180.212 | 1460895744 | Timeout |
+| Two-worker multiple-host, live ratio 95 | 93.753 | 2293274936 | Memory rejection |
+
+The build driver, Gambit compiler and C backend overlap. The serial experiment
+reduces memory below the limit but does not meet the deadline. Parallel work
+still crosses the memory boundary. Separate per-PID RSS maxima are attribution,
+not the aggregate admission metric. Observed module compile announcements do
+not repeat within any probe; they are not completed product counts.
+
+The SDK compiler executor queues jobs retaining compiler parameterization,
+including current compile context. This identifies an owner boundary to
+investigate; no heap-retention proof or replacement executor is claimed.
+SDK std/make and native manifests retain ownership. Higher live ratio and
+multiple-host flags are diagnostic settings, not accepted production defaults.
+
+* Evidence custody and next admission
+
+The full seven-probe receipts, holder attribution, Org analysis and synchronized
+D2 view are maintained in existing [[https://github.com/hardenedlinux/deterministic-engineering/pull/1][engineering PR #1]], document =10.126= and
+view =90.115=. Existing [[https://github.com/tao3k/lambda-aitia/pull/2][Aitia PR #2]] remains the consumer integration boundary.
+No new branch, PR, compatibility layer or dependency resolver is introduced.
+
+A successful fresh first-dependency build must precede complete cold closure,
+independent product imports and existing real-process/oracle tests. Do not save
+an interrupted installation as a successful package cache. Report end-to-end
+workflow time separately from each guarded process; bounded stages do not
+prove a complete 180-second workflow. A new exact-head Linux cold run remains
+required and cannot be substituted by these Darwin observations.
