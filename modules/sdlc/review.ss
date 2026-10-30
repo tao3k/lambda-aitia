@@ -5,9 +5,9 @@
 ;;; Pure review preparation over explicitly supplied facts; no graph execution
 ;;; or authority authentication. A ready packet is never a compliance decision.
 (import (only-in :clan/poo/object .o .ref .slot?)
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/funs
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
         :std/list/list)
 (export sdlc-project sdlc-obligation sdlc-evidence sdlc-tailoring-request
         sdlc-review)

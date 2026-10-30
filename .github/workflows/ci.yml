@@ -32,7 +32,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
   lean-proof:
-    name: Lean assurance laws
+    name: Lean assurance and SDLC design laws
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -63,9 +63,18 @@ jobs:
           echo "ELAN_HOME=$ELAN_HOME" >> "$GITHUB_ENV"
           echo "$ELAN_HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Build assurance proof library
+      - name: Build assurance and SDLC proof libraries
         working-directory: proof/lean
-        run: lake build LambdaAitiaModuleAssuranceProof
+        run: lake build LambdaAitiaModuleAssuranceProof LambdaAitiaModuleSdlcProof
+
+      - name: Reject sorry axioms in exported laws
+        working-directory: proof/lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(lake env lean AxiomAudit.lean)"
+          printf '%s\n' "$output"
+          ! grep -q 'sorryAx' <<< "$output"
 
       - name: Save Lean cache
         if: steps.lean-cache.outputs.cache-hit != 'true'
@@ -76,27 +85,62 @@ jobs:
             proof/lean/.lake
           key: lambda-aitia-lean-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('proof/lean/lean-toolchain', 'proof/lean/lakefile.lean', 'proof/lean/lake-manifest.json') }}
 
+  quint-model:
+    name: Quint lifecycle, retirement and ingress contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Lambda Aitia
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node for pinned Quint
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Set up Java for Quint TLC backend
+        uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v4.9.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install locked Quint and check all 25 model contracts
+        env:
+          AITIA_QUINT_BIN: ${{ github.workspace }}/proof/quint/node_modules/.bin/quint
+          QUINT_HOME: ${{ runner.temp }}/lambda-aitia-quint
+        run: |
+          npm ci --prefix proof/quint
+          mkdir -p "$QUINT_HOME"
+          python3 proof/quint/check_contract.py
+
   scheme-runtime:
     name: Scheme, integration and Python runtime
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      GERBIL_BUILD_CORES: 12
-      GERBIL_PATH: ${{ github.workspace }}/poo-flow/.gerbil
-      GERBIL_LOADPATH: ${{ github.workspace }}/poo-flow/packages/lambda-aitia:${{ github.workspace }}/poo-flow:${{ github.workspace }}/poo-flow/.gerbil/lib
+      # Leave worker count to the native SDK/resource admission on this runner.
+      # max-heap limits each Scheme process; it is not a tree-wide RSS limit.
+      GAMBOPT: max-heap=2G,debug=q
+      GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS: 180
+      GERBIL_PATH: ${{ github.workspace }}/agentic-ai-lab/.gerbil
+      GERBIL_LOADPATH: ${{ github.workspace }}/agentic-ai-lab/packages/lambda-aitia:${{ github.workspace }}/agentic-ai-lab:${{ github.workspace }}/agentic-ai-lab/.gerbil/lib
     steps:
-      - name: Checkout pinned POO Flow mechanism library
+      - name: Checkout pinned Agentic AI Lab mechanism library
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          repository: tao3k/poo-flow
-          ref: da492eea00a7dab502cfb4c7586edefbba96bbec
-          path: poo-flow
+          repository: tao3k/agentic-ai-lab
+          ref: 921e75f830a60c2ec42c384139846b05ba5d3317
+          path: agentic-ai-lab
           submodules: false
 
       - name: Checkout Lambda Aitia under packages
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          path: poo-flow/packages/lambda-aitia
+          path: agentic-ai-lab/packages/lambda-aitia
+
+      - name: Initialize pinned Core source directory
+        working-directory: agentic-ai-lab
+        run: git submodule update --init core
 
       - name: Install Just
         uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3
@@ -113,41 +157,247 @@ jobs:
           disk-cache: lambda-aitia-${{ runner.os }}-gerbil-release-v1
           repository-cache: true
 
+      - name: Declare runner native compiler capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cores="${GERBIL_BUILD_CORES:-$(getconf _NPROCESSORS_ONLN)}"
+          [[ "$cores" =~ ^[1-9][0-9]*$ ]]
+          printf 'GERBIL_BUILD_CORES=%s\n' "$cores" >> "$GITHUB_ENV"
+          printf 'AITIA-RUNNER-CAPACITY configured=%s online=%s affinity=%s\n' \
+            "$cores" "$(getconf _NPROCESSORS_ONLN)" "$(nproc)"
+
       - name: Resolve immutable Gerbil release and module graph
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk mod deps --lockfile_mode=error
+
+      - name: Cold-build the Core-declared POO package without project caches
+        id: native-cold
+        # Collect independent runtime evidence after a budget refusal. The final
+        # always-run admission below still requires this original outcome.
+        continue-on-error: true
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/check-native-build-capacity.ss
+            cd core
+            cold_root=$(mktemp -d "$RUNNER_TEMP/lambda-aitia-poo-cold.XXXXXX")
+            unset GERBIL_LOADPATH
+            export GERBIL_PATH="$cold_root"
+            test ! -e "$GERBIL_PATH/lib"
+            # Source-only SDK acquisition owns clone, checkout and tag registration.
+            # Its deadline is independent from the unchanged cold compile gate.
+            test ! -e "$GERBIL_PATH/bin"
+            test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.tag"
+            test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s \
+              gxi -:max-heap=2G,debug=q \
+              ../packages/lambda-aitia/scripts/build-native-dependency.ss \
+              gerbil.pkg github.com/tao3k/gerbil-poo register
+            # The native SDK creates empty prefix lib/bin directories itself.
+            # Package products, rather than these directories, must stay absent.
+            test ! -e "$GERBIL_PATH/lib/clan/poo"
+            test ! -e "$GERBIL_PATH/bin/representation-main"
+            test ! -e "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo.manifest"
+            test ! -e "$GERBIL_PATH/pkg/TAGS"
+            # Core gerbil.pkg owns the POO pin; the native SDK owns its install.
+            # The native provider already selected the runner worker count.
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxpkg deps --install &
+            build_pid=$!
+            # Observe only commands referring to this unique cold prefix. This
+            # never changes admission, worker capacity or the native deadline.
+            (
+              while kill -0 "$build_pid" 2>/dev/null; do
+                date -u +%s.%N
+                # Numeric parent links include C compiler children whose input
+                # arrives through a pipe and has no cold-prefix argument.
+                printf "PROCESS-TABLE\n"
+                ps -eo pid=,ppid=,etimes=,cputimes=,rss=,comm=
+                printf "PREFIX-ARGS\n"
+                ps -eo pid=,ppid=,etimes=,cputimes=,rss=,comm=,args= \
+                  | grep -F -- "$cold_root" | grep -v grep || true
+                sleep 0.5
+              done
+            ) > "$RUNNER_TEMP/aitia-poo-cold-processes.log" &
+            observer_pid=$!
+            build_status=0
+            wait "$build_pid" || build_status=$?
+            wait "$observer_pid" || true
+            printf "AITIA-COLD-POO-NATIVE-BUILD-STATUS status=%s\n" "$build_status"
+            if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
+            # A successful tag command that skipped the package is not content
+            # admission. Require the actual cold source and its module identity.
+            test -s "$GERBIL_PATH/pkg/TAGS"
+            grep -F -- "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-poo/object.ss," \
+              "$GERBIL_PATH/pkg/TAGS"
+            grep -F -- ":clan/poo/object" "$GERBIL_PATH/pkg/TAGS"
+            printf "AITIA-COLD-POO-NATIVE-BUILD-OK\n"
+          '
+
+      - name: Preserve actual cold compiler process observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aitia-poo-cold-processes
+          path: ${{ runner.temp }}/aitia-poo-cold-processes.log
+          if-no-files-found: ignore
 
       - name: Restore pinned Gerbil package cache
         id: gerbil-package-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: poo-flow/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
+          path: agentic-ai-lab/.gerbil
+          key: lambda-aitia-native-cohort-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+
+          restore-keys: |
+            lambda-aitia-gerbil-pkgs-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+            lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel') }}
+
+      - name: Materialize pinned native dependency commits
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            for package in gerbil-parser orgize gerbil-ascent; do
+              timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg "github.com/tao3k/$package" register
+            done
+          '
+
+      - name: Cold-build native dependency owners with individual deadlines
+        if: steps.gerbil-package-cache.outputs.cache-matched-key == ''
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            # Existing native package declarations own every revision. The SDK
+            # owns tag transitions, manifests, compiler jobs and complete specs.
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" core/gerbil.pkg github.com/tao3k/gerbil-poo
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/gebril-yuanxu
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-parser
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-ascent
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" "$GERBIL_PATH/pkg/github.com/tao3k/orgize/gerbil.pkg" github.com/tao3k/gerbil-scheme-rust
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/orgize
+          '
+
+      # Retain real generated compiler inputs for critical-path analysis.
+      # Artifact collection neither retries nor admits a failed owner build.
+      - name: Preserve native Org fold compilation inputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aitia-org-fold-sources
+          path: agentic-ai-lab/.gerbil/src/orgize-fold/
+          if-no-files-found: ignore
 
       - name: Install declared Gerbil package dependencies
-        if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
-        working-directory: poo-flow
-        run: bazelisk run @local_gerbil//:install_dependencies
+        if: steps.gerbil-package-cache.outputs.cache-matched-key == ''
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:install_dependencies
+          python3 - <<'PYCODE'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('.gerbil/pkg/install-resource-guard.receipt.json').read_text())
+          if receipt['outcome'] != 'completed' or receipt['exitCode'] != 0:
+              raise SystemExit(f"native dependency install did not complete: {receipt}")
+          PYCODE
 
-      - name: Save pinned Gerbil package cache
+      - name: Complete ASCENT native phase products before importing consumers
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            checker=packages/lambda-aitia/scripts/check-native-products.ss
+            spec="$GERBIL_PATH/ascent-native-spec.ss"
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-ascent/build.ss" spec > "$spec"
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" repair gerbil-ascent "$spec" "$GERBIL_PATH/pkg/github.com/tao3k/gerbil-ascent"
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$checker" check gerbil-ascent "$spec"
+          '
+
+      - name: Reject missing macro phases and tracked generated products
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '"'"'(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'"'"' '
+
+      - name: Build manifest-owned native Core and ASP dependencies
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            builder=packages/lambda-aitia/scripts/build-native-dependency.ss
+            # Demand compilation later writes the real Parent manifest. This
+            # native update first registers its exact tag without a full build.
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/agentic-ai-lab register
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/gebril-yuanxu
+            test "$(git -C core rev-parse HEAD)" = "$(git -C "$GERBIL_PATH/pkg/github.com/tao3k/gebril-yuanxu" rev-parse HEAD)"
+            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" packages/lambda-aitia/gerbil.pkg github.com/tao3k/asp-gerbil-scheme
+          '
+
+      - name: Build the native parent Library demanded by Aitia
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q packages/lambda-aitia/scripts/build-native-parent.ss'
+
+      - name: Build published native testing support
+        working-directory: agentic-ai-lab
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/testing-extension.ss && timeout 180s gxc -:max-heap=2G,debug=q -d "$GERBIL_PATH/lib" dev/modules/testing/source-admission.ss'
+
+      - name: Save completed native dependency build inputs
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: poo-flow/.gerbil
-          key: lambda-aitia-gerbil-pkgs-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('poo-flow/gerbil.pkg', 'poo-flow/MODULE.bazel', 'poo-flow/MODULE.bazel.lock', 'poo-flow/gerbil-bazel.MODULE.bazel', 'poo-flow/gerbil-dependencies.MODULE.bazel') }}
-
-      - name: Build POO Flow mechanism library
-        working-directory: poo-flow
-        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY" && just build'
+          path: agentic-ai-lab/.gerbil
+          key: lambda-aitia-native-cohort-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
 
       - name: Run Scheme semantic closure
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-semantic'
 
+      - name: Bind Quint and Lean sources to the retirement POO contract
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-binding-test.ss'
+
+      - name: Execute retirement ingress controls against Scheme Host
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-scheme-atomic formal retirement-execution-test.ss'
+
+      - name: Set up Node for pinned Quint correspondence traces
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Replay Quint states and unsafe-model controls through Scheme
+        working-directory: agentic-ai-lab
+        run: |
+          npm ci --prefix packages/lambda-aitia/proof/quint
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-quint-scheme'
+
+      - name: Set up Java for complete lifecycle state graph
+        uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v4.9.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Run SDLC and GitOps integration
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just test-integration'
 
       - name: Build and test native ABI and Python runtime
-        working-directory: poo-flow
+        working-directory: agentic-ai-lab
         run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-native'
+
+      - name: Replay every reachable lifecycle state and authorization delivery fault
+        working-directory: agentic-ai-lab
+        run: bazelisk run @local_gerbil//:native_scheme_env -- bash -lc 'cd "$BUILD_WORKSPACE_DIRECTORY/packages/lambda-aitia" && just check-lifecycle-scheme'
+
+      - name: Require original cold-build admission
+        if: always()
+        run: |
+          test "${{ steps.native-cold.outcome }}" = success

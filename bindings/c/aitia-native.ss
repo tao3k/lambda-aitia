@@ -7,7 +7,10 @@
 (import (only-in :std/ffi
                  C-declare C-ffi-macrology
                  def-C-lambda def-C-type)
-        :poo-flow/lambda-aitia/bindings/c/aitia-contract)
+        ;; Orgize owns the Scheme implementation and public C symbols.  Keep
+        ;; this module in Aitia's native link closure without copying its ABI.
+        :orgize/bindings/c/orgize
+        :agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract)
 
 (export aitia-c-round-trip)
 
@@ -23,16 +26,16 @@ typedef struct {
   int32_t status;
   uint8_t *payload;
   size_t length;
-} poo_flow_aitia_result;
+} agentic_ai_lab_aitia_result;
 
-void poo_flow_aitia_result_init(poo_flow_aitia_result *result) {
+void agentic_ai_lab_aitia_result_init(agentic_ai_lab_aitia_result *result) {
   if (result == NULL) return;
   result->status = 0;
   result->payload = NULL;
   result->length = 0;
 }
 
-void poo_flow_aitia_result_release(poo_flow_aitia_result *result) {
+void agentic_ai_lab_aitia_result_release(agentic_ai_lab_aitia_result *result) {
   if (result == NULL) return;
   free(result->payload);
   result->status = 0;
@@ -40,77 +43,77 @@ void poo_flow_aitia_result_release(poo_flow_aitia_result *result) {
   result->length = 0;
 }
 
-uint32_t poo_flow_aitia_abi_revision(void);
-int32_t poo_flow_aitia_descriptor(poo_flow_aitia_result *result);
-int32_t poo_flow_aitia_sdlc_flow_plan(char *payload,
-                                      poo_flow_aitia_result *result);
-int32_t poo_flow_aitia_gitops_evaluate(char *payload,
-                                       poo_flow_aitia_result *result);
+uint32_t agentic_ai_lab_aitia_abi_revision(void);
+int32_t agentic_ai_lab_aitia_descriptor(agentic_ai_lab_aitia_result *result);
+int32_t agentic_ai_lab_aitia_sdlc_flow_plan(char *payload,
+                                      agentic_ai_lab_aitia_result *result);
+int32_t agentic_ai_lab_aitia_gitops_evaluate(char *payload,
+                                       agentic_ai_lab_aitia_result *result);
 
-static void poo_flow_aitia_native_phase(int32_t phase) {
+static void agentic_ai_lab_aitia_native_phase(int32_t phase) {
   fprintf(stderr, "[lambda-aitia-native] scheme-phase=%d\n", phase);
   fflush(stderr);
 }
 
-static int poo_flow_aitia_c_round_trip(void) {
+static int agentic_ai_lab_aitia_c_round_trip(void) {
   static const char input[] =
-    "{\"event\":\"pull-request\",\"repository\":\"tao3k/poo-flow\","
+    "{\"event\":\"pull-request\",\"repository\":\"tao3k/agentic-ai-lab\","
     "\"revision\":\"0123456789abcdef\",\"source-ref\":\"feature/aitia\","
     "\"target-ref\":\"develop\",\"pull-request\":42,\"checks\":["
     "{\"name\":\"commit-policy\",\"conclusion\":\"success\"},"
     "{\"name\":\"build\",\"conclusion\":\"success\"},"
     "{\"name\":\"unit-test\",\"conclusion\":\"success\"},"
     "{\"name\":\"nasa-7150-2d\",\"conclusion\":\"success\"}]}";
-  poo_flow_aitia_result result;
+  agentic_ai_lab_aitia_result result;
   static const char plan_input[] = "{\"lifecycle-id\":\"release/42\"}";
-  if (poo_flow_aitia_abi_revision() != 2u) return 1;
-  poo_flow_aitia_result_init(&result);
-  if (poo_flow_aitia_descriptor(&result) != 0 || result.payload == NULL ||
+  if (agentic_ai_lab_aitia_abi_revision() != 2u) return 1;
+  agentic_ai_lab_aitia_result_init(&result);
+  if (agentic_ai_lab_aitia_descriptor(&result) != 0 || result.payload == NULL ||
       strstr((const char *)result.payload,
              "lambda-aitia.native-descriptor") == NULL)
     return 2;
-  poo_flow_aitia_result_release(&result);
-  if (poo_flow_aitia_sdlc_flow_plan((char *)plan_input, &result) != 0 ||
+  agentic_ai_lab_aitia_result_release(&result);
+  if (agentic_ai_lab_aitia_sdlc_flow_plan((char *)plan_input, &result) != 0 ||
       result.payload == NULL ||
       strstr((const char *)result.payload,
              "lambda-aitia.sdlc-flow-plan") == NULL ||
       strstr((const char *)result.payload,
              "release/42/effect") == NULL) {
-    poo_flow_aitia_result_release(&result);
+    agentic_ai_lab_aitia_result_release(&result);
     return 3;
   }
-  poo_flow_aitia_result_release(&result);
-  if (poo_flow_aitia_gitops_evaluate((char *)input, &result) != 0 ||
+  agentic_ai_lab_aitia_result_release(&result);
+  if (agentic_ai_lab_aitia_gitops_evaluate((char *)input, &result) != 0 ||
       result.payload == NULL ||
       strstr((const char *)result.payload, "\"accepted\":true") == NULL) {
-    poo_flow_aitia_result_release(&result);
+    agentic_ai_lab_aitia_result_release(&result);
     return 4;
   }
-  poo_flow_aitia_result_release(&result);
+  agentic_ai_lab_aitia_result_release(&result);
   return 0;
 }
 END-C
 )
 
-(def-C-type poo_flow_aitia_result "poo_flow_aitia_result")
-(def-C-type poo_flow_aitia_result-borrowed-ptr*
-  (pointer poo_flow_aitia_result
-           (poo_flow_aitia_result-borrowed-ptr*)))
+(def-C-type agentic_ai_lab_aitia_result "agentic_ai_lab_aitia_result")
+(def-C-type agentic_ai_lab_aitia_result-borrowed-ptr*
+  (pointer agentic_ai_lab_aitia_result
+           (agentic_ai_lab_aitia_result-borrowed-ptr*)))
 
-(def-C-lambda poo_flow_aitia_result-status
-  (poo_flow_aitia_result-borrowed-ptr*) int32
+(def-C-lambda agentic_ai_lab_aitia_result-status
+  (agentic_ai_lab_aitia_result-borrowed-ptr*) int32
   "___return (___arg1->status);")
 
-(def-C-lambda poo_flow_aitia_result-status-set!
-  (poo_flow_aitia_result-borrowed-ptr* int32) void
+(def-C-lambda agentic_ai_lab_aitia_result-status-set!
+  (agentic_ai_lab_aitia_result-borrowed-ptr* int32) void
   "___arg1->status = ___arg2; ___return;")
 
-(def-C-lambda poo-flow-aitia-native-phase
+(def-C-lambda agentic-ai-lab-aitia-native-phase
   (int32) void
-  "poo_flow_aitia_native_phase(___arg1); ___return;")
+  "agentic_ai_lab_aitia_native_phase(___arg1); ___return;")
 
-(def-C-lambda poo-flow-aitia-result-set-bytes!
-    (poo_flow_aitia_result-borrowed-ptr* scheme-object) void
+(def-C-lambda agentic-ai-lab-aitia-result-set-bytes!
+    (agentic_ai_lab_aitia_result-borrowed-ptr* scheme-object) void
     #<<END-C
 free(___arg1->payload);
 ___arg1->payload = NULL;
@@ -130,73 +133,73 @@ END-C
 )
 
 (def-C-lambda aitia-c-round-trip () int
-  "poo_flow_aitia_c_round_trip")
+  "agentic_ai_lab_aitia_c_round_trip")
 
 (begin-foreign
-  (c-define (poo-flow-aitia-abi-revision)
-    () unsigned-int32 "poo_flow_aitia_abi_revision" "extern"
-    (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-abi-revision))
+  (c-define (agentic-ai-lab-aitia-abi-revision)
+    () unsigned-int32 "agentic_ai_lab_aitia_abi_revision" "extern"
+    (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-abi-revision))
 
-  (c-define (poo-flow-aitia-descriptor result)
-    (poo_flow_aitia_result-borrowed-ptr*) int32
-    "poo_flow_aitia_descriptor" "extern"
+  (c-define (agentic-ai-lab-aitia-descriptor result)
+    (agentic_ai_lab_aitia_result-borrowed-ptr*) int32
+    "agentic_ai_lab_aitia_descriptor" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result -1)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
         result (string->utf8
-                (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
+                (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 101)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-native-phase 101)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result 0)
        (let* ((payload
-               (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-descriptor-payload))
-              (_ (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 102))
+               (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-descriptor-payload))
+              (_ (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-native-phase 102))
               (bytes (string->utf8 payload)))
-         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 103)
-         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+         (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-native-phase 103)
+         (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
           result bytes)
-         (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-native-phase 104))
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result))))
+         (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-native-phase 104))
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status result))))
 
-  (c-define (poo-flow-aitia-gitops-evaluate payload result)
-    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
-    "poo_flow_aitia_gitops_evaluate" "extern"
+  (c-define (agentic-ai-lab-aitia-gitops-evaluate payload result)
+    (UTF-8-string agentic_ai_lab_aitia_result-borrowed-ptr*) int32
+    "agentic_ai_lab_aitia_gitops_evaluate" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result -1)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
         result (string->utf8
-                (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
+                (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result 0)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
         result
         (string->utf8
-         (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-gitops-evaluate-payload
+         (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-gitops-evaluate-payload
           payload)))
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result))))
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status result))))
 
-  (c-define (poo-flow-aitia-sdlc-flow-plan payload result)
-    (UTF-8-string poo_flow_aitia_result-borrowed-ptr*) int32
-    "poo_flow_aitia_sdlc_flow_plan" "extern"
+  (c-define (agentic-ai-lab-aitia-sdlc-flow-plan payload result)
+    (UTF-8-string agentic_ai_lab_aitia_result-borrowed-ptr*) int32
+    "agentic_ai_lab_aitia_sdlc_flow_plan" "extern"
     (with-exception-catcher
      (lambda (exception)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result -1)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result -1)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
         result (string->utf8
-                (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
+                (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-error-payload
                  exception)))
        -1)
      (lambda ()
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status-set! result 0)
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo-flow-aitia-result-set-bytes!
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status-set! result 0)
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic-ai-lab-aitia-result-set-bytes!
         result
         (string->utf8
-         (poo-flow/lambda-aitia/bindings/c/aitia-contract#aitia-sdlc-flow-plan-payload
+         (agentic-ai-lab/lambda-aitia/bindings/c/aitia-contract#aitia-sdlc-flow-plan-payload
           payload)))
-       (poo-flow/lambda-aitia/bindings/c/aitia-native#poo_flow_aitia_result-status result)))))
+       (agentic-ai-lab/lambda-aitia/bindings/c/aitia-native#agentic_ai_lab_aitia_result-status result)))))

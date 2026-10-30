@@ -4,19 +4,19 @@
 
 ;;; NPR 7150.2D project/institution baseline policy construction.
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :std/list/list)
 
 (export nasa-stage-policy nasa-baseline-policy)
 
 (def (nasa-stage-policy id requirements-value scope: (scope-value 'project))
   (let (result
-        (poo-flow-check-model
+        (poo-clos-check-model
          SdlcStagePolicy
-         (.o (:: @ (poo-flow-model-prototype SdlcStagePolicy))
+         (.o (:: @ (poo-clos-model-prototype SdlcStagePolicy))
              identity: id assessment-scope: scope-value
              requirements: requirements-value)))
     (when (equal? id "unstarted")

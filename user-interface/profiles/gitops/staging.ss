@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/lambda-aitia/modules/gitops/interface)
+(import :agentic-ai-lab/lambda-aitia/modules/gitops/interface)
 (export staging)
 (define-gitops-profile staging OpenGitOpsProfile
   environment: 'staging

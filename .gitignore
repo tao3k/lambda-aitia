@@ -8,6 +8,8 @@ version.ss
 .cache/
 .bin/
 .lake/
+_apalache-out/
+proof/quint/node_modules/
 __pycache__/
 *.py[cod]
 *.so
@@ -20,3 +22,9 @@ bindings/python/*.egg-info/
 bindings/python/src/*.egg-info/
 bindings/python/src/lambda_aitia/_native/_build_temp/
 bindings/python/src/lambda_aitia/_native/lib/
+
+# Native compiler interfaces and dynamic phase products are generated.
+*.ssi
+*.ssxi.ss
+*.o[0-9]*
+*.gxc-complete

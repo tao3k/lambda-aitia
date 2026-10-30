@@ -4,16 +4,16 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
-        :poo-flow/src/module-system/contribution/model
-        (only-in :poo-flow/src/modules/governance/objects
-                 PooFlowGovernanceProfile.
-                 poo-flow-governance-source)
-        :poo-flow/lambda-aitia/modules/ADR/types)
+        :yuanxu/poo-clos/interface
+        (only-in :agentic-ai-lab/modules/governance/objects
+                 AgenticAILabGovernanceProfile.
+                 agentic-ai-lab-governance-source)
+        :agentic-ai-lab/lambda-aitia/modules/ADR/types)
 
 (export ADRProfile ADR-link ADR-option ADR-consequence ADR-record)
 
 (def ADRProfile
-  (.o (:: @ PooFlowGovernanceProfile.) identity: "lambda-aitia/ADR"
+  (.o (:: @ AgenticAILabGovernanceProfile.) identity: "lambda-aitia/ADR"
       revision: "1" owner: "lambda-aitia"
       module-family: 'ADR
       ontology: (.o decision-label: 'Decision reference-edge: 'REFERENCES
@@ -27,29 +27,29 @@
                     authority: (.o accepted-is-authority?: #f
                                    effect-authorization: 'separate-receipt))
       source-assets:
-      (list (poo-flow-governance-source
+      (list (agentic-ai-lab-governance-source
              "ADR/expired-reference-witnesses"
              "modules/ADR/expired-references.gql" 'gql))))
 
 (def (ADR-link relation-value target-value)
-  (poo-flow-check-model
+  (poo-clos-check-model
    ADRLink
-   (.o (:: @ (poo-flow-model-prototype ADRLink))
+   (.o (:: @ (poo-clos-model-prototype ADRLink))
        relation: relation-value target: target-value)))
 
 (def (ADR-option identity-value title-value description-value
                  disposition-value pros-value cons-value)
-  (poo-flow-check-model
+  (poo-clos-check-model
    ADROption
-   (.o (:: @ (poo-flow-model-prototype ADROption))
+   (.o (:: @ (poo-clos-model-prototype ADROption))
        identity: identity-value title: title-value
        description: description-value disposition: disposition-value
        pros: pros-value cons: cons-value)))
 
 (def (ADR-consequence sentiment-value statement-value)
-  (poo-flow-check-model
+  (poo-clos-check-model
    ADRConsequence
-   (.o (:: @ (poo-flow-model-prototype ADRConsequence))
+   (.o (:: @ (poo-clos-model-prototype ADRConsequence))
        sentiment: sentiment-value statement: statement-value)))
 
 (def (ADR-record identity-value title-value status-value date-value
@@ -58,9 +58,9 @@
                  confirmation-value decision-makers-value consulted-value
                  informed-value links-value)
   (let ((record
-         (poo-flow-check-model
+         (poo-clos-check-model
           ADRRecord
-          (.o (:: @ (poo-flow-model-prototype ADRRecord))
+          (.o (:: @ (poo-clos-model-prototype ADRRecord))
               identity: identity-value title: title-value status: status-value
               date: date-value revision: revision-value context: context-value
               decision: decision-value decision-drivers: drivers-value

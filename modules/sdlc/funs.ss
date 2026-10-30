@@ -3,19 +3,19 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref)
-        (only-in :poo-flow/src/graph/algorithms
-                 poo-flow-graph-cycle-path
-                 poo-flow-graph-topological-order)
-        (only-in :poo-flow/src/graph/types
-                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/governance/funs
-                 poo-flow-governance-contribution)
+        (only-in :yuanxu/graph/algorithms
+                 yuanxu-graph-cycle-path
+                 yuanxu-graph-topological-order)
+        (only-in :yuanxu/graph/types
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
+        (only-in :agentic-ai-lab/modules/governance/funs
+                 agentic-ai-lab-governance-contribution)
         :std/list/list)
-(import :poo-flow/lambda-aitia/modules/sdlc/types :poo-flow/lambda-aitia/modules/sdlc/objects)
+(import :agentic-ai-lab/lambda-aitia/modules/sdlc/types :agentic-ai-lab/lambda-aitia/modules/sdlc/objects)
 (export sdlc-with-standards sdlc-contribution sdlc-module
         +sdlc-flow-stages+ sdlc-flow-graph sdlc-flow-plan)
 
-;;; Aitia owns the SDLC phase vocabulary; POO Flow owns Graph and DAG analysis.
+;;; Aitia owns the SDLC phase vocabulary; Agentic AI Lab owns Graph and DAG analysis.
 ;;; This projection is inert and does not execute a verifier or grant authority.
 (def +sdlc-flow-stages+
   '(change invalidate plan verify admit decide authorize effect))
@@ -29,30 +29,30 @@
     (error "SDLC flow requires a non-empty lifecycle identity" lifecycle-id))
   (let ((nodes
          (map (lambda (stage)
-                (poo-flow-graph-node
+                (yuanxu-graph-node
                  (sdlc-flow-node-id lifecycle-id stage)
                  stage
                  (list (cons 'semantic-owner 'lambda-aitia))))
               +sdlc-flow-stages+))
         (edges
          (map (lambda (source-stage target-stage)
-                (poo-flow-graph-edge
+                (yuanxu-graph-edge
                  (sdlc-flow-node-id lifecycle-id source-stage)
                  (sdlc-flow-node-id lifecycle-id target-stage)
                  'sdlc-next
                  (list (cons 'semantic-owner 'lambda-aitia))))
               +sdlc-flow-stages+
               (cdr +sdlc-flow-stages+))))
-    (poo-flow-graph
+    (yuanxu-graph
      lifecycle-id nodes edges
      (list (cons 'semantic-owner 'lambda-aitia)
-           (cons 'runtime-owner 'poo-flow)))))
+           (cons 'runtime-owner 'agentic-ai-lab)))))
 
 (def (sdlc-flow-plan lifecycle-identity)
   (let* ((graph-value (sdlc-flow-graph lifecycle-identity))
-         (detected-cycle-path (poo-flow-graph-cycle-path graph-value))
+         (detected-cycle-path (yuanxu-graph-cycle-path graph-value))
          (order (and (not detected-cycle-path)
-                     (poo-flow-graph-topological-order graph-value))))
+                     (yuanxu-graph-topological-order graph-value))))
     (.o schema: 'lambda-aitia.sdlc-flow-plan
         lifecycle-id: lifecycle-identity
         graph: graph-value
@@ -61,7 +61,7 @@
         cycle-path: detected-cycle-path
         accepted?: (and order #t)
         semantic-owner: 'lambda-aitia
-        runtime-owner: 'poo-flow
+        runtime-owner: 'agentic-ai-lab
         release-authorized?: #f
         runtime-executed?: #f)))
 (def (sdlc-with-standards profile-value standard-values)
@@ -75,7 +75,7 @@
 (def (sdlc-contribution profile-value)
   (unless (sdlc-profile? profile-value)
     (error "invalid SDLC profile" profile-value))
-  (poo-flow-governance-contribution
+  (agentic-ai-lab-governance-contribution
    profile-value '(lifecycle-governance) '()))
 (def sdlc-module (sdlc-contribution SdlcProfile))
 

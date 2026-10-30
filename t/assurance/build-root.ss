@@ -3,6 +3,6 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/lambda-aitia/modules/assurance/interface)
+(import :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
 (export assurance-test-fixtures-loaded?)
 (def assurance-test-fixtures-loaded? #t)

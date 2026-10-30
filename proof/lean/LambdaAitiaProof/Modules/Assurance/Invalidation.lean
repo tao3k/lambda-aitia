@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 /-!
-Lambda Aitia owns these domain laws. POO Flow may implement graph traversal,
+Lambda Aitia owns these domain laws. Agentic AI Lab may implement graph traversal,
 but its generic proof package is neither imported nor copied here.
 -/
 

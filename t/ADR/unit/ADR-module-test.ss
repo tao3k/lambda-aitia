@@ -6,10 +6,10 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .ref)
-        :poo-flow/src/module-system/declaration/interface
-        (only-in :poo-flow/lambda-aitia/modules/assurance/interface
+        :yuanxu/module-system/selection/objects
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/interface
                  assurance-decision?)
-        :poo-flow/lambda-aitia/modules/ADR/interface)
+        :agentic-ai-lab/lambda-aitia/modules/ADR/interface)
 
 (export ADR-module-test)
 
@@ -34,7 +34,7 @@
    '("Machine-readable lifecycle" "Explicit rationale")
    (list chosen rejected) consequences
    '("Unit tests validate transition and projection rules.")
-   '("tao3k maintainers") '("POO Flow maintainers") '("Aitia consumers")
+   '("tao3k maintainers") '("Agentic AI Lab maintainers") '("Aitia consumers")
    (list (ADR-link 'refines-rfc "RFC-0001"))))
 
 (def ADR-module-test
@@ -46,7 +46,7 @@
       (check-equal? (.ref ADRProfile 'module-family) 'ADR))
     (test-case "only the public ADR selection resolves"
       (check-equal?
-       (ADR-config (poo-flow-user-module-selection 'custom 'ADR '()))
+       (ADR-config (yuanxu-user-module-selection 'custom 'ADR '()))
        ADR-module))
 
     (test-case "standard record retains drivers, options and consequences"

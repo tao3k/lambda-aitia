@@ -19,3 +19,6 @@ explicit repository-wide integration aggregate.
 @[default_target]
 lean_lib LambdaAitiaModuleAssuranceProof where
   roots := #[`LambdaAitiaProof.Modules.Assurance]
+
+lean_lib LambdaAitiaModuleSdlcProof where
+  roots := #[`LambdaAitiaProof.Modules.Sdlc]

@@ -97,4 +97,4 @@ natural-language requirement or referenced NASA standard has been satisfied.
 Evidence content, signer authority/delegation, project classification, declared
 scope completeness, and signature authenticity require independent verification.
 The module never certifies NASA compliance or authorizes a release. The whole
-POO Flow release/install suite was not evaluated by these independent lanes.
+Agentic AI Lab release/install suite was not evaluated by these independent lanes.

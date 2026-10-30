@@ -4,9 +4,12 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
-        :poo-flow/lambda-aitia/modules/assurance/types)
+        (only-in :gerbil/core list-sort)
+        :std/list/list
+        :yuanxu/poo-clos/interface
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
-(export AssurancePolicy)
+(export AssurancePolicy assurance-verification-policy)
 
 ;;; Pure declared defaults.  This value invokes no verifier and grants no
 ;;; authority.
@@ -18,3 +21,18 @@
       conflict-resolution: 'explicit
       planner-executes?: #f
       grants-authority?: #f))
+
+(def (capability<? left right)
+  (string<? (symbol->string left) (symbol->string right)))
+
+;;; Capabilities describe available adapters; this value cannot invoke one.
+(def (assurance-verification-policy identity-value revision-value capability-values)
+  (unless (and (list? capability-values) (every symbol? capability-values))
+    (error "verification policy capabilities must be symbols" capability-values))
+  (poo-clos-check-model
+   AssuranceVerificationPolicy
+   (.o (:: @ (poo-clos-model-prototype AssuranceVerificationPolicy))
+       identity: identity-value revision: revision-value
+       capabilities:
+       (list-sort capability<? (delete-duplicates/hash capability-values))
+       planner-executes?: #f grants-authority?: #f)))

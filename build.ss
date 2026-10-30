@@ -7,7 +7,9 @@
 ;;; Native Lambda Aitia build.  ASP owns closure projection and std/make owns
 ;;; currentness, scheduling, and clean.
 
-(import (only-in :std/build-script defbuild-script)
+(import (only-in "./build-inputs.ss" lambda-aitia-generated-build-inputs)
+        (only-in :std/source this-source-file)
+        (only-in :std/build-script defbuild-script)
         (only-in :asp-gerbil-scheme/building-api
                  asp-gerbil-scheme-package-spec!
                  asp-gerbil-scheme-library-package-prototype))
@@ -20,6 +22,8 @@
     "modules/formal-methods/interface.ss"
     "modules/gitops/interface.ss"
     "modules/sdlc/interface.ss"
+    "modules/sdlc/retirement-host.ss"
+    "modules/sdlc/review-authority.ss"
     "modules/sdlc/standards/interface.ss"
     "user-interface/compositions/aitia.ss"
     "user-interface/profiles/software-engineering/project.ss"
@@ -27,14 +31,26 @@
     "user-interface/profiles/gitops/dev.ss"
     "user-interface/profiles/gitops/staging.ss"
     "user-interface/profiles/gitops/production.ss"
-    "user-interface/profiles/sdlc/nasa-7150-2d.ss"))
+    "user-interface/profiles/nasa/sdlc.ss"))
 
 (asp-gerbil-scheme-package-spec!
  (lambda-aitia-package @ asp-gerbil-scheme-library-package-prototype)
  (spec lambda-aitia-native-spec)
  (public-entry-modules +lambda-aitia-public-entry-modules+)
+ (generated-modules lambda-aitia-generated-build-inputs)
  (extra-spec
   '((gxc: "testing-interface")
-    (gxc: "testing-observer"))))
+    (gxc: "testing-observer")
+    ;; Native support for exhaustive model replay; expected states remain input.
+    (gxc: "t/formal/lifecycle-fixture"))))
 
-(defbuild-script (lambda-aitia-native-spec))
+(cond-expand
+ (darwin
+  ;; Gerbil v0.19's cross-module keyword specialization on Darwin can
+  ;; reference private __% procedures from POO CLOS .ssxi metadata.
+  (defbuild-script (lambda-aitia-native-spec) optimize: #f))
+ (else
+  (defbuild-script (lambda-aitia-native-spec))))
+
+;; Consumers request this same native declaration; no parallel source inventory.
+(export lambda-aitia-native-spec)

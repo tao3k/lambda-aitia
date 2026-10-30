@@ -3,25 +3,25 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Boundary: Aitia only maps assurance relation semantics onto a POO Flow
+;;; Boundary: Aitia only maps assurance relation semantics onto a Agentic AI Lab
 ;;; Graph. Impact traversal, relation trajectories, and SCC analysis remain
-;;; owned by POO Flow.
+;;; owned by Agentic AI Lab.
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/graph/algorithms
-                 poo-flow-graph-loop-analysis-receipt)
-        (only-in :poo-flow/src/graph/types
-                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/temporal-causality/funs
-                 poo-flow-structural-impact-analyze)
+        (only-in :yuanxu/graph/algorithms
+                 yuanxu-graph-loop-analysis-receipt)
+        (only-in :yuanxu/graph/types
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
+        (only-in :agentic-ai-lab/modules/temporal-causality/funs
+                 agentic-ai-lab-structural-impact-analyze)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :poo-flow/lambda-aitia/modules/assurance/types)
+        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
 
 (export assurance-invalidation-graph assurance-invalidation-analysis)
 
 (def +assurance-invalidation-relations+
-  '(depends-on implements tests refines supports discharges
+  '(depends-on composes implements tests refines supports discharges
     invalidates defeats authorizes denies requires-review))
 
 (def (invalidation-graph-id identity)
@@ -31,7 +31,7 @@
   (let ((plane (.ref relation 'plane)) (kind (.ref relation 'relation)))
     (cond
      ((and (eq? plane 'structural)
-           (memq kind '(depends-on implements tests refines)))
+           (memq kind '(depends-on composes implements tests refines)))
       (cons (.ref relation 'target) (.ref relation 'source)))
      ((and (eq? plane 'assurance) (memq kind '(supports discharges)))
       (cons (.ref relation 'target) (.ref relation 'source)))
@@ -54,7 +54,7 @@
          (relations (.ref snapshot 'relations))
          (graph-nodes
           (map (lambda (node)
-                 (poo-flow-graph-node
+                 (yuanxu-graph-node
                   (invalidation-graph-id (.ref node 'identity)) (.ref node 'kind)
                   (list (cons 'semantic-owner 'lambda-aitia)
                         (cons 'assurance-identity (.ref node 'identity))
@@ -63,7 +63,7 @@
          (graph-edges
           (map (lambda (entry)
                  (let ((relation (car entry)) (direction (cdr entry)))
-                   (poo-flow-graph-edge
+                   (yuanxu-graph-edge
                     (invalidation-graph-id (car direction))
                     (invalidation-graph-id (cdr direction))
                     (.ref relation 'relation)
@@ -74,11 +74,11 @@
                        (map (lambda (relation)
                               (cons relation (invalidation-direction relation)))
                             relations)))))
-    (poo-flow-graph
+    (yuanxu-graph
      (invalidation-graph-id (.ref snapshot 'graph-identity))
      graph-nodes graph-edges
      (list (cons 'semantic-owner 'lambda-aitia)
-           (cons 'graph-owner 'poo-flow)
+           (cons 'graph-owner 'agentic-ai-lab)
            (cons 'purpose 'structural-invalidation)))))
 
 (def (components->identities components)
@@ -94,13 +94,13 @@
 
 (def (assurance-invalidation-analysis snapshot seeds)
   (let* ((graph-value (assurance-invalidation-graph snapshot))
-         (loop-analysis (poo-flow-graph-loop-analysis-receipt graph-value)))
+         (loop-analysis (yuanxu-graph-loop-analysis-receipt graph-value)))
     (if (null? seeds)
       (values '() '()
               (components->identities (.ref loop-analysis 'components))
               (components->identities (.ref loop-analysis 'cyclic-components)))
       (let* ((impact
-              (poo-flow-structural-impact-analyze
+              (agentic-ai-lab-structural-impact-analyze
                graph-value
                (map invalidation-graph-id seeds)
                +assurance-invalidation-relations+

@@ -7,41 +7,45 @@
 :ID:              lambda-aitia-adr-0004
 :STATUS:          accepted
 :DATE:            2026-09-17
-:REVISION:        r1
+:REVISION:        r2
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-proof-maintainers
+:CONSULTED:       agentic-ai-lab-proof-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 
 * Context and Problem Statement
 
-The assurance laws and lifecycle model need one source owner.  POO Flow already
+The assurance laws and lifecycle model need one source owner.  Agentic AI Lab already
 contains generic composition and runtime proofs, but those artifacts must not
 become owners of Aitia claim, evidence or invalidation semantics.
 
 * Decision Outcome
 
-Lambda Aitia owns Lean statements and TLA+ models whose vocabulary is defined by
+Lambda Aitia owns Lean statements and Quint models whose vocabulary is defined by
 Aitia, including evidence freshness, no stale authority, invalidation,
 counterfactual isolation and the assurance lifecycle.  It may consume a pinned,
-independently versioned POO Flow proof package for generic composition laws.
-POO Flow proof sources are referenced, not copied or silently moved.
+independently versioned Agentic AI Lab proof package for generic composition laws.
+Agentic AI Lab proof sources are referenced, not copied or silently moved.
 
-Theorems and TLC receipts remain evidence inputs.  Neither grants a current
+Theorems and Quint/TLC receipts remain evidence inputs. Neither grants a current
 Decision or Effect authority.
+
+The 2026-10-10 r2 amendment replaces the maintained TLA+ source and TLAPS
+roadmap lane with Quint. TLC remains the bounded checker behind Quint; generated
+TLA+ for fairness is a temporary checker artifact, not a maintained model.
 
 * Consequences
 
 - Good: proof statements evolve with their semantic owner.
-- Good: generic POO Flow laws remain reusable and independently released.
+- Good: generic Agentic AI Lab laws remain reusable and independently released.
 - Bad: cross-repository theorem dependencies require explicit version receipts.
 
 * Confirmation
 
 - [X] Aitia proof builds run from Aitia-owned source paths through
   =just check-proof=.
-- [X] The initial proof package imports no POO Flow theorem; therefore no
+- [X] The initial proof package imports no Agentic AI Lab theorem; therefore no
   cross-repository proof revision is currently admitted.
 - [X] The inert-receipt theorem keeps proof success separate from release
   authority and runtime execution.

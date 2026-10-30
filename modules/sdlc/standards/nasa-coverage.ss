@@ -5,8 +5,8 @@
 ;;; Executable implementation ledger.  Implementation completeness and a
 ;;; project's compliance decision are deliberately separate dimensions.
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
         :std/list/list
         (only-in :gerbil/core string-contains))
 (export nasa-implementation-matrix nasa-implementation-summary)
@@ -59,7 +59,7 @@
                          (not (eq? (.ref row 'implementation-status)
                                    'implemented)))
                        rows)))
-    (.o standard: "nasa/npr-7150.2d"
+    (.o standard: "nasa/sdlc/npr-7150.2"
         requirement-count: (length rows)
         implemented-count:
         (length (filter (lambda (row)

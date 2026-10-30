@@ -4,13 +4,13 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :poo-flow/src/modules/governance/funs
-                 poo-flow-governance-contribution)
-        :poo-flow/lambda-aitia/modules/ADR/types
-        :poo-flow/lambda-aitia/modules/ADR/objects
-        (only-in :poo-flow/lambda-aitia/modules/assurance/objects
+        (only-in :agentic-ai-lab/modules/governance/funs
+                 agentic-ai-lab-governance-contribution)
+        :agentic-ai-lab/lambda-aitia/modules/ADR/types
+        :agentic-ai-lab/lambda-aitia/modules/ADR/objects
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/objects
                  assurance-decision)
-        (only-in :poo-flow/lambda-aitia/modules/assurance/funs
+        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
                  assurance-canonical-digest))
 
 (export ADR-contribution ADR-module
@@ -19,7 +19,7 @@
 
 (def (ADR-contribution profile)
   (unless (ADR-profile? profile) (error "invalid ADR profile"))
-  (poo-flow-governance-contribution
+  (agentic-ai-lab-governance-contribution
    profile '(knowledge-governance) '()))
 
 (def ADR-module (ADR-contribution ADRProfile))

@@ -4,13 +4,13 @@
 
 ;;; Finite source-inventory impact projection, not a graph runtime or approval.
 (import (only-in :clan/poo/object .o .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/types
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
         :std/list/list
         :gerbil/core
-        (only-in :poo-flow/src/graph/types
-                 poo-flow-graph poo-flow-graph-edge poo-flow-graph-node)
-        (only-in :poo-flow/src/modules/temporal-causality/funs
-                 poo-flow-structural-impact-analyze))
+        (only-in :yuanxu/graph/types
+                 yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
+        (only-in :agentic-ai-lab/modules/temporal-causality/funs
+                 agentic-ai-lab-structural-impact-analyze))
 (export sdlc-change-impact)
 (def (same-snapshot? value project)
   (every (lambda (slot) (equal? (.ref value slot) (.ref project slot))) '(subject revision scope)))
@@ -47,26 +47,26 @@
     (unless (every (lambda (id) (member id ids)) seeds)
       (error "changed object missing from selected snapshot"))
     ;; Traversal, cycle termination and shortest relation trajectories belong
-    ;; to POO Flow Graph. Aitia only projects its revision-scoped SDLC facts
+    ;; to Agentic AI Lab Graph. Aitia only projects its revision-scoped SDLC facts
     ;; into that mechanism and retains its native trajectory witnesses.
     (let* ((graph
-            (poo-flow-graph
+            (yuanxu-graph
              (impact-symbol
               (string-append (.ref project 'subject) "@"
                              (.ref project 'revision) ":"
                              (.ref project 'scope)))
              (map (lambda (node)
-                    (poo-flow-graph-node
+                    (yuanxu-graph-node
                      (impact-symbol (.ref node 'identity))))
                   current)
              (map (lambda (edge)
-                    (poo-flow-graph-edge
+                    (yuanxu-graph-edge
                      (impact-symbol (.ref edge 'source))
                      (impact-symbol (.ref edge 'target))
                      (impact-symbol (.ref edge 'relation))))
                   selected)))
            (structural
-            (poo-flow-structural-impact-analyze
+            (agentic-ai-lab-structural-impact-analyze
              graph (map impact-symbol seeds)
              (map impact-symbol selected-relation-values)
              'dependencies (.ref project 'complete?)))

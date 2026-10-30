@@ -4,4 +4,7 @@
 
 ;;; Native contributor package identity.  Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
-(package: poo-flow/lambda-aitia)
+(package: agentic-ai-lab/lambda-aitia
+ depend: ("github.com/tao3k/agentic-ai-lab@921e75f830a60c2ec42c384139846b05ba5d3317"
+          "github.com/tao3k/gebril-yuanxu@79a5526a2ecd06408201be87b4a028b167c8d8a0"
+          "github.com/tao3k/asp-gerbil-scheme@9ae9bc377cbab4b84de52b512a2c03375a36d6c9"))

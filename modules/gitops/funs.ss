@@ -7,45 +7,65 @@
 (import (only-in :clan/poo/object .ref .slot?)
         (only-in :clan/poo/mop .new validate)
         :std/list/list
-        (only-in :poo-flow/src/core/funcs
-                 poo-flow-make-value-index poo-flow-value-index-put!
-                 poo-flow-value-index-ref)
-        :poo-flow/src/module-system/poo-clos/interface
-        :poo-flow/lambda-aitia/modules/gitops/types
-        :poo-flow/lambda-aitia/modules/gitops/objects)
+        (only-in :yuanxu/utilities/algorithms
+                 yuanxu-make-value-index yuanxu-value-index-put!
+                 yuanxu-value-index-ref)
+        :yuanxu/poo-clos/interface
+        :agentic-ai-lab/lambda-aitia/modules/gitops/types
+        :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
 (export GitOpsDefaultEvaluationMethod GitOpsDefaultEvaluationMethods
         gitops-evaluate-default)
 
 (def (composition-gitops-profiles composition)
   (filter gitops-profile? (.ref composition 'profiles)))
-(def (composition-standard-names composition)
-  (map (lambda (profile) (.ref profile 'name))
+(def (composition-standard-bindings composition)
+  (map (lambda (profile)
+         (let (standards (.ref profile 'standards))
+           (unless (and (list? standards) (= (length standards) 1))
+             (error "standard Profile must bind exactly one Standard"
+                    (.ref profile 'name)))
+           (cons (.ref profile 'name) (car standards))))
        (filter (lambda (profile)
                  (and (.slot? profile 'role)
                       (eq? (.ref profile 'role) 'standard)))
                (.ref composition 'profiles))))
+(def (standard-check-current? check standard)
+  (and (.slot? standard 'edition)
+       (.slot? standard 'source-lock-digest)
+       (equal? (.ref check 'standard-edition) (.ref standard 'edition))
+       (equal? (.ref check 'source-lock-digest)
+               (.ref standard 'source-lock-digest))))
 (def (check-index checks)
-  (let (index (poo-flow-make-value-index))
+  (let (index (yuanxu-make-value-index))
     (for-each
      (lambda (check)
        (validate GitOpsCheck check)
        (let-values (((present? previous)
-                     (poo-flow-value-index-ref index (.ref check 'name))))
+                     (yuanxu-value-index-ref index (.ref check 'name))))
          (when present? (error "duplicate GitOps check" (.ref check 'name)))
-         (poo-flow-value-index-put! index (.ref check 'name) check)))
+         (yuanxu-value-index-put! index (.ref check 'name) check)))
      checks)
     index))
-(def (gitops-profile-decision profile standards change checks)
+(def (gitops-profile-decision profile standard-bindings change checks)
   (let* ((required (.ref profile 'required-checks))
+         (standards (map car standard-bindings))
          (index (check-index checks))
-         (missing '()) (failed '()) (stale '()))
+         (missing '()) (failed '()) (stale '())
+         (revision-mismatch? #f)
+         (standard-mismatch? #f))
     (for-each
      (lambda (name)
-       (let-values (((present? check) (poo-flow-value-index-ref index name)))
+       (let-values (((present? check) (yuanxu-value-index-ref index name)))
          (cond ((not present?) (set! missing (cons name missing)))
                ((or (not (equal? (.ref check 'repository) (.ref change 'repository)))
                     (not (equal? (.ref check 'revision) (.ref change 'revision))))
-                (set! stale (cons name stale)))
+                (set! stale (cons name stale))
+                (set! revision-mismatch? #t))
+               ((let (binding (assoc name standard-bindings))
+                  (and binding
+                       (not (standard-check-current? check (cdr binding)))))
+                (set! stale (cons name stale))
+                (set! standard-mismatch? #t))
                ((not (eq? (.ref check 'conclusion) 'success))
                 (set! failed (cons name failed))))))
      (append required standards))
@@ -61,7 +81,10 @@
           stale-checks: (reverse stale)
           reasons: (append (if (null? missing) '() '(required-check-missing))
                            (if (null? failed) '() '(required-check-failed))
-                           (if (null? stale) '() '(check-revision-mismatch))))))))
+                           (if revision-mismatch?
+                             '(check-revision-mismatch) '())
+                           (if standard-mismatch?
+                             '(standard-assessment-mismatch) '())))))))
 (def (gitops-unmatched-decision change)
   (validate GitOpsDecision
     (.new GitOpsDecision
@@ -80,7 +103,7 @@
               (composition-gitops-profiles composition)))
     (if profile
       (gitops-profile-decision
-       profile (composition-standard-names composition) change checks)
+       profile (composition-standard-bindings composition) change checks)
         (gitops-unmatched-decision change))))
 
 (def GitOpsDefaultEvaluationMethod

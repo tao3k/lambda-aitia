@@ -4,35 +4,35 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Boundary: Lambda Aitia projects NASA NPR 7150.2D into the domain-neutral
-;;; POO Flow Standards protocol.  Source bytes remain behind an explicit POO
+;;; Agentic AI Lab Standards protocol.  Source bytes remain behind an explicit POO
 ;;; Provider and are not read while the module, catalog, or Profile is loaded.
 
 (import (only-in :clan/poo/object .o .ref .slot? object?)
         (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :poo-flow/src/feature-system/source-lock-feature
+        (only-in :yuanxu/feature-system/source-lock-feature
                  require-source-lock-payload)
-        (only-in :poo-flow/src/modules/standards/interface
-                 PooFlowStandardValidationProvider.
-                 poo-flow-standard-artifact
-                 poo-flow-standard-artifact-ref
-                 poo-flow-standard-artifact-source
-                 poo-flow-standard-budget
-                 poo-flow-standard-catalog
-                 poo-flow-standard-digest
-                 poo-flow-standard-edition-ref
-                 poo-flow-standard-family
-                 poo-flow-standard-make-validation-closure
-                 poo-flow-standard-materialization-context
-                 poo-flow-standard-resolve
-                 poo-flow-standard-resolution-receipt-bundle
-                 poo-flow-standard-resolution-receipt-valid?
-                 poo-flow-standard-constraint-profile
-                 poo-flow-standard-materialize
-                 poo-flow-standard-materialization-receipt-valid?
-                 poo-flow-standards-module)
+        (only-in :agentic-ai-lab/modules/standards/interface
+                 AgenticAILabStandardValidationProvider.
+                 agentic-ai-lab-standard-artifact
+                 agentic-ai-lab-standard-artifact-ref
+                 agentic-ai-lab-standard-artifact-source
+                 agentic-ai-lab-standard-budget
+                 agentic-ai-lab-standard-catalog
+                 agentic-ai-lab-standard-digest
+                 agentic-ai-lab-standard-edition-ref
+                 agentic-ai-lab-standard-family
+                 agentic-ai-lab-standard-make-validation-closure
+                 agentic-ai-lab-standard-materialization-context
+                 agentic-ai-lab-standard-resolve
+                 agentic-ai-lab-standard-resolution-receipt-bundle
+                 agentic-ai-lab-standard-resolution-receipt-valid?
+                 agentic-ai-lab-standard-constraint-profile
+                 agentic-ai-lab-standard-materialize
+                 agentic-ai-lab-standard-materialization-receipt-valid?
+                 agentic-ai-lab-standards-module)
         "sources.ss"
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog)
 
 (export Nasa7150_2DStandardFamily
         Nasa7150_2DSourceProvider.
@@ -44,11 +44,11 @@
         nasa-7150-2d-validation-closure
         nasa-7150-2d-materialize-sources)
 
-(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa-npr-7150.2d")
+(def +nasa-7150-2d-provider-identity+ "lambda-aitia/nasa/sdlc/npr-7150.2/D")
 
 (def Nasa7150_2DStandardFamily
-  (poo-flow-standard-family
-   "nasa/npr-7150.2" "NASA" 'software-engineering
+  (agentic-ai-lab-standard-family
+   "nasa/sdlc/npr-7150.2" "NASA" 'sdlc
    '(html scheme) "publicly-available-nasa-directive"
    '((contributor . lambda-aitia)
      (authority . nasa-nodis))))
@@ -95,20 +95,20 @@
                    (lock-receipt-value
                     (require-source-lock-payload
                      lock-value identity-value payload-value)))
-              (poo-flow-standard-artifact-source
+              (agentic-ai-lab-standard-artifact-source
                identity-value digest-value representation-value
                payload-value size-bytes-value
                (list (cons 'source-path relative-path-value)
                      (cons 'source-lock-receipt lock-receipt-value))))))
          (materializer-value
           (lambda (source-value)
-            (poo-flow-standard-artifact
+            (agentic-ai-lab-standard-artifact
              identity-value digest-value representation-value
              (.ref source-value 'payload)
              (list (cons 'source-url (.ref spec-value 'canonical-uri))
                    (cons 'source-lock-digest
                          (.ref lock-value 'digest)))))))
-    (poo-flow-standard-artifact-ref
+    (agentic-ai-lab-standard-artifact-ref
      identity-value (.ref spec-value 'canonical-uri)
      (.ref spec-value 'exact-version)
      'normative-source representation-value digest-value '() size-bytes-value
@@ -125,10 +125,10 @@
                (.ref lock 'entries)))
          (artifact-identities (map (lambda (value) (.ref value 'identity)) artifacts))
          (edition-digest
-          (poo-flow-standard-digest
+          (agentic-ai-lab-standard-digest
            (map (lambda (value) (.ref value 'digest)) artifacts)))
          (edition-value
-          (poo-flow-standard-edition-ref
+          (agentic-ai-lab-standard-edition-ref
            +nasa-7150-2d-edition-identity+ Nasa7150_2DStandardFamily
            +nasa-7150-2d-edition-canonical-uri+ "D"
            "NPR 7150.2D" 'us-federal edition-digest
@@ -138,7 +138,7 @@
            (list (cons 'owner 'lambda-aitia)
                  (cons 'sources-lock-digest (.ref lock 'digest)))))
          (profile-value
-          (poo-flow-standard-constraint-profile
+          (agentic-ai-lab-standard-constraint-profile
            "lambda-aitia/nasa-npr-7150.2d/full" "2026-09-17"
            (list +nasa-7150-2d-edition-identity+)
            nasa-requirement-catalog '() artifact-identities '()
@@ -146,7 +146,7 @@
                  (cons 'owner 'lambda-aitia)
                  (cons 'sources-lock-digest (.ref lock 'digest)))
            'source-reviewed)))
-    (.o (:: @ PooFlowStandardValidationProvider.)
+    (.o (:: @ AgenticAILabStandardValidationProvider.)
         identity: +nasa-7150-2d-provider-identity+
         supported-families: (list (.ref Nasa7150_2DStandardFamily 'identity))
         source-provider: source-provider-value
@@ -155,7 +155,7 @@
         constraint-profile: profile-value)))
 
 (def (nasa-7150-2d-standard-catalog provider)
-  (poo-flow-standard-catalog
+  (agentic-ai-lab-standard-catalog
    "lambda-aitia/nasa-npr-7150.2d/catalog"
    (list (.ref provider 'edition))
    '((selection . exact-edition))))
@@ -163,14 +163,14 @@
 (def (nasa-7150-2d-standards-module source-provider)
   (let* ((provider (nasa-7150-2d-standard-provider source-provider))
          (catalog (nasa-7150-2d-standard-catalog provider)))
-    (poo-flow-standards-module
+    (agentic-ai-lab-standards-module
      "lambda-aitia/modules/sdlc/standards/nasa-npr-7150.2d"
      catalog
-     (poo-flow-standard-budget 1 6 2 250000 32)
+     (agentic-ai-lab-standard-budget 1 6 2 250000 32)
      (.o nasa: provider))))
 
 (def (nasa-7150-2d-resolve standards-module terminology-snapshot-digest)
-  (poo-flow-standard-resolve
+  (agentic-ai-lab-standard-resolve
    (.ref standards-module 'catalog)
    (list +nasa-7150-2d-edition-identity+)
    (.ref standards-module 'budget)
@@ -181,13 +181,13 @@
   (let* ((resolution
           (nasa-7150-2d-resolve
            standards-module
-           (poo-flow-standard-digest 'nasa-7150-2d/no-terminology)))
+           (agentic-ai-lab-standard-digest 'nasa-7150-2d/no-terminology)))
          (provider (.ref (.ref standards-module 'providers) 'nasa)))
-    (unless (poo-flow-standard-resolution-receipt-valid? resolution)
+    (unless (agentic-ai-lab-standard-resolution-receipt-valid? resolution)
       (error "NASA Standard resolution failed" resolution))
-    (poo-flow-standard-make-validation-closure
+    (agentic-ai-lab-standard-make-validation-closure
      "lambda-aitia/nasa-npr-7150.2d/validation-closure"
-     (poo-flow-standard-resolution-receipt-bundle resolution)
+     (agentic-ai-lab-standard-resolution-receipt-bundle resolution)
      (.ref provider 'identity) subject-kind subject-snapshot-digest
      (.ref (.ref provider 'constraint-profile) 'constraints))))
 
@@ -195,17 +195,17 @@
   (let* ((resolution
           (nasa-7150-2d-resolve
            standards-module
-           (poo-flow-standard-digest 'nasa-7150-2d/no-terminology)))
-         (bundle (poo-flow-standard-resolution-receipt-bundle resolution))
+           (agentic-ai-lab-standard-digest 'nasa-7150-2d/no-terminology)))
+         (bundle (agentic-ai-lab-standard-resolution-receipt-bundle resolution))
          (context
-          (poo-flow-standard-materialization-context
+          (agentic-ai-lab-standard-materialization-context
            "lambda-aitia/nasa-npr-7150.2d/materialization"
            (.ref bundle 'artifacts))))
     (map
      (lambda (artifact)
        (let (receipt
-             (poo-flow-standard-materialize context (.ref artifact 'identity)))
-         (unless (poo-flow-standard-materialization-receipt-valid? receipt)
+             (agentic-ai-lab-standard-materialize context (.ref artifact 'identity)))
+         (unless (agentic-ai-lab-standard-materialization-receipt-valid? receipt)
            (error "NASA Standard materialization failed" receipt))
          receipt))
      (.ref bundle 'artifacts))))

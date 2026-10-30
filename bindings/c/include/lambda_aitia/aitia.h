@@ -13,25 +13,25 @@ extern "C" {
 #endif
 
 /* Public names stay stable; negotiate this metadata before calling. */
-#define POO_FLOW_AITIA_ABI_REVISION 2u
+#define AGENTIC_AI_LAB_AITIA_ABI_REVISION 2u
 
 typedef struct {
   int32_t status;
   /* Owned UTF-8 bytes, NUL-terminated; length excludes the NUL byte. */
   uint8_t *payload;
   size_t length;
-} poo_flow_aitia_result;
+} agentic_ai_lab_aitia_result;
 
-int32_t poo_flow_aitia_runtime_init(void);
-void poo_flow_aitia_runtime_shutdown(void);
-void poo_flow_aitia_result_init(poo_flow_aitia_result *result);
-void poo_flow_aitia_result_release(poo_flow_aitia_result *result);
-uint32_t poo_flow_aitia_abi_revision(void);
-int32_t poo_flow_aitia_descriptor(poo_flow_aitia_result *result);
-int32_t poo_flow_aitia_sdlc_flow_plan(char *payload,
-                                      poo_flow_aitia_result *result);
-int32_t poo_flow_aitia_gitops_evaluate(char *payload,
-                                       poo_flow_aitia_result *result);
+int32_t agentic_ai_lab_aitia_runtime_init(void);
+void agentic_ai_lab_aitia_runtime_shutdown(void);
+void agentic_ai_lab_aitia_result_init(agentic_ai_lab_aitia_result *result);
+void agentic_ai_lab_aitia_result_release(agentic_ai_lab_aitia_result *result);
+uint32_t agentic_ai_lab_aitia_abi_revision(void);
+int32_t agentic_ai_lab_aitia_descriptor(agentic_ai_lab_aitia_result *result);
+int32_t agentic_ai_lab_aitia_sdlc_flow_plan(char *payload,
+                                      agentic_ai_lab_aitia_result *result);
+int32_t agentic_ai_lab_aitia_gitops_evaluate(char *payload,
+                                       agentic_ai_lab_aitia_result *result);
 
 #ifdef __cplusplus
 }

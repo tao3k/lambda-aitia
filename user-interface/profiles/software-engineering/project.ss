@@ -5,35 +5,37 @@
 
 ;;; Boundary: maintained default Software Engineering Project Profile.
 ;;; Invariant: the Profile selects Aitia knowledge and obligations only; module
-;;; realization and Runtime execution remain separate POO Flow phases.
+;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
-(import (only-in :poo-flow/src/module-system/declaration/interface
-                 poo-flow-settings
-                 poo-flow-user-module-selection)
-        (only-in :poo-flow/src/user-interface/profile-core
-                 pooFlowUserProfile))
+(import (only-in :yuanxu/module-system/selection/objects
+                 yuanxu-settings
+                 yuanxu-user-module-selection)
+        (only-in :yuanxu/profile-composition/user-profile
+                 yuanxuUserProfile))
 
 (export default-software-engineering-project)
 
 (def default-software-engineering-project
-  (pooFlowUserProfile
+  (yuanxuUserProfile
    'default-software-engineering-project
    (list
     (list
-     (poo-flow-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'gitops '(+open-gitops))
-     (poo-flow-user-module-selection
-      'software-engineering 'sdlc '(+nasa-7150-2d))
-     (poo-flow-user-module-selection
+     (yuanxu-user-module-selection
+      'software-engineering 'sdlc '())
+     (yuanxu-user-module-selection
+      'nasa 'sdlc '(+npr-7150.2))
+     (yuanxu-user-module-selection
       'software-engineering 'ADR '(+rfc-relations))
-     (poo-flow-user-module-selection
+     (yuanxu-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
-     (poo-flow-user-module-selection
-      'software-engineering 'formal-methods '(+tla+ +lean +cedar))))
-   (poo-flow-settings
+     (yuanxu-user-module-selection
+      'software-engineering 'formal-methods '(+quint +lean +cedar))))
+   (yuanxu-settings
     project-kind: 'software-engineering
     composition: 'aitia
-    formal-method-obligations: '(tla+ lean cedar)
+    formal-method-obligations: '(quint lean cedar)
     runtime-executed?: #f)
    '(project-kind
      composition

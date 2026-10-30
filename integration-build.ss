@@ -5,7 +5,9 @@
 
 ;;; Optional application and native-binding closure. The SDLC/GitOps core build
 ;;; remains independent; this adapter compiles final composition before FFI.
-(import (only-in :std/build-script defbuild-script)
+(import (only-in "./build-inputs.ss" lambda-aitia-generated-build-inputs)
+        (only-in :std/source this-source-file)
+        (only-in :std/build-script defbuild-script)
         (only-in :asp-gerbil-scheme/building-api
                  asp-gerbil-scheme-package-spec!
                  asp-gerbil-scheme-library-package-prototype))
@@ -22,6 +24,10 @@
  (lambda-aitia-integration-package @ asp-gerbil-scheme-library-package-prototype)
  (spec lambda-aitia-integration-spec)
  (public-entry-modules '("user-interface/config.ss"))
+ (generated-modules lambda-aitia-generated-build-inputs)
  (extra-spec `(,+lambda-aitia-native-ffi-spec+)))
 
 (defbuild-script (lambda-aitia-integration-spec))
+
+;; Consumers request this same native declaration; no parallel source inventory.
+(export lambda-aitia-integration-spec)

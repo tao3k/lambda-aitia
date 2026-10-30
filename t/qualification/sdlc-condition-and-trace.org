@@ -7,10 +7,10 @@
 
 * Verified scope
 Native module build and independent directory-based user-case build passed in
-isolated child output against the POO Flow libraries. The seven child suites
+isolated child output against the Agentic AI Lab libraries. The seven child suites
 passed 384 checks: governance 18, SDLC 17, config 7, source scenarios 39,
 NASA catalog 268, trace/applicability 25, release scenario 10.
-POO Flow core contribution/build suites independently passed 14 checks.
+Agentic AI Lab core contribution/build suites independently passed 14 checks.
 The separate parent source integration lane passed four checks through the
 actual user-interface/init.ss and SDLC contribution projection.
 

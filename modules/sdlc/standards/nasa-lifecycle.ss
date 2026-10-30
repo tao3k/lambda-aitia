@@ -4,15 +4,15 @@
 
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
 (import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/src/module-system/contribution/verification
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        (only-in :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-policy
+        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
+        :yuanxu/contribution/verification
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
+        (only-in :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-policy
                  nasa-stage-policy
                  nasa-baseline-policy)
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-structured
         :std/list/list)
 (export nasa-stage-policy nasa-baseline-policy nasa-context-request nasa-evidence-request
         nasa-verifiable-evidence nasa-verification-adapter nasa-stage-gate nasa-inventory-request
@@ -35,8 +35,8 @@
     (error "verifiable NASA evidence requires a SHA-256 artifact digest"))
   (.o (:: @ evidence) artifact-digest: digest-value))
 (def (request project purpose-value facts-value)
-  (poo-flow-check-model SdlcVerificationRequest
-    (.o (:: @ (poo-flow-model-prototype SdlcVerificationRequest))
+  (poo-clos-check-model SdlcVerificationRequest
+    (.o (:: @ (poo-clos-model-prototype SdlcVerificationRequest))
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
         purpose: purpose-value facts: facts-value)))
 (def (nasa-context-request project class-value context-value)
@@ -90,17 +90,17 @@
                      (slots value '(subject revision scope)) payload
                      (slots nasa-catalog-source-digests '(chapter2 chapter3 chapter4 chapter5 chapter6 appendix-c))) port)))))
 (def (nasa-verification-adapter id operation)
-  (poo-flow-verification-adapter id operation request-snapshot))
+  (yuanxu-verification-adapter id operation request-snapshot))
 (def (verified? admission value)
-  (poo-flow-verification-admission-valid? admission value))
+  (yuanxu-verification-admission-valid? admission value))
 (def (nasa-stage-gate policy project class-value context evidence adapter receipts now
                          tailorings: (tailoring-values '()) inventories: (inventory-values '()))
   (unless (and (sdlc-stage-policy? policy) (list? receipts) (list? tailoring-values)
                (list? inventory-values)
                (every (lambda (i) (or (sdlc-trace-inventory? i) (sdlc-safety-inventory? i))) inventory-values)
                (exact-integer? now) (>= now 0)) (error "invalid stage gate inputs"))
-  (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence))
-         (admission (poo-flow-verification-admission adapter receipts now))
+  (let* ((report ((if (eq? (.ref policy 'assessment-scope) 'institution) nasa-assess-institution nasa-assess-project) class-value project context evidence requirements: (.ref policy 'requirements)))
+         (admission (yuanxu-verification-admission adapter receipts now))
          (selected (map (lambda (id)
                           (or (find (lambda (r) (equal? (.ref r 'requirement) id)) (.ref report 'requirements))
                               (error "unknown stage requirement" id))) (.ref policy 'requirements)))
@@ -179,8 +179,8 @@
         reported-failures: failed
         admitted?: (eq? status-value 'stage-admitted) release-authorized?: #f)))
 (def (make-state project stage-value)
-  (poo-flow-check-model SdlcLifecycleState
-    (.o (:: @ (poo-flow-model-prototype SdlcLifecycleState))
+  (poo-clos-check-model SdlcLifecycleState
+    (.o (:: @ (poo-clos-model-prototype SdlcLifecycleState))
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
         stage: stage-value)))
 (def (nasa-lifecycle-start project)

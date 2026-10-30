@@ -3,43 +3,44 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :std/test check-equal? test-case test-suite)
-        (only-in :poo-flow/src/module-system/loader/source
-                 poo-flow-module-source-ref-metadata
-                 poo-flow-module-source-ref-value)
-        (only-in :poo-flow/src/module-system/loader/module-source-interface
-                 make-poo-flow-contribution-module-source
-                 poo-flow-load-modules))
+        (only-in :yuanxu/module-system/source/objects
+                 yuanxu-module-source-ref-metadata
+                 yuanxu-module-source-ref-value)
+        (only-in :yuanxu/module-system/source/collection make-yuanxu-contribution-module-source yuanxu-module-source-collection-interfaces))
 
 (export lambda-aitia-source-collection-test)
 
 (def (metadata-ref source-ref key)
-  (let (entry (assq key (poo-flow-module-source-ref-metadata source-ref)))
+  (let (entry (assq key (yuanxu-module-source-ref-metadata source-ref)))
     (and entry (cdr entry))))
 
 (def lambda-aitia-module-source
-  (make-poo-flow-contribution-module-source
+  (make-yuanxu-contribution-module-source
    'lambda-aitia "."))
 
 (def lambda-aitia-source-collection-test
   (test-suite "Aitia module ownership and registered load path"
     (test-case "Aitia discovers its complete software engineering module set"
-      (let (sources (poo-flow-load-modules lambda-aitia-module-source))
+      (let (sources (yuanxu-module-source-collection-interfaces lambda-aitia-module-source))
         (check-equal?
-         (map poo-flow-module-source-ref-value sources)
-         '("modules/ADR/interface.ss"
-           "modules/assurance/interface.ss"
-           "modules/formal-methods/interface.ss"
-           "modules/gitops/interface.ss"
-           "modules/sdlc/interface.ss"))
+         (map yuanxu-module-source-ref-value sources)
+         ;; Native source references bind absolute paths. Retain the exact five
+         ;; expected interfaces rather than weakening comparison to basenames.
+         (map (lambda (file) (path-expand file (current-directory)))
+              '("modules/ADR/interface.ss"
+                "modules/assurance/interface.ss"
+                "modules/formal-methods/interface.ss"
+                "modules/gitops/interface.ss"
+                "modules/sdlc/interface.ss")))
         (check-equal?
          (map (lambda (source) (metadata-ref source 'module-key)) sources)
          '((custom . ADR) (custom . assurance) (custom . formal-methods)
            (custom . gitops) (custom . sdlc)))))
 
     (test-case "the package-local GitOps module retains Aitia ownership"
-      (let* ((sources (poo-flow-load-modules lambda-aitia-module-source))
+      (let* ((sources (yuanxu-module-source-collection-interfaces lambda-aitia-module-source))
              (source (list-ref sources 3)))
         (check-equal? (metadata-ref source 'source-collection) 'lambda-aitia)
         (check-equal?
-         (poo-flow-module-source-ref-value source)
-         "modules/gitops/interface.ss")))))
+         (yuanxu-module-source-ref-value source)
+         (path-expand "modules/gitops/interface.ss" (current-directory)))))))

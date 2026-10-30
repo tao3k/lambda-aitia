@@ -3,9 +3,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+        (only-in :clan/poo/object .o .ref)
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
+        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
 (def project (sdlc-project "flight" "r2" "software" #t))
 (def rule (sdlc-trace-rule "SWE-052/verification" 'requirement 'verification))
 (def req (sdlc-trace-node "req" 'requirement project))
@@ -36,7 +36,7 @@
         (check-equal? (.ref result 'unresolved-edges) '("link")))
       (check-exception (review (list req req test) (list edge)) Error?)
       (check-exception (review (list req test) (list edge edge)) Error?))
-    (test-case "change impact delegates trajectories to POO Flow Graph"
+    (test-case "change impact delegates trajectories to Agentic AI Lab Graph"
       (let (result
             (sdlc-change-impact
              project (list req test) (list edge)

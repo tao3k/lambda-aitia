@@ -8,7 +8,7 @@
         (only-in :asp-gerbil-scheme/testing-api
                  testing-interface-max-heap-mib-for
                  testing-interface-runtime-options-for)
-        (only-in :poo-flow/lambda-aitia/testing-interface
+        (only-in :agentic-ai-lab/lambda-aitia/testing-interface
                  +lambda-aitia-testing-interface+))
 
 (export testing-memory-profile-test)
