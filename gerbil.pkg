@@ -5,6 +5,6 @@
 ;;; Native contributor package identity.  Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
 (package: agentic-ai-lab/lambda-aitia
- depend: ("github.com/tao3k/agentic-ai-lab@19c914d7a503b8dd5db31bc9b34c6386456f11e8"
+ depend: ("github.com/tao3k/agentic-ai-lab@b58787d491f68dcf166c283028ebc787e6eda6e7"
           "github.com/tao3k/gebril-yuanxu@7b798b477ca97f429bc607fbd82d8cee75676677"
           "github.com/tao3k/asp-gerbil-scheme@9ae9bc377cbab4b84de52b512a2c03375a36d6c9"))

@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: tao3k/agentic-ai-lab
-          ref: 19c914d7a503b8dd5db31bc9b34c6386456f11e8
+          ref: b58787d491f68dcf166c283028ebc787e6eda6e7
           path: agentic-ai-lab
           submodules: false
 
@@ -225,6 +225,7 @@ jobs:
             build_status=0
             wait "$build_pid" || build_status=$?
             wait "$observer_pid" || true
+            printf "AITIA-COLD-POO-NATIVE-BUILD-STATUS status=%s\n" "$build_status"
             if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
             # A successful tag command that skipped the package is not content
             # admission. Require the actual cold source and its module identity.
@@ -281,8 +282,18 @@ jobs:
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-parser
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/gerbil-ascent
             timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" "$GERBIL_PATH/pkg/github.com/tao3k/orgize/gerbil.pkg" github.com/tao3k/gerbil-scheme-rust
-            timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/orgize
+            /usr/bin/time -v timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q "$builder" gerbil.pkg github.com/tao3k/orgize
           '
+
+      # Retain real generated compiler inputs for critical-path analysis.
+      # Artifact collection neither retries nor admits a failed owner build.
+      - name: Preserve native Org fold compilation inputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aitia-org-fold-sources
+          path: agentic-ai-lab/.gerbil/src/orgize-fold/
+          if-no-files-found: ignore
 
       - name: Install declared Gerbil package dependencies
         if: steps.gerbil-package-cache.outputs.cache-matched-key == ''
