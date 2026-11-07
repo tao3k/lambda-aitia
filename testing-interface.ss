@@ -35,7 +35,7 @@
   (.cc +testing-memory-profile+ maxHeapMiB: 2048))
 
 ;;; The default test process is 512 MiB. Only tests that load the complete NASA
-;;; catalog or prepare the complete SDLC source graph receive the bounded 2 GiB
+;;; catalog or SDLC source graph receive the bounded 2 GiB
 ;;; profile; no Aitia test is allowed to inherit an unbounded Gambit heap.
 (def +lambda-aitia-large-memory-selectors+
   (map (lambda (fragment) (testing-test-selector 'contains fragment))

@@ -16,6 +16,8 @@
         (only-in :yuanxu/module-system/building/products current-build-module-roots)
         (only-in "./init.ss" lambda-aitia.init.exports))
 
+(export lambda-aitia-spec)
+
 ;;; Installation requests no business roots. Core derives actual role/import
 ;;; closure for explicit --modules requests; no second source list lives here.
 (def (lambda-aitia-spec)

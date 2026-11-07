@@ -7,7 +7,7 @@
 (import :std/test :std/misc/ports
         (only-in :gerbil-parser/languages/gql/iso-39075-2024/parser
                  parse-gql-iso-39075-2024)
-        (only-in :gerbil-parser/src/runtime/artifact
+        (only-in :gerbil-parser/artifact-support
                  parse-artifact-success? parse-artifact-valid?
                  parse-artifact-roundtrip))
 

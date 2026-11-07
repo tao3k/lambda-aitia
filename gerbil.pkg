@@ -5,5 +5,5 @@
 ;;; Independent AITIA package identity. Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
 (package: lambda-aitia
- ;; Yuanxu supplies the declaration language, not this package's identity.
- prelude: :tao3k/yuanxu/prelude)
+ prelude: :tao3k/yuanxu/prelude
+ depend: ("github.com/tao3k/agentic-ai-lab@921e75f830a60c2ec42c384139846b05ba5d3317"))

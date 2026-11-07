@@ -150,7 +150,7 @@ try:
     assert accepted["releaseAuthorized"] is False
     assert accepted["runtimeExecuted"] is False
 
-    nasa_check["sourceLockDigest"] = "sha256:stale"
+    nasa_check["sourceLockDigest"] = "sha256:cfb963b8cd81fd8e22e9b47251c1dc7927b85fcdf9ec9366057cd38cb94f338c"
     rejected = json.loads(session.gitops_evaluate(json.dumps(change)))
     assert rejected["accepted"] is False
     assert rejected["staleChecks"] == ["nasa/sdlc/npr-7150.2"]

@@ -23,6 +23,7 @@ FIELDS = ("revision", "planned", "verified", "admitted", "decided", "granted",
           "grantEpoch", "epoch", "clock", "sealUntil", "grantUntil", "adapterInstalled",
           "reportedSuccess", "effectStarted", "startSafe", "reservationRevision",
           "reservationEpoch", "reservationUntil", "deliveryStatus", "deliveryCalls", "deliverySafe")
+
 INVARIANTS = ("TypeOK", "AdmissionIsCurrent", "DecisionRequiresAdmission",
               "GrantRequiresCurrentDecision", "NoUnsafeEffectStart", "NoUnsafeDelivery",
               "DeliveryRequiresStart", "AtMostOneDelivery")
@@ -36,7 +37,9 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
 SOURCE_CUT = ("dev/proof/quint/AssuranceLifecycle.qnt", "dev/proof/quint/EffectAdmission.qnt",
               "dev/proof/quint/package-lock.json", "dev/proof/quint/check_lifecycle_replay.py",
               "dev/proof/quint/test_lifecycle_replay.py",
-              "dev/proof/quint/process_runner.py", "justfile",
+              "dev/proof/quint/process_runner.py", "justfile", "build.ss", "gerbil.pkg",
+              "testing-interface.ss", "testing-observer.ss", "run-test.ss",
+              "t/modules/unit/testing-resource-test.ss",
               "modules/assurance/host.ss", "modules/assurance/effect-host.ss",
               "modules/assurance/interface.ss", "dev/proof/scheme/lifecycle-fixture.ss",
               "dev/proof/scheme/lifecycle-replay-test.ss", "t/assurance/unit/lifecycle-boundary-test.ss")

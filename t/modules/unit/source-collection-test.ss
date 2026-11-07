@@ -6,7 +6,7 @@
         (only-in :yuanxu/module-system/source/objects
                  yuanxu-module-source-ref-metadata
                  yuanxu-module-source-ref-value)
-        (only-in :yuanxu/module-system/source/collection make-agentic-ai-lab-contribution-module-source yuanxu-module-source-collection-interfaces))
+        (only-in :yuanxu/module-system/source/collection make-yuanxu-contribution-module-source yuanxu-module-source-collection-interfaces))
 
 (export lambda-aitia-source-collection-test)
 
@@ -15,7 +15,7 @@
     (and entry (cdr entry))))
 
 (def lambda-aitia-module-source
-  (make-agentic-ai-lab-contribution-module-source
+  (make-yuanxu-contribution-module-source
    'lambda-aitia "."))
 
 (def lambda-aitia-source-collection-test
@@ -24,11 +24,14 @@
       (let (sources (yuanxu-module-source-collection-interfaces lambda-aitia-module-source))
         (check-equal?
          (map yuanxu-module-source-ref-value sources)
-         '("modules/ADR/interface.ss"
-           "modules/assurance/interface.ss"
-           "modules/formal-methods/interface.ss"
-           "modules/gitops/interface.ss"
-           "modules/sdlc/interface.ss"))
+         ;; Native source references bind absolute paths. Retain the exact five
+         ;; expected interfaces rather than weakening comparison to basenames.
+         (map (lambda (file) (path-expand file (current-directory)))
+              '("modules/ADR/interface.ss"
+                "modules/assurance/interface.ss"
+                "modules/formal-methods/interface.ss"
+                "modules/gitops/interface.ss"
+                "modules/sdlc/interface.ss")))
         (check-equal?
          (map (lambda (source) (metadata-ref source 'module-key)) sources)
          '((custom . ADR) (custom . assurance) (custom . formal-methods)
@@ -40,4 +43,4 @@
         (check-equal? (metadata-ref source 'source-collection) 'lambda-aitia)
         (check-equal?
          (yuanxu-module-source-ref-value source)
-         "modules/gitops/interface.ss")))))
+         (path-expand "modules/gitops/interface.ss" (current-directory)))))))

@@ -4,7 +4,9 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", "12")
+# The SDK derives its default from the host; preserve caller-supplied limits.
+# GAMBOPT heap limits apply per process, not to the whole compiler tree.
+export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", `gxi -:max-heap=2G -e '(display (##core-count))'`)
 
 self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
@@ -63,7 +65,7 @@ test-jj-commit-evidence:
 # Build this Gerbil package against the installed Agentic AI Lab mechanisms.
 [group('build')]
 build-scheme:
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
+    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --signal=TERM --kill-after=5s 180s gerbil build
 
 [group('build')]
 build-user-interface:
@@ -135,6 +137,11 @@ test-proof-scheme test_file:
 _test-scheme-file path:
     test -f {{ quote(path) }}
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi -:max-heap=1G ./run-test.ss {{ quote(path) }}
+
+# Check native compiler products with the existing CI heap and deadline.
+[group('test')]
+test-native-products:
+    {{ gerbil_env }} timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'
 
 # Build and execute Aitia's SDLC plus GitOps composition case.
 [group('check')]
