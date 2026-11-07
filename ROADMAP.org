@@ -46,10 +46,11 @@ meaning. A bounded job-executor retirement case is the next paired Impact
 qualification, not an instruction to remove a production capability. Its
 implementation and execution receipts remain pending.
 
-Reuse Yuanxu/Lab mechanisms and qualified upstream verification assets. Python's
-existing AnyIO observation integration remains maintained, not the selected
-execution center. MRR relation queries, derivation and lineage remain deferred;
-this redesign introduces no MRR integration.
+Reuse Yuanxu/Lab mechanisms and qualified upstream verification assets. Rust
+executes engineering adapters. Scheme resolves project declarations and selects
+checks. The Maturin wheel exposes Rust through Python bindings. The earlier
+AnyIO delivery remains recorded in historical qualification receipts. MRR
+relation queries, derivation and lineage remain deferred.
 
 This view tracks implementation progress; it is separate from the engineering
 states in RFC 0004's lifecycle workflow.
@@ -572,17 +573,12 @@ work merely because these design-level tests pass.
    with the scoped qualification and effect receipts required by RFC 0004.
    The [[file:docs/receipts/2026-09-24-retirement-impact.org][first bounded analysis slice]] passes; actual persistent-state and effect
    qualification remains open and is deferred behind the formal design gates.
-4. [ ] Connect real tool observations from the Aitia Python Runtime to the
-   configured Scheme Host, preserving source bytes and native-session ownership
-   through the AnyIO execution boundary. This is required before claiming
-   admitted support or progressing to the remaining Phase 6 effect gates.
-   The bounded frozen-pytest AnyIO worker now waits for process-group cleanup
-   under cancellation and never carries a thread-affine native session; it
-   remains an observation-only slice, not Host admission. The installed-wheel
-   qualification also exercises a real native session before and after that
-   worker, with the lost-ACK failure/fix and stale-source rejection. The next
-   gate is an owner-preserving Host operation and opaque capability transport,
-   followed by source-change, expiry, revocation and forged-receipt negatives.
+4. [ ] Admit source-bound Rust execution observations through the configured
+   Scheme Host. The Rust adapter captures the source tree and executes pytest
+   against frozen inputs. The installed-wheel gate exercises the same adapter
+   through its generated Python binding. Host admission still requires
+   owner-preserving capability transport and source-change, expiry, revocation
+   and forged-receipt controls.
 5. [ ] Compose the qualified methods through existing POO Profiles and slots;
    an override must preserve required checks or reopen corresponding obligations.
 6. [ ] Replay failure, design revision, re-verification and a later assumption
