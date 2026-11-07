@@ -5,7 +5,6 @@
 
 use aitia_jj::{JjObservationError, WorkspaceCut, read_recorded_file};
 use std::fmt;
-use std::path::Path;
 
 use opensysml::{Connection, Error, Model, SourceDocument, SourcesOptions};
 
@@ -24,6 +23,7 @@ pub fn parse_sysml(
         &SourcesOptions {
             strict: true,
             strict_conformance: true,
+            ..SourcesOptions::default()
         },
     )
 }
@@ -61,13 +61,12 @@ impl std::error::Error for RecordedSysmlError {
 /// Fails if a source cannot be read at the cut, or if OpenSysML rejects the documents.
 pub fn parse_recorded_sysml(
     connection: &Connection,
-    jj: &Path,
     cut: &WorkspaceCut,
     sources: &[String],
 ) -> Result<Model, RecordedSysmlError> {
     let documents = sources
         .iter()
-        .map(|path| read_recorded_file(jj, cut, path).map(|content| (path.clone(), content)))
+        .map(|path| read_recorded_file(cut, path).map(|content| (path.clone(), content)))
         .collect::<Result<Vec<_>, _>>()
         .map_err(RecordedSysmlError::Source)?;
     parse_sysml(connection, documents).map_err(RecordedSysmlError::Model)

@@ -181,7 +181,8 @@ Cross-language replay remains available as a diagnostic.
 
 The SysML model passed strict validation with OpenSysML CLI 0.10.1 and
 rendered the feedback view through D2. =just test-sysml-model= uses
-the Rust SDK pinned at 0.11.0. The integration test used the matching
+the Rust OpenSysML dependency. The recorded integration result below used
+0.11.0. The integration test used the matching
 local service from the Lab renderer's locked distribution via
 =OPENSYSML_GRPC_BINARY=. It parsed the real named document, resolved
 =exactCut=, =modelEngineeringGraph= and =groundedGaps=, returned no result
@@ -192,7 +193,7 @@ reports JJ read failures as =RecordedSysmlError::Source= and parser
 failures as =RecordedSysmlError::Model=. The locked test
 used a real JJ repository and OpenSysML service to resolve an import
 between two documents, ignore a dirty replacement, and refuse a missing
-file or an old operation. With the SysML feature enabled, =aitia check sysml <jj> <directory>=
+file or an old operation. With the SysML feature enabled, =aitia check sysml <directory>=
 selects that list from the recorded project manifest through the Scheme
 configuration Contract. Its result includes the exact cut, parsed
 document names and model hash. The command is scoped to SysML checking.

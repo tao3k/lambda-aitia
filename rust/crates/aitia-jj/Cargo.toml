@@ -13,11 +13,13 @@ description = "Read-only observations of JJ-backed AITIA workspaces"
 real-jj = []
 
 [dependencies]
+jj-lib = "=0.47.1"
+futures = { version = "0.3", default-features = false, features = ["executor"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 
 [dev-dependencies]
 aitia-build-support.workspace = true
+serde_json = "1"
 tempfile = "3"
 
 [[test]]

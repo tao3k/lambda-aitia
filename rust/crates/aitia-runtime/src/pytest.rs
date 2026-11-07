@@ -290,9 +290,7 @@ fn parse_report(bytes: &[u8]) -> Option<PytestReport> {
                 }
                 depth = depth.checked_sub(1)?;
             }
-            Event::Text(text)
-                if depth == 0 && !text.as_ref().iter().all(u8::is_ascii_whitespace) =>
-            {
+            Event::Text(text) if depth == 0 && !text.iter().all(u8::is_ascii_whitespace) => {
                 return None;
             }
             Event::DocType(_) => return None,

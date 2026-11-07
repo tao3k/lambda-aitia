@@ -70,13 +70,13 @@ fn check_recorded_documents(
         }))?,
     )?;
     execute(&["describe", "-m", "record paired SysML documents"]);
-    let cut = aitia_jj::observe_workspace(jj, root)?;
+    let cut = aitia_jj::observe_workspace(root)?;
     std::fs::write(root.join(second), "package Broken {")?;
-    let model = parse_recorded_sysml(connection, jj, &cut, &[NAME.into(), second.into()])?;
+    let model = parse_recorded_sysml(connection, &cut, &[NAME.into(), second.into()])?;
     assert_eq!(model.documents(), [NAME, second]);
     assert_eq!(model.lookup("Consumer::cut")?.id(), "Consumer::cut");
     assert!(matches!(
-        parse_recorded_sysml(connection, jj, &cut, &["missing.sysml".into()]),
+        parse_recorded_sysml(connection, &cut, &["missing.sysml".into()]),
         Err(RecordedSysmlError::Source(_))
     ));
     #[cfg(feature = "linked-program")]
@@ -84,7 +84,6 @@ fn check_recorded_documents(
         Command::new(env!("CARGO_BIN_EXE_aitia"))
             .current_dir(root)
             .args(["check", "sysml"])
-            .arg(jj)
             .arg(".")
             .output()
     };
@@ -104,19 +103,19 @@ fn check_recorded_documents(
         // Keep the original declared paths so the next cut reaches the invalid model.
         std::fs::write(
             &manifest,
-            aitia_jj::read_recorded_file(jj, &cut, ".agents/aita/project.json")?,
+            aitia_jj::read_recorded_file(&cut, ".agents/aita/project.json")?,
         )?;
     }
     execute(&["describe", "-m", "record invalid working copy"]);
     assert!(matches!(
-        parse_recorded_sysml(connection, jj, &cut, &[NAME.into(), second.into()]),
+        parse_recorded_sysml(connection, &cut, &[NAME.into(), second.into()]),
         Err(RecordedSysmlError::Source(
             aitia_jj::JjObservationError::ChangedOperation
         ))
     ));
-    let current = aitia_jj::observe_workspace(jj, root)?;
+    let current = aitia_jj::observe_workspace(root)?;
     assert!(matches!(
-        parse_recorded_sysml(connection, jj, &current, &[NAME.into(), second.into()]),
+        parse_recorded_sysml(connection, &current, &[NAME.into(), second.into()]),
         Err(RecordedSysmlError::Model(
             opensysml::Error::ModelErrors { .. }
         ))

@@ -146,7 +146,9 @@ derives relations from admitted source-bound evidence. Governance owns the
 local write grant. The model separates exact revision and operation
 identity from the change ID that relates rewrites.
 
-The Rust CLI publishes =jj-observe= for recorded workspace cuts. The
+The Rust CLI publishes =jj-observe= for recorded workspace cuts. It uses
+=jj-lib= to read the operation, workspace commit and tree, and checks
+operation currentness after reading recorded files. The
 qualification against real JJ verifies read-only behavior with untracked
 files and exact identity changes after an explicit rewrite. The Yuanxu
 GitOps Scope publishes =admit-commit-observation= and =commit-evidence=.

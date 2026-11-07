@@ -1,27 +1,22 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-use serde::{Deserialize, Serialize};
+use futures::{executor::block_on, io::AsyncReadExt};
+use jj_lib::{
+    backend::TreeValue,
+    config::StackedConfig,
+    default_backend_factories::{
+        default_backend_factories, default_working_copy_factories, default_workspace_loader_factory,
+    },
+    object_id::ObjectId,
+    op_store::OperationId,
+    repo_path::RepoPath,
+    settings::UserSettings,
+    workspace::Workspace,
+};
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-const OPERATION: &str = r#"json({"id" => id, "current" => current_operation})"#;
-const WORKSPACE: &str = r#"json({"name" => name, "current" => current_workspace, "commit_id" => target.commit_id(), "change_id" => target.change_id(), "parent_ids" => target.parents().map(|c| c.commit_id())}) ++ "\n""#;
-
-#[derive(Deserialize)]
-struct Operation {
-    id: String,
-    current: bool,
-}
-
-#[derive(Deserialize)]
-struct Workspace {
-    name: String,
-    current: bool,
-    commit_id: String,
-    change_id: String,
-    parent_ids: Vec<String>,
-}
 
 /// An observation of an already recorded workspace. This carries no grant.
 /// Identity fields are fixed by the adapter when it observes the workspace.
@@ -71,6 +66,7 @@ pub enum JjObservationError {
     Io(std::io::Error),
     Command(String),
     Output(String),
+    Repository(String),
     ChangedOperation,
 }
 
@@ -78,7 +74,9 @@ impl std::fmt::Display for JjObservationError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "{error}"),
-            Self::Command(error) | Self::Output(error) => formatter.write_str(error),
+            Self::Command(error) | Self::Output(error) | Self::Repository(error) => {
+                formatter.write_str(error)
+            }
             Self::ChangedOperation => {
                 formatter.write_str("JJ operation changed during observation")
             }
@@ -93,93 +91,93 @@ impl std::error::Error for JjObservationError {}
 /// # Errors
 ///
 /// Rejects unsupported output, an ambiguous workspace, or a changed operation.
-pub fn observe_workspace(jj: &Path, workspace: &Path) -> Result<WorkspaceCut, JjObservationError> {
-    let cut = capture_workspace(jj, workspace)?;
-    if current_operation(jj, workspace)? != cut.operation_id {
-        return Err(JjObservationError::ChangedOperation);
-    }
-    Ok(cut)
-}
-
-// The caller must check operation currentness after its last recorded read.
-fn capture_workspace(jj: &Path, workspace: &Path) -> Result<WorkspaceCut, JjObservationError> {
-    let operation = current_operation(jj, workspace)?;
-    let workspace_root = output(jj_command(jj, workspace, &operation).args(["workspace", "root"]))?;
-    let rows = output(jj_command(jj, workspace, &operation).args([
-        "workspace",
-        "list",
-        "--template",
-        WORKSPACE,
-    ]))?;
-    let mut current = rows
-        .lines()
-        .map(serde_json::from_str::<Workspace>)
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| JjObservationError::Output(error.to_string()))?
-        .into_iter()
-        .filter(|row| row.current);
-    let row = current
-        .next()
-        .filter(|_| current.next().is_none())
-        .ok_or_else(|| {
-            JjObservationError::Output("expected exactly one current JJ workspace".into())
-        })?;
-    let git_dir = output(jj_command(jj, workspace, &operation).args(["git", "root"]))?;
-    let tree = output(
-        Command::new("git")
-            .current_dir(workspace)
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
-            .env("GIT_NO_LAZY_FETCH", "1")
-            .arg("--git-dir")
-            .arg(path_line(&git_dir))
-            .args([
-                "rev-parse",
-                "--verify",
-                "--end-of-options",
-                &format!("{}^{{tree}}", row.commit_id),
-            ]),
-    )?;
-    Ok(WorkspaceCut {
-        workspace_root: PathBuf::from(path_line(&workspace_root)),
-        workspace_name: row.name,
-        operation_id: operation,
-        change_id: row.change_id,
-        commit_id: row.commit_id,
-        tree_id: tree.trim_end().into(),
-        parent_ids: row.parent_ids,
+pub fn observe_workspace(directory: &Path) -> Result<WorkspaceCut, JjObservationError> {
+    let workspace = open_workspace(directory)?;
+    block_on(async {
+        let cut = capture_workspace(&workspace).await?;
+        require_current(&workspace, &cut).await?;
+        Ok(cut)
     })
 }
 
-fn current_operation(jj: &Path, workspace: &Path) -> Result<String, JjObservationError> {
-    let row = output(jj_command(jj, workspace, "@").args([
-        "op",
-        "log",
-        "--no-graph",
-        "--limit",
-        "1",
-        "--template",
-        OPERATION,
-    ]))?;
-    let operation: Operation = serde_json::from_str(&row)
-        .map_err(|error| JjObservationError::Output(error.to_string()))?;
-    if !operation.current || operation.id.is_empty() {
-        return Err(JjObservationError::Output(
-            "missing current JJ operation".into(),
-        ));
-    }
-    Ok(operation.id)
+fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
+    JjObservationError::Repository(error.to_string())
 }
 
-fn jj_command(jj: &Path, workspace: &Path, operation: &str) -> Command {
-    let mut command = Command::new(jj);
-    command.current_dir(workspace).args([
-        "--ignore-working-copy",
-        "--at-op",
-        operation,
-        "--color=never",
-        "--no-pager",
-    ]);
-    command
+fn open_workspace(directory: &Path) -> Result<Workspace, JjObservationError> {
+    let directory = directory.canonicalize().map_err(JjObservationError::Io)?;
+    let root = directory
+        .ancestors()
+        .find(|ancestor| ancestor.join(".jj").is_dir())
+        .ok_or_else(|| JjObservationError::Output("no JJ workspace found".into()))?;
+    let settings = UserSettings::from_config_and_home_dir(StackedConfig::with_defaults(), None)
+        .map_err(repository_error)?;
+    let workspace = default_workspace_loader_factory()
+        .create(root)
+        .and_then(|loader| {
+            loader.load(
+                &settings,
+                &default_backend_factories(),
+                &default_working_copy_factories(),
+            )
+        })
+        .map_err(repository_error)?;
+    jj_lib::git::get_git_backend(workspace.repo_loader().store()).map_err(repository_error)?;
+    Ok(workspace)
+}
+
+async fn capture_workspace(workspace: &Workspace) -> Result<WorkspaceCut, JjObservationError> {
+    let operation_id = current_operation(workspace).await?;
+    let loader = workspace.repo_loader();
+    let operation = loader
+        .load_operation(&operation_id)
+        .await
+        .map_err(repository_error)?;
+    let view = operation.view().await.map_err(repository_error)?;
+    let name = workspace.workspace_name();
+    let commit_id = view.wc_commit_ids().get(name).ok_or_else(|| {
+        JjObservationError::Output("current operation has no commit for this JJ workspace".into())
+    })?;
+    let commit = loader
+        .store()
+        .get_commit(commit_id)
+        .map_err(repository_error)?;
+    let tree = commit
+        .tree_ids()
+        .as_resolved()
+        .ok_or_else(|| JjObservationError::Output("recorded JJ tree must be resolved".into()))?;
+    Ok(WorkspaceCut {
+        workspace_root: workspace.workspace_root().to_path_buf(),
+        workspace_name: name.as_str().to_owned(),
+        operation_id: operation_id.hex(),
+        change_id: commit.change_id().reverse_hex(),
+        commit_id: commit_id.hex(),
+        tree_id: tree.hex(),
+        parent_ids: commit.parent_ids().iter().map(ObjectId::hex).collect(),
+    })
+}
+
+async fn current_operation(workspace: &Workspace) -> Result<OperationId, JjObservationError> {
+    let heads = workspace
+        .repo_loader()
+        .op_heads_store()
+        .get_op_heads()
+        .await
+        .map_err(repository_error)?;
+    let [head] = heads.as_slice() else {
+        return Err(JjObservationError::ChangedOperation);
+    };
+    Ok(head.clone())
+}
+
+async fn require_current(
+    workspace: &Workspace,
+    cut: &WorkspaceCut,
+) -> Result<(), JjObservationError> {
+    if current_operation(workspace).await?.hex() != cut.operation_id {
+        return Err(JjObservationError::ChangedOperation);
+    }
+    Ok(())
 }
 
 // Git and JJ append a newline to path output. Trailing spaces belong
@@ -203,23 +201,21 @@ fn output(command: &mut Command) -> Result<String, JjObservationError> {
 /// # Errors
 /// Requires a JJ workspace rooted at that Git project and a recorded manifest.
 pub fn observe_project_manifest(
-    jj: &Path,
     directory: &Path,
 ) -> Result<(WorkspaceCut, String), JjObservationError> {
     let root = git_project_root(directory)?;
-    let cut = capture_workspace(jj, &root)?;
-    if cut
-        .workspace_root
-        .canonicalize()
-        .map_err(JjObservationError::Io)?
-        != root
-    {
+    let workspace = open_workspace(&root)?;
+    if workspace.workspace_root() != root {
         return Err(JjObservationError::Output(
             "nearest Git project has no matching JJ workspace".into(),
         ));
     }
-    let manifest = read_recorded_file(jj, &cut, ".agents/aita/project.json")?;
-    Ok((cut, manifest))
+    block_on(async {
+        let cut = capture_workspace(&workspace).await?;
+        let manifest = read_at_cut(&workspace, &cut, ".agents/aita/project.json").await?;
+        require_current(&workspace, &cut).await?;
+        Ok((cut, manifest))
+    })
 }
 
 /// Read one regular UTF-8 file at the exact cut returned by the JJ adapter.
@@ -227,7 +223,20 @@ pub fn observe_project_manifest(
 /// # Errors
 /// Refuses paths outside the project, non-files, and a changed operation.
 pub fn read_recorded_file(
-    jj: &Path,
+    cut: &WorkspaceCut,
+    relative_path: &str,
+) -> Result<String, JjObservationError> {
+    let workspace = open_workspace(&cut.workspace_root)?;
+    block_on(async {
+        require_current(&workspace, cut).await?;
+        let content = read_at_cut(&workspace, cut, relative_path).await?;
+        require_current(&workspace, cut).await?;
+        Ok(content)
+    })
+}
+
+async fn read_at_cut(
+    workspace: &Workspace,
     cut: &WorkspaceCut,
     relative_path: &str,
 ) -> Result<String, JjObservationError> {
@@ -242,36 +251,27 @@ pub fn read_recorded_file(
             "invalid project-relative file path".into(),
         ));
     }
-    let fileset = format!(
-        "file:{}",
-        serde_json::to_string(relative_path)
-            .map_err(|error| JjObservationError::Output(error.to_string()))?
-    );
-    let root = &cut.workspace_root;
-    let entry = output(jj_command(jj, root, &cut.operation_id).args([
-        "file",
-        "list",
-        "--revision",
-        &cut.commit_id,
-        "--template",
-        r#"file_type ++ " " ++ path"#,
-        &fileset,
-    ]))?;
-    if entry.strip_prefix("file ") != Some(relative_path) {
+    let path = RepoPath::from_internal_string(relative_path).map_err(repository_error)?;
+    let store = workspace.repo_loader().store();
+    let commit_id = jj_lib::backend::CommitId::try_from_hex(&cut.commit_id)
+        .ok_or_else(|| JjObservationError::Output("invalid recorded commit ID".into()))?;
+    let commit = store.get_commit(&commit_id).map_err(repository_error)?;
+    let value = commit
+        .tree()
+        .path_value(path)
+        .await
+        .map_err(repository_error)?;
+    let Some(Some(TreeValue::File { id, .. })) = value.as_resolved() else {
         return Err(JjObservationError::Output(
             "recorded project path must be a regular file".into(),
         ));
-    }
-    let content = output(jj_command(jj, root, &cut.operation_id).args([
-        "file",
-        "show",
-        "--revision",
-        &cut.commit_id,
-        &fileset,
-    ]))?;
-    if current_operation(jj, root)? != cut.operation_id {
-        return Err(JjObservationError::ChangedOperation);
-    }
+    };
+    let mut reader = store.read_file(path, id).await.map_err(repository_error)?;
+    let mut content = String::new();
+    reader
+        .read_to_string(&mut content)
+        .await
+        .map_err(JjObservationError::Io)?;
     Ok(content)
 }
 
@@ -291,4 +291,46 @@ pub fn git_project_root(directory: &Path) -> Result<PathBuf, JjObservationError>
     Path::new(path_line(&root))
         .canonicalize()
         .map_err(JjObservationError::Io)
+}
+
+#[cfg(all(test, feature = "real-jj"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn manifest_observation_refuses_an_operation_changed_during_file_read() {
+        let executable = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let jj = |args: &[&str]| {
+            let result = Command::new(&executable)
+                .current_dir(root)
+                .args([
+                    "--config",
+                    "user.name='AITIA Test'",
+                    "--config",
+                    "user.email='test@example.invalid'",
+                ])
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(result.status.success(), "{:?}", result);
+        };
+        jj(&["git", "init", "--colocate"]);
+        std::fs::create_dir_all(root.join(".agents/aita")).unwrap();
+        let path = ".agents/aita/project.json";
+        let original = r#"{"schemaVersion":1}"#;
+        std::fs::write(root.join(path), original).unwrap();
+        jj(&["describe", "-m", "record manifest"]);
+        let workspace = open_workspace(root).unwrap();
+        block_on(async {
+            let cut = capture_workspace(&workspace).await.unwrap();
+            assert_eq!(read_at_cut(&workspace, &cut, path).await.unwrap(), original);
+            jj(&["describe", "-m", "competing operation"]);
+            assert!(matches!(
+                require_current(&workspace, &cut).await,
+                Err(JjObservationError::ChangedOperation)
+            ));
+        });
+    }
 }

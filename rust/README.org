@@ -97,7 +97,7 @@ export GERBIL_HOME="$(gxi -e '(displayln (gerbil-home))')"
 printf '%s\n' '{"lifecycle-id":"release/42"}' | rust/target/debug/aitia flow-graph
 rust/target/debug/aitia gitops-evaluate < change.json
 rust/target/debug/aitia org-contract-evaluate < elements-query.json
-rust/target/debug/aitia jj-observe "$(command -v jj)" "$PWD"
+rust/target/debug/aitia jj-observe "$PWD"
 #+end_src
 
 The graph response contains the Scheme Graph's nodes and edges. The ORG
@@ -110,10 +110,11 @@ checks a failed expectation and malformed input through the same linked
 program in one Session. This passed locally with an already staged
 Scheme program. Fresh staging and installed-wheel acceptance with the
 Lab-pinned package set remain separate gates.
-The Scheme-backed commands use the installed Gerbil SDK and workspace
-package pool. The read-only =jj-observe= command uses the supplied JJ
-executable and returns the workspace cut directly through =aitia-jj=.
-It does not initialize a Scheme session or issue write authority.
+The Scheme-backed commands use the installed Gerbil and its package pool.
+The read-only =jj-observe= command returns a workspace cut through =jj-lib=.
+The adapter reads the operation store, commit and tree directly and checks
+that the operation head is still current. The =jj= executable prepares
+repositories in qualification tests.
 The linked Rust integration gate passed. A separate CLI run against JJ
 =v0.47.1= in a disposable repository, with the Gerbil environment unset,
 returned byte-identical cuts before and after creating an untracked file.

@@ -97,7 +97,6 @@ fn check_command_line() {
             Command::new(binary)
                 .current_dir(directory.path())
                 .arg("project-manifest")
-                .arg(&jj)
                 .arg(".")
                 .output()
                 .unwrap()

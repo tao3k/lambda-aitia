@@ -30,13 +30,13 @@ fn observation_preserves_dirty_workspace_and_distinguishes_a_rewrite() {
     let directory = tempfile::tempdir().unwrap();
     let workspace = directory.path();
     jj(&executable, workspace, &["git", "init"]);
-    let original = observe_workspace(&executable, workspace).unwrap();
+    let original = observe_workspace(workspace).unwrap();
     assert_eq!(original.workspace_name(), "default");
     assert_eq!(original.parent_ids().len(), 1);
 
     let untracked = workspace.join("untracked.txt");
     std::fs::write(&untracked, "new work").unwrap();
-    assert_eq!(observe_workspace(&executable, workspace).unwrap(), original);
+    assert_eq!(observe_workspace(workspace).unwrap(), original);
     assert_eq!(std::fs::read_to_string(untracked).unwrap(), "new work");
 
     jj(
@@ -44,7 +44,7 @@ fn observation_preserves_dirty_workspace_and_distinguishes_a_rewrite() {
         workspace,
         &["describe", "-m", "captured rewrite"],
     );
-    let rewritten = observe_workspace(&executable, workspace).unwrap();
+    let rewritten = observe_workspace(workspace).unwrap();
     assert_eq!(rewritten.change_id(), original.change_id());
     assert_ne!(rewritten.commit_id(), original.commit_id());
     assert_ne!(rewritten.tree_id(), original.tree_id());
@@ -72,7 +72,7 @@ fn a_nested_git_project_reads_its_recorded_manifest() {
     let nested = project.join("src");
     std::fs::create_dir(&nested).unwrap();
 
-    assert!(aitia_jj::observe_project_manifest(&executable, &nested).is_err());
+    assert!(aitia_jj::observe_project_manifest(&nested).is_err());
     std::fs::write(&manifest, r#"{"scenario":"aitia"}"#).unwrap();
     let model = nested.join("model witness.qnt");
     std::fs::write(&model, "recorded model").unwrap();
@@ -81,7 +81,7 @@ fn a_nested_git_project_reads_its_recorded_manifest() {
         &project,
         &["describe", "-m", "record project configuration"],
     );
-    let (cut, source) = aitia_jj::observe_project_manifest(&executable, &nested).unwrap();
+    let (cut, source) = aitia_jj::observe_project_manifest(&nested).unwrap();
     assert_eq!(
         cut.workspace_root().canonicalize().unwrap(),
         project.canonicalize().unwrap()
@@ -89,16 +89,16 @@ fn a_nested_git_project_reads_its_recorded_manifest() {
     assert_eq!(source, r#"{"scenario":"aitia"}"#);
     std::fs::write(&manifest, r#"{"scenario":"dirty"}"#).unwrap();
     assert_eq!(
-        aitia_jj::observe_project_manifest(&executable, &nested).unwrap(),
+        aitia_jj::observe_project_manifest(&nested).unwrap(),
         (cut, source)
     );
-    let model_cut = observe_workspace(&executable, &project).unwrap();
+    let model_cut = observe_workspace(&project).unwrap();
     std::fs::write(&model, "dirty model").unwrap();
     assert_eq!(
-        aitia_jj::read_recorded_file(&executable, &model_cut, "src/model witness.qnt").unwrap(),
+        aitia_jj::read_recorded_file(&model_cut, "src/model witness.qnt").unwrap(),
         "recorded model"
     );
-    assert!(aitia_jj::read_recorded_file(&executable, &model_cut, "../outside.qnt").is_err());
+    assert!(aitia_jj::read_recorded_file(&model_cut, "../outside.qnt").is_err());
     std::fs::remove_file(&manifest).unwrap();
     std::fs::create_dir(&manifest).unwrap();
     std::fs::write(manifest.join("nested.json"), "{}").unwrap();
@@ -108,52 +108,9 @@ fn a_nested_git_project_reads_its_recorded_manifest() {
         &["describe", "-m", "record directory instead"],
     );
     assert!(matches!(
-        aitia_jj::read_recorded_file(&executable, &model_cut, "src/model witness.qnt"),
+        aitia_jj::read_recorded_file(&model_cut, "src/model witness.qnt"),
         Err(aitia_jj::JjObservationError::ChangedOperation)
     ));
-    let error = aitia_jj::observe_project_manifest(&executable, &nested).unwrap_err();
+    let error = aitia_jj::observe_project_manifest(&nested).unwrap_err();
     assert!(error.to_string().contains("regular file"), "{error}");
-}
-
-#[cfg(unix)]
-#[test]
-fn manifest_observation_refuses_an_operation_changed_during_file_read() {
-    use std::os::unix::fs::PermissionsExt;
-
-    let executable = PathBuf::from(std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN"));
-    let tools = tempfile::tempdir().unwrap();
-    let directory = tempfile::tempdir().unwrap();
-    let project = directory.path();
-    jj(&executable, project, &["git", "init", "--colocate"]);
-    let config = project.join(".agents/aita");
-    std::fs::create_dir_all(&config).unwrap();
-    std::fs::write(config.join("project.json"), r#"{"schemaVersion":1}"#).unwrap();
-    jj(&executable, project, &["describe", "-m", "record manifest"]);
-
-    std::os::unix::fs::symlink(
-        executable.canonicalize().unwrap(),
-        tools.path().join("real-jj"),
-    )
-    .unwrap();
-    let wrapper = tools.path().join("jj");
-    std::fs::write(
-        &wrapper,
-        r#"#!/bin/sh
-set -eu
-jj="${0%/*}/real-jj"
-if [ "${6-}" = file ] && [ "${7-}" = show ]; then
-    "$jj" "$@"
-    "$jj" --config "user.name='AITIA Test'" --config "user.email='test@example.invalid'" describe -m 'competing operation' >&2
-else
-    exec "$jj" "$@"
-fi
-"#,
-    )
-    .unwrap();
-    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o700)).unwrap();
-
-    assert!(matches!(
-        aitia_jj::observe_project_manifest(&wrapper, project),
-        Err(aitia_jj::JjObservationError::ChangedOperation)
-    ));
 }

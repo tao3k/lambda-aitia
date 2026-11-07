@@ -15,19 +15,16 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let command = args.next();
     let command = command.as_deref().and_then(std::ffi::OsStr::to_str);
-    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia <jj-observe|project-manifest> <jj-executable-path> <directory>\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check sysml <jj-executable-path> <directory> (sysml feature)";
+    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia <jj-observe|project-manifest> <directory>\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check sysml <directory> (sysml feature)";
     #[cfg(feature = "sysml")]
     if command == Some("check") {
-        let (Some(kind), Some(jj), Some(directory), None) =
-            (args.next(), args.next(), args.next(), args.next())
-        else {
+        let (Some(kind), Some(directory), None) = (args.next(), args.next(), args.next()) else {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         };
         if kind != "sysml" {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         }
-        let jj = fs::canonicalize(jj)?;
-        let (cut, manifest) = recorded_project(&jj, Path::new(&directory))?;
+        let (cut, manifest) = recorded_project(Path::new(&directory))?;
         let sources: Vec<String> = serde_json::from_value(manifest["models"]["sysml"].clone())?;
         if sources.is_empty() {
             return Err(
@@ -35,7 +32,7 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         let connection = opensysml::Connection::connect()?;
-        let model = crate::parse_recorded_sysml(&connection, &jj, &cut, &sources)?;
+        let model = crate::parse_recorded_sysml(&connection, &cut, &sources)?;
         let receipt = serde_json::json!({
             "cut": cut,
             "documents": model.documents(),
@@ -70,19 +67,18 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         return init_project(directory.as_deref().map_or(Path::new("."), Path::new));
     }
     if matches!(command, Some("jj-observe" | "project-manifest")) {
-        let (Some(jj), Some(workspace), None) = (args.next(), args.next(), args.next()) else {
+        let (Some(workspace), None) = (args.next(), args.next()) else {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         };
-        let jj = std::fs::canonicalize(jj)?;
         let mut stdout = io::stdout().lock();
         if command == Some("project-manifest") {
-            let (cut, manifest) = recorded_project(&jj, Path::new(&workspace))?;
+            let (cut, manifest) = recorded_project(Path::new(&workspace))?;
             serde_json::to_writer(
                 &mut stdout,
                 &serde_json::json!({"cut": cut, "manifest": manifest}),
             )?;
         } else {
-            let cut = observe_workspace(&jj, Path::new(&workspace))?;
+            let cut = observe_workspace(Path::new(&workspace))?;
             serde_json::to_writer(&mut stdout, &cut)?;
         }
         writeln!(stdout)?;
@@ -119,10 +115,9 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn recorded_project(
-    jj: &Path,
     directory: &Path,
 ) -> Result<(WorkspaceCut, serde_json::Value), Box<dyn std::error::Error>> {
-    let (cut, source) = observe_project_manifest(jj, directory)?;
+    let (cut, source) = observe_project_manifest(directory)?;
     if source.len() > MAX_REQUEST_BYTES as usize {
         return Err(
             io::Error::new(io::ErrorKind::InvalidData, "AITIA request exceeds 4 MiB").into(),
