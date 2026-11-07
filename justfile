@@ -148,6 +148,7 @@ check-semantic:
     just test-module nasa-7150-2d-catalog
     just test-scheme gitops
     just test-module lambda-aitia/modules/gitops/interface
+    just test-module project-config
     just test-scheme modules
 
 # Build the Aitia-owned assurance laws independently of Agentic AI Lab's proof package.

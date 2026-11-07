@@ -100,9 +100,9 @@ separate integration work.
 
 * Mapping to the current framework
 
-The slot names in the existing column are published by the Yuanxu
-GitOps Scope. The required port operations describe the target
-interface and do not add new public slot names yet.
+The GitOps operations below come from the Yuanxu GitOps Scope.
+ProjectConfig is a separate Yuanxu Module. The required integration
+column describes the remaining boundaries.
 
 | Concern | Existing entry or implementation | Required integration |
 |---------+----------------------------------+----------------------|
@@ -120,6 +120,13 @@ queue blocking tool calls separately from async I/O and collect results
 against the same cut. Scheme would retain selection, dependency ordering and
 admission policy. Configuration resolution would stay on the Scheme owner
 thread.
+
+On AITIA =23e97b9=, =just test-project-sysml= passed with the local Lab
+package pool and OpenSysML 0.12.1. The linked binary ran =aitia check= from
+a nested directory, used the recorded configuration, refused a malformed
+recorded model, and skipped parsing after Scheme removed the operation
+from the selected checks. The same test exercised stale-cut refusal.
+Remote package installation remains a separate gate.
 
 * Writer and recovery criteria
 
