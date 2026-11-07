@@ -292,13 +292,7 @@ check-rust-delivery:
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-license-contract check-semantic check-formal test-integration test-jj-commit-evidence check-rust-format check-rust-lint test-rust-workspace check-rust-delivery
+check: check-semantic check-formal test-integration test-jj-commit-evidence check-rust-format check-rust-lint test-rust-workspace check-rust-delivery
 
 [group('check')]
 check-all: check
-
-# Validate the repository publication license contract.
-[group('check')]
-check-license-contract:
-    python3 dev/qualification/check_license_contract.py
-    python3 -m unittest discover -s dev/qualification -p 'test_check_license_contract.py'

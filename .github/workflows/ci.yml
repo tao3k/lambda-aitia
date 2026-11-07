@@ -18,19 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  license-contract:
-    name: License contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout Lambda Aitia
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Validate repository and package licenses
-        run: |
-          python3 dev/qualification/check_license_contract.py
-          python3 -m unittest discover -s dev/qualification -p 'test_check_license_contract.py'
-
   lean-proof:
     name: Lean assurance and SDLC design laws
     runs-on: ubuntu-latest

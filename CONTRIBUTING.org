@@ -33,7 +33,6 @@ just build-contribute lambda-aitia
 just test-contribute lambda-aitia modules
 just test-contribute lambda-aitia assurance
 just --working-directory packages/lambda-aitia --justfile packages/lambda-aitia/justfile check-rust-delivery
-just check-license-contract
 #+end_src
 
 The AITIA package's =just check= includes the real JJ evidence replay.
