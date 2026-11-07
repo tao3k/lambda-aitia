@@ -4,7 +4,7 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# The SDK derives its default from the host; preserve caller-supplied limits.
+# Gerbil derives its default from the host; preserve caller-supplied limits.
 # GAMBOPT heap limits apply per process, not to the whole compiler tree.
 export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", `gxi -:max-heap=2G -e '(display (##core-count))'`)
 
@@ -126,11 +126,6 @@ test-proof-scheme test_file:
 _test-scheme-file path:
     test -f {{ quote(path) }}
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi -:max-heap=1G ./run-test.ss {{ quote(path) }}
-
-# Check native compiler products with the existing CI heap and deadline.
-[group('test')]
-test-native-products:
-    {{ gerbil_env }} timeout --signal=TERM --kill-after=5s 180s gxi -:max-heap=2G,debug=q -e '(import (prefix-in :gerbil/tools/gxtest test.)) (exit (test.main "t/native-products-test.ss"))'
 
 # Build and execute Aitia's SDLC plus GitOps composition case.
 [group('check')]
@@ -305,5 +300,5 @@ check-all: check
 # Validate the repository publication license contract.
 [group('check')]
 check-license-contract:
-    python3 scripts/check_license_contract.py
-    python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+    python3 dev/qualification/check_license_contract.py
+    python3 -m unittest discover -s dev/qualification -p 'test_check_license_contract.py'

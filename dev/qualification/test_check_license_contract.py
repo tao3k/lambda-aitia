@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts" / "check_license_contract.py"
+SCRIPT = Path(__file__).with_name("check_license_contract.py")
 EXPRESSION = "Apache-2.0 AND LGPL-2.1-or-later"
 
 
