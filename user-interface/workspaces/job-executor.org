@@ -241,7 +241,7 @@ parser in Python or infer supported bindings from the existence of the CLI.
 :ID: aitia-job-executor-receipts
 :END:
 
-The [[file:../../bindings/python/qualification/job_executor/README.org][source-fixture replay receipt]] records the 2026-09-24 run at code commit
+The [[file:../../dev/qualification/job-executor/README.org][source-fixture replay receipt]] records the 2026-09-24 run at code commit
 =f3438241780e863db6c0b518d86628b540f96cd1=: fixed mode passed, while buggy mode
 failed specifically with two commits. This is a linked historical receipt, not
 a new run produced by opening this document or a trusted Host-issued admission.

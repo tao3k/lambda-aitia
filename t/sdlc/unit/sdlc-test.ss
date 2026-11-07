@@ -2,11 +2,20 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test :std/error
-        (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/contribution/objects admit-contributions)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+(import (only-in "../../../init.ss" lambda-aitia.init.exports)
+        :std/test :std/error
+        (only-in :clan/poo/object .get .o .ref)
+        (only-in :yuanxu/contribution/objects admit-contributions)
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss")
+
+(def sdlc (.get lambda-aitia.init.exports modules sdlc))
+(def sdlc-contribution (.get sdlc contribution))
+(def sdlc-module (.get sdlc default-contribution))
+(def sdlc-with-standards (.get sdlc with-standards))
+(def SdlcProfile (.get sdlc profile))
+(def StandardProfile. (.get sdlc standard-profile))
+(def standard-profile? (.get sdlc standard-profile?))
+
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 (def project-sdlc-module (sdlc-contribution ProjectSdlcProfile))
 (export sdlc-test)

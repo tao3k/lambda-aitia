@@ -7,7 +7,8 @@
 :ID:              lambda-aitia-adr-0007
 :STATUS:          accepted
 :DATE:            2026-09-18
-:REVISION:        r1
+:REVISION:        r2
+:UPDATED:         2026-11-07
 :RFC_ID:          lambda-aitia-rfc-0001
 :SUPERSEDES:      lambda-aitia-adr-0003
 :DECISION_MAKERS: tao3k-maintainers
@@ -15,7 +16,46 @@
 :INFORMED:        lambda-aitia-consumers
 :END:
 
+* Current ownership clarification
+
+[[file:0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] and [[file:../rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] refine this decision: Yuanxu owns shared Core
+mechanisms, Lab owns reusable product mechanisms, and Aitia composes Rust
+engineering execution with Scheme/POO assurance semantics. DE is the principal
+engineering Library selected at the Project boundary, without a reverse import
+of its current Aitia-dependent package. The one-way dependency and no-duplicate-
+mechanism rules remain accepted. References below to Python as the primary SDLC
+Runtime record the earlier direction; ADR 0009 now governs that choice.
+
 * Context and Problem Statement
+
+** Independent package, shared language and libraries
+
+AITIA is an independent Project with Gerbil package identity =lambda-aitia=.
+Its placement as a Git submodule in Lab is checkout organization; it does not
+make =agentic-ai-lab/lambda-aitia= the current package namespace. An integration
+consumer imports AITIA through its package interface; the mechanism libraries
+do not acquire a reverse production dependency on AITIA.
+AITIA consumes Lab and Yuanxu as dependencies rather than enclosing namespaces.
+
+=prelude: :tao3k/yuanxu/prelude= selects the shared declaration language.
+It does not replace =package: lambda-aitia=, inherit Lab's =init.exports=,
+or select Lab's Modules. AITIA's own =init.ss= owns its selection and publishes
+=lambda-aitia.init.exports=. A separate AITIA prelude is not necessary merely
+to express Project independence.
+
+Module-local role imports are relative to their owning Module. Cross-Module
+assembly uses declared requirements and admitted scopes; no parent checkout
+path or installed private role supplies a parallel semantic instance. Native
+compiler owner identities used by operation counters remain qualified by the
+AITIA package, independently of the absolute checkout path.
+
+The current workspace package pool is a local integration environment, not
+evidence of standalone dependency installation. A clean installation of the
+declared dependencies and an external consumer remain separate acceptance
+obligations. Historical receipts retain their original package spelling and
+cannot qualify the changed identity.
+
+** Mechanism-library relationship
 
 Lambda Aitia is a Software/SDLC contribution built on Agentic AI Lab.  Agentic AI Lab is
 not an optional adapter from which Aitia should minimize imports; it is the

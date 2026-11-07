@@ -8,12 +8,18 @@
 :ID:         lambda-aitia-rfc-0004
 :STATUS:     draft
 :DATE:       2026-09-24
-:UPDATED:    2026-09-24
+:UPDATED:    2026-11-07
 :PARENT_RFC: lambda-aitia-rfc-0001
 :IMPLEMENTS: lambda-aitia-rfc-0001
 :END:
 
 * Decision summary and scope
+
+[[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] now governs execution-language and engineering-library direction:
+Rust execution, DE engineering definitions, and Scheme/POO assurance semantics.
+Its admission/authorization/recovery protocols remain proposed, not implemented.
+Earlier Python-stage priorities below are historical implementation planning;
+they do not override this direction or qualify the new Runtime.
 
 The complete Software Development Life Cycle (SDLC) is Aitia's organizing
 framework. Requirements, engineering design, algorithm and implementation
@@ -98,7 +104,7 @@ weakened guard that produces the expected counterexample. Do not duplicate a
 shared action in every scenario, discard environment interference to obtain a
 green atomic test, or infer composite correctness from leaf checks alone.
 
-The [[file:../../proof/quint/README.org][maintained Quint slice]] separates cancellation/work observations from retirement
+The [[file:../../dev/proof/quint/README.org][maintained Quint slice]] separates cancellation/work observations from retirement
 review. It requires final-cut quiescence and known inventory: a cancellation
 request, an earlier accepted review, or missing history is insufficient.
 Lean proves safety preservation for an abstract retirement transition relation;
@@ -145,6 +151,12 @@ concrete transition has no modeled counterpart, record that coverage gap and
 reopen the design or model rather than narrowing the tested environment to
 make the check pass. No implementation-conformance or effect-authority flag
 may become true from these source mappings alone.
+
+AITIA's Yuanxu =init.ss= publishes =scenarios.job-retirement-contract= for the
+SDLC design Contract and formal source groups, and
+=scenarios.job-executor-retirement= for the synthetic impact graphs. The two
+Scopes keep proof-source binding independent of the Temporal Causality
+imports used by impact analysis.
 
 For the maintained =job-executor/retirement= declaration, the first
 correspondence review has these concrete boundaries:
@@ -503,22 +515,13 @@ obligations and changing justification rather than that feature alone.
 
 * Runtime ownership and future MRR work
 
-The production Aitia Python Runtime under =bindings/python= serves all Aitia
-capabilities across the SDLC. AnyIO is its asynchronous foundation for task
-lifetime, cancellation, bounded concurrency and I/O. Agentic AI Lab continues to own
-generic Graph/FunFlow execution and temporal/causal algorithms. Scheme/POO owns
-Aitia's semantic composition, and the C ABI carries typed projections.
-Native session thread affinity must be preserved at asynchronous boundaries.
-Declaring the AnyIO dependency does not establish async execution or Host
-admission of a tool observation.
+AITIA uses Rust for engineering execution. Agentic AI Lab owns generic
+Graph/FunFlow execution and temporal and causal mechanisms. Scheme/POO
+owns Aitia's semantic composition. Python consumers use the Maturin wheel.
+[[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] tracks execution custody, authorization and recovery qualification.
 
-MRR is deferred beyond the current Python implementation stage. A later design
-will evaluate relation queries, derivation and lineage over lifecycle
-snapshots; its role is broader than storing trace logs. Preserve identities,
-revisions, typed relations, modalities, cuts, witnesses and unknown frontiers
-now so a later integration can project them without redefining Aitia meaning.
-Do not add an MRR dependency, query adapter, storage framework or new Python
-inference engine in this phase. Future query results must retain snapshot and
+MRR remains a design candidate for relation queries, derivation and lineage
+over lifecycle snapshots. Future query results must retain snapshot and
 lineage bindings and pass the applicable admission boundary before use.
 
 * Qualification sequence and observable value

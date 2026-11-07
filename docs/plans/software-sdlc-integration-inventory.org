@@ -8,10 +8,27 @@
 :ID:      lambda-aitia-software-sdlc-integration-inventory
 :STATUS:  draft
 :DATE:    2026-09-17
-:UPDATED: 2026-09-24
+:UPDATED: 2026-11-07
 :END:
 
 * Purpose
+
+Current runtime/library ownership is governed by
+[[file:../rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] and [[file:../adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]]. Rust is selected for engineering execution; DE is
+the principal engineering Library composed with Aitia at the Project boundary.
+Yuanxu now owns shared Core mechanisms including Graph, Funflow and verification.
+Python remains a maintained existing consumer. The inventories below retain
+their earlier source/migration scope; Python-primary priorities, old =src/graph=
+paths and migration-time package blockers are not the current design baseline.
+No previous receipt is promoted to qualification of this redesign.
+
+Keep three inventories separate: AITIA framework implementation mechanisms,
+DE reusable engineering definitions, and the user's selected Project bindings.
+Rust/Python examples and their applicability boundaries are in RFC 0006. DE's
+Rust resource Case can support framework self-engineering or another Rust
+Project under separate bindings; it is not the entire SDLC. Python project
+lifecycle definitions may need library extension and independent qualification,
+regardless of the existing AITIA Python transport/observation implementation.
 
 Lambda Aitia owns causal assurance for software engineering and the SDLC,
 including the migrated SDLC, NASA and GitOps source modules.  It does not own
@@ -74,8 +91,8 @@ eight-step assurance/execution protocol is one mechanism within this framework.
 | =src/graph/= | Agentic AI Lab | reference | graph substrate and typed traversal | Aitia creates no second graph engine |
 | =src/modules/temporal-causality/= | Agentic AI Lab | reference | event graphs, cuts, trajectory contracts and temporal classification | Aitia supplies software meaning; complete behavior/design trajectory integration remains pending |
 | Agentic AI Lab verification contribution contracts | Agentic AI Lab | reference | verifier capability and receipt handoff | a plan never invokes a verifier directly |
-| =bindings/runtime-c/include/agentic_ai_lab/scheme_native_v1.h= pattern | Agentic AI Lab | reference | owned-byte AOT Scheme ABI convention | Aitia uses stable unversioned language namespaces; ABI revision is descriptor metadata |
-| =bindings/python= | Lambda Aitia | maintained | production Runtime across Aitia's SDLC capabilities, CFFI, tool observations and AnyIO dependency | async execution and tool-to-Host admission remain pending; Scheme retains semantic ownership |
+| =rust/crates/aitia-runtime= | Lambda Aitia | current | Rust Session links the Scheme program | Scheme retains semantic ownership |
+| =rust/crates/aitia-python= | Lambda Aitia | current | PyO3 extension packaged by Maturin | bounded frozen pytest replay and ORG edit preflight qualified locally. Host admission and trusted Orgize projection custody remain open |
 | =packages/python-runtime= | Agentic AI Lab | keep, separate | generic runtime and lifecycle binding | never owns Aitia or SDLC semantics |
 | =packages/proof/lean/AgenticAILabProof/Enterprise/EvidenceFreshness.lean= | Agentic AI Lab proof package | reference | seed for general freshness/no-stale-authority laws | theorem ownership decision must close before any move |
 | =proof/quint/AssuranceLifecycle.qnt= | Aitia | bounded candidate | invalidate, plan, reverify, admit, decide, authorize and effect lifecycle | generic model; stable-environment progress is conditional, and Host enforcement remains open |
@@ -174,7 +191,7 @@ Required negative cases:
    and negative namespace tests.
 5. Commit Aitia first, Episteme deletion second and parent gitlink/registry
    cutover last.
-6. Extend the already landed AOT/CFFI transport beyond GitOps only after each
+6. Extend the linked Rust Session beyond the qualified operations only after each
    corresponding Scheme semantic contract and negative matrix closes.
 
 * Evidence required for migration acceptance

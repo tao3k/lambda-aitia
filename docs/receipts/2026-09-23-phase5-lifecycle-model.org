@@ -13,7 +13,7 @@
 
 This is a historical TLA+ receipt. Its =proof/tla/= paths refer to the source
 at commit =49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4=; the maintained model
-and checks are now in [[file:../../proof/quint/README.org][Quint]].
+and checks are now in [[file:../../dev/proof/quint/README.org][Quint]].
 
 * Exact model cut
 

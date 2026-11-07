@@ -8,13 +8,13 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
-        :agentic-ai-lab/core/poo-clos/interface
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verification-valid?)
-        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
+        (only-in :clan/poo/mop validate)
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verification-valid?)
+        (only-in "func.ss"
                  assurance-canonical-digest assurance-node-canonical
                  assurance-relation-canonical)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/types)
+        "types.ss")
 
 (export assurance-verifier-input assurance-verifier-outcome
         assurance-evaluate-evidence-admission
@@ -28,9 +28,9 @@
 (def (assurance-verifier-input artifact)
   (unless (assurance-artifact? artifact)
     (error "verifier input requires an artifact"))
-  (poo-clos-check-model
+  (validate
    AssuranceVerifierInput
-   (.o (:: @ (poo-clos-model-prototype AssuranceVerifierInput))
+   (.o (:: @ (.ref AssuranceVerifierInput 'proto))
        identity: (.ref artifact 'identity)
        revision: (.ref artifact 'revision)
        digest: (.ref artifact 'content-digest))))
@@ -46,9 +46,9 @@
                                  output-digest: (output-value #f)
                                  accountable-authority: (authority-value #f)
                                  review-scope: (review-scope-value #f))
-  (poo-clos-check-model
+  (validate
    AssuranceVerifierOutcome
-   (.o (:: @ (poo-clos-model-prototype AssuranceVerifierOutcome))
+   (.o (:: @ (.ref AssuranceVerifierOutcome 'proto))
        identity: identity-value status: status-value
        producer: producer-value tool: tool-value
        tool-version: tool-version-value
@@ -91,9 +91,9 @@
 
 (def (assurance-verification-subject snapshot-value obligation-value
                                      evidence-value outcome-value)
-  (poo-clos-check-model
+  (validate
    AssuranceVerificationSubject
-   (.o (:: @ (poo-clos-model-prototype AssuranceVerificationSubject))
+   (.o (:: @ (.ref AssuranceVerificationSubject 'proto))
        snapshot: snapshot-value obligation: obligation-value
        evidence: evidence-value outcome: outcome-value)))
 
@@ -214,7 +214,7 @@
               (equal? (assurance-relation-canonical current-relation)
                       (assurance-relation-canonical relation))
               (.ref structural 'eligible?)
-              (agentic-ai-lab-verification-valid?
+              (yuanxu-verification-valid?
                adapter issued-receipt
                (assurance-verification-subject
                 snapshot obligation evidence outcome)
@@ -278,9 +278,9 @@
            (list 'lambda-aitia.evidence-admission
                  reported-digest (assurance-node-canonical required-obligation)
                  (.ref current-snapshot 'digest) admission-blocker))))
-    (poo-clos-check-model
+    (validate
      AssuranceEvidenceAdmissionReceipt
-     (.o (:: @ (poo-clos-model-prototype AssuranceEvidenceAdmissionReceipt))
+     (.o (:: @ (.ref AssuranceEvidenceAdmissionReceipt 'proto))
          schema: "lambda-aitia.evidence-admission"
          outcome: (.ref reported-result 'identity)
          obligation: (.ref required-obligation 'identity)

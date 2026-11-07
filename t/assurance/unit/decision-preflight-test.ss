@@ -9,9 +9,33 @@
                  agentic-ai-lab-cedar-runtime-handoff
                  agentic-ai-lab-cedar-authorization-request?
                  agentic-ai-lab-cedar-authorization-request->runtime)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :clan/poo/object .get))
 
 (export decision-preflight-test)
+
+;;; Tests consume the admitted Scope; assertions below are unchanged.
+(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+(def assurance-artifact (.get assurance-module-scope artifact))
+(def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
+(def assurance-claim (.get assurance-module-scope claim))
+(def assurance-decision (.get assurance-module-scope decision))
+(def assurance-decision-preflight? (.get assurance-module-scope decision-preflight?))
+(def assurance-evidence (.get assurance-module-scope evidence))
+(def assurance-host-admission-current? (.get assurance-module-scope host-admission-current?))
+(def assurance-host-admit (.get assurance-module-scope host-admit))
+(def assurance-host-cedar-request (.get assurance-module-scope host-cedar-request))
+(def assurance-host-cedar-request-current? (.get assurance-module-scope host-request-current?))
+(def assurance-host-decision-preflight-current? (.get assurance-module-scope host-preflight-current?))
+(def assurance-host-preflight-decision (.get assurance-module-scope host-preflight))
+(def assurance-host-revoke-admission! (.get assurance-module-scope host-revoke-admission!))
+(def assurance-host-revoke-decision-preflight! (.get assurance-module-scope host-revoke-preflight!))
+(def assurance-obligation (.get assurance-module-scope obligation))
+(def assurance-relation (.get assurance-module-scope relation))
+(def assurance-snapshot (.get assurance-module-scope snapshot))
+(def assurance-verification-host (.get assurance-module-scope verification-host))
+(def assurance-verifier-input (.get assurance-module-scope verifier-input))
+(def assurance-verifier-outcome (.get assurance-module-scope verifier-outcome))
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))

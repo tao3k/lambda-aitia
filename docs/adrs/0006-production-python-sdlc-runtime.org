@@ -5,15 +5,22 @@
 
 :PROPERTIES:
 :ID:              lambda-aitia-adr-0006
-:STATUS:          accepted
+:STATUS:          superseded
 :DATE:            2026-09-18
-:REVISION:        r3
-:UPDATED:         2026-09-24
+:REVISION:        r4
+:UPDATED:         2026-11-07
+:SUPERSEDED_BY:   lambda-aitia-adr-0009
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
 :CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
+
+* Supersession
+
+[[file:0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] supersedes the Python-primary Runtime direction with Rust engineering
+execution and the DE Library. The decision below records the original
+CFFI design. Current Python delivery uses the Rust Session built with Maturin.
 
 * Context and Problem Statement
 

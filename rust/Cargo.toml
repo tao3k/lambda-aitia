@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+[workspace]
+resolver = "3"
+members = ["crates/aitia-runtime", "crates/aitia-python", "crates/aitia-jj", "build-support/aitia-build-support"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 AND LGPL-2.1-or-later"
+publish = false
+
+[workspace.dependencies]
+gerbil-scheme = { git = "https://github.com/tao3k/gerbil-scheme-rust", rev = "380f8ba5f87b2f9ba3924302b35b3eea1e3f2a8e" }
+asp-rust = { git = "https://github.com/tao3k/asp-rust", rev = "1ca41124b846dec947f3d05119cafa07eaa57924", default-features = false }
+aitia-build-support = { path = "build-support/aitia-build-support" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "deny"
+
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+opt-level = 3
+incremental = true

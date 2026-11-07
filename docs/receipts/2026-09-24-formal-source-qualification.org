@@ -13,7 +13,7 @@
 
 This is a historical TLA+ receipt. Its =proof/tla/= paths refer to the source
 at commit =49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4=; the maintained model
-and checks are now in [[file:../../proof/quint/README.org][Quint]].
+and checks are now in [[file:../../dev/proof/quint/README.org][Quint]].
 
 * What closes here
 
@@ -38,12 +38,14 @@ The final native regression processes completed within the 60-second gate.
 
 * Maintained POO declaration and source binding
 
-[[file:../../user-interface/scenarios/job-retirement-contract.ss][The retirement contract]] declares identity =job-executor/retirement=,
+[[https://github.com/tao3k/lambda-aitia/blob/49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4/user-interface/scenarios/job-retirement-contract.ss][The historical retirement contract]] declares identity =job-executor/retirement=,
 revision =r1=, guarantee =retirement-safety/g1= and four explicit assumptions:
 atomic epoch fencing, known inventory, no new grant after closure, and the
 single-client bound. It grants no allowed runtime effects.
 
-[[file:../../t/formal/retirement-binding-test.ss][Binding qualification]] uses existing =sdlc-design-implementation-link=,
+Binding qualification, originally at =t/formal/retirement-binding-test.ss=
+and now at [[file:../../dev/proof/scheme/retirement-binding-test.ss][dev/proof/scheme/retirement-binding-test.ss]],
+uses existing =sdlc-design-implementation-link=,
 =sdlc-design-implementation-review=, Assurance snapshots and source digests.
 The TLA source group contains four model/helper files and fourteen configs;
 the Lean group contains both retirement proof modules. Every member's content
@@ -100,8 +102,8 @@ The linked parser branch advanced independently during the work from
 =f42393559de4aa78620a836777bbfd91ee6751ca= to
 =f0df5a11d8014bdfe8be30be5a1f3ad9203ce0bf=. Its unrelated artifact-filename
 change is preserved. Our parser edits remain confined to the two files below.
-The qualified parser source resolves through the parent's existing package
-link to =/private/tmp/gerbil-parser-rowan-scanned-tokens=.
+The qualified parser source was resolved through the parent's package link.
+The revision and file digests identify the inspected source.
 
 | Source | SHA-256 |
 |--------+---------|

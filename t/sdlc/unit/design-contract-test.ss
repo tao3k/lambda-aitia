@@ -3,8 +3,22 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        (only-in :clan/poo/object .ref)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
+        (only-in :clan/poo/object .get .ref)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+)
+
+(def sdlc (.get lambda-aitia.init.exports modules sdlc))
+(def sdlc-change-impact (.get sdlc change-impact))
+(def sdlc-design-assumption (.get sdlc design-assumption))
+(def sdlc-design-contract (.get sdlc design-contract))
+(def sdlc-design-contract-digest (.get sdlc design-contract-digest))
+(def sdlc-design-guarantee (.get sdlc design-guarantee))
+(def sdlc-design-replacement-review (.get sdlc design-replacement-review))
+(def sdlc-design-variation (.get sdlc design-variation))
+(def sdlc-project (.get sdlc project))
+(def sdlc-trace-edge (.get sdlc trace-edge))
+(def sdlc-trace-node (.get sdlc trace-node))
+
 
 (export design-contract-test)
 
@@ -39,6 +53,27 @@
 
 (def design-contract-test
   (test-suite "SDLC design contract replacement"
+    (test-case "the admitted Assurance digest binds design identity and revision"
+      (let* ((digest sdlc-design-contract-digest)
+             (reordered (contract "r1" (list idempotency)
+                          (list cancellation unique-effect) (list retry-v1)))
+             (revised (contract "r2" (list idempotency)
+                        (list unique-effect cancellation) (list retry-v1))))
+        (check-equal?
+         (digest baseline)
+         ((.get lambda-aitia.init.exports modules assurance digest)
+          '(lambda-aitia.sdlc-design-contract "job-executor" "r1"
+            ("ADR/job-executor" ("execute-job") ("job-ledger") ("external-operation")
+             (("external-idempotency" "a1" assumption
+               "The provider deduplicates tenant/job/operation keys"))
+             (("cancel-before-commit" "g1" guarantee
+               "Cancellation before the commit point prevents a new commit")
+              ("unique-effect" "g1" guarantee
+               "At most one externally committed effect per operation key"))
+             (("retry-policy" "v1" ("unique-effect")))))))
+        (check-equal? (digest reordered) (digest baseline))
+        (check-equal? (equal? (digest revised) (digest baseline)) #f)
+        (check-exception (digest #f) Error?)))
     (test-case "retry variation reopens only its declared guarantee"
       (let* ((next (contract "r2" (list idempotency)
                              (list unique-effect cancellation) (list retry-v2)))

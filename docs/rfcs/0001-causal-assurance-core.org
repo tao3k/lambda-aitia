@@ -8,10 +8,15 @@
 :ID:         lambda-aitia-rfc-0001
 :STATUS:     draft
 :DATE:       2026-09-17
-:UPDATED:    2026-09-24
+:UPDATED:    2026-11-07
 :END:
 
 * Decision summary
+
+[[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] refines the current ownership and runtime direction: Yuanxu shared
+mechanisms, Lab product mechanisms, Aitia SDLC assurance, DE engineering Library
+and Rust execution. [[file:../adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] accepts that direction while cross-runtime
+admission, authorization and recovery remain proposed and unqualified.
 
 Lambda Aitia organizes its software-engineering capabilities around the
 complete SDLC, including requirements, design, algorithms and implementation
@@ -74,17 +79,16 @@ Integration belongs to an application or an isolated contribution adapter;
 Agentic AI Lab core never imports Lambda Aitia, and the parent Git submodule causes no
 implicit activation.
 
-Lambda Aitia owns its Python project under =bindings/python=.  Its Scheme
-semantic surface is compiled AOT and exposed through a dedicated C ABI using
-the owned result/release convention established by Agentic AI Lab's Scheme-native
-ABI.  Public Scheme and Python namespaces remain unversioned; ABI revision is
-explicit descriptor metadata rather than part of those names.  The production
-Python package validates and materializes lifecycle requests and receipts;
-Scheme remains the decision owner.  Agentic AI Lab's =packages/python-runtime=
-remains the separate generic execution/lifecycle mechanism consumed by the
-Aitia Python Runtime rather than becoming a second SDLC semantic API. AnyIO
-provides the runtime-wide concurrency foundation; thread-affine native sessions
-and Host-issued authority must retain their owner at asynchronous boundaries.
+Scheme/POO owns the assurance semantics. The Rust workspace stages the
+compiled Scheme program through the Gerbil/Rust bridge and exposes an
+owner-scoped Session. [[file:../../rust/crates/aitia-python/Cargo.toml][The Python binding crate]] packages that Session
+through PyO3 and Maturin. [[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] defines the authority and recovery
+boundary and records the open integration obligations.
+
+The [[file:nasa-ai-assurance-objectives.org][NASA AI assurance design]] applies the existing assurance objects
+to source-status separation, project AI roles and revision-bound
+evidence. It records two engineering acceptance cases and leaves
+runtime adoption open.
 
 * Semantic objects
 

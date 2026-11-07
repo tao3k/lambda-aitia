@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+[package]
+name = "aitia-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Python bindings for the AITIA Rust runtime"
+
+[lib]
+name = "lambda_aitia_rust"
+crate-type = ["cdylib"]
+
+[features]
+extension-module = ["dep:aitia-runtime", "dep:pyo3", "pyo3/extension-module"]
+
+[dependencies]
+aitia-runtime = { path = "../aitia-runtime", features = ["linked-program"], optional = true }
+pyo3 = { version = "=0.27.2", features = ["abi3-py310"], optional = true }
+
+[dev-dependencies]
+aitia-build-support.workspace = true
+
+[[test]]
+name = "policy"
+path = "tests/unit/policy.rs"
+
+[lints]
+workspace = true

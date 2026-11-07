@@ -4,12 +4,13 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
+        "../../../modules/sdlc/types.ss"
+        "../../../modules/sdlc/objects.ss")
 (def project (sdlc-project "flight" "r2" "software" #t))
 (def evidence (sdlc-evidence "ev" "flight" "r2" "software" "nasa" "SWE-052" "test" 'pass))
 (export sdlc-model-test)
 (def sdlc-model-test
-  (test-suite "SDLC CLOS model contracts"
+  (test-suite "SDLC Record model contracts"
   (test-case "multiple inheritance binds evidence to identity, clause and snapshot"
     (check-equal? (sdlc-evidence? evidence) #t)
     (check-equal? (sdlc-bound-fact? evidence) #t)

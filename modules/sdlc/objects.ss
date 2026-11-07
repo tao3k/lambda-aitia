@@ -2,14 +2,14 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o .ref)
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .o .ref)
         (only-in :agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.)
-        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
+        "types.ss")
 (export StandardProfile. SdlcProfile)
 (def StandardProfile.
-  (.o (:: @ (poo-clos-model-prototype SdlcStandard)) kind: 'lambda-aitia.sdlc-standard coverage: 'partial
+  (.o (:: @ (.ref SdlcStandard 'proto)) kind: 'lambda-aitia.sdlc-standard coverage: 'partial
       requirements: '() assessment: 'not-evaluated))
 (def sdlc-ontology
   (.o entities: '(LifecycleActivity Requirement Artifact Verification Evidence
@@ -33,17 +33,17 @@
 
 (export sdlc-trace-node sdlc-trace-edge sdlc-trace-rule)
 (def (sdlc-trace-rule id source-kind target-kind)
-  (let ((value (.o (:: @ (poo-clos-model-prototype SdlcTraceRule)) identity: id source-category: source-kind target-category: target-kind)))
+  (let ((value (.o (:: @ (.ref SdlcTraceRule 'proto)) identity: id source-category: source-kind target-category: target-kind)))
     (unless (sdlc-trace-rule? value) (error "invalid trace rule")) value))
 (def (sdlc-trace-node id category-value project)
   (unless (sdlc-bound-fact? project) (error "invalid trace project"))
-  (let ((value (.o (:: @ (poo-clos-model-prototype SdlcTraceNode)) kind: 'sdlc.trace-node identity: id category: category-value
+  (let ((value (.o (:: @ (.ref SdlcTraceNode 'proto)) kind: 'sdlc.trace-node identity: id category: category-value
                    subject: (.ref project 'subject) revision: (.ref project 'revision)
                    scope: (.ref project 'scope))))
     (unless (sdlc-trace-node? value) (error "invalid trace node")) value))
 (def (sdlc-trace-edge id relation-value source-value target-value project)
   (unless (sdlc-bound-fact? project) (error "invalid trace project"))
-  (let ((value (.o (:: @ (poo-clos-model-prototype SdlcTraceEdge)) kind: 'sdlc.trace-edge identity: id relation: relation-value
+  (let ((value (.o (:: @ (.ref SdlcTraceEdge 'proto)) kind: 'sdlc.trace-edge identity: id relation: relation-value
                    source: source-value target: target-value
                    subject: (.ref project 'subject) revision: (.ref project 'revision)
                    scope: (.ref project 'scope))))
@@ -51,21 +51,21 @@
 
 (export sdlc-project sdlc-obligation sdlc-evidence sdlc-tailoring-request)
 (def (sdlc-project subject-value revision-value scope-value complete-value)
-  (poo-clos-check-model SdlcProject
-    (.o (:: @ (poo-clos-model-prototype SdlcProject)) kind: 'sdlc.project subject: subject-value revision: revision-value
+  (validate SdlcProject
+    (.o (:: @ (.ref SdlcProject 'proto)) kind: 'sdlc.project subject: subject-value revision: revision-value
       scope: scope-value complete?: complete-value)))
 (def (sdlc-obligation standard-value requirement-value applicability-value)
-  (poo-clos-check-model SdlcObligation
-    (.o (:: @ (poo-clos-model-prototype SdlcObligation)) kind: 'sdlc.obligation standard: standard-value requirement: requirement-value
+  (validate SdlcObligation
+    (.o (:: @ (.ref SdlcObligation 'proto)) kind: 'sdlc.obligation standard: standard-value requirement: requirement-value
       applicability: applicability-value)))
 (def (sdlc-evidence identity-value subject-value revision-value scope-value
                     standard-value requirement-value producer-value outcome-value)
-  (poo-clos-check-model SdlcEvidence
-    (.o (:: @ (poo-clos-model-prototype SdlcEvidence)) kind: 'sdlc.evidence identity: identity-value subject: subject-value
+  (validate SdlcEvidence
+    (.o (:: @ (.ref SdlcEvidence 'proto)) kind: 'sdlc.evidence identity: identity-value subject: subject-value
       revision: revision-value scope: scope-value standard: standard-value
       requirement: requirement-value producer: producer-value outcome: outcome-value)))
 (def (sdlc-tailoring-request subject-value revision-value standard-value
                             requirement-value rationale-value)
-  (poo-clos-check-model SdlcTailoringRequest
-    (.o (:: @ (poo-clos-model-prototype SdlcTailoringRequest)) kind: 'sdlc.tailoring-request subject: subject-value revision: revision-value
+  (validate SdlcTailoringRequest
+    (.o (:: @ (.ref SdlcTailoringRequest 'proto)) kind: 'sdlc.tailoring-request subject: subject-value revision: revision-value
       standard: standard-value requirement: requirement-value rationale: rationale-value)))

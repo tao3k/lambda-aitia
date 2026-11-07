@@ -29,9 +29,17 @@ Agentic AI Lab's current public expression surface is:
     (use-module AitiaModule default)))
 #+end_src
 
-The maintained Aitia owner provides =AitiaModule= and its already composed
-=aitia= value in =user-interface/compositions/aitia.ss=. The default Project
-declares GitOps, SDLC, NASA, ADR/RFC, assurance and formal-method selections.
+AITIA publishes the default Project Profile and its composed Scenario through
+its =init.ss=. Consumers retrieve the semantic Module and Scenario from the
+configured Yuanxu scopes.
+
+#+begin_src scheme
+(.get lambda-aitia.init.exports Profiles software-engineering profile-module)
+(.get lambda-aitia.init.exports scenarios aitia scenario)
+#+end_src
+
+The default Project declares GitOps, SDLC, NASA, ADR/RFC, assurance and
+formal-method selections.
 Declaration alone neither executes a verifier nor establishes compliance or
 release authority.
 
@@ -106,10 +114,10 @@ Recipe qualification and behavior/design trajectory projection remain pending.
 | Agentic AI Lab | Module/Profile algebra, composition, Graph, Case admission, Session and Runtime handoff |
 | Application Host | source reads, verifier execution, authority and effects |
 
-The Python project under =bindings/python= consumes Aitia's native C ABI; it
-does not parse a second configuration model or recreate SDLC semantics.
-Versioned NASA source identities are provenance facts, not namespace segments
-that ordinary users must type.
+The Python wheel exposes Aitia's Rust Session through
+[[file:../../rust/crates/aitia-python/Cargo.toml][the Maturin binding crate]]. The Session reaches the same Yuanxu composition
+and Scheme/POO objects. Versioned NASA source identities remain provenance
+facts.
 
 * Acceptance gates
 

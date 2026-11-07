@@ -3,9 +3,10 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .ref .slot?)
+(import (only-in :clan/poo/object .ref .slot? .cc compute-precedence-list! object?)
+        (only-in :clan/poo/mop define-type Type. element?)
+        (only-in :clan/poo/type Record)
         :std/list/list
-        :agentic-ai-lab/core/poo-clos/interface
         (only-in :agentic-ai-lab/modules/governance/types
                  agentic-ai-lab-governance-profile?))
 
@@ -15,7 +16,19 @@
         +ADR-statuses+ +ADR-link-relations+
         ADRLink ADROption ADRConsequence ADRRecord
         ADR-link? ADR-option? ADR-consequence? ADR-record?
-        ADR-record-valid?)
+        ADR-record-valid? ADRScopeContract)
+
+;;; Module scope admission is independent of ADR acceptance or effect authority.
+(define-type (ADRScopeContract @ Type.)
+  identity: 'ADR/scope
+  .element?:
+  (lambda (value)
+    (and (object? value)
+         (.slot? value 'profile) (ADR-profile? (.ref value 'profile))
+         (every (lambda (slot)
+                  (and (.slot? value slot) (procedure? (.ref value slot))))
+                '(profile? record option link consequence record? record-valid?
+                  transition supersede canonical assurance-decision decision?)))))
 
 (def +ADR-statuses+ '(proposed accepted rejected deprecated superseded))
 (def +ADR-link-relations+
@@ -40,21 +53,30 @@
 (def (ADR-consequence-sentiment? value)
   (if (memq value '(positive negative neutral)) #t #f))
 
+;;; Pure schema construction: no CLOS class registry or parent mutation.
+(def (ADR-record-type identity direct-slots: (fields '()))
+  (.cc (apply Record (apply append fields)) identity: identity))
+(def (ADR-type-member? descriptor value)
+  (and (object? value)
+       (memq (.ref descriptor 'proto) (compute-precedence-list! value))
+       (element? descriptor value)
+       #t))
+
 (def (text-slot name)
-  (poo-clos-direct-slot-definition name type-predicate: ADR-text?))
+  (list (make-keyword name) (list (.cc Type. sexp: name '.element? ADR-text?))))
 (def (predicate-slot name predicate)
-  (poo-clos-direct-slot-definition name type-predicate: predicate))
+  (list (make-keyword name) (list (.cc Type. sexp: name '.element? predicate))))
 (def (ADR-text-list? input-values)
   (and (list? input-values) (every ADR-text? input-values)))
 
 (def ADRLink
-  (poo-clos-class 'aitia/ADR-link
+  (ADR-record-type 'aitia/ADR-link
     direct-slots:
     (list (predicate-slot 'relation ADR-link-relation?)
           (text-slot 'target))))
 
 (def ADROption
-  (poo-clos-class 'aitia/ADR-option
+  (ADR-record-type 'aitia/ADR-option
     direct-slots:
     (list (text-slot 'identity)
           (text-slot 'title)
@@ -64,7 +86,7 @@
           (predicate-slot 'cons ADR-text-list?))))
 
 (def ADRConsequence
-  (poo-clos-class 'aitia/ADR-consequence
+  (ADR-record-type 'aitia/ADR-consequence
     direct-slots:
     (list (predicate-slot 'sentiment ADR-consequence-sentiment?)
           (text-slot 'statement))))
@@ -77,7 +99,7 @@
   (and (list? input-values) (every ADR-consequence? input-values)))
 
 (def ADRRecord
-  (poo-clos-class 'aitia/ADR-record
+  (ADR-record-type 'aitia/ADR-record
     direct-slots:
     (list (text-slot 'identity)
           (text-slot 'title)
@@ -95,10 +117,10 @@
           (predicate-slot 'informed ADR-text-list?)
           (predicate-slot 'links ADR-link-list?))))
 
-(def (ADR-link? value) (poo-clos-model? ADRLink value))
-(def (ADR-option? value) (poo-clos-model? ADROption value))
-(def (ADR-consequence? value) (poo-clos-model? ADRConsequence value))
-(def (ADR-record? value) (poo-clos-model? ADRRecord value))
+(def (ADR-link? value) (ADR-type-member? ADRLink value))
+(def (ADR-option? value) (ADR-type-member? ADROption value))
+(def (ADR-consequence? value) (ADR-type-member? ADRConsequence value))
+(def (ADR-record? value) (ADR-type-member? ADRRecord value))
 
 (def (unique-by? projection input-values)
   (length=? input-values

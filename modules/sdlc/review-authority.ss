@@ -1,55 +1,58 @@
 ;;; -*- Gerbil -*-
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
 ;;; Native SDLC authority review. Technical success and authority are separate.
-(import :clan/poo/object :std/list/list
-        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype poo-clos-model?)
-        (only-in :yuanxu/poo-clos/classes poo-clos-class poo-clos-direct-slot-definition) :yuanxu/contribution/verification
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
+(import (only-in :clan/poo/mop validate)
+        :clan/poo/object :std/list/list
+        :yuanxu/contribution/verification
+        "types.ss")
 (export SdlcHistorySource SdlcHistoryDiscovery sdlc-history-source sdlc-history-discovery
         sdlc-history-request sdlc-review-approval sdlc-approval-request
         sdlc-review-authority-adapter sdlc-review-authority-gate sdlc-review-authority-snapshot)
-(def (texts names) (map (lambda (name) (poo-clos-direct-slot-definition name type-predicate: sdlc-text?)) names))
+(def (texts names) (map (lambda (name) (sdlc-record-field name type-predicate: sdlc-text?)) names))
 (def SdlcHistorySource
-  (poo-clos-class 'sdlc/history-source direct-superclasses: (list SdlcIdentified)
+  (sdlc-record-type 'sdlc/history-source direct-superclasses: (list SdlcIdentified)
     direct-slots: (append (texts '(owner view artifact-digest))
-      (list (poo-clos-direct-slot-definition 'available? type-predicate: boolean?)))))
-(def (source? value) (poo-clos-model? SdlcHistorySource value))
+      (list (sdlc-record-field 'available? type-predicate: boolean?)))))
+(def (source? value) (sdlc-record? SdlcHistorySource value))
 (def SdlcHistoryDiscovery
-  (poo-clos-class 'sdlc/history-discovery direct-superclasses: (list SdlcBoundFact SdlcIdentified)
+  (sdlc-record-type 'sdlc/history-discovery direct-superclasses: (list SdlcBoundFact SdlcIdentified)
     direct-slots: (append (texts '(directory policy artifact-digest))
       (list
-        (poo-clos-direct-slot-definition 'required type-predicate:
+        (sdlc-record-field 'required type-predicate:
           (lambda (xs) (and (pair? xs) (list? xs) (every sdlc-text? xs) (= (length xs) (length (delete-duplicates/hash xs))))))
-        (poo-clos-direct-slot-definition 'sources type-predicate:
+        (sdlc-record-field 'sources type-predicate:
           (lambda (xs) (and (list? xs) (every source? xs))))))))
 (def (bound? a b) (every (lambda (key) (equal? (.ref a key) (.ref b key))) '(subject revision scope)))
 (def (slots value names) (map (lambda (key) (.ref value key)) names))
 (def (sdlc-history-source id owner-value view-value digest-value available-value)
-  (poo-clos-check-model SdlcHistorySource
-    (.o (:: @ (poo-clos-model-prototype SdlcHistorySource)) identity: (string-copy id)
+  (validate SdlcHistorySource
+    (.o (:: @ (.ref SdlcHistorySource 'proto)) identity: (string-copy id)
         owner: (string-copy owner-value) view: (string-copy view-value) artifact-digest: (string-copy digest-value) available?: available-value)))
 (def (sdlc-history-discovery id project directory-value policy-value required-values source-values digest-value)
   (unless (sdlc-project? project) (error "history discovery requires an SDLC project"))
-  (poo-clos-check-model SdlcHistoryDiscovery
-    (.o (:: @ (poo-clos-model-prototype SdlcHistoryDiscovery)) identity: (string-copy id)
+  (validate SdlcHistoryDiscovery
+    (.o (:: @ (.ref SdlcHistoryDiscovery 'proto)) identity: (string-copy id)
         subject: (string-copy (.ref project 'subject)) revision: (string-copy (.ref project 'revision)) scope: (string-copy (.ref project 'scope))
         directory: (string-copy directory-value) policy: (string-copy policy-value) required: (map string-copy required-values) sources: (append source-values '()) artifact-digest: (string-copy digest-value))))
 (def (request project purpose-value payload)
-  (poo-clos-check-model SdlcVerificationRequest
-    (.o (:: @ (poo-clos-model-prototype SdlcVerificationRequest))
+  (validate SdlcVerificationRequest
+    (.o (:: @ (.ref SdlcVerificationRequest 'proto))
         subject: (string-copy (.ref project 'subject)) revision: (string-copy (.ref project 'revision)) scope: (string-copy (.ref project 'scope))
         purpose: purpose-value facts: payload)))
 (def (sdlc-history-request discovery)
-  (unless (poo-clos-model? SdlcHistoryDiscovery discovery) (error "invalid native history discovery"))
+  (unless (sdlc-record? SdlcHistoryDiscovery discovery) (error "invalid native history discovery"))
   (request discovery 'history-discovery (let (selected-discovery discovery) (.o discovery: selected-discovery))))
 (def (sdlc-review-approval id project standard-value requirement-value signer-value record-value decision-value target-value)
   (unless (sdlc-project? project) (error "approval requires an SDLC project"))
-  (poo-clos-check-model SdlcAuthorityAttestation
-    (.o (:: @ (poo-clos-model-prototype SdlcAuthorityAttestation)) identity: (string-copy id)
+  (validate SdlcAuthorityAttestation
+    (.o (:: @ (.ref SdlcAuthorityAttestation 'proto)) identity: (string-copy id)
         subject: (string-copy (.ref project 'subject)) revision: (string-copy (.ref project 'revision)) scope: (string-copy (.ref project 'scope))
         standard: (string-copy standard-value) requirement: (string-copy requirement-value)
         request: (string-copy target-value) authority: 'disposition-reviewer signer: (string-copy signer-value) record: (string-copy record-value) decision: decision-value)))
 (def (sdlc-approval-request approval discovery content-value policy-value supersedes: (prior-records '()) references: (reference-values '()))
-  (unless (and (sdlc-authority-attestation? approval) (poo-clos-model? SdlcHistoryDiscovery discovery)
+  (unless (and (sdlc-authority-attestation? approval) (sdlc-record? SdlcHistoryDiscovery discovery)
                (bound? approval discovery) (sdlc-text? content-value) (sdlc-text? policy-value)
                (list? reference-values)
                (every (lambda (r) (and (list? r) (= (length r) 2) (sdlc-text? (car r)) (sdlc-artifact-digest? (cadr r)))) reference-values)
@@ -66,7 +69,7 @@
   (unless (sdlc-verification-request? value) (error "invalid native authority request"))
   (def facts (.ref value 'facts))
   (def discovery (.ref facts 'discovery))
-  (unless (and (poo-clos-model? SdlcHistoryDiscovery discovery) (bound? discovery value))
+  (unless (and (sdlc-record? SdlcHistoryDiscovery discovery) (bound? discovery value))
     (error "history request binding differs"))
   (def data
     (case (.ref value 'purpose)
@@ -78,7 +81,7 @@
          (slots approval '(identity subject revision scope standard requirement request authority signer record decision)))))
       (else (error "unsupported SDLC authority purpose"))))
   (call-with-output-string (lambda (port) (write (list 'sdlc-review-authority/v1 (.ref value 'purpose) data) port))))
-(def (sdlc-review-authority-adapter id operation) (agentic-ai-lab-verification-adapter id operation sdlc-review-authority-snapshot))
+(def (sdlc-review-authority-adapter id operation) (yuanxu-verification-adapter id operation sdlc-review-authority-snapshot))
 (def (complete? discovery)
   (def required (.ref discovery 'required))
   (def sources (.ref discovery 'sources))
@@ -86,16 +89,16 @@
        (= (length sources) (length (delete-duplicates/hash (map (lambda (s) (.ref s 'identity)) sources))))
        (every (lambda (s) (and (.ref s 'available?) (member (.ref s 'identity) required) #t)) sources)))
 (def (sdlc-review-authority-gate technical discovery approval-requests adapter receipts now policy: active-policy)
-  (unless (and (poo-clos-model? SdlcHistoryDiscovery discovery) (equal? active-policy (.ref discovery 'policy))
+  (unless (and (sdlc-record? SdlcHistoryDiscovery discovery) (equal? active-policy (.ref discovery 'policy))
                (list? approval-requests) (every sdlc-verification-request? approval-requests))
     (error "invalid native authority gate binding"))
   (def discovery-request (sdlc-history-request discovery))
   (def discovered (and (complete? discovery)
-    (any (lambda (r) (agentic-ai-lab-verification-valid? adapter r discovery-request now)) receipts)))
+    (any (lambda (r) (yuanxu-verification-valid? adapter r discovery-request now)) receipts)))
   (def (verified? request)
     (and (eq? (.ref request 'purpose) 'disposition-approval) (bound? request discovery)
          (equal? (discovery-data (.ref (.ref request 'facts) 'discovery)) (discovery-data discovery))
-         (any (lambda (r) (agentic-ai-lab-verification-valid? adapter r request now)) receipts)))
+         (any (lambda (r) (yuanxu-verification-valid? adapter r request now)) receipts)))
   (def verified (filter verified? approval-requests))
   (def approvals (filter (lambda (r)
     (def facts (.ref r 'facts))

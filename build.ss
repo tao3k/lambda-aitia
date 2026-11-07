@@ -3,45 +3,28 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; -*- Gerbil -*-
-;;; Native Lambda Aitia build.  ASP owns closure projection and std/make owns
-;;; currentness, scheduling, and clean.
+;;; Production roots use Core's existing import closure and official Make.
+(import (for-syntax
+          (only-in :std/source this-source-file)
+          (only-in :yuanxu/module-system/building/source-package register-module-build-source!)))
+(begin-syntax
+  (register-module-build-source! (path-directory (this-source-file))
+                                 'lambda-aitia))
 
-(import (only-in :std/build-script defbuild-script)
-        (only-in :asp-gerbil-scheme/building-api
-                 asp-gerbil-scheme-package-spec!
-                 asp-gerbil-scheme-library-package-prototype))
+(import (only-in :clan/poo/object .get)
+        (only-in :yuanxu/module-system/building/script defbuild-script)
+        (only-in :yuanxu/module-system/building/products current-build-module-roots)
+        (only-in "./init.ss" lambda-aitia.init.exports))
 
-(def +lambda-aitia-public-entry-modules+
-  '("interface.ss"
-    "bindings/c/aitia-contract.ss"
-    "modules/ADR/interface.ss"
-    "modules/assurance/interface.ss"
-    "modules/formal-methods/interface.ss"
-    "modules/gitops/interface.ss"
-    "modules/sdlc/interface.ss"
-    "modules/sdlc/retirement-host.ss"
-    "modules/sdlc/standards/interface.ss"
-    "user-interface/compositions/aitia.ss"
-    "user-interface/profiles/software-engineering/project.ss"
-    "user-interface/profiles/github/actions.ss"
-    "user-interface/profiles/gitops/dev.ss"
-    "user-interface/profiles/gitops/staging.ss"
-    "user-interface/profiles/gitops/production.ss"
-    "user-interface/profiles/nasa/sdlc.ss"))
+;;; Installation requests no business roots. Core derives actual role/import
+;;; closure for explicit --modules requests; no second source list lives here.
+(def (lambda-aitia-spec)
+  (let ((roots (or (current-build-module-roots) '()))
+        (spec (.get lambda-aitia.init.exports std-make-spec)))
+    (parameterize ((current-build-module-roots roots))
+      (spec '()))))
 
-(asp-gerbil-scheme-package-spec!
- (lambda-aitia-package @ asp-gerbil-scheme-library-package-prototype)
- (spec lambda-aitia-native-spec)
- (public-entry-modules +lambda-aitia-public-entry-modules+)
- (extra-spec
-  '((gxc: "testing-interface")
-    (gxc: "testing-observer"))))
-
+;; Preserve the existing Darwin cross-module specialization restriction.
 (cond-expand
- (darwin
-  ;; Gerbil v0.19's cross-module keyword specialization on Darwin can
-  ;; reference private __% procedures from POO CLOS .ssxi metadata.
-  (defbuild-script (lambda-aitia-native-spec) optimize: #f))
- (else
-  (defbuild-script (lambda-aitia-native-spec))))
+ (darwin (defbuild-script (lambda-aitia-spec) optimize: #f))
+ (else (defbuild-script (lambda-aitia-spec))))

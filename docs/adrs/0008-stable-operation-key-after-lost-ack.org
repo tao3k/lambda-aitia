@@ -85,8 +85,8 @@ effect and key as one SQLite row, uses =insert or ignore= and withholds the
 first ACK. This covers a bounded lost-ACK/restart scenario; it has no separate
 external effect, expiry, parameter-conflict check or tenant namespace. The
 =fixed= mode name denotes the repair to that specific injected fault only.
-The inspected sources are the [[file:../../bindings/python/qualification/job_executor/worker.py][worker]],
-[[file:../../bindings/python/qualification/job_executor/test_unique_effect.py][provider/test fixture]] and [[file:../../modules/assurance/host.ss][Host preflight projection]]. The reused Agentic AI Lab boundary is
+The inspected sources are the [[file:../../dev/qualification/job-executor/worker.py][worker]],
+[[file:../../dev/qualification/job-executor/test_unique_effect.py][provider/test fixture]] and [[file:../../modules/assurance/host.ss][Host preflight projection]]. The reused Agentic AI Lab boundary is
 =src/modules/authorization/providers/cedar/interface.ss= and its existing
 decision/effect-token projection, not a new Aitia-owned authorization module.
 
@@ -118,7 +118,7 @@ they do not silently turn the guarantee into unconditional exactly-once delivery
 
 * More Information
 
-- [[file:../../bindings/python/qualification/job_executor/README.org][Job-executor qualification case]]
+- [[file:../../dev/qualification/job-executor/README.org][Job-executor qualification case]]
 - [[file:../rfcs/0001-causal-assurance-core.org][RFC 0001 — Causal Assurance Core]]
 - [[file:../rfcs/0004-sdlc-design-and-causal-trajectories.org][RFC 0004 — Historical cases and lifecycle design]]
 - [[https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/][AWS Builders' Library — Idempotent API design]]

@@ -9,7 +9,8 @@ version.ss
 .bin/
 .lake/
 _apalache-out/
-proof/quint/node_modules/
+rust/target/
+dev/proof/quint/node_modules/
 __pycache__/
 *.py[cod]
 *.so

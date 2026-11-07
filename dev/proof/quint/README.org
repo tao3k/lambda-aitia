@@ -1,0 +1,233 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: Quint design-model qualification
+
+:PROPERTIES:
+:STATUS: design-validation-partial
+:DATE: 2026-10-11
+:END:
+
+* Model boundaries
+
+The maintained model source is Quint 0.33.0. =WorkCore.qnt= shares the
+cancellation/completion distinction; =EffectAdmission.qnt= shares the current
+grant predicate. Four finite models now check 25 contracts (including two
+temporal cases), extending the former TLA+ lane's 22 cases:
+
+| Lane | Safe check | Required negative/reachability controls |
+|------+------------+-----------------------------------------|
+| work | cancellation does not drain active or queued work | cancellation and quiescence reachable |
+| retirement | final cut requires quiescence and known inventory | cancellation-as-completion, stale review, unknown inventory, retirement reachable |
+| ingress | retirement fences epoch and rejects later stale authority | unfenced retirement, cached grant, rejection and valid start reachable |
+| lifecycle | current admission, decision, grant, one-shot reservation and delivery | untrusted report, late admission, early grant, after-revoke start, stale delivery, delivery before start, replay, valid start reachable, no-fair delivery counterexample |
+
+The =check_contract.py= runner checks all reachable finite states through
+Quint's TLC backend, requires a completed queue for safe cases, and requires
+the expected invariant failure and actual trace for each negative control.
+The lifecycle's weak-fairness case is checked by =check_progress.py=: it compiles
+the Quint source to a temporary TLA+ artifact and asks TLC to check
+=EventuallyDelivery= under the Quint-defined =stableSpec=. The same property
+fails under =stableSpecNoFair=. Generated TLA+ is a checker intermediate, not
+a second maintained model. Quint's ordinary =verify --temporal= path cannot
+select that fairness-bearing specification as TLC's =SPECIFICATION=.
+
+#+begin_src sh
+npm ci --prefix dev/proof/quint
+AITIA_QUINT_BIN="$PWD/dev/proof/quint/node_modules/.bin/quint" just check-quint
+AITIA_QUINT_BIN="$PWD/dev/proof/quint/node_modules/.bin/quint" just check-quint ingress
+#+end_src
+
+The lockfile pins Quint 0.33.0 and its npm transitive graph. The checker
+requires Apalache 0.62.1's TLC backend, Java and a local loopback endpoint.
+Each check prints its name and result; a tool error or a stall is not a
+successful counterexample. No implicit dependency on the Agentic AI Lab ASCENT pin
+is introduced here: ASCENT belongs to the parent Agentic AI Lab dependency graph.
+
+* Claim boundary
+
+** Executable correspondence cut
+
+=just check-quint-scheme= runs Quint 0.33.0's TypeScript evaluator with native
+=--mbt= action metadata and ITF traces. A fixed seed (34), 512 samples and an
+18-step bound currently cover 177 of the TLC lane's 248 reachable ingress
+states and all 13 safe actions. This is reproducible sampled correspondence,
+not exhaustive Scheme refinement. The runner fails if sampled state coverage
+falls below 177, or any safe action or the post-retirement rejection witness
+is missing. Every projected field is checked
+after every action against the actual serialized Scheme Host; effect starts
+also check a real callback counter. Model schema changes fail closed.
+=just check-formal= runs the adjacent runner unit tests for schema drift,
+checker failures and Scheme exit status before the formal gates.
+
+Two separately generated invariant-failure traces exercise =RetireWithoutFence=
+and =TrustCachedGrant=. Their safe prefixes must match Scheme, while the final
+unsafe transition must be rejected with no effect callback. A tool failure is
+not a negative control. ITF is translated to closed data, never evaluated as
+Scheme code. The tests retain Gerbil's native testing lifecycle and heap/time
+bounds. Run MBT replay explicitly for correspondence diagnostics. =check-formal=
+runs the source-binding and Host controls, Quint model checks and Lean checks.
+
+=just check-lifecycle-scheme= verifies the complete 19,042-state TLC graph
+and its 21-field schema. The Scheme correspondence gate then chooses a
+shortest reachable witness from the cover for each of the 16 named actions,
+sharing prefixes where possible. It compares every projected field at
+every selected step and retains the renewal and terminal action witnesses.
+Its receipt reports model and Scheme replay coverage separately.
+With the Lab-pinned package set, the correspondence diagnostic passed nine action
+witness traces covering 26 projected states and all 16 actions, plus all
+seven fault traces. The prior robustness run reached 143 positive traces
+before the silence watchdog stopped it.
+
+=just stress-lifecycle-scheme= explicitly replays the full bounded state
+cover of 3,084 traces and 64,206 steps as a robustness workload. The action witnesses remain a
+manual correspondence diagnostic. The regular Scheme gate uses the
+Assurance boundary suite with POO-generated inputs. The Quint model gate
+checks its invariants and fairness independently.
+
+Both Scheme replay modes retain isolated batches with at most 160 steps,
+a 512 MiB worker heap, a 60-second worker deadline and the existing
+12-second silence watchdog. A missing receipt or unsuccessful exit fails
+the gate.
+
+Seven additional traces start at reachable states selected from that graph.
+Quint executes the original unsafe operator and must produce an actual
+invariant-failure ITF trace. Scheme must match the safe prefix, refuse the
+final unsafe operation, preserve the projected state and execute no delivery
+callback. This covers report-as-authority, stale admission, early grant,
+after-revoke start, stale delivery, pre-start delivery and delivery replay.
+The gate prints SHA-256 hashes of its declared model / Scheme source cut and
+rejects source changes during the run.
+Failed native inputs and partial diagnostics are preserved under
+=.cache/lifecycle-failures/=; the shared checker watchdog terminates the owned
+process group, not just its immediate launcher. Completion counters are
+emitted only after processing a real trace and do not replace final =OK= / exit status.
+
+| Lifecycle stage | Actual Scheme operation | Authority / effect observation |
+|-----------------+-------------------------+--------------------------------|
+| Plan | =assurance-plan-verification= | selects the real obligation, no authority |
+| Verify | =assurance-host-verify= | configured verifier runs and privately issues a seal |
+| Admit | =assurance-host-admit-verified= | exact current seal, no verifier rerun or expiry renewal |
+| Decide | =assurance-host-preflight-decision= | current admission becomes a preflight, not permission |
+| Authorize | =assurance-host-cedar-request= / =assurance-effect-host-authorize!= | exact current request plus configured permit issues a private grant |
+| StartEffect | =assurance-effect-host-reserve!= | consumes grant once; callback count stays zero |
+| Delivery | =assurance-effect-host-deliver!= | rechecks source / epoch / strict expiry; acknowledged, rejected, failed or unknown |
+
+=lifecycle-boundary-test.ss= also checks deny / indeterminate authorization
+(refusal stutters, never a grant), copied or foreign seals / requests / grants
+/ reservations, intent substitution, mutation of an actually issued token,
+in-place request intent / action / handoff payload mutation,
+observed source ABA, expiry exactly at the boundary, source change during
+authorization, throwing authorization / delivery, reentrancy and blind retry
+after failure or unknown acknowledgement. Unknown acknowledgement may coexist
+with a service-side effect, but is never reported as delivered or retry authority.
+Renewing verification or issuing a fresh grant cannot extend an existing
+reservation's source / epoch / deadline binding.
+
+| Quint cut | Scheme evidence | Remaining boundary |
+|-----------+-----------------+--------------------|
+| WorkCore / WorkLifecycle | cancellation, completion and queue observations in ingress replay; isolated queued-work refusal | fair completion is an environment assumption |
+| RetirementReview | review, late activity, inventory loss/recovery and retirement in replay; missing-review / unknown-inventory controls | inventory truth is supplied by the local caller |
+| RetirementIngress / EffectAdmission | 13 action projections, sampled state correspondence, unsafe-model refusals and real callbacks | one owner, cached grant, request and attempt only |
+| AssuranceLifecycle | all 19,042 projected states; 16 safe actions; seven actual unsafe-model refusals; additional authorization / delivery unit controls | one obligation / attempt, serialized local adapter assumptions; no native Cedar evaluator or deployed delivery qualification |
+
+The Host exception regression additionally verifies that a throwing callback
+propagates its failure and clears the transient handoff fence, without marking
+work complete or permitting a second start. Exceptions, continuation capture
+and process crashes are not transitions of the current Quint ingress model.
+
+** Qualification limits
+
+These are bounded design experiments, not generated projections of the POO
+Contract, proof of Scheme/Runtime refinement, or deployed authority. A separate
+local Scheme Host in =modules/sdlc/retirement-host.ss= executes the bounded
+ingress fence/start cut, including one real effect callback, and
+The Scheme proof fixtures and replay tests live under =dev/proof/scheme/=.
+Run one through =just test-proof-scheme <file>=. The proof and ordinary
+atomic test recipes share the same heap fence and timeout.
+After the move, the retirement replay completed with 512 safe traces,
+177 of 248 states, all 13 actions, and two negative traces. The retirement
+binding and execution tests and the Assurance lifecycle boundary test also
+completed through their existing Scheme harness. This result covers the
+relocated entrypoints and retirement replay.
+The full lifecycle run after relocation enumerated 19,042 states and all
+16 actions and replayed seven fault controls. The run stopped after
+reporting 523 of 3,084 positive traces when batch 69 was silent for 12
+seconds before its Scheme harness. The preserved batch completed in
+isolation under the same 65-second supervisor, 12-second idle watchdog
+and 512 MiB Scheme heap. That diagnostic does not close the full gate.
+
+The lifecycle gate now compiles the Scheme suite alongside its fixture before
+starting the batch supervisor. Each batch imports the same compiled suite
+and runs the standard Scheme test harness. The isolated batch 69 completed
+all nine traces with the compiled suite, and a launch without a fixture
+reported a harness failure and returned exit 42. The full-run receipt
+still requires every trace, the unchanged watchdog and natural exit.
+The complete run with the compiled suite reported 464 of 3,084 positive
+traces before batch 61 hit the same 12-second pre-harness idle limit.
+The exact failing batch was preserved. The current supervisor runs one
+isolated Scheme batch at a time. It retains the same graph, trace grouping,
+per-batch deadlines, idle watchdog and heap cap. The first serial run
+reported 99 of 3,084 positive traces before batch 11 reached the same
+pre-harness idle limit. Serial dispatch alone has not closed the gate.
+A standalone Gerbil executable linked after resolving the installed
+system libraries, but failed before the harness while resolving
+=:gerbil/core=. The replay gate retains the compiled-suite launcher.
+A timed diagnostic of the preserved batch 11 first reached the harness
+at 18.70 seconds and finished at 45.75 seconds under the 60-second worker
+deadline. A separate import-only probe reached the interpreter at 0.31
+seconds, the AITIA init import at 2.80 seconds, and fixture import at
+7.31 seconds. These probes locate startup and fixture initialization work.
+They do not establish a stable idle bound or replace a supervised replay.
+The fixture now memoizes each immutable revision cut at its first use,
+instead of constructing both cuts at import. The retained batch 11 passed
+all seven traces in 19.88 seconds using the original supervisor and
+watchdog. The subsequent full serial run passed the seven fault controls
+and reported 2,052 of 3,084 positive traces before batch 279 reached the
+same 12-second pre-harness idle limit. Its input and error were retained.
+Batch 279 then passed all six traces in isolation with the original
+supervisor and limits. The complete run remains incomplete.
+=dev/proof/scheme/retirement-execution-test.ss= checks selected positive and negative
+behaviors. This is an executable correspondence check, not a general refinement
+proof or a deployed authority integration. The lifecycle bounds are two source revisions, four clock values
+and three epochs. Ingress isolates one cached grant, one request and one
+attempt; it does not model new grant issuance, multiple clients, persistence,
+crash recovery or inventory truth. Fair progress assumes a stable source and
+clock, no revocation, and weak fairness of each Host stage. It says nothing
+about progress under a changing environment.
+
+The lifecycle effect Host is an explicit local composition adapter, not a new
+Cedar policy engine or native Runtime Host. It composes existing Agentic AI Lab
+semantic-root / token validation primitives with private exact-identity
+issuance and one-shot reservation indexes. The configured authorization
+operation must evaluate policy for the frozen request; the configured delivery
+operation owns the actual effect and acknowledgement. The model's successful
+handoff assumes trusted, synchronous callbacks under one serialized owner;
+it does not prove atomic source / authority revalidation at a native service's
+physical effect linearization point. Deferred work or continuation reuse is
+outside this adapter contract. The lifecycle fixture supplies declared source
+snapshot metadata and a controlled verifier, not a proof of verifier truth or
+filesystem bytes. The existing evidence-admission tests remain a separate
+source-reader qualification lane. The model's successful
+authorization and fair delivery assume permit and eventual acknowledgement;
+refusal, failed and unknown outcomes do not satisfy that progress premise.
+The grant's synthetic local binding is not a native buffer / session capability.
+Pure Cedar decisions, token-shaped objects and editable delivery receipts have
+no issuing authority. A delivery receipt's =durable?= and
+=distributed-authority?= are explicitly false. Strict expiry requires
+=now < expires-at= even though the underlying pure token validator admits its
+inclusive endpoint.
+Strict expiry is rechecked at the final token-validation instant after source
+validation; a clock crossing the deadline within reserve or deliver rejects
+without a delivery callback. A native boundary control covers both operations
+with an advancing effect clock. This is additional within-operation coverage,
+not an asynchronous or physical-effect linearization proof.
+Native dual-engine Cedar evaluation, distributed
+deduplication, continuations, persistence and crash recovery are not qualified
+by this local test cut.
+
+The retirement binding test hashes the declared Lean, Quint and Scheme source
+cut. A current mapping alone is not semantic correspondence; the execution
+test supplies bounded behavioral evidence for this particular Host. Multi-owner
+concurrency, crash recovery, new grant issuance, and complete implementation
+conformance remain open.

@@ -4,8 +4,10 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+        "../../../modules/sdlc/objects.ss"
+        "../../../modules/sdlc/func.ss"
+        "../../../modules/sdlc/impact.ss"
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss")
 (def project (sdlc-project "flight" "r2" "software" #t))
 (def rule (sdlc-trace-rule "SWE-052/verification" 'requirement 'verification))
 (def req (sdlc-trace-node "req" 'requirement project))

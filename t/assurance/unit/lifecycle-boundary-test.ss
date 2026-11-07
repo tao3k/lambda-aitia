@@ -2,9 +2,22 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 (import :std/test :std/error (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
-        :agentic-ai-lab/lambda-aitia/t/formal/lifecycle-fixture)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :clan/poo/object .get)
+        (only-in :clan/poo/type Enum Tuple)
+        (only-in :clan/poo/testing/type check-property report-diagnostics)
+        (prefix-in :clan/poo/testing/property/test pbt.)
+        "../../../dev/proof/scheme/lifecycle-fixture.ss")
 (export lifecycle-boundary-test)
+
+;;; Tests consume the admitted Scope; assertions below are unchanged.
+(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+(def assurance-effect-host-authorize! (.get assurance-module-scope effect-authorize!))
+(def assurance-effect-host-deliver! (.get assurance-module-scope effect-deliver!))
+(def assurance-effect-host-grant-current? (.get assurance-module-scope effect-grant-current?))
+(def assurance-effect-host-reserve! (.get assurance-module-scope effect-reserve!))
+(def assurance-effect-host-revoke! (.get assurance-module-scope effect-revoke!))
+(def assurance-host-cedar-request-current? (.get assurance-module-scope host-request-current?))
 (def (drive fixture actions)
   (for-each (lambda (action) (check (lifecycle-action! fixture action) => #t)) actions)
   fixture)
@@ -72,6 +85,26 @@
            (check (.ref (lifecycle-action! f 'UnsafeDelivery) 'outcome) => 'rejected)
            (check (lifecycle-get f 'delivery-calls) => 0)
            (check (lifecycle-get f 'service-effects) => 0))) '(Tick Revoke ChangeSource)))
+    (test-case "generated invalidation and retry sequences cannot deliver a reserved effect"
+      (let* ((domain (Tuple (Enum Tick Revoke ChangeSource) (Enum 1 2 3)))
+             (report
+              (check-property
+               domain
+               (lambda (row)
+                 (let (f (ready))
+                   (and (lifecycle-action! f 'StartEffect)
+                        (lifecycle-action! f (vector-ref row 0))
+                        (let retry ((remaining (vector-ref row 1)))
+                          (if (zero? remaining)
+                            (and (zero? (lifecycle-get f 'delivery-calls))
+                                 (zero? (lifecycle-get f 'service-effects)))
+                            (and (eq? (.ref (lifecycle-action! f 'UnsafeDelivery) 'outcome)
+                                      'rejected)
+                                 (retry (- remaining 1))))))))
+               seed: 3305 cases: 24 size: 4 shrink-budget: 24))
+             (execution (.get report execution)))
+        (pbt.require-passed execution
+          refusal: (and (not execution) (report-diagnostics report)))))
     (test-case "source change during authorization cannot publish a grant"
       (let (f (drive (make-lifecycle-fixture) '(InstallAdapter Plan Verify Admit Decide)))
         (lifecycle-set! f 'authorization-hook

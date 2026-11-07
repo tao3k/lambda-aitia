@@ -4,10 +4,10 @@
 
 ;;; Synthetic complete inventories shared by module-owned tests only.
 (import (only-in :clan/poo/object .ref)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-structured
+        "../../../modules/sdlc/objects.ss"
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss"
+        "../../../modules/sdlc/standards/nasa-review.ss"
+        "../../../modules/sdlc/standards/nasa-structured.ss"
         :std/list/list)
 (def (test-inventories project class-value digest-value)
   (let* ((rules (nasa-trace-rules class-value))

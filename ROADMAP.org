@@ -6,6 +6,27 @@
 
 * Lifecycle framework and current priority
 
+[[file:docs/rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] and [[file:docs/adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] establish the current design baseline: Rust
+engineering execution, DE as the principal engineering Library, Scheme/POO
+semantics and Project-owned acyclic composition. They supersede Python-primary
+execution priorities, not existing consumers or historical qualification results.
+
+Framework construction and user engineering cases are separate qualification
+subjects. AITIA uses Rust to implement the SDLC framework; DE supplies extensible
+engineering definitions; each user Project selects them by language and problem.
+RFC 0006's Rust service and Python framework examples do not narrow the product
+to DE's Rust resource Case. Missing Python-specific definitions are library
+extension obligations, not evidence that Python must adopt Rust semantics.
+Framework self-application is a separate use of the library, not transferable proof.
+
+The redesign obligations are dependency-cohort qualification; one-owner
+POO-to-Rust observation/admission and authority transport; authenticated Human
+decisions; replay/revocation/concurrent-start boundaries; and restart recovery
+with retained Project knowledge and reopened obligations. RFC 0006 records the
+positive/refusal matrix. No item is closed by this documentation revision.
+The numbered phases and source-cut receipts below retain historical scope;
+their Python milestones are not prerequisites for adopting the new design.
+
 The complete SDLC is the product framework: requirements, software design,
 algorithm and implementation strategies, verification/testing, delivery,
 operation, maintenance and retirement. These activities exchange observations
@@ -25,34 +46,26 @@ meaning. A bounded job-executor retirement case is the next paired Impact
 qualification, not an instruction to remove a production capability. Its
 implementation and execution receipts remain pending.
 
-Reuse Agentic AI Lab Temporal Causality and existing upstream verification tools and
-assets. AnyIO serves the entire Aitia Python Runtime. MRR relation queries,
-derivation and lineage are deferred beyond the current Python implementation
-stage; this queue introduces no MRR integration.
+Reuse Yuanxu/Lab mechanisms and qualified upstream verification assets. Python's
+existing AnyIO observation integration remains maintained, not the selected
+execution center. MRR relation queries, derivation and lineage remain deferred;
+this redesign introduces no MRR integration.
 
 This view tracks implementation progress; it is separate from the engineering
 states in RFC 0004's lifecycle workflow.
 
-[[file:docs/rfcs/0005-org-native-engineering-workspace.org][RFC 0005]] adds the maintained [[file:user-interface/workspaces/job-executor.org][Org-native job-executor workspace]]. Its
-Scheme-owned contract and Rowan consumer qualification remain pending; the
-earlier legacy CLI checks do not close this gate. Agentic AI Lab owns the intended
-Orgize dependency; direct Scheme package
-installation is blocked by the Orgize → gerbil-parser → Agentic AI Lab dependency
-cycle and missing Orgize package entrypoint. Existing generated Cargo artifacts
-can be qualified independently of that source-package cycle. Rust/Rowan runtime
-delivery is the later durable path, not an interim workaround or a prerequisite
-for the current Python stage. The immediate implementation priority remains
-Aitia's production Python Runtime: preserve frozen source observations through
-AnyIO execution and reach the actual Scheme Host admission path. Python must
-not reimplement Org parsing or contract evaluation to bypass the pending
-Orgize boundary. Role projection, source-bound edits and the connected
-lifecycle remain separate gates.
+[[file:docs/rfcs/0005-org-native-engineering-workspace.org][RFC 0005]] adds the maintained [[file:user-interface/workspaces/job-executor.org][ORG job-executor workspace]]. Lab now declares
+the Orgize package dependency; the old missing-entrypoint/cycle premise is not
+the current baseline. Query/Contract consumer qualification and connected Host
+admission remain independent gates. Neither Python nor Rust may introduce an
+ORG parser or evaluator that duplicates Orgize. Role projection, source-bound
+edits and the connected lifecycle retain their own obligations.
 
 #+begin_export mermaid
 flowchart TD
     B["Existing bounded foundations<br/>invalidation, planning, formal laws and replay"]
     B --> D["Pending<br/>design alternatives and upstream qualification"]
-    B --> H["Pending<br/>Python-to-Host admission and async transport"]
+    B --> H["Pending<br/>Scheme/POO to Rust admission, authority and recovery"]
     D --> T["Pending<br/>connected behavior and design trajectories"]
     H --> T
     T --> R["Pending<br/>revision, revalidation and comparative evidence"]
@@ -123,7 +136,7 @@ Deliverables:
 1. Complete the source-owned migration of SDLC implementation, tests, source
    snapshots, tools and Profiles into Lambda Aitia.
 2. Replace the old package namespace and owner identities with
-   =:agentic-ai-lab/lambda-aitia/modules/sdlc= and =lambda-aitia=; do not publish a
+   =:lambda-aitia/modules/sdlc= and =lambda-aitia=; do not publish a
    compatibility alias unless separately authorized.
 3. [X] Establish the five-role SDLC module family: =types.ss=, =objects.ss=, =funs.ss=,
    =config.ss= and =interface.ss=.
@@ -306,16 +319,16 @@ Deliverables:
    open.
 4. Provenance-preserving counterexample and finding ingestion.
 5. Replay checks proving presentation mutation cannot forge admitted evidence.
-6. [X] An Aitia Scheme-native ABI contract following Agentic AI Lab's owned-byte,
-   caller-release pattern; public Scheme and Python namespaces remain
-   unversioned while ABI revision is explicit metadata.
-7. [X] An Aitia-owned, uv-managed =bindings/python= production Python Runtime
-   with an out-of-line CFFI package.  Agentic AI Lab's =packages/python-runtime=
-   remains the generic runtime mechanism, and Python contains no duplicate
-   Aitia semantics.
-8. [X] ABI revision 2 publishes the eight-stage assurance/execution protocol as
-   an inert typed =SdlcFlowPlan=; this is one protocol within the full SDLC and
-   does not claim authorization or execution.
+6. [X] Rust Session publishes the eight-stage assurance/execution Graph.
+7. [X] Maturin packages the Rust PyO3 extension for Python consumers.
+8. [X] Deliver bounded frozen pytest replay through Rust and the PyO3 wheel.
+   Fresh staging with the Lab-pinned package set passed the macOS installed
+   wheel gate. Cold timing and remote CI qualification remain separate.
+9. [~] Deliver source-bound ORG edit preflight. The installed wheel passed
+   the byte-range and freshness controls with the previously staged program.
+   Trusted Orgize projection custody remains open.
+10. [ ] Bind an independently verified pytest observation to the Assurance
+    Host.
 
 Exit gates:
 
@@ -324,9 +337,8 @@ Exit gates:
 - timeout and unavailable remain typed failures;
 - counterexamples invalidate claims but never mutate committed history;
 - human evidence names the accountable authority and review scope.
-- direct Scheme, pure-C harness and Python CFFI paths agree on canonical output
-  digests and typed failures;
-- the installed Python wheel consumes the AOT/native artifact without Gerbil.
+- Scheme, linked Rust and the installed PyO3 wheel exercise the current Graph
+  and GitOps transport. The wheel gate uses the paired Gerbil SDK.
 
 * Phase 5 — Assurance laws in Lean and lifecycle models in Quint
 
@@ -366,7 +378,7 @@ stateDiagram-v2
     Effect --> Changed: relevant new observation
 #+end_export
 
-A bounded Quint model in =proof/quint/AssuranceLifecycle.qnt= now checks current
+A bounded Quint model in =dev/proof/quint/AssuranceLifecycle.qnt= now checks current
 admission/decision/grant authority, expiry and revocation. Separate mutant
 configurations demonstrate unsafe report-only effect start, stale admission,
 grant before re-verification and effect start after revocation; a reachability
@@ -411,12 +423,9 @@ Deliverables:
    Agentic AI Lab execution.
 2. Agentic AI Lab functional plans that consume Aitia obligations without importing
    Aitia into the Agentic AI Lab core bootstrap.
-3. Aitia AOT Scheme exports through a dedicated C ABI using the established
-   Agentic AI Lab Scheme-native result ownership convention.
-4. Aitia's own production Python Runtime consumes that ABI through CFFI
-   and returns typed
-   projections.  Agentic AI Lab's Python runtime remains a separate generic runtime
-   and lifecycle transport.
+3. AITIA links the Scheme program through the Gerbil/Rust bridge.
+4. Python consumes AITIA's Rust Session through its Maturin wheel. Lab
+   continues to own its general-purpose runtime and lifecycle transport.
 5. [~] Cedar request projection from a current Host preflight, with Decision,
    claim, policy and snapshot bindings. This is not yet a projection from an
    admitted =allow= Decision; the Runtime Host must independently validate
@@ -522,7 +531,7 @@ foundation work is recorded in the phases above. The current queue is:
 
 Immediate priority (2026-10-10): defer new persistence integration. First
 challenge the design with source-reviewed upstream failure reports and actual
-formal checks. [[file:proof/quint/README.org][Quint design checks]] separate work/cancellation, retirement review, ingress and
+formal checks. [[file:dev/proof/quint/README.org][Quint design checks]] separate work/cancellation, retirement review, ingress and
 the existing assurance lifecycle; [[file:docs/receipts/2026-09-24-retirement-formal-review.org][the formal review receipt]] records bounded
 exploration and Lean laws, not Runtime closure. Historical
 [[file:docs/receipts/2026-09-24-formal-source-qualification.org][TLA+ source qualification]] is retained as a receipt only. The maintained

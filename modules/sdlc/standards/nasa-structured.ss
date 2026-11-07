@@ -3,12 +3,12 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Deterministic local checks over authenticated inventory projections.
-(import (only-in :clan/poo/object .o .ref)
-        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .o .ref)
+        "../types.ss"
+        "../func.ss"
+        "nasa-7150-2d.ss"
+        "nasa-review.ss"
         :std/list/list)
 (export nasa-safety-inventory nasa-trace-inventory nasa-structured-requirement?
         nasa-inventory-for? nasa-inventory-snapshot nasa-structured-review)
@@ -16,14 +16,14 @@
   (every (lambda (s) (equal? (.ref value s) (.ref project s))) '(subject revision scope)))
 (def (base class id project digest-value complete-value)
   (unless (sdlc-project? project) (error "invalid inventory project"))
-  (.o (:: @ (poo-clos-model-prototype class)) identity: id
+  (.o (:: @ (.ref class 'proto)) identity: id
       subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
       artifact-digest: digest-value complete?: complete-value))
 (def (nasa-safety-inventory id project digest-value components-value complete?: (complete-value #t))
-  (poo-clos-check-model SdlcSafetyInventory
+  (validate SdlcSafetyInventory
     (.o (:: @ (base SdlcSafetyInventory id project digest-value complete-value)) components: components-value)))
 (def (nasa-trace-inventory id project digest-value nodes-value edges-value complete?: (complete-value #t))
-  (poo-clos-check-model SdlcTraceInventory
+  (validate SdlcTraceInventory
     (.o (:: @ (base SdlcTraceInventory id project digest-value complete-value)) nodes: nodes-value edges: edges-value)))
 (def (nasa-structured-requirement? id)
   (and (member id '("SWE-052" "SWE-219" "SWE-220")) #t))

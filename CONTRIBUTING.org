@@ -12,7 +12,7 @@ their format is covered by =REUSE.toml=.
 * Ownership boundaries
 
 - Lambda Aitia owns Software/SDLC, NASA, GitOps, assurance semantics and its
-  own C and Python bindings.
+  Rust runtime and PyO3 bindings.
 - Lambda Episteme owns non-SDLC vertical knowledge such as Healthcare.
 - Agentic AI Lab owns POO/functional composition, graph substrate and generic
   runtime handoff.  Agentic AI Lab core must never import Lambda Aitia.
@@ -32,9 +32,18 @@ Run the relevant repository gates from the Agentic AI Lab mount:
 just build-contribute lambda-aitia
 just test-contribute lambda-aitia modules
 just test-contribute lambda-aitia assurance
-just check-aitia-native
+just --working-directory packages/lambda-aitia --justfile packages/lambda-aitia/justfile check-rust-delivery
 just check-license-contract
 #+end_src
+
+The AITIA package's =just check= includes the real JJ evidence replay.
+Set =AITIA_JJ_BIN= to the absolute path of the verified JJ executable
+described in [[file:dev/sysml/README.org][the commit evidence qualification]].
+The Rust delivery gate requires =AITIA_PYTEST_PYTHON= to name an
+absolute interpreter path with the project-pinned pytest installed.
+It uses that interpreter for the installed wheel's frozen-source replay.
+The Cargo workspace uses optimization level 1 in =dev= and level 3 in
+=release=, with incremental compilation enabled in both profiles.
 
 Do not add compatibility aliases, version suffixes to the public Scheme or
 Python namespace, or duplicate Aitia semantics in Python.

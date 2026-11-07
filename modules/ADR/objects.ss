@@ -4,13 +4,12 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o)
-        :agentic-ai-lab/core/poo-clos/interface
         (only-in :agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.
                  agentic-ai-lab-governance-source)
-        :agentic-ai-lab/lambda-aitia/modules/ADR/types)
+        "types.ss")
 
-(export ADRProfile ADR-link ADR-option ADR-consequence ADR-record)
+(export ADRProfile)
 
 (def ADRProfile
   (.o (:: @ AgenticAILabGovernanceProfile.) identity: "lambda-aitia/ADR"
@@ -30,44 +29,3 @@
       (list (agentic-ai-lab-governance-source
              "ADR/expired-reference-witnesses"
              "modules/ADR/expired-references.gql" 'gql))))
-
-(def (ADR-link relation-value target-value)
-  (poo-clos-check-model
-   ADRLink
-   (.o (:: @ (poo-clos-model-prototype ADRLink))
-       relation: relation-value target: target-value)))
-
-(def (ADR-option identity-value title-value description-value
-                 disposition-value pros-value cons-value)
-  (poo-clos-check-model
-   ADROption
-   (.o (:: @ (poo-clos-model-prototype ADROption))
-       identity: identity-value title: title-value
-       description: description-value disposition: disposition-value
-       pros: pros-value cons: cons-value)))
-
-(def (ADR-consequence sentiment-value statement-value)
-  (poo-clos-check-model
-   ADRConsequence
-   (.o (:: @ (poo-clos-model-prototype ADRConsequence))
-       sentiment: sentiment-value statement: statement-value)))
-
-(def (ADR-record identity-value title-value status-value date-value
-                 revision-value context-value decision-value
-                 drivers-value options-value consequences-value
-                 confirmation-value decision-makers-value consulted-value
-                 informed-value links-value)
-  (let ((record
-         (poo-clos-check-model
-          ADRRecord
-          (.o (:: @ (poo-clos-model-prototype ADRRecord))
-              identity: identity-value title: title-value status: status-value
-              date: date-value revision: revision-value context: context-value
-              decision: decision-value decision-drivers: drivers-value
-              considered-options: options-value consequences: consequences-value
-              confirmation: confirmation-value
-              decision-makers: decision-makers-value consulted: consulted-value
-              informed: informed-value links: links-value))))
-    (unless (ADR-record-valid? record)
-      (error "invalid ADR decision record" identity-value status-value))
-    record))

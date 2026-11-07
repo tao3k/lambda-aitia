@@ -7,8 +7,10 @@
 ;;; for environment Profile behavior.
 (import :clan/poo/object :clan/poo/mop :clan/poo/type :clan/poo/number
         :clan/poo/brace)
-(export NonEmptyString GitOpsEvent GitOpsCheckConclusion
+(export GitOpsScopeContract NonEmptyString GitOpsEvent GitOpsCheckConclusion
         GitOpsChange GitOpsCheck GitOpsDecision
+        GitOpsCommitCut GitOpsCommitObligations GitOpsCommitObservation GitOpsCommitObservations
+        GitOpsModelMappings GitOpsModelProperties
         gitops-profile? gitops-change? gitops-check? gitops-decision?)
 
 (define-type (NonEmptyString @ String)
@@ -48,6 +50,7 @@
    standards: {type: (List Symbol)}
    missing-checks: {type: (List Symbol)}
    failed-checks: {type: (List Symbol)}
+   check-blockers: {type: (List GitOpsCheck)}
    stale-checks: {type: (List Symbol)}
    reasons: {type: (List Symbol)}})
 
@@ -57,3 +60,52 @@
 (def (gitops-change? value) (element? GitOpsChange value))
 (def (gitops-check? value) (element? GitOpsCheck value))
 (def (gitops-decision? value) (element? GitOpsDecision value))
+
+(define-type (GitOpsProfileType @ Type.)
+  .element?: gitops-profile?)
+(def Predicate (Function (list Bool) (list Any)))
+
+(def GitOpsCommitCut
+  (Record project: [NonEmptyString] workspace: [NonEmptyString]
+          change: [NonEmptyString] operation: [NonEmptyString]
+          commit: [NonEmptyString] tree: [NonEmptyString]
+          parents: [(List NonEmptyString)]))
+(def GitOpsCommitObligations (List NonEmptyString))
+(def GitOpsCommitObservation
+  (Record cut: [GitOpsCommitCut] identity: [NonEmptyString]
+          obligation: [NonEmptyString] outcome: [(Enum passed failed)]))
+(def GitOpsCommitObservations (List GitOpsCommitObservation))
+
+(def GitOpsModelMappings
+  (List (Record design: [NonEmptyString] model: [NonEmptyString]
+                property: [NonEmptyString])))
+(def GitOpsModelProperties
+  (List (Record model: [NonEmptyString] property: [NonEmptyString])))
+
+(def GitOpsScopeContract
+  (.cc (Record profile: [GitOpsProfileType]
+               profile?: [Predicate] change?: [Predicate]
+               check?: [Predicate] decision?: [Predicate]
+               change: [(Function (list GitOpsChange)
+                                  (list Symbol GitOpsEvent NonEmptyString NonEmptyString
+                                        NonEmptyString NonEmptyString (Or False UInt)))]
+               check: [(Function (list GitOpsCheck)
+                                 (list Symbol NonEmptyString NonEmptyString GitOpsCheckConclusion)
+                                 keywords: (list (cons 'standard-edition: (Or False NonEmptyString))
+                                                 (cons 'source-lock-digest: (Or False NonEmptyString))))]
+               matches?: [(Function (list Bool) (list GitOpsProfileType Any))]
+               match-change: [(Function (list Predicate) (list GitOpsEvent NonEmptyString))]
+               evaluate: [(Function (list GitOpsDecision)
+                                    (list Object GitOpsChange (List GitOpsCheck)))]
+               admit-commit-observation:
+               [(Function (list (Or False GitOpsCommitObservation))
+                          (list String GitOpsCommitObservation NonEmptyString))]
+               commit-evidence: [(Function (list Object)
+                                           (list GitOpsCommitCut GitOpsCommitObligations
+                                                 GitOpsCommitObservations))]
+               project-config: [(Function (list Any) (list Object))]
+               project-config-json: [(Function (list Any) (list String))]
+               model-gaps: [(Function (list Object)
+                                      (list GitOpsModelMappings (List NonEmptyString)
+                                            GitOpsModelProperties))])
+       identity: 'gitops/scope))

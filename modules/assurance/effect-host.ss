@@ -6,7 +6,7 @@
 ;;; Runtime Host. Only configured runtime operations evaluate policy / deliver.
 ;;; Editable preflights, requests, tokens and reports never issue capabilities.
 (import (only-in :clan/poo/object .o .ref)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/host
+        "host.ss"
         :agentic-ai-lab/modules/governance/policy/authorized-effect-token
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/decision
                  agentic-ai-lab-cedar-decision-permit?

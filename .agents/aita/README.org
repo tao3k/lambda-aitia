@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: AITIA project configuration
+
+Run =aitia init= in the project. It creates =.agents/aita/project.json=
+with only the schema version. Repeated initialization preserves an existing
+manifest. The framework supplies the default Scenario and empty override
+collections. [[file:project.json][AITIA's project manifest]] shows explicit Module, Quint and SysML
+overrides for this repository. Paths are project-relative. The
+[[file:../../modules/gitops/project-config.ss][Scheme project configuration]] owns the envelope and defaults through
+the Yuanxu JSON Schema Module. A Scheme consumer passes a POO
+declaration to the GitOps Scope's =project-config= slot, for example
+=(.o schemaVersion: 1 scenario: "aitia")=. JSON is the recorded project
+data format. The =project-config-json= slot decodes that data and applies
+the same contract and defaults. Rust transports the recorded JSON to
+Scheme and receives the effective configuration. Each selected Module
+owns the Contract for its specific configuration.
+
+The recorded-manifest diagnostic reads configuration from the JJ cut.
+It requires one regular manifest file in the recorded tree and reports
+the revision alongside the effective configuration. The real JJ test
+checks that a dirty edit stays outside the observed cut and that a
+directory at the manifest path is refused.
+
+The linked Rust test with the pinned JJ executable verified a minimal
+recorded manifest, Scheme default projection and refusal of an unsupported
+schema version. The separate JJ observation test verifies the recorded
+regular-file boundary.
+
+Project-specific ASCENT source may live in this directory and be listed
+in the manifest. The list is currently empty. Loading and validation
+remain open. The planned loader will use the captured project revision,
+refuse escaping paths and undeclared imports, and keep project rules
+within the configured query boundary.
+
+* AITIA's own commit Case
+
+The intended first execution is the AITIA change that introduces this
+configuration. JJ supplies the recorded commit and operation. The NASA
+SDLC catalog and Yuanxu Scenario supply applicable engineering
+obligations. Quint and SysML checks produce observations. ORG Contract
+binds observations to independent execution data. ASCENT derives
+current support, gaps, contradictions and reopened obligations.
+Governance controls local finalization. See the
+[[file:../../dev/sysml/README.org][commit design and verification evidence]].
+
+The project discovery and manifest read are an initial implementation
+slice. The real AITIA checkout currently requires its own JJ workspace
+before the command can read a recorded AITIA manifest. The linked NASA,
+ORG and ASCENT commit execution still needs qualification.

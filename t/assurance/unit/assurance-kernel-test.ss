@@ -7,11 +7,52 @@
         (only-in :std/error Error?)
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verification-adapter yuanxu-verify)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :clan/poo/object .get))
 
 (export assurance-kernel-test)
+
+;;; Tests consume the admitted Scope; assertions below are unchanged.
+(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+(def +assurance-evidence-kinds+ (.get assurance-module-scope evidence-kinds))
+(def assurance-artifact (.get assurance-module-scope artifact))
+(def assurance-artifact? (.get assurance-module-scope artifact?))
+(def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
+(def assurance-claim (.get assurance-module-scope claim))
+(def assurance-claim? (.get assurance-module-scope claim?))
+(def assurance-composition-derivation? (.get assurance-module-scope composition-derivation?))
+(def assurance-decision (.get assurance-module-scope decision))
+(def assurance-declare-replacement-obligation (.get assurance-module-scope declare-replacement))
+(def assurance-derive-composition-requirements (.get assurance-module-scope derive-composition))
+(def assurance-derive-replacement-requirements (.get assurance-module-scope derive-replacements))
+(def assurance-effect (.get assurance-module-scope effect))
+(def assurance-evidence (.get assurance-module-scope evidence))
+(def assurance-explain-verifier-choices (.get assurance-module-scope explain-verifiers))
+(def assurance-invalidate (.get assurance-module-scope invalidate))
+(def assurance-invalidation-receipt-ref (.get assurance-module-scope invalidation-receipt-ref))
+(def assurance-invalidation-receipt? (.get assurance-module-scope invalidation-receipt?))
+(def assurance-obligation (.get assurance-module-scope obligation))
+(def assurance-obligation? (.get assurance-module-scope obligation?))
+(def assurance-plan-verification (.get assurance-module-scope plan-verification))
+(def assurance-relation (.get assurance-module-scope relation))
+(def assurance-relation? (.get assurance-module-scope relation?))
+(def assurance-replacement-declaration-receipt? (.get assurance-module-scope replacement-declaration-receipt?))
+(def assurance-replacement-derivation? (.get assurance-module-scope replacement-derivation?))
+(def assurance-replacement-requirement? (.get assurance-module-scope replacement-requirement?))
+(def assurance-snapshot (.get assurance-module-scope snapshot))
+(def assurance-support-sealed-under-adapter? (.get assurance-module-scope support-sealed-under-adapter?))
+(def assurance-verification-plan? (.get assurance-module-scope verification-plan?))
+(def assurance-verification-policy (.get assurance-module-scope verification-policy))
+(def assurance-verification-policy? (.get assurance-module-scope verification-policy?))
+(def assurance-verification-request? (.get assurance-module-scope verification-request?))
+(def assurance-verification-subject (.get assurance-module-scope verification-subject))
+(def assurance-verification-subject-snapshot (.get assurance-module-scope verification-subject-snapshot))
+(def assurance-verifier-candidate (.get assurance-module-scope verifier-candidate))
+(def assurance-verifier-choice-receipt? (.get assurance-module-scope verifier-choice-receipt?))
+(def assurance-verifier-input (.get assurance-module-scope verifier-input))
+(def assurance-verifier-outcome (.get assurance-module-scope verifier-outcome))
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
@@ -126,11 +167,11 @@
    inputs: (list (assurance-verifier-input artifact))
    output-digest: digest-b))
 (def support-adapter
-  (agentic-ai-lab-verification-adapter
+  (yuanxu-verification-adapter
    "test/kernel-support" (lambda (subject-value now-value until-value) #t)
    assurance-verification-subject-snapshot))
 (def support-receipt
-  (agentic-ai-lab-verify
+  (yuanxu-verify
    support-adapter
    (assurance-verification-subject
     full-software-snapshot current-obligation evidence support-outcome)

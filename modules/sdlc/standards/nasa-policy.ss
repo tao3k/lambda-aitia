@@ -3,20 +3,19 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; NPR 7150.2D project/institution baseline policy construction.
-(import (only-in :clan/poo/object .o .ref)
-        (only-in :yuanxu/poo-clos/model poo-clos-check-model poo-clos-model-prototype)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .get .o .ref)
+        "../types.ss"
+        "nasa-7150-2d.ss"
         :std/list/list)
 
 (export nasa-stage-policy nasa-baseline-policy)
 
 (def (nasa-stage-policy id requirements-value scope: (scope-value 'project))
   (let (result
-        (poo-clos-check-model
+        (validate
          SdlcStagePolicy
-         (.o (:: @ (poo-clos-model-prototype SdlcStagePolicy))
+         (.o (:: @ (.ref SdlcStagePolicy 'proto))
              identity: id assessment-scope: scope-value
              requirements: requirements-value)))
     (when (equal? id "unstarted")
@@ -39,5 +38,5 @@
          (lambda (row)
            (eq? (eq? (nasa-rule-mode (.ref row 'identity)) 'institutional)
                 (eq? scope-value 'institution)))
-         nasa-requirement-catalog))
+         (.get Nasa7150_2D requirements)))
    scope: scope-value))

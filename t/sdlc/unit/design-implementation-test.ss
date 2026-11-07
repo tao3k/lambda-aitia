@@ -2,12 +2,23 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test :std/error
-        (only-in :clan/poo/object .ref)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
+(import (only-in "../../../init.ss" lambda-aitia.init.exports)
+        :std/test :std/error
+        (only-in :clan/poo/object .get .ref)
+)
+
+(def sdlc (.get lambda-aitia.init.exports modules sdlc))
+(def sdlc-design-contract (.get sdlc design-contract))
+(def sdlc-design-guarantee (.get sdlc design-guarantee))
+(def sdlc-design-implementation-link (.get sdlc design-implementation-link))
+(def sdlc-design-implementation-review (.get sdlc design-implementation-review))
+
 
 (export design-implementation-test)
+
+(def assurance (.get lambda-aitia.init.exports modules assurance))
+(def assurance-artifact (.get assurance artifact))
+(def assurance-snapshot (.get assurance snapshot))
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))

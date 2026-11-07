@@ -4,19 +4,17 @@
 
 ;;; Aitia owns software-design meaning; Agentic AI Lab owns graph traversal and
 ;;; runtime authority. This is an inert declaration-level replacement check.
-(import (only-in :clan/poo/object .o .ref)
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        :agentic-ai-lab/core/poo-clos/interface
-        (only-in :agentic-ai-lab/lambda-aitia/modules/assurance/funs
-                 assurance-canonical-digest)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types)
+        "types.ss")
 
 (export SdlcDesignClause SdlcDesignVariation SdlcDesignContract
         sdlc-design-clause? sdlc-design-variation? sdlc-design-contract?
         sdlc-design-assumption sdlc-design-guarantee
         sdlc-design-variation sdlc-design-contract
-        sdlc-design-contract-digest
+        make-sdlc-design-contract-digester
         sdlc-design-replacement-review)
 
 (def (text-list? values)
@@ -35,21 +33,21 @@
 (def (variation-list? values)
   (identified-list? values sdlc-design-variation?))
 (def (slot name predicate)
-  (poo-clos-direct-slot-definition name type-predicate: predicate))
+  (sdlc-record-field name type-predicate: predicate))
 
 (def SdlcDesignClause
-  (poo-clos-class 'sdlc/design-clause
+  (sdlc-record-type 'sdlc/design-clause
     direct-slots:
     (list (slot 'identity sdlc-text?) (slot 'revision sdlc-text?)
           (slot 'kind (lambda (value) (if (memq value '(assumption guarantee)) #t #f)))
           (slot 'statement sdlc-text?))))
 (def SdlcDesignVariation
-  (poo-clos-class 'sdlc/design-variation
+  (sdlc-record-type 'sdlc/design-variation
     direct-slots:
     (list (slot 'identity sdlc-text?) (slot 'revision sdlc-text?)
           (slot 'affects-guarantees nonempty-text-list?))))
 (def SdlcDesignContract
-  (poo-clos-class 'sdlc/design-contract
+  (sdlc-record-type 'sdlc/design-contract
     direct-slots:
     (list (slot 'identity sdlc-text?) (slot 'revision sdlc-text?)
           (slot 'decision sdlc-text?)
@@ -61,11 +59,11 @@
           (slot 'variations variation-list?))))
 
 (def (sdlc-design-clause? value)
-  (poo-clos-model? SdlcDesignClause value))
+  (sdlc-record? SdlcDesignClause value))
 (def (sdlc-design-variation? value)
-  (poo-clos-model? SdlcDesignVariation value))
+  (sdlc-record? SdlcDesignVariation value))
 (def (sdlc-design-contract? value)
-  (and (poo-clos-model? SdlcDesignContract value)
+  (and (sdlc-record? SdlcDesignContract value)
        (pair? (.ref value 'responsibilities))
        (pair? (.ref value 'guarantees))
        (let (guarantees (map (lambda (clause) (.ref clause 'identity))
@@ -76,9 +74,9 @@
                 (.ref value 'variations)))))
 
 (def (design-clause kind-value id revision-value statement-value)
-  (poo-clos-check-model
+  (validate
    SdlcDesignClause
-   (.o (:: @ (poo-clos-model-prototype SdlcDesignClause))
+   (.o (:: @ (.ref SdlcDesignClause 'proto))
        identity: id revision: revision-value kind: kind-value
        statement: statement-value)))
 (def (sdlc-design-assumption id revision-value statement-value)
@@ -86,18 +84,18 @@
 (def (sdlc-design-guarantee id revision-value statement-value)
   (design-clause 'guarantee id revision-value statement-value))
 (def (sdlc-design-variation id revision-value affected-guarantees)
-  (poo-clos-check-model
+  (validate
    SdlcDesignVariation
-   (.o (:: @ (poo-clos-model-prototype SdlcDesignVariation))
+   (.o (:: @ (.ref SdlcDesignVariation 'proto))
        identity: id revision: revision-value
        affects-guarantees: affected-guarantees)))
 (def (sdlc-design-contract id revision-value decision-value responsibility-values
                            owned-state-values effect-values assumption-values
                            guarantee-values variation-values)
   (let (value
-        (poo-clos-check-model
+        (validate
          SdlcDesignContract
-         (.o (:: @ (poo-clos-model-prototype SdlcDesignContract))
+         (.o (:: @ (.ref SdlcDesignContract 'proto))
              identity: id revision: revision-value decision: decision-value
              responsibilities: responsibility-values
              owned-state: owned-state-values
@@ -126,10 +124,10 @@
         (ordered-keys (.ref value 'assumptions) clause-key)
         (ordered-keys (.ref value 'guarantees) clause-key)
         (ordered-keys (.ref value 'variations) variation-key)))
-(def (sdlc-design-contract-digest value)
+(def ((make-sdlc-design-contract-digester digest) value)
   (unless (sdlc-design-contract? value)
     (error "invalid design contract for digest"))
-  (assurance-canonical-digest
+  (digest
    (list 'lambda-aitia.sdlc-design-contract
          (.ref value 'identity) (.ref value 'revision)
          (contract-body value))))

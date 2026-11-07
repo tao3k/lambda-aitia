@@ -3,11 +3,15 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :agentic-ai-lab/lambda-aitia/modules/ADR/types)
-(export (import: :agentic-ai-lab/lambda-aitia/modules/ADR/types))
-(import :agentic-ai-lab/lambda-aitia/modules/ADR/objects)
-(export (import: :agentic-ai-lab/lambda-aitia/modules/ADR/objects))
-(import :agentic-ai-lab/lambda-aitia/modules/ADR/funs)
-(export (import: :agentic-ai-lab/lambda-aitia/modules/ADR/funs))
-(import :agentic-ai-lab/lambda-aitia/modules/ADR/config)
-(export (import: :agentic-ai-lab/lambda-aitia/modules/ADR/config))
+;;; Roles and their compiler closure are associated by Yuanxu, not restated here.
+(.def ADR
+  identity: 'ADR
+  tags: '(software-engineering decisions)
+  core: (.o requires: (.o Assurance:
+                          (.o module-id: 'assurance))
+            scope-contract: ADRScopeContract
+            exports: (.o (:: @ Config)
+                         assurance-decision:
+                         (ADR-assurance-projector (.get Assurance decision) (.get Assurance digest))
+                         decision?: (.get Assurance decision?)))
+  features: (.o))

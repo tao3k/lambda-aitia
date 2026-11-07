@@ -13,7 +13,7 @@
 
 This is a historical TLA+ receipt. Its =proof/tla/= paths refer to the source
 at commit =49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4=; the maintained model
-and checks are now in [[file:../../proof/quint/README.org][Quint]].
+and checks are now in [[file:../../dev/proof/quint/README.org][Quint]].
 
 * Decision and evidence boundary
 
@@ -81,9 +81,8 @@ No remote CI run or clean-checkout validation is claimed.
 * Unclosed native syntax gate
 
 The parent dependency resolves to gerbil-parser commit
-=562dcd428f00b05ca87407fd54b1e04dcf076ae9= at
-=/private/tmp/gerbil-parser-rowan-scanned-tokens=, with a clean source worktree
-at inspection. Importing its public =parse-tla-plus-v1= and runtime artifact
+=562dcd428f00b05ca87407fd54b1e04dcf076ae9= through the parent package link.
+The linked source worktree was clean at inspection. Importing its public =parse-tla-plus-v1= and runtime artifact
 checks under a 512 MiB Gerbil heap / 60-second timeout rejected both sources:
 
 | Source | First diagnostic |

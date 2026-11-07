@@ -6,12 +6,38 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/contribution/verification
-                 agentic-ai-lab-verification-adapter agentic-ai-lab-verify
-                 agentic-ai-lab-revoke-verification!)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
+        (only-in :yuanxu/contribution/verification
+                 yuanxu-verification-adapter yuanxu-verify
+                 yuanxu-revoke-verification!)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :clan/poo/object .get))
 
 (export evidence-admission-test)
+
+;;; Tests consume the admitted Scope; assertions below are unchanged.
+(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+(def assurance-artifact (.get assurance-module-scope artifact))
+(def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
+(def assurance-claim (.get assurance-module-scope claim))
+(def assurance-evaluate-evidence-admission (.get assurance-module-scope evaluate-admission))
+(def assurance-evidence (.get assurance-module-scope evidence))
+(def assurance-evidence-admission-receipt? (.get assurance-module-scope evidence-admission-receipt?))
+(def assurance-host-admission-current? (.get assurance-module-scope host-admission-current?))
+(def assurance-host-admit (.get assurance-module-scope host-admit))
+(def assurance-host-admitted-support? (.get assurance-module-scope host-admitted-support?))
+(def assurance-host-revoke! (.get assurance-module-scope host-revoke!))
+(def assurance-host-revoke-admission! (.get assurance-module-scope host-revoke-admission!))
+(def assurance-host-sealed-support? (.get assurance-module-scope host-sealed-support?))
+(def assurance-host-verify (.get assurance-module-scope host-verify))
+(def assurance-obligation (.get assurance-module-scope obligation))
+(def assurance-relation (.get assurance-module-scope relation))
+(def assurance-snapshot (.get assurance-module-scope snapshot))
+(def assurance-support-sealed-under-adapter? (.get assurance-module-scope support-sealed-under-adapter?))
+(def assurance-verification-host (.get assurance-module-scope verification-host))
+(def assurance-verification-subject (.get assurance-module-scope verification-subject))
+(def assurance-verification-subject-snapshot (.get assurance-module-scope verification-subject-snapshot))
+(def assurance-verifier-input (.get assurance-module-scope verifier-input))
+(def assurance-verifier-outcome (.get assurance-module-scope verifier-outcome))
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
@@ -92,7 +118,7 @@
   (.o (:: @ outcome)
       snapshot-context-digest: (.ref candidate-snapshot 'context-digest)))
 (def trusted-adapter
-  (agentic-ai-lab-verification-adapter
+  (yuanxu-verification-adapter
    "host/native-test"
    (lambda (subject-value now until)
      (and (eq? (.ref (.ref subject-value 'outcome) 'status) 'succeeded)
@@ -103,9 +129,9 @@
   (assurance-verification-subject
    trusted-snapshot trusted-obligation trusted-evidence trusted-outcome))
 (def trusted-receipt
-  (agentic-ai-lab-verify trusted-adapter trusted-subject 10 20))
+  (yuanxu-verify trusted-adapter trusted-subject 10 20))
 (def untrusted-adapter
-  (agentic-ai-lab-verification-adapter
+  (yuanxu-verification-adapter
    "other/native-test"
    (lambda (subject-value now until) #t)
    assurance-verification-subject-snapshot))
@@ -585,7 +611,7 @@
         trusted-discharge trusted-evidence trusted-obligation
         trusted-snapshot trusted-outcome trusted-receipt 20)
        #f)
-      (agentic-ai-lab-revoke-verification! trusted-adapter trusted-receipt)
+      (yuanxu-revoke-verification! trusted-adapter trusted-receipt)
       (check-equal?
        (verified-support
         trusted-discharge trusted-evidence trusted-obligation

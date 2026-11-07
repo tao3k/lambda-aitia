@@ -2,6 +2,8 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Native contributor package identity.  Importing the package does not run
+;;; Independent AITIA package identity. Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
-(package: agentic-ai-lab/lambda-aitia)
+(package: lambda-aitia
+ ;; Yuanxu supplies the declaration language, not this package's identity.
+ prelude: :tao3k/yuanxu/prelude)

@@ -1,0 +1,367 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0006 — Engineering Runtime and Library Boundaries
+#+startup: overview
+
+:PROPERTIES:
+:ID: lambda-aitia-rfc-0006
+:STATUS: draft
+:DATE: 2026-11-07
+:REVISION: r2
+:PARENT_RFC: lambda-aitia-rfc-0004
+:ADR_ID: lambda-aitia-adr-0009
+:END:
+
+* Decision and evidence status
+
+AITIA is a Human + AI SDLC framework whose engineering execution Runtime is
+implemented in Rust. Deterministic Engineering (DE) supplies the extensible
+engineering Library consumed for projects in different languages and domains.
+Rust as the framework implementation language does not restrict the languages
+of those projects. Scheme/POO retains semantic declarations, composition and
+assurance policy. These are design decisions;
+the cross-runtime protocols below are proposed contracts, not implemented APIs.
+[[file:../adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] records the decision and supersedes the Python-primary Runtime
+direction. Existing Python consumers, implementation and historical receipts
+remain intact. This revision changes documentation only: no dependency pin,
+ABI, executor, binding, storage or old Memory implementation is changed.
+
+The product remains Human + AI SDLC, not a fixed tool pipeline. Developing is
+a mode; Staging, Release and Backport are lifecycle/delivery processes. Git
+index/staged, tracked worktree changes and untracked files belong to GitOps,
+not to those lifecycle states. Agent proposals may introduce competing designs,
+counterexamples and relations; no default next-action graph fixes exploration.
+
+* Three distinct design layers
+
+| Layer | Design object | Responsibility | Not implied |
+|-------+---------------+----------------+-------------|
+| AITIA framework | Human + AI engineering SDLC, implemented with a Rust execution Runtime and Scheme/POO semantics | organize design alternatives, development, verification, review, delivery, operation and evolution; enforce admitted execution boundaries | every user project is Rust, or the framework is only a resource manager |
+| DE engineering Library | reusable cross-language and language/problem-specific definitions | publish extensible models, constraints, methods, correspondence assets and applicability conditions | one Rust Case describes the entire framework or every project's lifecycle |
+| User Project | its own language mix, architecture, problems and revisions | select, refine and compose applicable DE capabilities under AITIA; retain project-specific evidence and decisions | an available library item is automatically applicable, proved or authorized |
+
+These are conceptual responsibilities, not three new package names or a second
+POO composition mechanism. Project selection uses existing Library/Profile/Scenario
+and POO extension boundaries. DE can grow new language/problem definitions; the
+framework must not hard-code an exhaustive language list or force all projects
+through the current Rust resource Case. Cross-language composition opens its
+own boundary obligations rather than inheriting correctness from either leaf.
+
+AITIA itself is also a Rust engineering Project. It may consume DE resource
+management definitions to improve its executor, just as another Rust Project
+may consume them. Framework self-application and user-project application have
+different subjects, source cuts, assumptions and receipts. Neither a passing
+framework check nor a passing user-project check transfers support to the other.
+Resource management is one supporting concern within an SDLC, not its organizing
+model, lifecycle stage list or evidence of complete SDLC correctness.
+
+** Rust user Project example
+
+A Rust service can select applicable DE concurrency/resource definitions,
+refine their budget, ownership and cancellation assumptions, and bind them to
+its own source and toolchain. The inspected DE Tokio/Rayon resource Case is a
+candidate reusable asset, not a requirement that every Rust service use Tokio
+or Rayon. Checks assess the selected propositions; their results become
+observations for independent admission, not release permission.
+
+AITIA organizes the service's requirements, design alternatives, implementation,
+review and delivery around those and other selected obligations. A resource
+counterexample can reopen an affected design guarantee; it does not define the
+service's complete lifecycle. Separately applying the same library to AITIA's
+executor requires a framework-specific binding and independent evidence.
+
+** Python user Project example
+
+A Python framework can select or contribute DE definitions for task ownership,
+cancellation propagation, resource/context-manager cleanup, dependency/API
+compatibility and its own testing/release concerns. Which definitions and tools
+are applicable is a project decision; AnyIO, asyncio or pytest is not a mandatory
+universal choice. This is the extension design, not a claim that a complete DE
+Python catalog or its consumer is implemented or qualified today.
+
+AITIA's Rust Runtime supervises the selected Python tool processes and records
+their actual inputs, outputs and cleanup. Python project semantics remain in
+the selected engineering definitions and project code; they are not replaced
+by Rust ownership semantics. A changed Python runtime version, selected method
+or cleanup assumption reopens the affected project obligations. It does not
+automatically invalidate unrelated AITIA framework guarantees. A Python/Rust
+extension adds explicit FFI lifetime/error/cancellation obligations at that
+boundary; results for either language alone cannot discharge them.
+
+| Distinction | Rust example | Python example |
+|-------------+--------------+----------------|
+| Framework implementation | AITIA Rust Runtime | the same AITIA Rust Runtime |
+| Project under development | user's Rust service | user's Python framework |
+| Selected DE capability | applicable concurrency/resource model plus other engineering definitions | applicable Python lifecycle/compatibility definitions, extending DE where missing |
+| Evidence subject | the service's exact source and selected assumptions | the Python project's exact source, interpreter and selected assumptions |
+| Framework self-check | separate check of AITIA's executor | still separate; supervising Python does not prove the Python project |
+
+The Python distribution of AITIA has a separate role from a Python Project
+under development. AITIA ships a PyO3 extension built from the Rust runtime
+and packaged by Maturin. It consumes the same Scheme Graph and decision
+operations as the Rust CLI and evaluates ORG Contract queries over supplied
+Elements. The wheel also exposes bounded pytest replay over a frozen
+snapshot and returns a source-bound process observation. ORG edit
+preflight checks supplied projection spans against current source bytes.
+Trusted projection custody and Host admission of test observations remain
+delivery obligations.
+
+Both examples are design illustrations. No Rust/Python tool execution, new
+Quint model, Lean theorem or DE library addition is qualified by this revision.
+
+* Source-inspected baseline
+
+This is a source audit, not a new build, test, CI or runtime acceptance receipt.
+The inspected Aitia worktree includes uncommitted Yuanxu import/build migration;
+its HEAD alone does not identify those modified bytes. Future qualification must
+bind the actual source and compiled products and reject drift during a run.
+
+| Owner | Inspected revision | Scope |
+|-------+--------------------+-------|
+| Lab | =5bd6c8d77bdadbd4a976b4a93ebbeee1b18f475e= | current parent HEAD when this RFC was written |
+| Yuanxu / CORE | =2e8ae25085387142528cd4c4504a8ab71b5cdcdd= | shared mechanisms, not product execution authority |
+| Aitia | =9bc08170ffcfa23f27fb52b36d8c583e3ee6946d= plus working changes | inspected source, not clean-release qualification |
+| DE | =6f3113eaeb75effb8b692b8eacae1cbe48767769= | remote main, checked 2026-11-07; reference revision, not installed dependency |
+
+Lab's =gerbil.pkg= already pins Orgize =8b0959a85d21207e377ee99647df0750abadd9f1=,
+parser =21fdb58642b135c48ad0006aab40e58e99e58c24=, ASCENT
+=62299efe57c1d6bc5a9b7c08c17962189543a5e0= and the Scheme/Rust bridge
+=a4af77fc35ed485360d6fc9de49bbe971000ff65=. These declarations supersede
+RFC 0005's missing-package premise, not its unclosed consumer/ABI gates.
+
+* Evidence-driven local commit
+
+The [[file:../../dev/sysml/gitops-lifecycle.org][GitOps lifecycle and FFI boundary]] defines the Scheme Module's
+operation protocol and the Rust =aitia-jj= port implementation. The
+engineering Runtime dispatches bounded effects and returns observations
+to Scheme. ORG, ASCENT and Governance retain separate admission,
+reasoning and authority roles. The AITIA self-application Case starts
+with a recorded local cut and qualifies local finalization separately
+from publication.
+
+The [[file:../../dev/sysml/README.org][SysML v2 commit design]] models JJ as the GitOps substrate.
+Rust owns execution and recovery, Scheme owns the SDLC Graph, and ASCENT
+derives relations from admitted source-bound evidence. Governance owns the
+local write grant. The model separates exact revision and operation
+identity from the change ID that relates rewrites.
+
+The Rust CLI publishes =jj-observe= for recorded workspace cuts. The
+qualification against real JJ verifies read-only behavior with untracked
+files and exact identity changes after an explicit rewrite. The Yuanxu
+GitOps Scope publishes =admit-commit-observation= and =commit-evidence=.
+The admission operation applies a fixed ORG Contract, then compares its
+properties with an independently supplied observation, including the ordered
+parent list. ASCENT preserves stale observations and reopens affected
+obligations. The [[file:../../dev/sysml/README.org][local replay receipt]]
+uses a controlled producer and outcome. Production execution custody,
+Governance grants, guarded JJ mutation and recovery remain implementation
+obligations.
+
+* Engineering model feedback
+
+[[file:../../dev/sysml/README.org::*Model engineering feedback][The JJ rewrite Case]] defines separate
+inputs for source custody, SysML structure, Quint model execution and
+Scheme property tests. Rust orchestrates the OpenSysML SDK and the
+Gerbil-generated JavaScript driver under the selected engineering Graph.
+ASCENT queries admitted facts for missing or stale model coverage. An LLM
+can propose competing design or model changes linked to those relations.
+It must supply reproducible checks for any proposed support claim.
+The OpenSysML Rust adapter has a local service qualification for the named
+commit design. Binding it to a live JJ cut, delivering executable
+JavaScript and admitting model observations remain open.
+
+* Ownership and dependency direction
+
+| Owner | Responsibility | Excluded responsibility |
+|-------+----------------+-------------------------|
+| Gerbil POO / Yuanxu | object identity, C4, contracts, Module/Profile/Scenario composition, Graph, source/build context, verification receipts, Funflow and Ops | Aitia claim meaning, product authorization or a second package loader |
+| Lab | shared Governance, Cedar integration, Temporal Causality, Agentic Context, tool/sandbox and runtime handoff mechanisms | concrete Aitia SDLC policy and DE domain catalogs |
+| Aitia | SDLC semantics, design/implementation correspondence, applicability, evidence admission, obligations, Human decision context and product Runtime composition | duplicated graph, POO, parser, rule engine or policy evaluator |
+| DE | reusable engineering models, catalogs, obligations, method bindings, correspondence assets and project-selected views | implicit Aitia admission, institutional authority or effect permission |
+| Aitia Rust Runtime | supervised execution, bounded resources, cancellation/drain, IO, journal/recovery and attributable execution observations | a separately authored copy of Scheme assurance rules |
+| Orgize / ASCENT | ORG Elements/Contract/Query semantics / declared relational reasoning respectively | authority inferred from a document, relation or successful Query |
+
+The Rust Runtime composes qualified mechanisms under their existing owners.
+Yuanxu Ops already provides =ProcessScript.=; Lab already has Rust assessment,
+Context interaction and trajectory code. Reuse must be assessed before adding
+another scheduler, runner or event store. Scheme may perform explicit bounded
+Ops; choosing Rust for long-lived execution does not erase that capability.
+
+** Current dependency graph and cycle prohibition
+
+At the inspected revision, DE's [[https://github.com/hardenedlinux/deterministic-engineering/blob/6f3113eaeb75effb8b692b8eacae1cbe48767769/gerbil.pkg][package declaration]] depends on Aitia
+=2c418d5e6377077dded87d1c347f5ace53f712e8=, Lab
+=177ac1c448aa846345cde7a1538ab6f788548692= and Yuanxu
+=e77698c35bc0e9a0a01458447fa61c720ee59290=. Its
+[[https://github.com/hardenedlinux/deterministic-engineering/blob/6f3113eaeb75effb8b692b8eacae1cbe48767769/scenarios/resource-lifecycle/review/func.ss][resource review consumer]] imports Aitia SDLC/NASA APIs. Aitia therefore MUST NOT
+add the whole current DE package as a reverse dependency.
+
+The selected initial integration boundary is application/Project composition:
+
+| Consumer | Dependency / supplied value |
+|----------+-----------------------------|
+| Application / Project | selects Aitia Runtime and DE Library/Profile/Scenario |
+| DE | consumes its declared Aitia/Lab/Yuanxu cohort; publishes engineering values |
+| Aitia | receives selected engineering definitions through POO contracts; no DE import required |
+| Aitia and Lab | consume Yuanxu public mechanisms; Yuanxu never imports them |
+| Aitia | consumes Lab; Lab never imports the concrete Aitia contribution |
+
+DE remains the principal engineering Library even though the Project owns the
+package composition. This is dependency inversion through existing POO values,
+not a new plugin registry or alist DSL. Library selection grants no authority.
+Exact cohorts must be qualified together; the current DE pins are not assumed
+compatible with this worktree. No dependency manifest changes are authorized here.
+
+A future direct Aitia dependency requires an independently consumable DE library
+package with no transitive Aitia dependency, and a separately owned Aitia review
+consumer. Moving files alone does not break a package cycle. That package split
+is an open upstream decision, not an implemented condition of initial adoption.
+License/notice and redistribution review must cover the selected DE files,
+dependencies and generated outputs; a repository label is not blanket clearance.
+
+* Scheme/POO to Rust protocol
+
+This protocol governs AITIA framework execution, admission and authority. It is
+not DE's resource-lifecycle model. For a selected user Project, DE methods bind
+the project's propositions and language/tool assumptions to these framework
+boundaries. A resource Case can challenge one boundary, not stand in for the
+complete protocol or the full SDLC. Rust in this section names the framework
+executor, not a restriction on the verification subject's language.
+
+The names in this section describe obligations, not new constructors or wire
+schemas. Public extension remains POO values, slots and functional composition.
+Wire/IR values are projections of one admitted semantic model. Rust may validate
+transport, resource and execution preconditions; it must not create a second
+assurance interpreter. ABI versus IPC and any generated consumer enforcement
+remain choices requiring correspondence tests, not assumed current facilities.
+
+** Input and result admission
+
+An execution proposal binds Project identity, repository and revision, relevant
+dirty/untracked input capture, selected DE definition/method revision, source
+closure, configuration, tool/environment identity, scope, resource policy and
+the precise obligation assessed. Git owns tracked revision identity; capture
+only additional execution inputs that Git does not identify. A commit SHA alone
+does not identify an uncommitted worktree, an external tool or its configuration.
+
+The runtime accepts only a proposal compatible with its supported contract and
+current admitted input context. Mutated build input context invalidates its
+epoch. Reuse the existing authenticated build-input boundary; do not repair
+admission by reordering load paths or silently warming scopes.
+
+An attempt records logical operation identity separately from attempt identity,
+bound inputs, actual tool invocation and version, start/end observations,
+output artifacts, failure/cancellation/cleanup state and result interpretation.
+Raw logs live in execution artifacts; ORG records addressable structured
+summaries and durable references. Evidence artifacts may use a separate Git
+repository with explicit association to the code revision; mirrored branch
+names alone do not identify the checked cut. Mutable caches are not evidence.
+
+Rust returns an observation, including failed, unknown and counterexample
+results. The configured verifier and Aitia Host independently check its exact
+proposition, source/currentness, scope, expiry and contradictions before issuing
+an admission. Exit 0, valid JSON, a DE method result or an ASCENT =support= row
+alone is insufficient. Admitted support still does not grant execution authority.
+ORG Elements are the Context query window; the unified Query interface may use
+GQL, but no new Query evaluator is introduced here.
+
+** Authority and capability transport
+
+Existing Yuanxu and Aitia receipts are private-issuer-bound objects. A JSON
+copy, matching text identity or reconstructed POO value is not the capability.
+The target must use issuer-mediated opaque capabilities or an independently
+authenticated protocol with explicit issuer/currentness verification. Signing,
+principal bootstrap, key rotation, transport choice and persistent capability
+ownership remain unimplemented decisions; a digest authenticates neither actor
+nor issuer. Exposing these Host operations through the Rust Session remains open.
+
+Human approval binds the authenticated principal, decision revision, current
+proposal, scope, policy, applicable support and expiry. Human review is required
+where the selected Governance policy demands it, not for every Agent exploration.
+Revocation, supersession or changed premises invalidate the affected decision.
+No renderer, Agent, document owner property or Runtime can self-issue that approval.
+
+Before an external effect starts, the runtime must obtain and validate a current
+bounded authorization from the configured authority using existing Governance /
+Cedar mechanisms. Bind the authorized action, target, parameters, support cut,
+policy and decision identity, issuer/runtime incarnation, epoch, validity and
+logical operation. Reservation consumes authorization within that scope; it
+does not establish execution. Replay and concurrent attempts require one
+authoritative consumption point, not independent Scheme/Rust copies of state.
+The concrete synchronization and durable authority contract remain open.
+
+Recheck currentness at the defined effect-start linearization boundary. A revoke
+ordered before start rejects it; a revoke ordered after start cannot undo an
+external effect and instead requests cancellation and records the actual outcome.
+Never turn that race into a claim that revocation can retract completed work.
+
+** Recovery and obligation reopening
+
+| Recovery cut | Required behavior | Forbidden inference |
+|--------------+-------------------+---------------------|
+| Before effect start | recover proposal/history, recheck inputs and obtain current authority | persisted plan or old grant permits execution |
+| Reservation recorded, start uncertain | reconcile with the authoritative owner; retain unknown until resolved | missing completion means effect never started |
+| Effect may have happened, acknowledgement lost | consult the provider's stable operation identity and outcome; block unsafe retry | retry gives exactly-once delivery |
+| Runtime or semantic Host restarts | fence old incarnation capabilities, restore verifiable history, re-admit current support | private in-memory receipts survive deserialization |
+| Source, Contract, DE method, environment or policy changes | compute affected closure, reopen obligations and reassess decisions | matching title or old passing result is current evidence |
+| Shutdown/cancellation | stop new work, cancel/drain owned tasks, reap processes and release resources under unchanged limits | forced exit or printed keepalive proves cleanup |
+
+Accepted Project knowledge and contrary observations remain historical records;
+reopening removes their current applicability, not their existence. Reuse needs
+a current applicability check; repeated retrieval does not establish practical
+value or long-term Context acceptance. Session collections consume Project
+Context under shared/isolated scopes; Session is not its sole owner.
+
+An unreadable journal, unknown provider outcome, unavailable authority or
+untrusted clock must fail closed for the affected effect while retaining its
+unresolved obligation. Recovery never promotes a weaker assumption to success.
+Storage backend, crash protocol, external-provider deduplication and distributed
+delivery are not selected or implemented by this RFC.
+
+* Existing capabilities and verification gaps
+
+| Source-inspected capability | Existing boundary | Remaining qualification |
+|-----------------------------+-------------------+-------------------------|
+| Aitia Assurance Host over Yuanxu verification | candidate/admission distinction, private receipt identity, source/epoch checks | Rust observation and opaque-capability consumer parity |
+| SDLC design/implementation/support review | revision-bound mapping and actual Assurance consumption | complete connected engineering Case across a runtime restart |
+| Aitia local effect/retirement Hosts | serialized local state; effect delivery explicitly not durable | persistent consumption, reconciliation and real provider evidence |
+| Rust Session and Maturin wheel | SDLC Graph, GitOps evaluation, ORG Contract evaluation, source capture, bounded frozen pytest replay and ORG edit preflight | Host admission/authorization/recovery transport and trusted ORG projection custody |
+| Lab Rust assessment/Context/trajectory | existing reusable implementations | owner/cohort audit and selected SDLC integration; no old Memory redesign implied |
+| DE models, ASCENT rules and method/review consumers | selected Rust/Quint/Lean case and source-bound review code | current cohort replay; project formation still capture-blocked |
+| Orgize pinned by Lab | declared Scheme dependency and existing language owner | current consumer lint/Query/Contract and execution-identity parity |
+
+The inspected sources are [[file:../../modules/assurance/host.ss][Assurance Host]],
+[[file:../../modules/assurance/effect-host.ss][effect Host]], [[file:../../modules/sdlc/verification.ss][design support review]],
+[[file:../../rust/crates/aitia-runtime/src/session.rs][Rust Session]] and
+[[https://github.com/hardenedlinux/deterministic-engineering/blob/6f3113eaeb75effb8b692b8eacae1cbe48767769/scenarios/project-formation/func.ss][DE project formation]]. These references establish source locations, not passing
+current execution receipts. Historical failures and bounded proof limits remain.
+
+* Correspondence and acceptance obligations
+
+Quint owns temporal state/interleaving and fault/replay exploration. LeanPOO
+owns composition/refinement properties under explicit premises. ASCENT owns
+declared relational derivation and retained alternatives/contradictions. D2 /
+SysML expose ownership and scenario correspondence, not authorization or proofs.
+Scheme Modules own semantics; Proofs consume them rather than redefining them.
+The commit Case links its independently executed Quint witnesses. LeanPOO
+qualification for this new tool chain remains open.
+
+The acceptance matrix is a set of obligations, not an Agent action schedule:
+
+| Boundary | Positive control | Required refusal / unresolved control |
+|----------+------------------+---------------------------------------|
+| Dependency composition | selected DE + Aitia + Lab/Yuanxu cohort loads through public contracts | reverse dependency cycle, incompatible cohort, forged Module identity |
+| Language/problem selection | Rust service and Python framework select/refine applicable DE definitions through the same framework contracts | force Rust resource semantics onto Python, treat a missing catalog as supported, transfer framework evidence to a user Project |
+| Observation admission | exact supported proposition and unchanged input closure | forged result, changed tool/source/Contract, unknown cleanup, contrary evidence hidden |
+| Human and effect authority | current authenticated approval where required and bounded grant consumed once | same-name principal, withdrawn approval, substituted target, expired/replayed grant |
+| Concurrent start/revoke | allowed serialization produces attributable outcome | stale reservation, two consumers, revocation before start, ambiguous provider outcome |
+| Recovery | preserved history plus fresh support/authority under the new incarnation | old Host handle, journal rollback, old grant, lost acknowledgement retried blindly |
+| Context and obligations | affected scope reopens while independent knowledge survives | Session retirement deletes Project knowledge, stale Query/review restores authority |
+| Resource lifecycle | complete drain/reap/release with real error propagation | orphaned process, swallowed failure, forced successful exit, synthetic keepalive |
+
+Each selected Case must link ORG clauses, model action/property, Scheme owner,
+Rust operation and actual receipt at the same source cut. Existing timeouts,
+heap caps, watchdogs and negative Cases remain unchanged. Future Scheme tests
+use the owning heap-fenced Just entrypoints; a timeout is not a semantic refusal.
+The current acceptance state is =design-recorded/runtime-integration-unqualified=.

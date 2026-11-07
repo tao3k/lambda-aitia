@@ -43,8 +43,10 @@ flowchart TD
     E -->|source facts when composed| A
     A -->|consumes public library| P["Agentic AI Lab<br/>composition, graph, temporal / causal mechanisms and Runtime"]
     E -->|consumes public library| P
-    A --> Py["Aitia Python Runtime<br/>owned-byte C ABI, tools and observations"]
-    Py -->|uses owned runtime boundaries| P
+    App --> DE["Deterministic Engineering<br/>principal engineering Library"]
+    DE -->|current review consumer dependency| A
+    A --> R["Rust engineering Runtime<br/>selected design, integration unqualified"]
+    R -->|uses reviewed runtime mechanisms| P
 #+end_export
 
 This is a conceptual flow, not permission to collapse repository ownership.
@@ -56,19 +58,35 @@ Flow.  Mounting this Git
 submodule does not import a module, activate a Profile, run a verifier, grant a
 capability, authorize a decision or execute an effect.
 
-The production Aitia Python Runtime is maintained entirely under
-=bindings/python= in this repository; it is not an example.  Agentic AI Lab's
-=packages/python-runtime= remains the generic graph execution and lifecycle
-mechanism and does not own Aitia semantics.  Aitia Scheme is compiled AOT
-behind an owned-byte C ABI.  The Python project validates typed lifecycle
-receipts and exposes them to downstream systems without reimplementing Scheme
-decisions. The Python Runtime serves Aitia capabilities throughout the SDLC;
-the existing =SdlcRuntime.plan()= is one implemented assurance-flow projection.
-AnyIO is declared as its runtime-wide concurrency foundation; async execution
-and Host admission remain separate implementation gates. Generic Graph/DAG and
-FunFlow execution mechanisms remain owned by Agentic AI Lab. MRR relation-query and
-lineage integration is a later design direction, outside the current Python
-implementation stage.
+[[file:docs/rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] and [[file:docs/adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] select Rust for engineering execution and
+Deterministic Engineering (DE) as the principal engineering Library. Scheme/POO
+retains semantic composition and assurance policy. The current DE package already
+depends on Aitia: the Project composes both, and Aitia receives engineering
+values through POO contracts rather than importing the whole DE package back.
+This is a design decision, not a changed dependency or implemented Rust Runtime.
+
+Three layers remain distinct: AITIA implements the SDLC framework using Rust
+execution and Scheme/POO semantics; DE publishes extensible engineering
+capabilities; user Projects select and refine them for their languages and
+problems. A Rust service may select an applicable resource/concurrency model.
+A Python framework may select or extend Python task, cleanup and compatibility
+definitions. Both use the same AITIA framework, not the same language semantics.
+These are design examples, not a claim of a qualified DE Python catalog.
+AITIA can also use DE to check its own Rust executor, with separate evidence.
+No resource-lifecycle Case substitutes for the complete SDLC.
+
+Yuanxu owns shared Core mechanisms, including Graph, Funflow, verification and
+Ops. Lab owns reusable Governance, temporal/causal, Context and runtime handoff
+mechanisms; Aitia owns their Software/SDLC composition and assurance policy.
+Rust execution must reuse qualified mechanisms, not duplicate these owners.
+
+Python delivery uses the PyO3 extension built with Maturin from the Rust
+workspace. The delivered surface covers the SDLC Graph, GitOps evaluation,
+ORG Contract evaluation over supplied Elements, and bounded pytest replay
+over frozen source snapshots. Local replay returns source and report
+digests. The ORG edit preflight checks supplied spans against source
+bytes. Host admission, trusted ORG projection custody and persistent
+recovery remain open delivery obligations.
 
 * Core model
 
@@ -278,7 +296,6 @@ The machine-readable declaration and complete texts are maintained in
   keep, reference, generalize or later migrate.
 
 Phase 2 snapshot/invalidation and Phase 3 pure planning have bounded completion
-receipts; later phases retain their explicit gaps. ABI revision 2 and
-=SdlcRuntime.plan()= expose the eight-stage assurance/execution DAG. That DAG
-is a protocol used within the full SDLC, and its plan remains inert: executable
-stage receipts, release authority and completed effects are not inferred.
+receipts; later phases retain their explicit gaps. The Rust Session exposes
+the eight-stage assurance/execution Graph. The Graph describes a protocol
+within the SDLC. Stage receipts, release authority and completed effects require separate evidence.

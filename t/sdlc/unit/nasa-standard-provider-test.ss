@@ -19,8 +19,8 @@
                  agentic-ai-lab-standard-resolution-receipt-valid?
                  agentic-ai-lab-standard-validate
                  agentic-ai-lab-standard-validation-closure?)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/sources
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/interface)
+        "../../../modules/sdlc/standards/sources.ss"
+        "../../../modules/sdlc/standards/nasa-standard-provider.ss")
 
 (export nasa-standard-provider-test)
 

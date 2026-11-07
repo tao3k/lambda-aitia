@@ -6,11 +6,29 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/core/poo-clos/interface
-                 poo-clos-model-prototype)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :clan/poo/object .get))
 
 (export required-support-test)
+
+;;; Tests consume the admitted Scope; assertions below are unchanged.
+(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+(def AssessmentRequiredSupport (.get (.get assurance-module-scope contracts) required-support-row))
+(def assessment-required-support? (.get assurance-module-scope required-support-row?))
+(def assurance-artifact (.get assurance-module-scope artifact))
+(def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
+(def assurance-claim (.get assurance-module-scope claim))
+(def assurance-evidence (.get assurance-module-scope evidence))
+(def assurance-host-admit (.get assurance-module-scope host-admit))
+(def assurance-host-required-support (.get assurance-module-scope host-required-support))
+(def assurance-host-revoke-admission! (.get assurance-module-scope host-revoke-admission!))
+(def assurance-obligation (.get assurance-module-scope obligation))
+(def assurance-relation (.get assurance-module-scope relation))
+(def assurance-required-support? (.get assurance-module-scope required-support?))
+(def assurance-snapshot (.get assurance-module-scope snapshot))
+(def assurance-verification-host (.get assurance-module-scope verification-host))
+(def assurance-verifier-input (.get assurance-module-scope verifier-input))
+(def assurance-verifier-outcome (.get assurance-module-scope verifier-outcome))
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
@@ -78,7 +96,7 @@
 (def required-support-test
   (test-suite "Host required support is an inert Decision input"
     (test-case "row model is well formed"
-      (let (row (.o (:: @ (poo-clos-model-prototype AssessmentRequiredSupport))
+      (let (row (.o (:: @ (.get AssessmentRequiredSupport proto))
                      obligation: "obligation/test" supported?: #t blocker: #f))
         (check-equal? (assessment-required-support? row) #t)))
     (test-case "exact admission and both relations close declared support only"

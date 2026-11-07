@@ -3,15 +3,19 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-(import :yuanxu/module-system/selection/objects
-        :agentic-ai-lab/lambda-aitia/modules/gitops/objects)
-(export gitops-config)
-(def (gitops-config selection)
-  (unless (and (agentic-ai-lab-user-module-selection? selection)
-               (equal? (agentic-ai-lab-user-module-selection-key selection)
-                       '(custom . gitops)))
-    (error "expected a custom/gitops selection"))
-  (let (flags (agentic-ai-lab-user-module-selection-flags selection))
-    (unless (or (null? flags) (equal? flags '(+open-gitops)))
-      (error "unsupported GitOps feature" flags))
-    GitOpsModule))
+(import (only-in :clan/poo/object .o)
+        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "project-config.ss")
+(export Config)
+
+(def Config
+  (.o profile: OpenGitOpsProfile profile?: gitops-profile?
+      change: gitops-change change?: gitops-change?
+      check: gitops-check check?: gitops-check?
+      decision?: gitops-decision?
+      matches?: gitops-profile-matches? match-change: gitops-match-change
+      evaluate: gitops-evaluate-default
+      admit-commit-observation: gitops-admit-commit-observation
+      commit-evidence: gitops-commit-evidence
+      model-gaps: gitops-model-gaps
+      project-config: gitops-project-config
+      project-config-json: gitops-project-config-json))

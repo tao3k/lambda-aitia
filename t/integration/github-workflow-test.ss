@@ -4,11 +4,17 @@
 
 (import :std/test
         (only-in :std/list/list find)
-        (only-in :clan/poo/object .ref)
-        :agentic-ai-lab/lambda-aitia/user-interface/config
-        :agentic-ai-lab/lambda-aitia/user-interface/profiles/nasa/sdlc
-        :agentic-ai-lab/lambda-aitia/user-interface/scenarios/github-gitops)
+        (only-in :clan/poo/object .get .ref)
+        (only-in "../../init.ss" lambda-aitia.init.exports))
 (export github-workflow-test)
+
+(def github (.get lambda-aitia.init.exports scenarios github-gitops))
+(def github-gitops-sdlc (.get github scenario))
+(def github-change (.get github change))
+(def github-check (.get github check))
+(def github-run-gitops (.get github evaluate))
+(def nasa-sdlc-npr7150_2
+  (.get lambda-aitia.init.exports Profiles nasa-7150-2d standard))
 
 (def repository "tao3k/agentic-ai-lab")
 (def revision "0123456789abcdef")

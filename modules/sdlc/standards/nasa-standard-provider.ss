@@ -7,7 +7,7 @@
 ;;; Agentic AI Lab Standards protocol.  Source bytes remain behind an explicit POO
 ;;; Provider and are not read while the module, catalog, or Profile is loaded.
 
-(import (only-in :clan/poo/object .o .ref .slot? object?)
+(import (only-in :clan/poo/object .get .o .ref .slot? object?)
         (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
         (only-in :yuanxu/feature-system/source-lock-feature
@@ -32,7 +32,7 @@
                  agentic-ai-lab-standard-materialization-receipt-valid?
                  agentic-ai-lab-standards-module)
         "sources.ss"
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog)
+        (only-in "nasa-7150-2d-profile.ss" Nasa7150_2D))
 
 (export Nasa7150_2DStandardFamily
         Nasa7150_2DSourceProvider.
@@ -141,7 +141,7 @@
           (agentic-ai-lab-standard-constraint-profile
            "lambda-aitia/nasa-npr-7150.2d/full" "2026-09-17"
            (list +nasa-7150-2d-edition-identity+)
-           nasa-requirement-catalog '() artifact-identities '()
+           (.get Nasa7150_2D requirements) '() artifact-identities '()
            (list (cons 'source 'nasa-nodis)
                  (cons 'owner 'lambda-aitia)
                  (cons 'sources-lock-digest (.ref lock 'digest)))

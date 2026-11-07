@@ -2,15 +2,39 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test
+(import (only-in "../../../init.ss" lambda-aitia.init.exports)
+        :std/test
         (only-in :std/list/list find)
-        (only-in :clan/poo/object .o .ref)
+        (only-in :clan/poo/object .get .o .ref)
         (only-in :yuanxu/feature-system/source-lock-feature
                  source-lock-payload-digest)
-        :agentic-ai-lab/lambda-aitia/modules/assurance/interface
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/interface)
+)
+
+(def sdlc (.get lambda-aitia.init.exports modules sdlc))
+(def sdlc-design-assumption (.get sdlc design-assumption))
+(def sdlc-design-contract (.get sdlc design-contract))
+(def sdlc-design-guarantee (.get sdlc design-guarantee))
+(def sdlc-design-guarantee-support-review (.get sdlc design-guarantee-support-review))
+(def sdlc-design-implementation-link (.get sdlc design-implementation-link))
+
 
 (export design-verification-test)
+
+(def assurance (.get lambda-aitia.init.exports modules assurance))
+(def assurance-artifact (.get assurance artifact))
+(def assurance-bind-obligation-to-snapshot (.get assurance bind-obligation))
+(def assurance-claim (.get assurance claim))
+(def assurance-evidence (.get assurance evidence))
+(def assurance-host-admission-current? (.get assurance host-admission-current?))
+(def assurance-host-admit (.get assurance host-admit))
+(def assurance-host-revoke-admission! (.get assurance host-revoke-admission!))
+(def assurance-obligation (.get assurance obligation))
+(def assurance-relation (.get assurance relation))
+(def assurance-snapshot (.get assurance snapshot))
+(def assurance-verification-host (.get assurance verification-host))
+(def assurance-verification-subject (.get assurance verification-subject))
+(def assurance-verifier-input (.get assurance verifier-input))
+(def assurance-verifier-outcome (.get assurance verifier-outcome))
 
 (def source-bytes "(def (execute-job) 'committed)\n")
 (def digest-a (source-lock-payload-digest source-bytes))

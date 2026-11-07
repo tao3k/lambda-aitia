@@ -138,7 +138,7 @@ Appendix C matrix requirements. Each entry includes a source excerpt, edition
 and section. Matrix rows retain per-class invocation and authority columns.
 =nasa-requirement-by-id= retrieves a clause; =nasa-matrix-invocation= projects
 only its matrix value, never final applicability or an exemption.
-See [[file:../../MODULES.org][catalog scope and reproducible source import]]. The
+See [[file:../../dev/qualification/nasa-complete-source-review.org][catalog source review]]. The
 executable rule implementation is complete for all 130 requirements: catalog,
 applicability, paragraph-bound evidence, lifecycle admission, tailoring routing,
 and negative authority boundaries all have explicit implementations. This
@@ -176,7 +176,7 @@ declared source; it is never a public module or an independently maintained
 implementation. Regenerate it from the Lambda Aitia root with:
 
 #+begin_src sh
-gxi tools/update-sources-lock.ss .
+gxi dev/standards/update-sources-lock.ss .
 #+end_src
 
 The generator is implemented in Scheme and emits inherited =SourceLockEntry.=
@@ -192,7 +192,7 @@ package registry to select source authority.
 =review.ss= now supplies pure review preparation over caller-provided project,
 obligation, evidence and tailoring facts. It checks field shape and exact
 subject/revision/scope/standard/clause matching, with explicit unresolved states.
-See [[file:../../user-interface/README.org][the independent user scenarios]] for supported behavior and limitations.
+See [[file:../../dev/qualification/nasa-verified-lifecycle.org][the lifecycle qualification]] for supported behavior and limitations.
 It does not implement graph queries, authenticate evidence or approve tailoring.
 
 The model declares subject/revision/producer/scope binding, bidirectional
@@ -211,8 +211,9 @@ standard cannot carry a passed assessment through this helper.
 
 =t/sdlc/unit/sdlc-test.ss= tests standard-free use, multiple standard composition, immutable
 selection, duplicate/malformed selection rejection and source-only admission.
-=t/sdlc/unit/sdlc-config-test.ss= checks the existing init syntax, public interface entrypoint path,
-optional NASA flag and rejected selections. The parent application keeps its
+=modules/sdlc/tests/sdlc-config-test.ss= checks the admitted standard-free
+Scope and rejects unsupported features and Module IDs. Run it by owner with
+=just test-module sdlc=. The parent application keeps its
 actual init-to-contribution integration test separately under
 =t/contribution/integration/sdlc-ui-test.ss=; child tests do not import it.
 Run =just test-scheme= after building against installed Agentic AI Lab.
@@ -296,7 +297,7 @@ owned =t/sdlc/unit/sdlc-model-test.ss= covers inherited constraints, impersonati
 invalid overrides and preservation of the previous snapshot.
 
 * Complete source review surface
-=:agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-review= exports:
+=:lambda-aitia/modules/sdlc/standards/nasa-review= exports:
 
 - =nasa-requirement-criteria=: authoritative paragraph and subparagraph criteria,
   bound to a source URL and SHA-256 snapshot. Notes are preserved separately.
@@ -365,9 +366,9 @@ SWE-219 and SWE-220 it now requires a typed inventory projection, a receipt bind
 that entire projection, and successful local structural/measurement checks.
 It never reconstructs an inventory from a digest alone.
 
-See [[file:../../user-interface/scenarios/nasa-lifecycle.ss][the independent lifecycle UI exercise]],
-[[file:../../t/qualification/nasa-implementation-matrix.org][the generated per-requirement ledger]] and
-[[file:../../t/qualification/nasa-verified-lifecycle.org][the qualification and remaining boundaries]].
+See [[file:../../t/sdlc/unit/nasa-lifecycle-test.ss][the lifecycle tests]],
+[[file:../../dev/qualification/nasa-implementation-matrix.org][the generated per-requirement ledger]] and
+[[file:../../dev/qualification/nasa-verified-lifecycle.org][the qualification and remaining boundaries]].
 
 * Structured inventory admission
 
@@ -387,4 +388,4 @@ These checks do not establish the truth or completeness of external artifacts;
 the trusted verifier must bind the supplied projection to actual source bytes.
 Threshold deviation waivers still require explicit review: this implementation
 does not automatically turn a numerical deviation into a compliant measurement.
-See [[file:../../user-interface/scenarios/nasa-safety-gate.ss][the independent safety gate workflow]].
+See [[file:../../t/sdlc/unit/nasa-structured-test.ss][the structured safety inventory tests]].

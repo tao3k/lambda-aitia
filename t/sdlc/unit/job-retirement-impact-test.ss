@@ -2,14 +2,21 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test
-        (only-in :clan/poo/object .ref)
-        (only-in :yuanxu/graph/types agentic-ai-lab-graph-id)
+        (only-in :clan/poo/object .get .ref)
+        (only-in :yuanxu/graph/types yuanxu-graph-id)
         (only-in :agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-structural-impact-analyze
                  agentic-ai-lab-causal-cut agentic-ai-lab-temporal-causal-classify)
-        :agentic-ai-lab/lambda-aitia/user-interface/scenarios/job-executor-retirement)
+        (only-in "../../../init.ss" lambda-aitia.init.exports))
 
 (export job-retirement-impact-test)
+
+(def retirement (.get lambda-aitia.init.exports scenarios job-executor-retirement))
+(def job-retirement-before (.get retirement before))
+(def job-retirement-candidate (.get retirement candidate))
+(def job-retirement-relations (.get retirement relations))
+(def job-retirement-event-graph (.get retirement event-graph))
+(def job-retirement-incomplete-event-graph (.get retirement incomplete-event-graph))
 
 (def (impact graph (complete? #t))
   (agentic-ai-lab-structural-impact-analyze
@@ -41,7 +48,7 @@
     (test-case "candidate graph cannot turn missing retired identity into no impact"
       (let (before (impact job-retirement-before))
         (check-exception (impact job-retirement-candidate) true)
-        (check (agentic-ai-lab-graph-id job-retirement-before)
+        (check (yuanxu-graph-id job-retirement-before)
                => 'job-executor/before-retirement)
         (check (.ref (impact job-retirement-before) 'affected-node-ids)
                => (.ref before 'affected-node-ids))))

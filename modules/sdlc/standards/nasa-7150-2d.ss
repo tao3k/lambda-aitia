@@ -2,14 +2,13 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o .ref .slot? object?)
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/types
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/objects
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/funs
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile
-        :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+(import (only-in :clan/poo/object .get .o .ref .slot? object?)
+        "../types.ss"
+        "../objects.ss"
+        "../func.ss"
+        "nasa-7150-2d-profile.ss"
         (only-in :gerbil/runtime/hash list->hash-table-string))
-(export (import: :agentic-ai-lab/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-profile)
+(export (import: "nasa-7150-2d-profile.ss")
         nasa-requirement-by-id nasa-matrix-invocation)
 
 ;;; Complete requirement index and matrix; execution and approvals remain separate.
@@ -17,7 +16,7 @@
   (list->hash-table-string
    (map (lambda (requirement)
           (cons (.ref requirement 'identity) requirement))
-        nasa-requirement-catalog)))
+        (.get Nasa7150_2D requirements))))
 (def (nasa-requirement-by-id identity-value)
   (or (hash-get nasa-requirement-index identity-value)
       (error "unknown NASA requirement" identity-value)))
@@ -131,4 +130,4 @@
         tailoring: 'not-approved assessment: 'not-evaluated)))
 (def (nasa-project-obligations class-value context)
   (map (lambda (r) (nasa-applicability (.ref r 'identity) class-value context))
-       nasa-requirement-catalog))
+       (.get Nasa7150_2D requirements)))

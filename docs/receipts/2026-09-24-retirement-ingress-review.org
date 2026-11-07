@@ -13,13 +13,13 @@
 
 This is a historical TLA+ receipt. Its =proof/tla/= paths refer to the source
 at commit =49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4=; the maintained model
-and checks are now in [[file:../../proof/quint/README.org][Quint]].
+and checks are now in [[file:../../dev/proof/quint/README.org][Quint]].
 
 * Design finding
 
 The [[file:2026-09-24-retirement-formal-review.org][isolated review model]] prevents observations after its terminal state.
 That does not prove that external callers stop sending requests. The new
-[[file:../../proof/tla/RetirementIngress.tla][ingress composition]] permits a request before or after retirement, including
+[[https://github.com/tao3k/lambda-aitia/blob/49cbc5d5fd4ec983c98dca8070a0b99bc3fc68b4/proof/tla/RetirementIngress.tla][historical ingress composition]] permits a request before or after retirement, including
 a client retaining a cached grant. Merely removing a capability from a graph,
 or marking review complete, does not fence these callers.
 

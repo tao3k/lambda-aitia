@@ -19,7 +19,7 @@ not deployed features or evidence that a migration occurred. The case reuses
 Agentic AI Lab Graph and its public Temporal Causality interface; no new traversal,
 time classifier, policy evaluator or Runtime is implemented.
 
-The [[file:../../user-interface/scenarios/job-executor-retirement.ss][maintained scenario]] contains pre-removal and candidate post-removal graphs,
+The [[file:../../user-interface/scenarios/job-executor-retirement/objects.ss][maintained scenario]] contains pre-removal and candidate post-removal graphs,
 plus an explicitly identified synthetic event history. The [[file:../../t/sdlc/unit/job-retirement-impact-test.ss][Scheme qualification]]
 checks inert analysis receipts. It does not read the Python fixture's SQLite
 ledger; historical results and current activity here are modeled facts.

@@ -8,11 +8,26 @@
 :ID:         lambda-aitia-rfc-0005
 :STATUS:     draft
 :DATE:       2026-09-24
+:UPDATED:    2026-11-07
 :PARENT_RFC: lambda-aitia-rfc-0004
 :IMPLEMENTS: lambda-aitia-rfc-0004
 :END:
 
 * Decision and ownership
+
+** Current baseline correction
+
+[[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] governs the current Rust execution / DE Library direction and records
+the inspected dependency cut. Lab now declares a pinned Orgize Scheme package.
+The missing package entrypoint and dependency-cycle descriptions below belong
+to the 2026-09-24 baseline, not the current package graph. They are retained as
+historical design context; do not use them to block ordinary package consumption.
+Current ABI, Query/Contract consumer parity and connected Host admission still
+require their own evidence. Declaring a dependency does not close those gates.
+The former Python-first milestone is superseded by ADR 0009; the ORG language
+ownership and no-duplicate-evaluator boundaries remain in force.
+
+** Retained workspace design and earlier implementation baseline
 
 Native Org is a maintained engineering work surface, not a Markdown document
 decorated with execution commands. Requirements, assumptions, alternatives,
