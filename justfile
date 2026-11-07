@@ -67,7 +67,7 @@ stage-rust-program: build-user-interface
     AITIA_PROGRAM_OUTPUT='{{ native_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import :gerbil/compiler :gerbil-scheme-rust/scheme/program-build) (for-each (lambda (source) (compile-module source [output-dir: (path-expand "lib" (getenv "GERBIL_PATH")) invoke-gsc: #t optimize: #t static: #t])) ["init.ss" "bindings/operations.ss" "rust/scheme/program.ss"]) (gerbil-rs-stage-program "rust/scheme/program.ss" (getenv "AITIA_PROGRAM_OUTPUT"))'
 
 [group('rust')]
-build-rust-cli features="linked-program": stage-rust-program
+build-rust-cli features="linked-program,sysml": stage-rust-program
     gerbil_home="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"; GERBIL_HOME="$gerbil_home" AITIA_PROGRAM_MANIFEST='{{ native_root }}/aitia-program/program.json' {{ gerbil_env }} cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
 
 [group('rust')]

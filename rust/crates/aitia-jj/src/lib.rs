@@ -4,5 +4,5 @@
 mod observation;
 pub use observation::{
     JjObservationError, WorkspaceCut, git_project_root, observe_project_manifest,
-    observe_workspace, read_recorded_file,
+    observe_workspace, read_recorded_file, recorded_sysml_paths,
 };

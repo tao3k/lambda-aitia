@@ -193,10 +193,10 @@ reports JJ read failures as =RecordedSysmlError::Source= and parser
 failures as =RecordedSysmlError::Model=. The locked test
 used a real JJ repository and OpenSysML service to resolve an import
 between two documents, ignore a dirty replacement, and refuse a missing
-file or an old operation. With the SysML feature enabled, =aitia check sysml <directory>=
-selects that list from the recorded project manifest through the Scheme
-configuration Contract. Its result includes the exact cut, parsed
-document names and model hash. The command is scoped to SysML checking.
+file or an old operation. The current entry is =aitia check=. It resolves the nearest Git project,
+reads the recorded Scheme-validated service declaration and discovers
+SysML inputs in the recorded tree when the parse capability is enabled.
+The check receipt contains the cut, document names and model hash.
 Use =just test-project-sysml= with =AITIA_JJ_BIN= and
 =OPENSYSML_GRPC_BINARY= set to the qualified local executables to
 exercise the linked command. The lower-level =test-sysml-model= target

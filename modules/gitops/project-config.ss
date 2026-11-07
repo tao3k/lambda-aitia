@@ -8,26 +8,25 @@
                  yuanxu-json-schema-object-contract-validation-valid?))
 (export gitops-project-config gitops-project-config-json)
 
-(def project-path-list
-  '((type . "array") (items . ((type . "string") (minLength . 1)))))
-
 (def project-config-schema
-  `((type . "object")
+  '((type . "object")
     (additionalProperties . #f)
     (required . ("schemaVersion"))
     (properties .
      ((schemaVersion . ((enum . (1))))
-      (scenario . ((type . "string") (minLength . 1)))
-      (modules . ((type . "object") (additionalProperties . ((type . "object")))))
-      (models . ((type . "object") (additionalProperties . #f)
-                 (required . ("quint" "sysml"))
-                 (properties . ((quint . ,project-path-list) (sysml . ,project-path-list)))))
-      (ascent . ,project-path-list)))))
+      (services .
+       ((type . "object")
+        (additionalProperties . #f)
+        (properties .
+         ((sysml .
+           ((type . "object")
+            (additionalProperties . #f)
+            (required . ("enable" "parse"))
+            (properties . ((enable . ((type . "boolean")))
+                           (parse . ((type . "boolean")))))))))))))))
 
 (def (project-config-defaults)
-  (.o scenario: "aitia" modules: (hash)
-      models: (hash (quint #()) (sysml #()))
-      ascent: #()))
+  (.o services: (hash)))
 
 ;; Both Scheme declarations and decoded JSON pass the same Yuanxu Contract.
 (def (gitops-project-config declaration)

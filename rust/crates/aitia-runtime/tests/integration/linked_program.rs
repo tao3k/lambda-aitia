@@ -58,10 +58,14 @@ fn check_command_line() {
     let manifest = directory.path().join(".agents/aita/project.json");
     let initial: Value = serde_json::from_slice(&std::fs::read(&manifest).unwrap()).unwrap();
     assert_eq!(initial, json!({"schemaVersion": 1}));
-    std::fs::write(&manifest, r#"{"schemaVersion":1,"scenario":"custom"}"#).unwrap();
+    std::fs::write(
+        &manifest,
+        r#"{"schemaVersion":1,"services":{"sysml":{"enable":true,"parse":false}}}"#,
+    )
+    .unwrap();
     assert!(init().status.success());
     let existing: Value = serde_json::from_slice(&std::fs::read(&manifest).unwrap()).unwrap();
-    assert_eq!(existing["scenario"], "custom");
+    assert_eq!(existing["services"]["sysml"]["parse"], false);
 
     if let Some(jj) = std::env::var_os("AITIA_JJ_BIN") {
         eprintln!("AITIA-LINKED-TEST: CLI recorded manifest");
@@ -97,7 +101,6 @@ fn check_command_line() {
             Command::new(binary)
                 .current_dir(directory.path())
                 .arg("project-manifest")
-                .arg(".")
                 .output()
                 .unwrap()
         };
@@ -108,11 +111,8 @@ fn check_command_line() {
             String::from_utf8_lossy(&output.stderr)
         );
         let effective: Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(effective["manifest"]["scenario"], "aitia");
-        assert_eq!(
-            effective["manifest"]["models"],
-            json!({"quint": [], "sysml": []})
-        );
+        assert_eq!(effective["manifest"]["services"], json!({}));
+        assert_eq!(effective["inputs"]["sysml"], json!([]));
         assert!(effective["cut"]["commit_id"].is_string());
 
         std::fs::write(&manifest, r#"{"schemaVersion":2}"#).unwrap();

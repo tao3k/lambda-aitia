@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 use crate::{AitiaProgram, with_linked_program};
-use aitia_jj::{WorkspaceCut, git_project_root, observe_project_manifest, observe_workspace};
+use aitia_jj::{
+    WorkspaceCut, git_project_root, observe_project_manifest, observe_workspace,
+    recorded_sysml_paths,
+};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::Path;
@@ -15,28 +18,33 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let command = args.next();
     let command = command.as_deref().and_then(std::ffi::OsStr::to_str);
-    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia <jj-observe|project-manifest> <directory>\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check sysml <directory> (sysml feature)";
-    #[cfg(feature = "sysml")]
+    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check";
     if command == Some("check") {
-        let (Some(kind), Some(directory), None) = (args.next(), args.next(), args.next()) else {
+        if args.next().is_some() {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
+        }
+        let (cut, manifest) = recorded_project(Path::new("."))?;
+        let sysml = if sysml_parse_enabled(&manifest) {
+            check_sysml(&cut)?
+        } else {
+            serde_json::Value::Null
         };
-        if kind != "sysml" {
+        let receipt = serde_json::json!({"cut": cut, "checks": {"sysml": sysml}});
+        writeln!(io::stdout().lock(), "{receipt}")?;
+        return Ok(());
+    }
+    if command == Some("project-manifest") {
+        if args.next().is_some() {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         }
-        let (cut, manifest) = recorded_project(Path::new(&directory))?;
-        let sources: Vec<String> = serde_json::from_value(manifest["models"]["sysml"].clone())?;
-        if sources.is_empty() {
-            return Err(
-                io::Error::new(io::ErrorKind::InvalidInput, "no SysML documents declared").into(),
-            );
-        }
-        let connection = opensysml::Connection::connect()?;
-        let model = crate::parse_recorded_sysml(&connection, &cut, &sources)?;
+        let (cut, manifest) = recorded_project(Path::new("."))?;
+        let sysml = if sysml_parse_enabled(&manifest) {
+            recorded_sysml_paths(&cut)?
+        } else {
+            Vec::new()
+        };
         let receipt = serde_json::json!({
-            "cut": cut,
-            "documents": model.documents(),
-            "modelHash": model.hash(),
+            "cut": cut, "manifest": manifest, "inputs": {"sysml": sysml}
         });
         writeln!(io::stdout().lock(), "{receipt}")?;
         return Ok(());
@@ -66,21 +74,13 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         }
         return init_project(directory.as_deref().map_or(Path::new("."), Path::new));
     }
-    if matches!(command, Some("jj-observe" | "project-manifest")) {
+    if command == Some("jj-observe") {
         let (Some(workspace), None) = (args.next(), args.next()) else {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         };
+        let cut = observe_workspace(Path::new(&workspace))?;
         let mut stdout = io::stdout().lock();
-        if command == Some("project-manifest") {
-            let (cut, manifest) = recorded_project(Path::new(&workspace))?;
-            serde_json::to_writer(
-                &mut stdout,
-                &serde_json::json!({"cut": cut, "manifest": manifest}),
-            )?;
-        } else {
-            let cut = observe_workspace(Path::new(&workspace))?;
-            serde_json::to_writer(&mut stdout, &cut)?;
-        }
+        serde_json::to_writer(&mut stdout, &cut)?;
         writeln!(stdout)?;
         return Ok(());
     }
@@ -112,6 +112,32 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let response = with_linked_program(|program| operation(&program, &request))?;
     writeln!(io::stdout().lock(), "{response}")?;
     Ok(())
+}
+
+fn sysml_parse_enabled(manifest: &serde_json::Value) -> bool {
+    let service = &manifest["services"]["sysml"];
+    service["enable"].as_bool() == Some(true) && service["parse"].as_bool() == Some(true)
+}
+
+#[cfg(feature = "sysml")]
+fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let sources = recorded_sysml_paths(cut)?;
+    if sources.is_empty() {
+        return Err(
+            io::Error::new(io::ErrorKind::InvalidInput, "no recorded SysML documents").into(),
+        );
+    }
+    let connection = opensysml::Connection::connect()?;
+    let model = crate::parse_recorded_sysml(&connection, cut, &sources)?;
+    Ok(serde_json::json!({"documents": model.documents(), "modelHash": model.hash()}))
+}
+
+#[cfg(not(feature = "sysml"))]
+fn check_sysml(_cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    Err(io::Error::other(
+        "SysML parsing is enabled in project configuration but unavailable in this build",
+    )
+    .into())
 }
 
 fn recorded_project(

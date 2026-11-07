@@ -1,19 +1,6 @@
 {
   "schemaVersion": 1,
-  "scenario": "aitia",
-  "modules": {
-    "sdlc": {},
-    "gitops": {},
-    "nasa-7150-2d-catalog": {},
-    "formal-methods": {}
-  },
-  "models": {
-    "quint": [
-      "dev/proof/quint/CommitEvidence.qnt",
-      "dev/proof/quint/GitOpsWriteRecovery.qnt",
-      "dev/proof/quint/GitOpsAttemptCompetition.qnt"
-    ],
-    "sysml": ["dev/sysml/aitia-commit.sysml"]
-  },
-  "ascent": []
+  "services": {
+    "sysml": { "enable": true, "parse": true }
+  }
 }

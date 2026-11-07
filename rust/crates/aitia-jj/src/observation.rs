@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-use futures::{executor::block_on, io::AsyncReadExt};
+//! Observe recorded Git-backed JJ workspaces and discover inputs at a fixed cut.
+
+use futures::{executor::block_on, io::AsyncReadExt, stream::StreamExt};
 use jj_lib::{
     backend::TreeValue,
     config::StackedConfig,
@@ -61,6 +63,7 @@ impl WorkspaceCut {
     }
 }
 
+/// Failure to resolve or read a recorded workspace cut.
 #[derive(Debug)]
 pub enum JjObservationError {
     Io(std::io::Error),
@@ -180,7 +183,7 @@ async fn require_current(
     Ok(())
 }
 
-// Git and JJ append a newline to path output. Trailing spaces belong
+// Git appends a newline to path output. Trailing spaces belong
 // to the path, and stripping them can select a different repository.
 fn path_line(output: &str) -> &str {
     output.strip_suffix('\n').unwrap_or(output)
@@ -218,6 +221,48 @@ pub fn observe_project_manifest(
     })
 }
 
+/// Discover recorded regular SysML documents in stable project-relative order.
+///
+/// # Errors
+/// Refuses invalid tree entries and stale or ambiguous operation heads.
+pub fn recorded_sysml_paths(cut: &WorkspaceCut) -> Result<Vec<String>, JjObservationError> {
+    let workspace = open_workspace(&cut.workspace_root)?;
+    block_on(async {
+        require_current(&workspace, cut).await?;
+        let commit = recorded_commit(&workspace, cut)?;
+        let mut entries = commit.tree().entries();
+        let mut paths = Vec::new();
+        while let Some((path, value)) = entries.next().await {
+            let value = value.map_err(repository_error)?;
+            let path = path.as_internal_file_string();
+            if path.ends_with(".sysml") {
+                if !matches!(value.as_resolved(), Some(Some(TreeValue::File { .. }))) {
+                    return Err(JjObservationError::Output(format!(
+                        "recorded SysML path must be a regular file: {path}"
+                    )));
+                }
+                paths.push(path.to_owned());
+            }
+        }
+        require_current(&workspace, cut).await?;
+        paths.sort_unstable();
+        Ok(paths)
+    })
+}
+
+fn recorded_commit(
+    workspace: &Workspace,
+    cut: &WorkspaceCut,
+) -> Result<jj_lib::commit::Commit, JjObservationError> {
+    let commit_id = jj_lib::backend::CommitId::try_from_hex(&cut.commit_id)
+        .ok_or_else(|| JjObservationError::Output("invalid recorded commit ID".into()))?;
+    workspace
+        .repo_loader()
+        .store()
+        .get_commit(&commit_id)
+        .map_err(repository_error)
+}
+
 /// Read one regular UTF-8 file at the exact cut returned by the JJ adapter.
 ///
 /// # Errors
@@ -253,9 +298,7 @@ async fn read_at_cut(
     }
     let path = RepoPath::from_internal_string(relative_path).map_err(repository_error)?;
     let store = workspace.repo_loader().store();
-    let commit_id = jj_lib::backend::CommitId::try_from_hex(&cut.commit_id)
-        .ok_or_else(|| JjObservationError::Output("invalid recorded commit ID".into()))?;
-    let commit = store.get_commit(&commit_id).map_err(repository_error)?;
+    let commit = recorded_commit(workspace, cut)?;
     let value = commit
         .tree()
         .path_value(path)
@@ -294,43 +337,4 @@ pub fn git_project_root(directory: &Path) -> Result<PathBuf, JjObservationError>
 }
 
 #[cfg(all(test, feature = "real-jj"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn manifest_observation_refuses_an_operation_changed_during_file_read() {
-        let executable = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
-        let directory = tempfile::tempdir().unwrap();
-        let root = directory.path();
-        let jj = |args: &[&str]| {
-            let result = Command::new(&executable)
-                .current_dir(root)
-                .args([
-                    "--config",
-                    "user.name='AITIA Test'",
-                    "--config",
-                    "user.email='test@example.invalid'",
-                ])
-                .args(args)
-                .output()
-                .unwrap();
-            assert!(result.status.success(), "{:?}", result);
-        };
-        jj(&["git", "init", "--colocate"]);
-        std::fs::create_dir_all(root.join(".agents/aita")).unwrap();
-        let path = ".agents/aita/project.json";
-        let original = r#"{"schemaVersion":1}"#;
-        std::fs::write(root.join(path), original).unwrap();
-        jj(&["describe", "-m", "record manifest"]);
-        let workspace = open_workspace(root).unwrap();
-        block_on(async {
-            let cut = capture_workspace(&workspace).await.unwrap();
-            assert_eq!(read_at_cut(&workspace, &cut, path).await.unwrap(), original);
-            jj(&["describe", "-m", "competing operation"]);
-            assert!(matches!(
-                require_current(&workspace, &cut).await,
-                Err(JjObservationError::ChangedOperation)
-            ));
-        });
-    }
-}
+mod tests;
