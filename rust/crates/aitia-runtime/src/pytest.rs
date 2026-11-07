@@ -341,10 +341,8 @@ fn observe(
     let mut total = 0;
     let mut eof = false;
     loop {
-        if eof {
-            if let Some(status) = child.try_wait()? {
-                return Ok((PytestExit::Exited(status), tail));
-            }
+        if eof && let Some(status) = child.try_wait()? {
+            return Ok((PytestExit::Exited(status), tail));
         }
         let remaining = timeout.saturating_sub(started.elapsed());
         if remaining.is_zero() {

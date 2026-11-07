@@ -213,10 +213,15 @@ passed against the matching local service. It read both documents at one
 recorded cut and rejected a missing document, a superseded operation and
 a recorded malformed document. =just test-jj-observation= passed all
 three cases, including the operation change between reading the manifest
-and checking the head. The subsequent Scheme evidence replay stopped at
+and checking the head. The initial Scheme replay stopped at
 the local Orgize import =:orgize/languages/org/modules/org-elements/query=.
-These results cover the Rust observation and model consumer. The linked
-Scheme replay and orchestration of the other configured checks remain open.
+With the existing Lab production and development package pools,
+=just test-jj-commit-evidence= passed the three Rust cases and the Scheme
+ORG/ASCENT replay, reported =MODULE-OK=, =HARNESS-OK= and =OK=, and exited
+normally. The local pool used Orgize =8b0959a=, Parser =21fdb58=,
+ASCENT =62299ef= and ASP =9ae9bc3=. Remote qualification of the package
+set declared by the AITIA manifest and orchestration of the other
+configured checks remain open.
 
 The Yuanxu GitOps Scope now publishes =model-gaps=. Its ASCENT rules
 compare declared design-to-property mappings with caller-provided

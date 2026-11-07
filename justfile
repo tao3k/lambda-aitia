@@ -93,7 +93,7 @@ check-installed-rust-wheel wheel:
     venv/bin/python -m pip --disable-pip-version-check --no-cache-dir install --no-index --no-deps "$wheel"
     args=()
     if [[ -n "${AITIA_PYTEST_PYTHON:-}" ]]; then args+=("$AITIA_PYTEST_PYTHON"); fi
-    timeout --foreground --signal=TERM --kill-after=3s 60s venv/bin/python -I "{{ self_root }}/rust/crates/aitia-python/tests/integration/wheel_smoke.py" "${args[@]}"
+    timeout --foreground --signal=TERM --kill-after=3s 60s venv/bin/python -I "{{ self_root }}/dev/qualification/wheel_smoke.py" "${args[@]}"
 
 # Run one Aitia-owned Scheme test module.
 [group('test')]

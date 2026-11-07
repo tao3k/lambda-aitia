@@ -45,7 +45,7 @@ resolve an unknown outcome after a lost acknowledgement.
 * Current delivery boundary
 
 The Rust-built Maturin wheel qualifies frozen-source pytest execution in its
-[[file:../../../rust/crates/aitia-python/tests/integration/wheel_smoke.py][wheel smoke test]].
+[[file:../wheel_smoke.py][wheel smoke test]].
 The lost-acknowledgement scenario below is a separate historical receipt
 from the retired Python delivery. Its provider and worker remain available
 as qualification fixtures.
