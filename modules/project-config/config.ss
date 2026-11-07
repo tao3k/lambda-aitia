@@ -5,7 +5,6 @@
 (export Config)
 
 (def Config
-  (let (defaults (project-config-defaults))
-    (.o resolve: (lambda (declaration) (resolve-project-config defaults declaration))
-        decode: (lambda (source) (decode-project-config defaults source))
-        checks: project-checks)))
+  (.o resolve: (cut resolve-project-config ProjectConfigDefaults <>)
+      decode: (cut decode-project-config ProjectConfigDefaults <>)
+      checks: project-checks))

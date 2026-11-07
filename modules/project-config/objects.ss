@@ -2,7 +2,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o))
-(export project-config-defaults)
+(export ProjectConfigDefaults)
 
-(def (project-config-defaults)
+(def ProjectConfigDefaults
   (.o services: (hash)))
