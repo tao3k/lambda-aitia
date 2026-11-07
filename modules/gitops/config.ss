@@ -4,7 +4,7 @@
 
 ;;; -*- Gerbil -*-
 (import (only-in :clan/poo/object .o)
-        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "project-config.ss")
+        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss")
 (export Config)
 
 (def Config
@@ -16,6 +16,4 @@
       evaluate: gitops-evaluate-default
       admit-commit-observation: gitops-admit-commit-observation
       commit-evidence: gitops-commit-evidence
-      model-gaps: gitops-model-gaps
-      project-config: gitops-project-config
-      project-config-json: gitops-project-config-json))
+      model-gaps: gitops-model-gaps))

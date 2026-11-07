@@ -103,8 +103,6 @@
                commit-evidence: [(Function (list Object)
                                            (list GitOpsCommitCut GitOpsCommitObligations
                                                  GitOpsCommitObservations))]
-               project-config: [(Function (list Any) (list Object))]
-               project-config-json: [(Function (list Any) (list String))]
                model-gaps: [(Function (list Object)
                                       (list GitOpsModelMappings (List NonEmptyString)
                                             GitOpsModelProperties))])

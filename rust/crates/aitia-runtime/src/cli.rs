@@ -11,6 +11,18 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+#[derive(serde::Deserialize)]
+struct ProjectConfiguration {
+    manifest: serde_json::Value,
+    checks: Vec<ProjectCheck>,
+}
+
+#[derive(serde::Deserialize, PartialEq, Eq)]
+enum ProjectCheck {
+    #[serde(rename = "sysml.parse")]
+    SysmlParse,
+}
+
 const MAX_REQUEST_BYTES: u64 = 4 * 1024 * 1024;
 
 /// Run the process CLI and return its application-level diagnostic.
@@ -23,8 +35,8 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         if args.next().is_some() {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         }
-        let (cut, manifest) = recorded_project(Path::new("."))?;
-        let sysml = if sysml_parse_enabled(&manifest) {
+        let (cut, configuration) = recorded_project(Path::new("."))?;
+        let sysml = if configuration.checks.contains(&ProjectCheck::SysmlParse) {
             check_sysml(&cut)?
         } else {
             serde_json::Value::Null
@@ -37,14 +49,14 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         if args.next().is_some() {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         }
-        let (cut, manifest) = recorded_project(Path::new("."))?;
-        let sysml = if sysml_parse_enabled(&manifest) {
+        let (cut, configuration) = recorded_project(Path::new("."))?;
+        let sysml = if configuration.checks.contains(&ProjectCheck::SysmlParse) {
             recorded_sysml_paths(&cut)?
         } else {
             Vec::new()
         };
         let receipt = serde_json::json!({
-            "cut": cut, "manifest": manifest, "inputs": {"sysml": sysml}
+            "cut": cut, "manifest": configuration.manifest, "inputs": {"sysml": sysml}
         });
         writeln!(io::stdout().lock(), "{receipt}")?;
         return Ok(());
@@ -114,11 +126,6 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn sysml_parse_enabled(manifest: &serde_json::Value) -> bool {
-    let service = &manifest["services"]["sysml"];
-    service["enable"].as_bool() == Some(true) && service["parse"].as_bool() == Some(true)
-}
-
 #[cfg(feature = "sysml")]
 fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let sources = recorded_sysml_paths(cut)?;
@@ -142,7 +149,7 @@ fn check_sysml(_cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::er
 
 fn recorded_project(
     directory: &Path,
-) -> Result<(WorkspaceCut, serde_json::Value), Box<dyn std::error::Error>> {
+) -> Result<(WorkspaceCut, ProjectConfiguration), Box<dyn std::error::Error>> {
     let (cut, source) = observe_project_manifest(directory)?;
     if source.len() > MAX_REQUEST_BYTES as usize {
         return Err(
@@ -150,15 +157,15 @@ fn recorded_project(
         );
     }
     let effective = with_linked_program(|program| program.project_config_validate(&source))?;
-    let manifest: serde_json::Value = serde_json::from_str(&effective)?;
-    if !manifest.is_object() {
+    if effective == "false" {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "AITIA project manifest fails its envelope Contract",
         )
         .into());
     }
-    Ok((cut, manifest))
+    let configuration = serde_json::from_str(&effective)?;
+    Ok((cut, configuration))
 }
 
 fn init_project(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {

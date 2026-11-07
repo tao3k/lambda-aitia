@@ -16,11 +16,11 @@ The default configuration enables no services. The check discovers regular
 and imports express the model structure. A checkout edit only enters the
 check after JJ records it.
 
-The [[file:../../modules/gitops/project-config.ss][Scheme configuration]]
-owns the service envelope and defaults through Yuanxu JSON Schema. Scheme
-consumers pass a POO declaration to the GitOps Scope's =project-config=
-slot. The =project-config-json= slot applies the same Contract to project
-JSON. Each service owns the meaning of its capability switches.
+The [[file:../../modules/project-config/config.ss][Scheme ProjectConfig Module]]
+resolves POO declarations and project JSON through the same Contract. Its
+=checks= slot selects operations from effective settings. Rust receives
+those operation identities and executes their adapters. The JSON
+declaration carries data. Scheme owns its interpretation and defaults.
 
 * AITIA's own commit Case
 

@@ -2,7 +2,6 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test
-        (only-in :std/misc/ports read-file-string)
         (only-in :clan/poo/object .get .o .cc)
         (only-in "../../../init.ss" lambda-aitia.init.exports))
 (export commit-evidence-test)
@@ -44,22 +43,6 @@
                                 (.ref decision 'check-blockers))
                            (list conclusion))))
          '(failure cancelled pending skipped))))
-    (test-case "Scheme and JSON use the same project configuration Contract"
-      (let* ((scope (.get lambda-aitia.init.exports modules gitops))
-             (configure (.get scope project-config))
-             (decode (.get scope project-config-json))
-             (manifest (read-file-string ".agents/aita/project.json"))
-             (effective (decode manifest))
-             (scheme (configure
-                      (.o schemaVersion: 1
-                          services: (hash (sysml (hash (enable #t) (parse #t)))))))
-             (minimal (decode "{\"schemaVersion\":1}")))
-        (check-equal? (hash-get (hash-get (hash-get effective 'services) 'sysml) 'enable) #t)
-        (check-equal? (hash-get (hash-get (hash-get scheme 'services) 'sysml) 'parse) #t)
-        (check-equal? (hash-length (hash-get minimal 'services)) 0)
-        (check-equal? (decode "{}") #f)
-        (check-equal? (decode "{\"schemaVersion\":1,\"models\":{}}") #f)
-        (check-equal? (decode "{\"schemaVersion\":1,\"services\":{\"sysml\":{\"enable\":true}}}") #f)))
     (test-case "model gap query resolves only declared and indexed references"
       (let* ((query (.get lambda-aitia.init.exports modules gitops model-gaps))
              (model-id "CommitEvidence")

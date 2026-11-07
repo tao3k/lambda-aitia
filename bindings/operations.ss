@@ -190,6 +190,9 @@
                           (passed (org-contract-result-passed? result)))))))
 
 (def (aitia-project-config-validate-payload payload)
-  (let* ((project-config-json (.get lambda-aitia.init.exports modules gitops project-config-json))
-         (effective (project-config-json payload)))
-    (if effective (json->string effective) "false")))
+  (let* ((scope (.get lambda-aitia.init.exports modules project-config))
+         (effective ((.get scope decode) payload)))
+    (if effective
+        (json->string (hash (manifest effective)
+                            (checks ((.get scope checks) effective))))
+        "false")))

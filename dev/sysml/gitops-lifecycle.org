@@ -106,12 +106,20 @@ interface and do not add new public slot names yet.
 
 | Concern | Existing entry or implementation | Required integration |
 |---------+----------------------------------+----------------------|
-| Project declaration | =project-config= and =project-config-json= | Keep these Scheme/POO entrypoints. Bind their effective configuration to the same captured source cut used by checks. |
+| Project declaration | =project-config= Module | Scheme resolves the POO declaration and selects checks. Rust runs the selected operations using inputs from the same captured cut. |
 | Read the recorded cut | Rust =observe_workspace= and =observe_project_manifest= | Expose read-only observation to the Scheme lifecycle through the typed GitOps port. |
 | Select review conditions | =evaluate= and the selected AITIA Scenario | Evaluate repository policy separately from granting any write. Bind selected NASA obligations to the effective configuration and cut. |
 | Admit and derive check evidence | =admit-commit-observation=, =commit-evidence= and =model-gaps= | Carry independently observed check identity and outcome from Rust. Apply the same Scope operations and retain the original source identities. |
 | Capture or finalize | No matching write operation in =aitia-jj= | Establish and test the effect boundary before publishing a write capability. |
 | Reconcile and publish | No matching operation in =aitia-jj= | Keep reconciliation read-only. Design publication as a separate authorized effect. |
+
+The current CLI calls the Scheme program on its owner thread, then executes
+the selected SysML check synchronously. A future Tokio executor can run
+independent checks concurrently within configured resource limits. It would
+queue blocking tool calls separately from async I/O and collect results
+against the same cut. Scheme would retain selection, dependency ordering and
+admission policy. Configuration resolution would stay on the Scheme owner
+thread.
 
 * Writer and recovery criteria
 

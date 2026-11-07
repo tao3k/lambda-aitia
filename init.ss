@@ -10,6 +10,7 @@
   (ADR)
   (formal-methods)
   (gitops)
+  (project-config)
   (nasa-7150-2d-catalog)
   (sdlc)
   :load-modules "./user-interface/profiles" mode: explicit rename: Profiles

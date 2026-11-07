@@ -54,7 +54,7 @@ impl AitiaProgram<'_> {
     /// Validate the project envelope through the published Yuanxu Contract.
     ///
     /// # Errors
-    /// Propagates transport and schema compilation errors.
+    /// Propagates errors while resolving the declaration and projecting checks.
     pub fn project_config_validate(&self, request: &str) -> Result<String, NativeError> {
         self.call(&self.project_config_validate, request)
     }
