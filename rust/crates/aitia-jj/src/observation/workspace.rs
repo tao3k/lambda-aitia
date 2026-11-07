@@ -107,7 +107,7 @@ fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
     JjObservationError::Repository(error.to_string())
 }
 
-fn open_workspace(directory: &Path) -> Result<Workspace, JjObservationError> {
+pub(super) fn open_workspace(directory: &Path) -> Result<Workspace, JjObservationError> {
     let directory = directory.canonicalize().map_err(JjObservationError::Io)?;
     let root = directory
         .ancestors()
@@ -129,7 +129,9 @@ fn open_workspace(directory: &Path) -> Result<Workspace, JjObservationError> {
     Ok(workspace)
 }
 
-async fn capture_workspace(workspace: &Workspace) -> Result<WorkspaceCut, JjObservationError> {
+pub(super) async fn capture_workspace(
+    workspace: &Workspace,
+) -> Result<WorkspaceCut, JjObservationError> {
     let operation_id = current_operation(workspace).await?;
     let loader = workspace.repo_loader();
     let operation = loader
@@ -173,7 +175,7 @@ async fn current_operation(workspace: &Workspace) -> Result<OperationId, JjObser
     Ok(head.clone())
 }
 
-async fn require_current(
+pub(super) async fn require_current(
     workspace: &Workspace,
     cut: &WorkspaceCut,
 ) -> Result<(), JjObservationError> {
@@ -280,7 +282,7 @@ pub fn read_recorded_file(
     })
 }
 
-async fn read_at_cut(
+pub(super) async fn read_at_cut(
     workspace: &Workspace,
     cut: &WorkspaceCut,
     relative_path: &str,
@@ -335,6 +337,3 @@ pub fn git_project_root(directory: &Path) -> Result<PathBuf, JjObservationError>
         .canonicalize()
         .map_err(JjObservationError::Io)
 }
-
-#[cfg(all(test, feature = "real-jj"))]
-mod tests;

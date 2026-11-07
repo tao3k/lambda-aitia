@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-use super::{JjObservationError, capture_workspace, open_workspace, read_at_cut, require_current};
+use super::workspace::{
+    JjObservationError, capture_workspace, open_workspace, read_at_cut, require_current,
+};
 use futures::executor::block_on;
 use std::process::Command;
 
