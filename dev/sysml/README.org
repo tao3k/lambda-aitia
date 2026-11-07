@@ -208,8 +208,15 @@ commit identity, document list and model hash matched the independently
 observed cut and parsed model. Recording the malformed document then
 returned OpenSysML =ModelErrors= and emitted no receipt. The gate used
 its existing 120-second limit and exited normally.
-ORG admission and orchestration of the other configured checks remain
-open.
+With =jj-lib= 0.47.1 and OpenSysML 0.12.1, =just test-sysml-model=
+passed against the matching local service. It read both documents at one
+recorded cut and rejected a missing document, a superseded operation and
+a recorded malformed document. =just test-jj-observation= passed all
+three cases, including the operation change between reading the manifest
+and checking the head. The subsequent Scheme evidence replay stopped at
+the local Orgize import =:orgize/languages/org/modules/org-elements/query=.
+These results cover the Rust observation and model consumer. The linked
+Scheme replay and orchestration of the other configured checks remain open.
 
 The Yuanxu GitOps Scope now publishes =model-gaps=. Its ASCENT rules
 compare declared design-to-property mappings with caller-provided
