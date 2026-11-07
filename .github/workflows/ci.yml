@@ -489,4 +489,4 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-aitia-workspace-${{ hashFiles('rust/Cargo.lock', 'rust/**/Cargo.toml') }}
 
       - name: Check Rust workspace format, lint and tests
-        run: just check-rust-format check-rust-lint test-rust-workspace
+        run: just --justfile rust/workspace.just --working-directory . check-rust-format check-rust-lint test-rust-workspace

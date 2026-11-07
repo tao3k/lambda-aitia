@@ -24,18 +24,7 @@ export MACOSX_DEPLOYMENT_TARGET := env_var_or_default("MACOSX_DEPLOYMENT_TARGET"
 default:
     @just --list
 
-# Test the default Rust workspace, including the development-only ASP gate.
-[group('rust')]
-test-rust-workspace:
-    timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --workspace --lib --tests --manifest-path rust/Cargo.toml
-
-[group('rust')]
-check-rust-format:
-    cargo fmt --all --check --manifest-path rust/Cargo.toml
-
-[group('rust')]
-check-rust-lint:
-    timeout --foreground --signal=TERM --kill-after=5s 120s cargo clippy --locked --workspace --all-targets --manifest-path rust/Cargo.toml -- -D warnings
+import 'rust/workspace.just'
 
 # Exercise the pinned SDK against a local OpenSysML service.
 [group('rust')]
