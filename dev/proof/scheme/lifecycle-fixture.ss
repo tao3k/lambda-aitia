@@ -5,7 +5,8 @@
 ;;; This fixture drives real plan / verification / admission / preflight /
 ;;; token / reservation APIs. It never imports model expected states.
 ;;; Configured local runtime callbacks are controls, not a native Cedar proof.
-(import (only-in :clan/poo/object .get .o .ref)
+(import (only-in :std/test check)
+        (only-in :clan/poo/object .get .o .ref)
         (only-in "../../../init.ss" lambda-aitia.init.exports)
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
                  agentic-ai-lab-cedar-decision agentic-ai-lab-cedar-runtime-handoff))
