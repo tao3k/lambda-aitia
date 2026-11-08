@@ -624,3 +624,145 @@ Compilation takes 49.11 seconds; replay takes 29.97 seconds within the
 existing 120-second command guard. Session Graph/GitOps/ORG, CLI and cleanup
 markers all complete, with =GERBIL_HOME= unset. This is installed-cohort
 consumer evidence, not remote cold-install closure.
+
+** Production compiler attribution control
+
+The corrected local comparison retains the exact POO table production options
+=-O2 -D___SINGLE_HOST_LIMIT=10000=, Darwin's =-D___DYNAMIC -fPIC=, the same
+C input, the paired compiler, the original 180-second guard and 2G Scheme heap.
+GNU macro tracking 0 completes in 76171 ms with peak tree RSS 2273050624 bytes;
+tracking 2 completes in 75778 ms with peak tree RSS 5245386752 bytes.
+Both produce object SHA256
+=7196fa4eb1f76510b52b588f2fc6dd99387b3ce99cac4d4518b47f9a8ae0a6e8=
+from C input SHA256
+=84f5413b7885ed7a744d9d683721fc82daacd75cdcc641200a9ba5529a9f9059=.
+
+This is a serial, single-host Darwin object-compilation diagnostic, not a
+Linux installation benchmark. It supports reduced frontend memory and unchanged
+object bytes for this input; it does not show an elapsed-time improvement.
+No Linux compiler flag change is accepted on this evidence. The earlier
+static and incomplete-option timeout controls remain recorded as diagnostic
+scope mismatches, not as production failures or package acceptance.
+
+A separate real Scheme-only compilation of the unchanged table source, with
+=invoke-gsc: #f=, optimization and static output retained, completes in 5314 ms
+and peaks at 802848768 bytes under the same 180-second / 2G controls. Outputs
+are isolated diagnostic products, not an SDK or an installed package override.
+This separates local Scheme generation from the approximately 76-second C
+object cost. It does not quantify Linux queue delay: the remote 74-second
+source-event-to-native-start interval still requires queue/phase attribution.
+The existing compiler executor uses FIFO ready-job order; critical-path effects
+are a hypothesis, not an accepted scheduling change or package result.
+
+** Current consumer CI refusal
+
+AITIA PR2 head =99ce0316d7171c2712cc1f34b36ba2cf349814ea=, run
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42504931654][42504931654]],
+passes Lean, Quint and the Rust workspace. Its admission job
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42504931654/job/128805403044][128805403044]]
+still refuses dependency installation: elapsed 180196 ms, exit 71 under the
+resource guard / wrapper exit 124, peak process-tree PSS 5779320832 bytes,
+four admitted cores, original timeout 180000 ms. The PR job executes GitHub's
+merge candidate =fb2fcb3= for that head, not an earlier branch result.
+
+Admission begins at 17:29:35.635 UTC; the table source event is 17:30:04.360,
+its native job starts at 17:31:03.113, and later queued jobs resume at
+17:32:18.018. By 17:32:31.410 the log is compiling Core's
+=module-system/selection/init-syntax=; the cutoff tree contains gxpkg and an
+active gxi with 17 CPU seconds, rather than the previous run's active cc1.
+The total dependency obligation therefore remains incomplete even when the
+POO table compilation finishes before the guard. No retry or limit change is
+adopted as a remedy.
+
+** Rejected source-level compilation experiments
+
+Two isolated source-only snapshots of POO =6c3208d= retain all table checks,
+production C options and the original 180-second / 2G controls. Extracting the
+ordered-query helper compiles its object in 74667 ms; extracting ten method
+closure factories compiles in 74301 ms. Relative to the 76171 ms control,
+these single measurements do not establish an adequate installation remedy.
+Neither candidate is installed, committed or promoted into a producer pin.
+The unchanged library's existing =just test-file
+t/collection-order/table-order-test.ss= completes naturally in 9.49 seconds
+with MODULE-OK, CASE-OK, HARNESS-OK and final OK. This baseline confirms that
+the existing positive/refusal cases execute; it does not qualify either
+unadopted candidate's behavior or the full cold-install chain.
+
+Dependency inspection also confirms both pinned Parser and ASCENT declare
+Core =fd215418d396aeb5a3aaa8209bc3870ccfbefe9c= with POO =1f4b1720=, while
+the Lab Core gitlink =091c4fe= declares POO =6c3208d=. This is an actual
+source-cohort difference, not an accepted consumer override. Its effect on
+installation and subsequent direct-Core preparation remains to be measured.
+
+** GCC pass attribution
+
+With unchanged source and production options, adding only =-ftime-report=
+completes in 71427 ms, peak RSS 2353840128 bytes. The resulting object is
+byte-identical to the non-reporting control. GCC reports 68.45 CPU seconds:
+parsing 3.15 (5 percent), optimization/generation 65.30 (95 percent), and RTL
+PRE 20.63 (30 percent). The callgraph expansion aggregate includes downstream
+passes and must not be summed with those individual pass times. These data
+exclude parsing as the dominant cost on this host and do not justify lowering
+optimization, changing the backend split bound or weakening admission tests.
+
+** Lab source capture refusal and correction
+
+Lab =7047c541= run 42504692494 reports two distinct Linux failures: external
+Bazel library compilation raises Heap overflow after 344564 ms at the unchanged
+2G Scheme heap, while package acceptance rejects the source authoring gate in
+=t/module-system-observability-test.ss= line 430. The latter scans Lab's own
+sources, not a Core test suite. The native installer is a separate obligation.
+
+The existing Core authoring interface locates eleven self-referential slot
+initializers across D2 authoring, Agenda composition, Module descriptor options
+and the runtime Context adapter. Fixes use existing POO lexical capture
+shorthand; the computed options fallback receives a distinct parameter name,
+and the Agenda key helper has a distinct lexical name. Slot names, signatures,
+authorization policy, journal operations and lifecycle protocols are unchanged.
+The complete observability suite, D2 authoring and Module authoring suites pass
+through the existing Justfile entry, each within its original 120-second guard.
+
+A first complete Lab build with Core =091c4fe= / POO =6c3208d= still reaches the
+existing 180-second script deadline; partial compilation is retained as failure.
+Core PR19 already publishes =520aa69eff289a3e9535a2d242adaf50ec4de63c=, whose
+implementation is unchanged and whose dependency is POO
+=6394e95ca35d0d8f602bce2178bcdcdbb1b68309= with reduced SCC certificate storage.
+Both dependency and Core standard package builds complete naturally. Lab's
+maintained pin generator and Bazel lock projection check pass. With that cohort
+and the slot capture corrections, the complete =just build-library= now exits
+naturally with status 0 under the original 180-second script / 2G heap. This is
+local installed-cohort evidence, not a cold Linux install or remote CI pass.
+
+The post-build =t/module-system-test.ss= and full
+=t/yuanxu-deployment-downstream-test.ss= pass through the existing 120-second
+entrypoints. The downstream case reports targets=46, roots=1, owners=4,
+selected-tests=3, runtime-qualification=1, cold=A/B and clean-isolation=ok.
+The complete observability suite passes again on the built cohort. Core's
+unchanged input-context mutation driver passes before/after order and admission;
+all four mutants reject with exit 42, and its final receipt reports
+=mutations=4 source-unchanged=true=. Lab PR34 records this source and dependency
+cohort in =e11b02c4=; remote CI still requires its own current-head result.
+
+Core =520aa69= Linux CI has separate duration refusals for the original ten
+thousand declaration and selected-declaration cases. Those limits are retained;
+local package/build and consumer controls do not close those scale obligations.
+
+** AITIA e11 consumer qualification
+
+With Lab =e11b02c4d355664a7bbc8e10caaee0f2b359ca0e=, Core =520aa69=,
+POO =6394e95= and bridge =fe3796e=, the unchanged complete
+=just check-semantic= reports 33 MODULE-OK, 30 HARNESS-OK and no ERROR markers,
+then exits naturally with status 0. No source or runtime acceptance case is
+removed.
+
+The first delivery invocation refuses before any Case because the required
+=AITIA_PYTEST_PYTHON= input was missing. After selecting the existing verified
+pytest 9.0.2 interpreter, the unchanged =just check-rust-delivery= completes
+naturally: real pytest/source mutation controls pass; the linked-program Case
+passes in 24.71 seconds with Session, Graph, GitOps, ORG, CLI and close markers;
+Quint positive execution and the required QNT508 negative both execute; the
+release wheel build completes in 68 seconds; and the exact wheel installs and
+runs outside the checkout with =AITIA-INSTALLED-RUST-WHEEL-OK=. Existing
+120-second phase deadlines and the unset =GERBIL_HOME= condition are retained.
+This installed-cohort result does not close the separate Linux 180-second cold
+installation gate or substitute for the updated PR2 current-head CI.
