@@ -103,6 +103,30 @@ installation remain separate obligations. No producer release archive, consumer
 SDK override, dependency revision or native package acceptance is inferred from
 this wrapper regression.
 
+** Producer query closure and remaining installation cut
+
+PR58 latest head =b5efb22fcd75e27416268878a99d4c98834f55ed= passes both
+Linux and macOS jobs in [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485220625][CI run 42485220625]]. Its preceding query-only head
+=b05d011= passed the provider regressions but correctly refused the stale
+extension lock. The existing [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485023975][cross-platform lock maintenance run]] generated
+Linux state, merged Darwin state and revalidated the merged lock on Linux.
+The resulting commit changes only the two platform extension digests; no lock
+checks or dependency declarations were weakened.
+
+AITIA =185c976b59194e72b5492ddb320b297cfea2468c= passes Lean, Quint and Rust
+workspace jobs in [[https://github.com/tao3k/lambda-aitia/actions/runs/42484976088][CI run 42484976088]]. Package installation still refuses:
+=elapsedMs: 180487=, four admitted cores, =peakRssBytes: 5790774272= and
+=outcome: timeout=. At the cut a GCC =cc1= child remains runnable with 65
+seconds of CPU time and approximately 2.65 GB RSS. This observation contradicts
+an idle-wait diagnosis for this run; it is not evidence of completed compilation.
+
+A separate generation-only diagnostic using installed Gambit distinguishes
+the small table dynamic stub from its static body: 376 versus 277387 C lines;
+the static output declares 21389 labels. This exceeds the already declared
+10000-label single-host threshold. These are generated-source observations,
+not a completed C compilation, a speedup or a full-install receipt. No compiler
+policy, heap, worker limit or deadline is changed on this evidence.
+
 ** Qualified repair cohort
 
 AITIA selects Lab =db317e18c36aa5692df482e1ff492c474bf98fc6= through
