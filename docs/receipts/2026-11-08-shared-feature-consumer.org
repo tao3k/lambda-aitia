@@ -801,3 +801,61 @@ VM accounting printed by the diagnostic is explicitly unqualified and is not
 reported as measured heap allocation. Publication metadata replay/read-route
 appears in the refusal stacks; no validation has been skipped on that basis.
 The 180-second cold installation and both scale obligations remain open.
+
+
+* Producer pin alignment and current-head refusal (2026-11-09)
+
+The authorized bridge change =170e02c= is an ancestor of PR18
+=fe3796edd1bad71df147a21a67f1b421f1bcbf89=, already consumed by Lab
+=fea64411296a1f2db5c1a192013421ad5cc73bd2= and AITIA
+=faa1633d2d7630f90749cf3b4ecfd7e8aad707f6=. PR18 subsequently advances to
+=13361b5abdbce7216e01445a71843990d463b5fb= through separate queue and evaluator
+preparation changes. Its CI is still running at this observation; the earlier
+sixteen successful checks apply to =fe3796e= only. These consumers have not been
+qualified against =13361b5=.
+
+AITIA's current-head [[https://github.com/tao3k/lambda-aitia/actions/runs/42511232868][run 42511232868]]
+passes Lean, Quint and the Rust workspace, but dependency admission refuses at
+=elapsedMs 181431= against =timeoutMs 180000=, with four effective build cores
+and =peakRssBytes 6123996160=. It has not reached linked delivery. No budget,
+heap, core admission rule or negative control is changed.
+
+Two local dependency-declaration candidates replace Core =fd215418= with
+=520aa69eff289a3e9535a2d242adaf50ec4de63c= in the existing =gerbil.pkg= files:
+Parser source =36fb2c71e297381a369eac2b411c68bbcc8ace62= and ASCENT source
+=62299efe57c1d6bc5a9b7c08c17962189543a5e0=. These are uncommitted source
+modifications, not published producer heads or a clean locked installation.
+Neither Lab's published Parser pin nor ASCENT pin is silently overridden.
+
+Parser's ordinary package build passes locally. Its maintained
+=just build-test-support= then naturally exits 0 and the Module System issues
+the test publication. Consuming that publication plus the existing ASP
+development dependency, both =just test-file t/public-interface-test.ss= and
+=just test-file t/core-observability-test.ss= naturally exit 0 with
+=MODULE-OK=, =HARNESS-OK= and final =OK=. The original per-test 120-second/1G
+settings remain. The frozen construction Case retains fifty object pairs,
+twenty samples and the 100ms limit: P95 =77.848ms=, maximum =79.296ms=.
+This is local candidate evidence, not a new macOS CI result. No claim of a
+qualified allocation measurement is made from the runtime statistics.
+
+The earlier attempts lacked the required progress/ASP modules and printed
+=ERROR HARNESS= despite a zero process status. Those attempts are failures;
+exit status alone is insufficient. Their subsequent success depends on the
+existing test preparation and admitted test publication, not a new runner.
+
+ASCENT's existing =just test-quick= passes all five suites. The first complete
+package build refuses: including development-library static inputs
+correctly refuses competing POO origins; after removing those test inputs from
+the production load path, the build reaches a =gsc -link= status-70 failure.
+Replaying the exact 257-input link with compiler diagnostics succeeds in
+5339ms. This isolates a diagnostic success only; it does not establish a
+concurrency cause, repair the compiler or qualify a cold complete build.
+A subsequent ordinary =just build-dependency github.com/tao3k/gerbil-ascent=
+naturally exits 0 under the same 180-second/2G settings, including both
+executables. This is a complete warm build after diagnostic preparation; the
+original status-70 failure and cold-installation obligation remain retained.
+
+The two local producer pin candidates are preserved for review. They are not
+pushed to Parser PR21 or ASCENT PR1 under authorization for the other producer
+and consumer PRs. Cold installation, current-head remote CI and the previously
+recorded Core scale obligations remain open.
