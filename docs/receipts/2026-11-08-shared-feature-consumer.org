@@ -162,6 +162,17 @@ lifecycle count. All nine existing Scheme-verdict controls also passed.
 A separate cold-tool download returned a non-archive response and was refused;
 these local results therefore do not claim cold tool-install acceptance.
 
+Preparation derives its model from the existing selected Case declarations;
+there is no second model inventory or fixed example target. A separate ingress
+selection passed all five original positive/negative checks with the unchanged
+248-state safe result.
+
+At =913f4beee7479ce48c871d90e26d3bb4546692e7=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42467868747][CI run 42467868747]] passed Quint, Lean and Rust. Its Native job failed
+earlier at =Install Just= with HTTP 504; dependency installation and Scheme
+acceptance did not run. This tool-transport failure does not replace or close
+the prior 180-second installation refusals.
+
 Core's current proofs pass, while its independent dense-declaration and
 selection capacity gates remain red. Lab's prior current-head Linux and Darwin
 deployment downstream gates pass, but complete development/package builds do
