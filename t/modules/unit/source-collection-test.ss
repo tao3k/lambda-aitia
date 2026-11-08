@@ -24,18 +24,21 @@
       (let (sources (yuanxu-module-source-collection-interfaces lambda-aitia-module-source))
         (check-equal?
          (map yuanxu-module-source-ref-value sources)
-         ;; Native source references bind absolute paths. Retain the exact five
+         ;; Source references bind absolute paths. Retain the exact seven
          ;; expected interfaces rather than weakening comparison to basenames.
          (map (lambda (file) (path-expand file (current-directory)))
               '("modules/ADR/interface.ss"
                 "modules/assurance/interface.ss"
                 "modules/formal-methods/interface.ss"
                 "modules/gitops/interface.ss"
+                "modules/nasa-7150-2d-catalog/interface.ss"
+                "modules/project-config/interface.ss"
                 "modules/sdlc/interface.ss")))
         (check-equal?
          (map (lambda (source) (metadata-ref source 'module-key)) sources)
          '((custom . ADR) (custom . assurance) (custom . formal-methods)
-           (custom . gitops) (custom . sdlc)))))
+           (custom . gitops) (custom . nasa-7150-2d-catalog)
+           (custom . project-config) (custom . sdlc)))))
 
     (test-case "the package-local GitOps module retains Aitia ownership"
       (let* ((sources (yuanxu-module-source-collection-interfaces lambda-aitia-module-source))

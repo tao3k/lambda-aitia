@@ -11,12 +11,17 @@
 :STATUS: partial
 :END:
 
-AITIA selects Lab =d24b7f0af21e534b1400190896f2695ea2366029= through
-=gerbil.pkg=. Lab selects Core =272c46bebb73fff524b62e8eee77fc61befea2af=;
+AITIA selects Lab =db317e18c36aa5692df482e1ff492c474bf98fc6= through
+=gerbil.pkg=. Lab selects Core =bb63bad10538ba0e2d2d29f4f3cfc559c35672eb=;
 its development package declares ASP =9ae9bc377cbab4b84de52b512a2c03375a36d6c9=.
 The local package pool contains Core's declared POO source
 =cd4de644385a591b879e3de5795418b5b7e9d767=. This is an existing-package
 consumer qualification, not evidence of a clean dependency installation.
+
+Earlier observations below used Lab =d24b7f0af21e534b1400190896f2695ea2366029=
+and Core =272c46bebb73fff524b62e8eee77fc61befea2af= unless explicitly stated.
+The repaired Core and matching Lab gitlink/Lean lock were normally pushed to
+the existing PR19 and PR34. The independent installation failures remain open.
 
 GitOps declares =features: '(github)=. The existing init selects =+github=;
 =-github= withdraws the Feature. The Feature owns its Contract and uses the
@@ -178,6 +183,100 @@ selection capacity gates remain red. Lab's prior current-head Linux and Darwin
 deployment downstream gates pass, but complete development/package builds do
 not. Those results retain their own SHA attribution; neither finite proofs
 nor focused Feature consumers establish whole-project acceptance.
+
+* Core-owned cold dependency initialization repair
+
+The isolated Core candidate fixes the reader, leaving AITIA's ordinary Config
+imports intact. The actual cold path runs through Orgize's compiled interface
+and Parser's reduction-plan initializer. A generic's construction reads were
+retained across method registration as if they were long-lived Scope reads.
+The reader now separates successful dependency initialization from actual
+Scope-body reads, using the original compiler/evaluator and authenticated
+Context objects. Open evaluators/observers retain their original execution
+path; failed initialization retains the original exception and partial reads.
+
+Focused local evidence:
+
+- The actual GitOps protocol consumer passed its unchanged 60-second gate.
+- Core's five cold/hot, live-value, Context-retargeting and evaluator controls
+  passed with MODULE-OK, HARNESS-OK and final OK.
+- Core's build-input mutation qualification passed both before/after gold
+  suites and refused all four faults for the expected reason.
+- Lab's downstream A/B deployment qualification completed in about 78 seconds:
+  46 targets, four owners, three selected tests, real B-product consumption
+  and clean isolation. The 120-second aggregate/action and 60-second idle
+  budgets were unchanged.
+
+These are candidate-source observations, not a new published-head CI success.
+The full AITIA semantic queue and complete dependency-install acceptance remain
+separate gates. Prior published head =128a88097179fb154f81db57d17f8f2105264b2b=
+still has a cold-install refusal: 180,536 milliseconds, four admitted cores,
+and about 5.57 GB peak PSS. The last completed compiler work was in POO.
+Quint's failed archive download and Rust's Just HTTP 504 are independent tool
+transport failures. A local compiler-policy component experiment is not an
+installation receipt; no experimental compiler flags have been installed.
+
+A full cold compiled-output experiment then used the locked package graph,
+locally prefetched source objects, the official =gxpkg deps --install= entry
+and host-selected 12 cores. It still exited 124 after 180.028 seconds while
+Core was compiling, after POO completed. That failure rejects the proposed
+compiler-policy shortcut as an installation fix. Its partial outputs are not
+qualified or reused as a completed install cache.
+
+The complete semantic queue passed Assurance, SDLC and GitOps but exposed an
+obsolete source-collection expectation: five interfaces were listed although
+the product declares seven. The regression now includes NASA catalog and
+project-config in both the exact path list and the Module ID list. This
+changes no loading policy and retains the complete-list assertions. The fresh
+complete semantic queue passed in 272.575 seconds across the unchanged original
+per-action limits. Integration passed in 96.565 seconds; retirement binding
+and execution passed in 17.921 and 6.836 seconds. Each completed naturally with
+MODULE-OK, HARNESS-OK and final OK, without error/heap/stack markers. The earlier
+failed queue remains a failure. The final semantic replay after updating the
+Lab dependency declaration completed successfully in 273.965 seconds: 33
+MODULE-OK and 30 HARNESS-OK/final OK markers, with no failure/heap/stack marker.
+Rust/Python delivery has a separate receipt below.
+
+For repair commit =bb63bad10538ba0e2d2d29f4f3cfc559c35672eb=, Lean passed. Three Quint
+partitions failed during backend acquisition at their original 60-second
+preparation boundary; the remaining five partitions passed. Those acquisition
+failures were retained and the failed jobs retried without changing the model
+catalog or deadlines. All eight partitions subsequently passed, making
+[[https://github.com/tao3k/gebril-yuanxu/actions/runs/42475847192][that repair commit's proof workflow]] successful. Lab's matching Composition
+proof and workflow lint also pass.
+
+Core PR19 subsequently advanced through parallel work to
+=0e6aa50ac3515f94bc8ce39b22ccc0268998b1a3=. GitHub comparison reports the repair
+as an ancestor, with 119 additional commits. The consumer keeps its qualified
+=bb63bad= cohort; it does not silently import those parallel changes. The old
+repair commit's Native workflow was cancelled after the head advanced. Neither
+its focused results nor proof success qualify the new head's Native execution.
+
+** jj and Rust/Python delivery boundaries
+
+The original jj entry passed after supplying the same official 0.47.1 tool
+version used by CI. The macOS arm64 release was checked against the official
+SHA256 =50129b527f7cd6aef82aebd4bb2b670bb56766adc509ef3279c4327aa3592255=.
+The full jj/ORG/ASCENT entry completed in 22.266 seconds. The earlier missing
+=AITIA_JJ_BIN= launch failure remains a failed setup receipt.
+
+Direct Rust delivery first lacked the system-library pkg-config context.
+Replaying through Lab's locked =native_scheme_env= supplies OpenSSL, zlib and
+SQLite. Its bounded tool environment additionally needs the installed Rust
+tool directory. Selecting Apple system clang through Cargo's target linker
+setting corrects the unrelated Nix clang =-liconv= failure. These are local
+tool qualifications, not a changed runtime or a wider Case budget.
+
+The real pytest/source-mutation control passes. Scheme program staging also
+completes. Linked Rust delivery then refuses the producer's qualified =gsc=
+wrapper: a standalone =-v= request receives dynamic compilation options and
+prints =Unknown or improperly placed -v option ignored= instead of the version
+identity accepted by =discover_gambit_gsc_from_env=. The underlying paired
+compiler reports its identity normally. This is a gerbil-bazel wrapper/query
+boundary; it is not repaired by changing AITIA business imports or weakening
+the bridge's compiler authentication. Linked ABI, Quint consumer and installed
+Python wheel therefore remain unqualified by this entry. Compiler identity
+checking remains enforced; the original timeouts and heaps are unchanged.
 
 Raw transcripts remain local or CI artifacts. No logs, generated compiler
 products or machine-specific paths are committed. Storage executors, bindings
