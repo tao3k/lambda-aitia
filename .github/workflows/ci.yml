@@ -317,6 +317,8 @@ jobs:
             ~/.cargo/git
             rust/target
           key: ${{ runner.os }}-${{ runner.arch }}-aitia-workspace-${{ hashFiles('rust/Cargo.lock', 'rust/**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-aitia-workspace-
 
       - name: Check Rust workspace format, lint and tests
         run: just --justfile rust/workspace.just --working-directory . check-rust-format check-rust-lint test-rust-workspace

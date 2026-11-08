@@ -70,7 +70,7 @@ Lab's older Scheme package cohort or silently replace its manifests.
 
 With the pinned bridge Scheme package compiled in the active package pool,
 =just stage-rust-program= stages the compiler-generated AITIA program under
-=GERBIL_PATH/native/aitia-program=. The program entry loads the Gerbil
+=GERBIL_PATH/build/aitia-program=. The program entry loads the Gerbil
 expander through the SDK, and exports the SDLC flow graph and GitOps operations
 using the bridge's rooted-call boundary. The compiler produces the builtin
 Module list and startup stub. Archive linking, the Rust invocation and

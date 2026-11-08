@@ -460,3 +460,94 @@ dependency update and adapts the existing external-Bazel fixture and ownership
 document to the removed patch assets. AITIA selects that successor. These
 fixture/document changes do not alter the Rust source tested above; their
 latest-head CI remains separately required.
+
+** Paired installation handoff and full delivery qualification
+
+PR58 =d7c2cb6e4d0cc0b85e2668b09d0806f7c493aea4= passes Linux and
+macOS in [[https://github.com/tao3k/gerbil-bazel/actions/runs/42496440511][CI run 42496440511]]. The earlier lock-maintenance
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42493388261][run 42493388261]] generated Linux state, merged Darwin state and verified
+the result on Linux. The subsequent ordinary CI exposed an installer fixture
+that still rendered =NATIVE_ENVIRONMENT_ARGS=. Its replacement with the shared
+=ENVIRONMENT= field retains all original budget, refusal and stale-receipt
+assertions. The original fixture failure remains a failed observation.
+
+The local Arrow refusal was reproduced with a minimal C allocation bundle.
+GCC selected the Nix linker from PATH; Lab's existing =COMPILER_PATH= isolation
+selects the system linker and the same control succeeds. With the installed
+target libraries' pkg-config metadata, the existing Lab package-build entry
+also completes naturally. This does not establish an Arrow implementation
+defect; no Arrow or ownership implementation was changed.
+
+A separate linked-program failure reached the native owner but returned status
+4. The existing setup diagnostics are =[2, 1, 0, 0]=: setup returns a nonzero
+result, rather than host IO restoration failing. An independent bounded
+debugger replay identifies =cannot find library module :gerbil/core=. Debug
+verbosity only supplies diagnosis; it is not an acceptance replay.
+
+Bridge =d64d86b0114cc49127fa43f128e92685eac9ab8a= shares the existing
+installation-map generator between its default and external program builds.
+The external owner supplies that map to Gambit's setup parameters. No AITIA
+installation-path probe, environment mutation, loader, ABI revision or processor
+policy is introduced. Its unit controls pass (35 passed, seven existing ignored),
+AOT integration passes (19 passed), and formatting, strict Clippy and the real
+external-program lifecycle object build pass. Latest-head producer CI remains
+a separate required gate. Lab =4ae30b385157564a324af9503cf52fcb3a13bf51=
+selects this bridge and the qualified PR58 revision; the existing dependency
+projection checker passes after Bazel generates the lock.
+
+Against Core =091c4fe148cf00f753ab168beed193401c6db8ae= and its POO
+=6c3208d8751307c703209f36ea48126ab28e873c= dependency, package builds finish
+naturally. The full AITIA semantic queue passes with 33 MODULE-OK and 30
+HARNESS-OK markers; integration passes with two of each. Lab's existing
+deployment downstream Case completes with five MODULE-OK and two HARNESS-OK
+markers, including source/product/clean isolation. No error, heap overflow or
+stack overflow marker occurs. These use the current package pool and do not
+qualify a cold dependency installation.
+
+The linked-program Case now completes without a consumer =GERBIL_HOME=:
+compilation takes approximately 66 seconds and the complete runtime Case
+approximately 30 seconds, within the unchanged 120-second fence. Graph, GitOps,
+ORG, CLI and natural session close all pass. The full existing
+=check-rust-delivery= entry also completes naturally: real pytest and source
+mutation refusal, linked ABI, the Rust/Quint success and rejected-assertion
+controls, release Maturin wheel generation, and isolated wheel installation
+finish with =AITIA-INSTALLED-RUST-WHEEL-OK=. The deliberately rejected Quint
+assertion remains a required refusal, not an unexpected failure.
+
+Local lint's compiler discrepancy was traced to Cargo selecting the user's
+1.95 Clippy plugin ahead of the declared environment's 1.98 plugin. The latter
+passes the same complete strict lint. Refreshing compiler-info metadata alone
+did not repair the plugin selection and is not recorded as a fix.
+
+On AITIA =49e298e53062d41f1417b68a745f097fc48799e0=, the Rust job in
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42494309327][run 42494309327]] first fails during test compilation at the original
+120-second fence. That attempt saves compiler outputs. Its complete same-head
+Rust job replay passes after cache restoration; this is cache-assisted evidence,
+not a cold compilation result. Cargo cache fallback now permits restoration
+of unchanged dependencies across lock updates while Cargo and =--locked=
+retain authority over reuse and rebuilding. Gerbil cache keys and cold-install
+acceptance are unchanged.
+
+The same head's package installation still times out at =elapsedMs: 180155=,
+=peakRssBytes: 5780515840= and four admitted cores. Compiler output advances
+through POO table and remaining modules before the cut. No completed cold
+installation is inferred from the local package builds or cached Rust replay.
+This remains an open obligation under the original 180-second limit.
+
+The existing =test-project-sysml= entry also passes with the linked program:
+one complete Case, approximately 22 seconds compilation and 48 seconds runtime,
+within its original 120-second fence. It resolves the real commit Case and
+refuses invalid inputs against the recorded local service.
+
+Core's full existing =test-build-input-context-mutations= entry completes
+naturally: all before/after controls pass, all four mutants refuse with exit
+42, and =BUILD-INPUT-CONTEXT-MUTATIONS-OK mutations=4 source-unchanged=true=
+confirms the source is retained. These are current Core results, not inherited
+from the earlier repair revision.
+
+The qualified AITIA recipes therefore remove their repeated =GERBIL_HOME=
+probes, whole-Cargo SDK filtering and fixed C compiler/deployment defaults.
+The producer owns Gerbil compiler and setup context; Rust and Maturin keep
+their declared target environment. Generated outputs use the existing package
+root's =build= directory. Source and package identities, Case catalogs, builder
+core selection, timeouts, heaps and refusal assertions are retained.

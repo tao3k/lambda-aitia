@@ -11,14 +11,10 @@ export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", `gxi -:max
 self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
 export GERBIL_LOADPATH := env_var_or_default("GERBIL_LOADPATH", self_root + ":" + GERBIL_PATH + "/lib")
-native_root := GERBIL_PATH + "/native"
+build_root := GERBIL_PATH + "/build"
 gerbil_env := if os() == "macos" { "env -u SDKROOT" } else { "env" }
 gerbil_test_runtime_options := "-:max-heap=512M"
 export UV_CACHE_DIR := env_var_or_default("UV_CACHE_DIR", self_root + "/.cache/uv")
-darwin_cc := if os() == "macos" { "/usr/bin/cc" } else { "cc" }
-darwin_target := if os() == "macos" { "26.0" } else { "" }
-export CC := env_var_or_default("CC", darwin_cc)
-export MACOSX_DEPLOYMENT_TARGET := env_var_or_default("MACOSX_DEPLOYMENT_TARGET", darwin_target)
 
 [group('discovery')]
 default:
@@ -26,7 +22,7 @@ default:
 
 import 'rust/workspace.just'
 
-# Exercise the pinned SDK against a local OpenSysML service.
+# Exercise the OpenSysML SDK against a local service.
 [group('rust')]
 test-sysml-model:
     timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features sysml --test sysml_model
@@ -35,7 +31,7 @@ test-sysml-model:
 [group('rust')]
 test-project-sysml: stage-rust-program
     test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}"
-    gerbil_home="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"; GERBIL_HOME="$gerbil_home" AITIA_PROGRAM_MANIFEST='{{ native_root }}/aitia-program/program.json' {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test sysml_model
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test sysml_model
 
 [group('rust')]
 test-jj-observation:
@@ -63,29 +59,28 @@ build-user-interface:
 # Stage the bridge-owned AOT inputs using the installed Scheme/Rust bridge.
 [group('rust')]
 stage-rust-program: build-user-interface
-    mkdir -p '{{ native_root }}/aitia-program'
-    AITIA_PROGRAM_OUTPUT='{{ native_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import :gerbil/compiler :gerbil-scheme-rust/scheme/program-build) (for-each (lambda (source) (compile-module source [output-dir: (path-expand "lib" (getenv "GERBIL_PATH")) invoke-gsc: #t optimize: #t static: #t])) ["init.ss" "bindings/operations.ss" "rust/scheme/program.ss"]) (gerbil-rs-stage-program "rust/scheme/program.ss" (getenv "AITIA_PROGRAM_OUTPUT"))'
+    mkdir -p '{{ build_root }}/aitia-program'
+    AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import :gerbil/compiler :gerbil-scheme-rust/scheme/program-build) (for-each (lambda (source) (compile-module source [output-dir: (path-expand "lib" (getenv "GERBIL_PATH")) invoke-gsc: #t optimize: #t static: #t])) ["init.ss" "bindings/operations.ss" "rust/scheme/program.ss"]) (gerbil-rs-stage-program "rust/scheme/program.ss" (getenv "AITIA_PROGRAM_OUTPUT"))'
 
 [group('rust')]
 build-rust-cli features="linked-program,sysml": stage-rust-program
-    gerbil_home="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"; GERBIL_HOME="$gerbil_home" AITIA_PROGRAM_MANIFEST='{{ native_root }}/aitia-program/program.json' {{ gerbil_env }} cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
 
 [group('rust')]
 test-rust-linked-program: stage-rust-program
-    gerbil_home="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"; GERBIL_HOME="$gerbil_home" AITIA_PROGRAM_MANIFEST='{{ native_root }}/aitia-program/program.json' {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program -- --nocapture
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program -- --nocapture
 
 [group('rust')]
-build-rust-wheel profile="release" out=(native_root + "/aitia-wheels"): stage-rust-program
-    gerbil_home="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"; cd rust/crates/aitia-python && GERBIL_HOME="$gerbil_home" AITIA_PROGRAM_MANIFEST='{{ native_root }}/aitia-program/program.json' {{ gerbil_env }} maturin build --profile {{ quote(profile) }} --locked --auditwheel repair --out {{ quote(out) }}
+build-rust-wheel profile="release" out=(build_root + "/aitia-wheels"): stage-rust-program
+    cd rust/crates/aitia-python && AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' maturin build --profile {{ quote(profile) }} --locked --auditwheel repair --out {{ quote(out) }}
 
-# Exercise a Maturin wheel outside the checkout with the paired Gerbil SDK.
+# Exercise a Maturin wheel outside the checkout with the installed Gerbil.
 [group('rust')]
 check-installed-rust-wheel wheel:
     #!/usr/bin/env bash
     set -euo pipefail
     wheel={{ quote(wheel) }}
     wheel="$(cd "$(dirname "$wheel")" && pwd -P)/$(basename "$wheel")"
-    export GERBIL_HOME="$({{ gerbil_env }} gxi -e '(displayln (gerbil-home))')"
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
     cd "$scratch"
@@ -177,7 +172,7 @@ check-quint-ai-assurance:
 
 # Build the standalone JavaScript adapter from its Gerbil source.
 [group('build')]
-stage-quint-js out=(native_root + "/quint-driver.js"):
+stage-quint-js out=(build_root + "/quint-driver.js"):
     #!/usr/bin/env bash
     set -euo pipefail
     out={{ quote(out) }}
@@ -224,7 +219,7 @@ check-rust-quint: build-rust-cli stage-quint-js
     set -euo pipefail
     quint_bin="${AITIA_QUINT_BIN:-$PWD/dev/proof/quint/node_modules/.bin/quint}"
     target="${CARGO_TARGET_DIR:-rust/target}"
-    driver='{{ native_root }}/quint-driver.js'
+    driver='{{ build_root }}/quint-driver.js'
     "$target/debug/aitia" quint-check "$driver" "$quint_bin" dev/proof/quint/CommitEvidence.qnt
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
