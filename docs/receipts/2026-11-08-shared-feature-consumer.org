@@ -454,3 +454,9 @@ then fails while linking =scheme/arrow=, with unresolved =calloc=, =free=,
 a standard library-query failure or a passing current bridge install. The
 original 180-second fence and 2G heap remain unchanged; no Arrow/bindings
 implementation was modified.
+
+Lab successor =e84aac5f1e239fd323d0979a0b5b347aff4780b7= retains the
+dependency update and adapts the existing external-Bazel fixture and ownership
+document to the removed patch assets. AITIA selects that successor. These
+fixture/document changes do not alter the Rust source tested above; their
+latest-head CI remains separately required.
