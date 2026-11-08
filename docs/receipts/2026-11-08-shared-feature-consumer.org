@@ -551,3 +551,76 @@ The producer owns Gerbil compiler and setup context; Rust and Maturin keep
 their declared target environment. Generated outputs use the existing package
 root's =build= directory. Source and package identities, Case catalogs, builder
 core selection, timeouts, heaps and refusal assertions are retained.
+
+For published consumer head =d545aff8d7fdd61eda645d3a308a405c3e9eb9eb=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42499555697][CI run 42499555697]] passes Lean, Quint and the complete Rust workspace
+on the first attempt. The new Cargo cache fallback does not close the separate
+Gerbil installation gate: that job still refuses with =elapsedMs: 180651=,
+=peakRssBytes: 5890975744= and four admitted cores, before linked delivery.
+The local complete delivery result remains valid for the explicitly described
+installed package cohort; it is not remote cold-install evidence.
+
+** Cold compilation attribution
+
+Lab selects the published Linux =patcha379bb244bfa= archive, SHA256
+=3b345b1af68dfbbc0e73bae64941e4c8910d0ca192d81432ce699c5af385b565=.
+Its release points to producer =2dde985fec96b0792fa34735e6d091f904f8314e=,
+whose publication workflow applies the streaming compiler executor on Linux.
+The earlier =patche35312b4a951= release points to
+=7e1ddc4aa03bdcb60727d981651bbdaf5a82ddba= and applies that patch only on
+Darwin. That older release is used by producer CI, but not this Lab consumer.
+Updating the consumer to the already selected archive is therefore not a fix.
+
+In run 42499555697, the table source compilation event is approximately 39
+seconds after admission, while its =table~0.scm= native job begins around
+114 seconds. At the 180-second refusal, the active tree contains a =cc1=
+process with approximately 55 CPU seconds. The interval between those events
+includes source expansion and possible native-queue waiting; these logs alone
+do not separate them. They establish active compilation, not idle deadlock.
+
+The source's table constructors include nested observation and cursor guards.
+Lifting their captured state into separate procedures is an unvalidated
+compilation-cost hypothesis. The existing GCC macro-tracking patch also applies
+only on Darwin; its relevance to Linux has not been measured. Neither source
+semantics nor compiler options have been changed on either hypothesis. Complete
+package targets, original refusal controls, and the full 180-second installation
+obligation remain required.
+
+** Installation map ownership correction
+
+Bridge =d64d86b= exact-head CI exposed four Darwin qualification failures:
+independent instance adapters include the shared lifecycle with an external
+linker, but do not own the package-generated =build-home.h=. The missing header
+is a compile-time regression, distinct from AITIA initialization code 4 and
+from the 180-second package-install refusal.
+
+Bridge =fe3796edd1bad71df147a21a67f1b421f1bcbf89= explicitly selects the
+installation map only when the package build generates it. Both existing
+=instance_probe.c= and =owner_instance.c= compile without that header; the
+actual Cargo external-program build also passes. The AOT library and complete
+integration controls report 54 passed, seven pre-existing ignored. Original
+120-second boundaries and processor/cleanup behavior are unchanged.
+
+Lab =7047c5416df564bd38b5b6358c3a49052e455e7e= consumes that revision through
+the maintained pin generator and Bazel lock projection; its projection check
+passes. The AITIA Scheme declaration and all Rust bridge declarations are
+synchronized, and Cargo generates the corresponding lock. Current-head CI
+remains a separate obligation; no earlier head is substituted for it.
+
+The old Lab =4ae30b38= CI also has unresolved failures: declared dependency
+builds and the external Bazel consumer exceed their original 12-minute step
+limits; development-library builds time out on both platforms. Those results
+are retained and are not closed by this installation-map correction.
+
+A local table C-compilation attribution experiment at macro-tracking levels
+2 and 0 exceeded 180 seconds in both variants (180216 and 180376 ms).
+It used static object mode rather than Gerbil Darwin's actual dynamic-object
+mode. It does not establish a production compiler-option remedy or qualify
+Linux cold installation. No production compiler option or SDK was changed.
+
+With bridge =fe3796e= and Lab =7047c541=, the unchanged complete
+=just test-rust-linked-program= Case exits naturally with one test passed.
+Compilation takes 49.11 seconds; replay takes 29.97 seconds within the
+existing 120-second command guard. Session Graph/GitOps/ORG, CLI and cleanup
+markers all complete, with =GERBIL_HOME= unset. This is installed-cohort
+consumer evidence, not remote cold-install closure.
