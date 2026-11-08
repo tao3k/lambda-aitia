@@ -12,7 +12,7 @@ license = "Apache-2.0 AND LGPL-2.1-or-later"
 publish = false
 
 [workspace.dependencies]
-gerbil-scheme = { git = "https://github.com/tao3k/gerbil-scheme-rust", rev = "380f8ba5f87b2f9ba3924302b35b3eea1e3f2a8e" }
+gerbil-scheme = { git = "https://github.com/tao3k/gerbil-scheme-rust", rev = "3ccd4ccf6db52f1cac8522a96a0dd510fb69afc7" }
 asp-rust = { git = "https://github.com/tao3k/asp-rust", rev = "1ca41124b846dec947f3d05119cafa07eaa57924", default-features = false }
 aitia-build-support = { path = "build-support/aitia-build-support" }
 

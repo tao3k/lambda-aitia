@@ -105,7 +105,7 @@ this wrapper regression.
 
 ** Producer query closure and remaining installation cut
 
-PR58 latest head =b5efb22fcd75e27416268878a99d4c98834f55ed= passes both
+PR58 query-repair head =b5efb22fcd75e27416268878a99d4c98834f55ed= passes both
 Linux and macOS jobs in [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485220625][CI run 42485220625]]. Its preceding query-only head
 =b05d011= passed the provider regressions but correctly refused the stale
 extension lock. The existing [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485023975][cross-platform lock maintenance run]] generated
@@ -399,3 +399,49 @@ checking remains enforced; the original timeouts and heaps are unchanged.
 Raw transcripts remain local or CI artifacts. No logs, generated compiler
 products or machine-specific paths are committed. Storage executors, bindings
 and old Memory are unchanged by this repair.
+
+** Current bridge dependency synchronization
+
+Bridge PR18 repair =170e02c2fe9fa4cc92303c90e7281600f06bf1a0= was
+normally pushed. Its successor =3ccd4ccf6db52f1cac8522a96a0dd510fb69afc7=
+retains the repair and adjusts Linux CI installation. Lab and the AITIA Cargo
+manifests now select that successor; Cargo generated the matching lock.
+The locked Rust workspace completed naturally within the original 120-second
+fence: 14 passed, zero failed and one existing ignored case. Existing ignored cases remain ignored, not qualified. This workspace
+result does not cover linked Scheme delivery or an installed Python wheel.
+
+Lab =44c9e39bca7fa9373d7919e9e6022bfa4ee1d5d4= consumes provider
+=cbf2ba0= through its existing Bazel override. The consumer budget
+patch and its export package were removed. The existing dependency projection
+checker passes after Bazel generates the lock. The producer's full prebuilt
+provider control and both resource-guard suites pass locally, including
+resource-budget preservation, nested-entry idempotence, deadline refusal,
+RSS refusal and process-tree cleanup. The non-v19 failure diagnostic reused
+an undefined tokenizer; it now uses that module's existing whitespace parser.
+No refusal code, workload, timeout or heap policy changed. The producer
+cross-platform lock workflow is pending; local controls do not qualify it.
+
+The current package-pool =gerbil deps --install= invocation refused with exit
+70 before compilation: parser =21fdb58642b135c48ad0006aab40e58e99e58c24=
+requires Core =fd215418d396aeb5a3aaa8209bc3870ccfbefe9c=, whose POO tag
+is =1f4b1720d80c3cca1daf64775cd7abfe63bebd0d=. The pool instead records
+=cd4de644385a591b879e3de5795418b5b7e9d767=. Lab's checked-in Core separately
+requires =6c3208d8751307c703209f36ea48126ab28e873c=. This incompatible-tag
+refusal is distinct from the earlier 180-second cold-compilation failures.
+No package was uninstalled or tag metadata rewritten. Neither full package
+installation nor current-cohort Scheme delivery is closed by this result.
+
+The separate strict lint entry passes formatting but refuses before Clippy
+analysis because its compiler reports 1.95.0, below the workspace's 1.97.1
+minimum. The successful workspace invocation used the declared environment's
+1.98.1 toolchain. This tool-selection difference remains a local verification
+gap; the earlier test result is not a lint pass.
+
+A bridge-only =gxpkg update= fetches and registers the selected revision.
+The installed package manager then misroutes the tagged package name into its
+plist lookup and reports a missing =gerbil.pkg= even though the file exists.
+An ordinary untagged update avoids that lookup, but its build requires target
+pkg-config metadata. The host and generic developer shell lack OpenSSL
+metadata; the Lab package-build entry supplies OpenSSL but lacks zlib metadata
+in that shell. All three setup refusals remain failed observations. No private
+linker search, generated SDK or package metadata rewrite was introduced.
