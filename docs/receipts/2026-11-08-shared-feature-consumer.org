@@ -11,6 +11,100 @@
 :STATUS: partial
 :END:
 
+** Active Goal: Gerbil package interfaces
+
+The package path is =gerbil deps --install=, =gerbil build= and =gerbil test=.
+Gerbil owns dependency resolution, compilation and testing. Rust consumes the
+existing gerbil-scheme-rust package operations and program-build interfaces.
+AITIA must not reimplement their environment discovery or require Bazel before
+ordinary package work. Bazel remains an optional build/CI integration with its
+own independently qualified adapter; an adapter failure does not establish that
+the underlying Gerbil package interface failed.
+
+The existing Just test fences retain their original heaps, watchdogs and
+failure markers while delegating to these package interfaces. The 180-second
+installation refusal remains open. Converging this path is the active Goal,
+not an already implemented capability or a passing installation receipt.
+
+The proposed additional Bazel environment module was withdrawn. New files are
+named for their actual responsibility, such as package operations, compiler
+discovery or toolchain context; a generic =native= prefix does not explain that
+responsibility. Compiler, linker and library selection belong to the producing
+toolchain interfaces rather than accumulated machine paths in consumer recipes.
+
+** Direct package interface observations
+
+The following local invocations used the existing declared package pool and
+ordinary installed Gerbil, without invoking Bazel or adding a compiler path:
+
+| Package entry | Result and limit | Scope |
+|---------------+------------------+-------|
+| =gerbil build= | Natural exit 0; original 180-second fence and 2G heap | Existing dependency products; not a cold install |
+| =gerbil test t/modules/unit/source-collection-test.ss= | Natural exit 0; MODULE-OK, HARNESS-OK and final OK; 60-second fence and 512M heap | One real source-collection consumer Case |
+
+The direct Cargo control did not reach its assertions: linking refused with
+=library not found for -liconv=. Merely adding the existing developer profile's
+bin directory to PATH did not establish a complete Rust toolchain environment.
+This is an unresolved toolchain launch result, not a passing Rust qualification
+or evidence that Scheme package testing requires Bazel. No timeout or heap
+limit was increased. The full cold =gerbil deps --install= acceptance remains
+open; neither this build nor this individual test closes it.
+
+** Rust environment and package-query observations
+
+The existing =devenv shell= supplies the Rust linker environment missing from a
+PATH-only launch. Under that declared environment, the unchanged
+=test-rust-frozen-pytest= Case passes, including real execution and source-change
+refusal. No consumer linker paths were added.
+
+Full linked-program staging still refuses before Cargo assertions. The pinned
+bridge requests pkgconf's =--keep-system-libs= option, which pkg-config 0.29.2
+rejects. Producer work now uses =std/make pkg-config-libs=; its existing
+system-directory retention negative control remains unclosed. An intermediate
+private shell query was withdrawn. Neither the consumer dependency pin nor its
+complete linked-delivery verdict is updated on this partial evidence.
+
+** Latest published head CI observation
+
+At AITIA =3477a46504a0b1369d3dcba2d3e2d498460a0ee8=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42478478795][CI run 42478478795]] is completed with failure. Lean succeeds. Rust formatting
+and Clippy complete, but the workspace test process reaches its unchanged
+120-second limit during compilation, before a test verdict. Quint refuses in
+its unchanged 60-second compiler preparation bound, before model checking.
+The package install again refuses at the 180-second guard, with
+=elapsedMs: 180698=, four admitted cores and =outcome: timeout=. These failures
+are independent; no earlier green head or focused local test supersedes them.
+
+The Gerbil producer PR58 head =1291a1dfb1c902ea9c1350eef482dcb984a89a51=
+has a successful ordinary CI run, but its separately recorded uncached POO
+qualification still fails the 180-second budget. Ordinary producer CI is not
+acceptance of that cold-client obligation, and no unqualified producer archive
+is introduced into this consumer cohort.
+
+** Compiler identity query repair
+
+[[https://github.com/tao3k/gerbil-bazel/pull/58][Gerbil producer PR58]] now contains normally pushed commit
+=b05d0116b5882488c13a80b7cb435d2c23004512=, based on its prior head
+=1291a1dfb1c902ea9c1350eef482dcb984a89a51=. Only the generated compiler wrapper,
+its existing provider regression and the interface documentation changed.
+Standalone =gsc -v= bypasses compilation options and preserves stdout, stderr
+and status; mixed argument lists still follow ordinary mode handling.
+
+On that release baseline, =bash tools/ci/test_repository_provider.sh prebuilt=
+completed naturally in 39 seconds with =outcome: passed=. The existing
+compilation modes, nonzero status, dependency transition and project-view
+controls remain. Removing only the four-line query branch makes the same
+entry refuse with status 79 and =GSC-IDENTITY-QUERY-REFUSED=; the candidate was
+restored exactly before commit. An initial counterfactual launcher setup error
+was discarded and is not counted as that refusal.
+
+This is local producer adapter evidence. New-head remote CI and cold package
+installation remain separate obligations. No producer release archive, consumer
+SDK override, dependency revision or native package acceptance is inferred from
+this wrapper regression.
+
+** Qualified repair cohort
+
 AITIA selects Lab =db317e18c36aa5692df482e1ff492c474bf98fc6= through
 =gerbil.pkg=. Lab selects Core =bb63bad10538ba0e2d2d29f4f3cfc559c35672eb=;
 its development package declares ASP =9ae9bc377cbab4b84de52b512a2c03375a36d6c9=.
