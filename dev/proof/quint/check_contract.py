@@ -82,6 +82,16 @@ def main() -> int:
     version = subprocess.check_output((QUINT, "--version"), text=True, timeout=5).strip()
     if version != "0.33.0":
         parser.error(f"expected Quint 0.33.0, found {version!r}")
+    # Let Quint prepare its pinned compiler distribution through its public CLI.
+    # Download/setup is not checker progress. Every Case below still retains
+    # the original total and silence watchdogs, exact counts and counterexamples.
+    prepared = subprocess.run((QUINT, "compile", str(ROOT / "WorkLifecycle.qnt"),
+                               "--target", "tlaplus"),
+                              cwd=ROOT, timeout=60, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if prepared.returncode:
+        print(prepared.stdout, end="", flush=True)
+        prepared.check_returncode()
     for case in CASES:
         if selected in ("all", case[0]):
             check_case(case)

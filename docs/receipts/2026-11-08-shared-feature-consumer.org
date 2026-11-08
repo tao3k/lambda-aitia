@@ -144,6 +144,24 @@ POO compilation; attributing the whole timeout only to table C compilation is
 unsupported. Lean, Quint and Rust passed at that revision. This remains a
 failed installation and does not qualify the cleanup's complete CI.
 
+At cleanup revision =f154e4ad3bb7073c1228134e3b34e46e8b0d6c48=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42467299141][CI run 42467299141]] passed Lean and Rust. Installation again refused at
+the unchanged 180-second guard, with =elapsedMs: 181396= and four admitted
+cores; its final work was still in Core. Quint separately refused before
+the first model verdict: Apalache distribution download exceeded the existing
+12-second checker silence limit. This is a preparation failure, not a model
+counterexample or accepted verification.
+
+The verifier now prepares Quint's pinned compiler through the public =compile=
+command before entering the Cases. Preparation has its own 60-second bound;
+every actual checker invocation retains its original 60-second total and
+12-second silence limits. There is no synthetic progress or watchdog change.
+Using the installed Apalache 0.62.1, the complete 23 invariant/reachability
+checks and two temporal checks passed, including the unchanged 19,042-state
+lifecycle count. All nine existing Scheme-verdict controls also passed.
+A separate cold-tool download returned a non-archive response and was refused;
+these local results therefore do not claim cold tool-install acceptance.
+
 Core's current proofs pass, while its independent dense-declaration and
 selection capacity gates remain red. Lab's prior current-head Linux and Darwin
 deployment downstream gates pass, but complete development/package builds do
