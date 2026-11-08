@@ -206,10 +206,17 @@ jobs:
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
             set -euo pipefail
             cd "$BUILD_WORKSPACE_DIRECTORY"
+            # Match the producer: transitive packages may select an older POO.
+            # Core owns the direct revision; do not repeat that pin in CI.
+            (cd core && timeout --signal=TERM --kill-after=5s 180s \
+              gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss)
             timeout --signal=TERM --kill-after=5s 180s just build-core
             timeout --signal=TERM --kill-after=5s 180s just deps-dev
             timeout --signal=TERM --kill-after=5s 180s just build-testing
           '
+          # ASP belongs to Lab's development package, not its production store.
+          # Append its compiled outputs after the caller's existing input order.
+          printf 'GERBIL_LOADPATH=%s:%s/dev/.gerbil/lib\n' "$GERBIL_LOADPATH" "$PWD" >> "$GITHUB_ENV"
 
       - name: Save completed native dependency build inputs
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)

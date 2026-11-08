@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Shared Feature Declaration Consumer Qualification
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Source and responsibility
+:PROPERTIES:
+:CUSTOM_ID: shared-feature-consumer-20261108
+:STATUS: partial
+:END:
+
+AITIA selects Lab =d24b7f0af21e534b1400190896f2695ea2366029= through
+=gerbil.pkg=. Lab selects Core =272c46bebb73fff524b62e8eee77fc61befea2af=;
+its development package declares ASP =9ae9bc377cbab4b84de52b512a2c03375a36d6c9=.
+The local package pool contains Core's declared POO source
+=cd4de644385a591b879e3de5795418b5b7e9d767=. This is an existing-package
+consumer qualification, not evidence of a clean dependency installation.
+
+GitOps declares =features: '(github)=. The existing init selects =+github=;
+=-github= withdraws the Feature. The Feature owns its Contract and uses the
+shared =.def= through its ordinary Interface/Types/Objects roles. There is no
+second Feature declaration API or Enable field.
+
+The pinned ASP package exports =prepared-native-import-closure= from its
+=native-import-closure= owner. Lab's obsolete =gerbil-import-closure= import
+refused before the source-admission Suite could run. The repair updates the
+owner import and its call; it does not change prepared-graph admission.
+
+AITIA CI restores Core's direct package dependency through Lab's existing
+=runtime-dependencies.ss= entry after transitive installation, as Lab itself
+does. No dependency REV is duplicated in the workflow. ASP remains in Lab's
+development package; its compiled library is appended after the existing
+caller input order once the declared test prerequisites have been prepared.
+
+* Executed consumer observations
+
+All Scheme commands used existing Just entrypoints. The current Core build
+and AITIA package build exited naturally with status zero. The following
+consumer entries retained MODULE-OK, HARNESS-OK, final OK and natural exit
+zero, without error, heap-overflow or stack-overflow markers:
+
+| Existing entry | Observation |
+|----------------+-------------|
+| =just test-proof-scheme source-admission-test.ss= | 17 source files, 345 observations, zero diagnostics |
+| =just test-scheme-atomic gitops unit/gitops-protocol-test.ss= | Shared Feature and GitOps protocol accepted |
+| =just test-scheme-atomic gitops unit/github-adapter-test.ss= | GitHub adapter controls accepted |
+
+The source-admission replay using Lab's current Core recorded 3,323 microseconds
+for prepared-graph projection and 23,449 microseconds overall, inside the
+unchanged 100,000/15,000,000 microsecond assertions. These measurements describe
+that invocation, not a cross-machine performance guarantee.
+
+Lab namespace validation accepted 4,031 files. AITIA workflow expressions and
+schema passed actionlint with its shellcheck integration disabled; every run
+body separately passed bash syntax checking. This is not a clean shellcheck
+claim: existing SC2016 diagnostics for intentionally deferred child-shell
+expansion remain.
+
+* Unclosed acceptance
+
+=just check-semantic= was executed with the repaired Lab import and current
+Core. Source admission and package build passed. All five Assurance unit
+files then reported heap overflow under their existing 512 MiB child Profiles;
+the entry returned status 70. The remaining semantic queue did not execute.
+No Profile, Case, watchdog, timeout or assertion was relaxed to obtain success.
+
+At AITIA =ae11fe20979cf0b32e165c0459cff612056f4065=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42435829512][CI run 42435829512]] passed Lean, Quint and Rust jobs. The package-install job
+refused at its 180-second guard while compiling POO; its receipt records
+=outcome: timeout=, =elapsedMs: 180595= and four host-admitted build cores.
+Successful source fetching does not establish successful locked installation.
+The newly selected cohort requires a fresh CI run.
+
+Core's current proofs pass, while its independent dense-declaration and
+selection capacity gates remain red. Lab's prior current-head Linux and Darwin
+deployment downstream gates pass, but complete development/package builds do
+not. Those results retain their own SHA attribution; neither finite proofs
+nor focused Feature consumers establish whole-project acceptance.
+
+Raw transcripts remain local or CI artifacts. No logs, generated compiler
+products or machine-specific paths are committed. Storage executors, bindings
+and old Memory are unchanged by this repair.
