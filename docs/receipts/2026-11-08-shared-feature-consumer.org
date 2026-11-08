@@ -411,7 +411,7 @@ fence: 14 passed, zero failed and one existing ignored case. Existing ignored ca
 result does not cover linked Scheme delivery or an installed Python wheel.
 
 Lab =44c9e39bca7fa9373d7919e9e6022bfa4ee1d5d4= consumes provider
-=cbf2ba0= through its existing Bazel override. The consumer budget
+=cbf2ba017b741b507eb57387726f56b09bc42911= through its existing Bazel override. The consumer budget
 patch and its export package were removed. The existing dependency projection
 checker passes after Bazel generates the lock. The producer's full prebuilt
 provider control and both resource-guard suites pass locally, including
@@ -445,3 +445,12 @@ pkg-config metadata. The host and generic developer shell lack OpenSSL
 metadata; the Lab package-build entry supplies OpenSSL but lacks zlib metadata
 in that shell. All three setup refusals remain failed observations. No private
 linker search, generated SDK or package metadata rewrite was introduced.
+
+A subsequent bridge-only package build supplies the three installed target
+libraries' standard pkg-config metadata. The library query succeeds, so this
+control reaches compilation rather than repeating the metadata refusal. It
+then fails while linking =scheme/arrow=, with unresolved =calloc=, =free=,
+=malloc= and =strlen= for arm64. This is a distinct package-link failure, not
+a standard library-query failure or a passing current bridge install. The
+original 180-second fence and 2G heap remain unchanged; no Arrow/bindings
+implementation was modified.
