@@ -58,20 +58,91 @@ body separately passed bash syntax checking. This is not a clean shellcheck
 claim: existing SC2016 diagnostics for intentionally deferred child-shell
 expansion remain.
 
+* Receiver and loading ownership
+
+The package Prelude already supplies =yuanxu!=. Product =init.ss= therefore
+declares its selection directly, without importing the selection implementation
+again. Relative role imports describe Scheme dependencies; the Module System
+owns role resolution and its source/currentness guards. No business role
+constructs a runtime import path or repeats a binding name in a delayed-loader
+wrapper.
+
+The GitHub Feature derives from its supplied receiver. Its nested =change=
+operation reads the constructor from the final outer =self= when invoked.
+It neither imports another constructor from the owner nor captures an eagerly
+extracted parent procedure. A warmed parent adapter and an overridden child
+therefore retain distinct receiver behavior.
+
+POO =self= is the effective receiver. =sup= is the inherited computation for
+the current slot, not the containing directory or the whole Module tree.
+The inspected Haumea source at =252218e686de786f45311c323e105bd4340c2179=
+supplies the current file result as =self=, the containing directory view as
+=super=, and the perspective-dependent collection view as =root=. These
+spatial capabilities are distinct from POO's inherited-slot continuation.
+Consumers reach the selected tree through ordinary =init.exports= and =.get=:
+
+#+begin_src scheme
+(.get lambda-aitia.init.exports modules gitops)
+#+end_src
+
+Within a Module, cross-Module dependencies retain their declared =requires=
+aliases. A namespace path or inherited slot does not create a dependency or
+grant authorization. The structural namespace, receiver inheritance and
+runtime import lifecycle remain distinct responsibilities.
+
+* Consumer cleanup observations
+
+These observations use the same Core revision and installed package pool named
+above. The Feature receiver regression passed all three Cases: a supplied
+constructor is used, admission and adapter lookup leave it lazy, and a warmed
+adapter follows an overridden child without changing its parent.
+Core's existing =namespace-leaf-expression-test.ss= passed all six Cases,
+including inherited-slot continuations, nested shadowing and explicit
+containing namespaces. Both entries retained MODULE-OK, HARNESS-OK, final OK,
+natural exit zero and no error/heap/stack markers.
+Core's existing =namespace-projection-test.ss= also passed, preserving lazy
+leaf identity, visibility and refusal controls. The AITIA package build exited
+naturally with status zero against this installed pool; this was an incremental
+build, not a fresh package installation.
+
+After removing the eager Config import from the GitOps Interface, all five
+Assurance files passed their existing 512 MiB child Profiles through
+=just test-scheme assurance=. Source admission also passed with 17 source
+files, 345 observations and zero diagnostics. These are existing-package
+consumer observations; they do not qualify cold dependency installation.
+
+The final-receiver implementation and original Config use no
+=module-binding-action= adapter in business code. Results obtained while a
+handwritten delayed import was present do not qualify this implementation.
+
 * Unclosed acceptance
 
-=just check-semantic= was executed with the repaired Lab import and current
-Core. Source admission and package build passed. All five Assurance unit
-files then reported heap overflow under their existing 512 MiB child Profiles;
-the entry returned status 70. The remaining semantic queue did not execute.
-No Profile, Case, watchdog, timeout or assertion was relaxed to obtain success.
+The earlier =just check-semantic= attempt with the repaired Lab import and
+current Core passed source admission and package build, then overflowed all
+five Assurance children at 512 MiB and returned status 70. That historical
+failure is retained. The cleanup above closes those five focused consumer
+failures without changing their Profiles.
+
+The cold GitOps queue still returns status 70: its protocol and adapter
+consumers refuse =module link slot support changed= during scope construction.
+The diagnostic cut identifies Parser's =select-lr-action-factory= read before
+its initialization-time method registrations advance its revision from zero
+to eight. Initializer support and ordinary scope support need a repair in
+their owning boundary. Neither preloading Config nor a path-based business
+wrapper is accepted as closure. No support check, Profile, Case, watchdog,
+timeout or assertion was relaxed.
 
 At AITIA =ae11fe20979cf0b32e165c0459cff612056f4065=,
 [[https://github.com/tao3k/lambda-aitia/actions/runs/42435829512][CI run 42435829512]] passed Lean, Quint and Rust jobs. The package-install job
 refused at its 180-second guard while compiling POO; its receipt records
 =outcome: timeout=, =elapsedMs: 180595= and four host-admitted build cores.
 Successful source fetching does not establish successful locked installation.
-The newly selected cohort requires a fresh CI run.
+At =f3f60835dc62e84985fa5aea871ac30f1bcaf234=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42460823313][CI run 42460823313]] again refused installation at 180,996 milliseconds with
+four host-admitted build cores. Its final compiler work was in Core, after
+POO compilation; attributing the whole timeout only to table C compilation is
+unsupported. Lean, Quint and Rust passed at that revision. This remains a
+failed installation and does not qualify the cleanup's complete CI.
 
 Core's current proofs pass, while its independent dense-declaration and
 selection capacity gates remain red. Lab's prior current-head Linux and Darwin

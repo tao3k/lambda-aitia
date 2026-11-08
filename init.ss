@@ -3,7 +3,6 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Product-owned selection. More Modules join here as their consumer migration closes.
-(import :yuanxu/module-system/selection/init-syntax)
 (yuanxu!
   :load-modules "./modules" mode: explicit
   (assurance)
