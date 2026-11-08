@@ -766,3 +766,38 @@ runs outside the checkout with =AITIA-INSTALLED-RUST-WHEEL-OK=. Existing
 120-second phase deadlines and the unset =GERBIL_HOME= condition are retained.
 This installed-cohort result does not close the separate Linux 180-second cold
 installation gate or substitute for the updated PR2 current-head CI.
+
+** Proof dependency lock completion and rejected scale candidate
+
+Bridge PR18 head =fe3796edd1bad71df147a21a67f1b421f1bcbf89= reports sixteen successful
+executed CI checks; the existing SMP capability gate remains explicitly
+skipped because this toolchain lacks multiple-threaded VMs. This producer
+result is separate from Lab and AITIA admission.
+
+Lab =e11b02c4= CI correctly rejects a missed proof pin: the Lean declaration
+and Lake lock still referenced Core =091c4fe= after the Core gitlink advanced.
+The declaration now names Core =520aa69=, and =lake update YuanxuProof= generates
+the lock. The original License contract command sequence passes unchanged,
+including namespace/proof-gitlink matching, dependency projections and 41
+Python maintenance tests. The existing
+=just check-runtime-semantic-query-lean= consumer builds successfully (30 Lake
+jobs). Lab =fea64411= contains only the two proof dependency files; runtime
+Scheme/Rust inputs are unchanged from the qualified =e11b02c4= cohort.
+
+A separate Core dependency candidate consumes POO PR17
+=e94cfc27f9424b3fc5a878969ee93b653d12d85a= after all its upstream CI succeeds.
+Its standard package build and Core build pass, but the original ten-thousand
+Case entrypoints still refuse. Their existing per-Case budget is 180000 ms and
+their maintained Justfile/fixture already selects the specialized 4G heap;
+neither setting is changed. Declaration admission reaches 4434 publications
+before =duration-exceeded 180000 180005=, with 186274 recorded file reads.
+Selected declarations refuse at =duration-exceeded 180000 180012= in the
+first-graph phase. These are failures, not successful scale qualification.
+
+No production dependency or verification rule is changed to admit that
+candidate. The uncommitted Core pin is restored to its published POO =6394e95=
+value and the current package API restores and rebuilds that package. Native
+VM accounting printed by the diagnostic is explicitly unqualified and is not
+reported as measured heap allocation. Publication metadata replay/read-route
+appears in the refusal stacks; no validation has been skipped on that basis.
+The 180-second cold installation and both scale obligations remain open.
