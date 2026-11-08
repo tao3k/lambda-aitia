@@ -4,9 +4,8 @@
 
 (.def Published
   identity: 'github-gitops
-  core: (.o requires: (.o GitOps: (.o module-id: 'lambda-aitia/modules/gitops/interface)
-                        Delivery: (.o module-id: 'lambda-aitia/user-interface/profiles/gitops/interface)
+  core: (.o requires: (.o Delivery: (.o module-id: 'lambda-aitia/user-interface/profiles/gitops/interface)
                         Nasa: (.o module-id: 'lambda-aitia/user-interface/profiles/nasa/interface))
             scope-contract: ScopeContract
-            exports: (make-github-gitops-scope GitOps Delivery Nasa))
+            exports: (make-github-gitops-scope Delivery Nasa))
   features: (.o))

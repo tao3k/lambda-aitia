@@ -5,7 +5,7 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :clan/poo/object .get .ref)
         (only-in :std/source this-source-file)
-        (only-in :yuanxu/feature-system/source-lock-feature source-lock-payload-digest)
+        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "../../../init.ss" lambda-aitia.init.exports))
 (export retirement-binding-test)
 

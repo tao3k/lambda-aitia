@@ -6,7 +6,7 @@
 
 (import (only-in :gerbil/core path-expand)
         (only-in :std/misc/ports read-all-as-string)
-        (only-in :yuanxu/feature-system/source-lock-feature
+        (only-in :yuanxu/module-system/feature/source-lock-feature
                  sources-lock-freeze
                  write-sources-lock-module)
         "../../modules/sdlc/standards/sources.ss")

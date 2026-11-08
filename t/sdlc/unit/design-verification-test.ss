@@ -6,7 +6,7 @@
         :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .get .o .ref)
-        (only-in :yuanxu/feature-system/source-lock-feature
+        (only-in :yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest)
 )
 

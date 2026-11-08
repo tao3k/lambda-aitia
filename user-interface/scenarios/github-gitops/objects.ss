@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-;;; Provider adapter only. The GitOps module performs the pure policy decision.
+;;; Delivery and NASA Profile composition for the GitHub scenario.
 (import (only-in :clan/poo/object .get)
         (only-in :clan/poo/mop .new)
         (only-in :yuanxu/modules/funflow/scenario Scenario)

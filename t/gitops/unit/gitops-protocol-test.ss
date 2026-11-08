@@ -11,14 +11,6 @@
 (export gitops-protocol-test)
 
 (def gitops (.get (.get lambda-aitia.init.exports modules) gitops))
-(def delivery (.get lambda-aitia.init.exports Profiles delivery))
-(def github (.get lambda-aitia.init.exports scenarios github-gitops))
-(def dev (.get delivery dev))
-(def staging (.get delivery staging))
-(def production (.get delivery production))
-(def github-change (.get github change))
-(def github-check (.get github check))
-(def github-run-gitops (.get github evaluate))
 (def gitops-change (.get gitops change))
 (def gitops-profile? (.get gitops profile?))
 (def gitops-profile-matches? (.get gitops matches?))
@@ -52,6 +44,11 @@
         test-dev (gitops-change 'github 'pull-request "owner/repo" "sha"
                                 "feature/x" "develop" 7))
        #t))
+    (test-case "GitHub Feature binds the provider through the GitOps Scope"
+      (let* ((github (.get gitops github))
+             (change ((.get github change) 'pull-request "owner/repo" "r2"
+                       "feature/x" "develop" 7)))
+        (check-equal? (.ref change 'provider) 'github)))
     (test-case "slot dispatch remains open to profile refinement"
       (let (refined (.cc base-dev '.matches? (lambda (_change) #t)))
         (check-equal?
@@ -90,16 +87,4 @@
                       (list (check-for 'build "owner/repo" "r1" 'success) test-result))))
         (check-equal? (.ref accepted 'accepted) #t)
         (check-equal? (.ref stale 'accepted) #f)
-        (check-equal? (.ref stale 'stale-checks) '(build))))
-    (test-case "GitHub adapter consumes the maintained Profiles through the Module"
-      (let* ((change (github-change 'pull-request "owner/repo" "r2" "feature/x" "develop" 7))
-             (profiles (.o profiles: (list dev staging production)))
-             (checks (map (lambda (name) (github-check name "owner/repo" "r2" 'success))
-                          '(commit-policy build unit-test)))
-             (decision (github-run-gitops profiles change checks))
-             (retargeted (.cc dev 'target-ref "review")))
-        (check-equal? (.ref decision 'profile) 'dev)
-        (check-equal? (.ref decision 'accepted) #t)
-        (check-equal? (gitops-profile-matches? retargeted change) #f)
-        (check-equal? (gitops-profile-matches? retargeted
-                        (github-change 'pull-request "owner/repo" "r2" "feature/x" "review" 7)) #t)))))
+        (check-equal? (.ref stale 'stale-checks) '(build))))))

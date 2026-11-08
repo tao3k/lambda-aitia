@@ -8,11 +8,11 @@
         (only-in "../../init.ss" lambda-aitia.init.exports))
 (export github-workflow-test)
 
-(def github (.get lambda-aitia.init.exports scenarios github-gitops))
-(def github-gitops-sdlc (.get github scenario))
-(def github-change (.get github change))
-(def github-check (.get github check))
-(def github-run-gitops (.get github evaluate))
+(def gitops (.get lambda-aitia.init.exports modules gitops))
+(def github-gitops-sdlc (.get lambda-aitia.init.exports scenarios github-gitops scenario))
+(def github-change (.get gitops github change))
+(def github-check (.get gitops check))
+(def github-run-gitops (.get gitops evaluate))
 (def nasa-sdlc-npr7150_2
   (.get lambda-aitia.init.exports Profiles nasa-7150-2d standard))
 

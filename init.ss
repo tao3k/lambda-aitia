@@ -9,7 +9,7 @@
   (assurance)
   (ADR)
   (formal-methods)
-  (gitops)
+  (gitops +github)
   (project-config)
   (nasa-7150-2d-catalog)
   (sdlc)

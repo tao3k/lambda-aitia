@@ -104,6 +104,13 @@ The GitOps operations below come from the Yuanxu GitOps Scope.
 ProjectConfig is a separate Yuanxu Module. The required integration
 column describes the remaining boundaries.
 
+The project selects =(gitops +github)=. The GitOps Module lists =github=
+in its Features. The Feature interface owns its Contract and refines the
+GitOps scope to bind the provider identity for changes. The GitOps core
+creates checks and evaluates the change. The GitHub Scenario composes the
+Delivery and NASA Profiles. The binding passes that composition to the
+GitOps evaluator.
+
 | Concern | Existing entry or implementation | Required integration |
 |---------+----------------------------------+----------------------|
 | Project declaration | =project-config= Module | Scheme resolves the POO declaration and selects checks. Rust runs the selected operations using inputs from the same captured cut. |

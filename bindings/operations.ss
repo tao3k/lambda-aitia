@@ -113,10 +113,10 @@
   (let* ((object (string->json payload +aitia-json-read-options+))
          (repository (json-required object "repository"))
          (revision (json-required object "revision"))
-         (github (.get lambda-aitia.init.exports scenarios github-gitops))
-         (make-check (.get github check))
+         (gitops (.get lambda-aitia.init.exports modules gitops))
+         (make-check (.get gitops check))
          (change
-          ((.get github change)
+          ((.get gitops github change)
            (json-symbol object "event") repository revision
            (json-required object "source-ref")
            (json-required object "target-ref")
@@ -125,7 +125,8 @@
           (map (lambda (check) (json-check make-check check repository revision))
                (json-list object "checks"))))
     (decision->json
-     ((.get github evaluate) (.get github scenario) change checks))))
+     ((.get gitops evaluate)
+      (.get lambda-aitia.init.exports scenarios github-gitops scenario) change checks))))
 
 (def (org-contract-integer object field minimum maximum)
   (let (value (json-required object field))

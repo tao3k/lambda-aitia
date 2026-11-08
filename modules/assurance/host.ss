@@ -14,7 +14,7 @@
                  yuanxu-verification-adapter yuanxu-verify
                  yuanxu-verification-valid?
                  yuanxu-revoke-verification!)
-        (only-in :yuanxu/feature-system/source-lock-feature
+        (only-in :yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest)
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
                  agentic-ai-lab-cedar-runtime-handoff?
