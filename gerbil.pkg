@@ -6,4 +6,4 @@
 ;;; verification, authorize release, or execute an effect.
 (package: lambda-aitia
  prelude: :tao3k/yuanxu/prelude
- depend: ("github.com/tao3k/agentic-ai-lab@a91be875bf065d910118378bd759e82a4d1fd091"))
+ depend: ("github.com/tao3k/agentic-ai-lab@ce4bf20533103fa76826b0899bba8be36ac23ce4"))

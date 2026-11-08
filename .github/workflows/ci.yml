@@ -189,7 +189,7 @@ jobs:
             set -euo pipefail
             cd "$BUILD_WORKSPACE_DIRECTORY"
             timeout --signal=TERM --kill-after=5s "${GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS}s" \
-              gerbil env gerbil interactive packages/automation/runtime-dependencies.ss
+              gerbil env gerbil interactive packages/automation/runtime-dependencies.ss --fetch-only
           '
           bazelisk run @local_gerbil//:install_dependencies
           python3 - <<'PYCODE'
