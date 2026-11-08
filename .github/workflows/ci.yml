@@ -185,6 +185,12 @@ jobs:
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
         working-directory: agentic-ai-lab
         run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            timeout --signal=TERM --kill-after=5s "${GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS}s" \
+              gerbil env gerbil interactive packages/automation/runtime-dependencies.ss
+          '
           bazelisk run @local_gerbil//:install_dependencies
           python3 - <<'PYCODE'
           import json
