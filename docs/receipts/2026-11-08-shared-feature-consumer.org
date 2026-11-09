@@ -1240,3 +1240,26 @@ graph unqualified.
 Lab =55bf2074a7ebbd3ad2708a1e17e566a71eb70249= then selects the qualified Bazel head.
 Strict Bazel lock resolution and the Gerbil dependency contract pass.
 The install receipts above remain tied to the measured Lab and AITIA heads.
+
+The run at AITIA =7b2946b3d7dde826d13ba302ee13301b6e5bf802= misses the
+Lab package cache with the final pin. Parser module compilation starts
+about 310 seconds after guard admission. Native installation proceeds to
+Orgize, where the generated =orgize-fold= events and tape modules are
+still compiling at the cut. The receipt records =elapsedMs 601552=,
+=timeoutMs 600000=, four automatically admitted cores, peak tree PSS
+=6439556096= bytes and guard exit =71= (installer exit =124=). The Parser
+pin is unchanged. This run passes the Parser build within the installation,
+while the complete cold dependency graph remains unqualified. Lean, Quint
+and the Rust workspace pass.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42556923930/job/128964705599][Final-pin Linux cold installation]]
+
+Lab =55bf2074a7ebbd3ad2708a1e17e566a71eb70249= also advances past
+the previous cut in the macOS Bazel source job. With earlier package
+outputs available from the Bazel disk cache, the ASCENT =62299efe= action
+issues a successful receipt in 298406 ms through the Darwin sandbox and
+passes the action that previously refused the =gambuild-C= path. Parser
+=21fdb586= independently completes in 367575 ms. Both receipts report
+three automatically admitted cores and exit =0=. The graph then reaches
+Orgize, where the existing 12-minute workflow step expires. The source
+job does not reach Runtime WASM packaging.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42556919714/job/128964611951][Final-pin macOS source-build]]
