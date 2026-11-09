@@ -114,7 +114,6 @@ jobs:
     env:
       # max-heap limits each Scheme process; it is not a tree-wide RSS limit.
       GAMBOPT: max-heap=2G,debug=q
-      GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS: 180
       GERBIL_PATH: ${{ github.workspace }}/agentic-ai-lab/.gerbil
       GERBIL_LOADPATH: ${{ github.workspace }}/agentic-ai-lab/packages/lambda-aitia:${{ github.workspace }}/agentic-ai-lab:${{ github.workspace }}/agentic-ai-lab/.gerbil/lib
     steps:
@@ -188,8 +187,7 @@ jobs:
           bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
             set -euo pipefail
             cd "$BUILD_WORKSPACE_DIRECTORY"
-            timeout --signal=TERM --kill-after=5s "${GERBIL_BAZEL_INSTALL_TIMEOUT_SECONDS}s" \
-              gerbil env gerbil interactive packages/automation/runtime-dependencies.ss --fetch-only
+            gerbil env gerbil interactive packages/automation/runtime-dependencies.ss --fetch-only
           '
           bazelisk run @local_gerbil//:install_dependencies
           python3 - <<'PYCODE'
@@ -208,11 +206,10 @@ jobs:
             cd "$BUILD_WORKSPACE_DIRECTORY"
             # Match the producer: transitive packages may select an older POO.
             # Core owns the direct revision; do not repeat that pin in CI.
-            (cd core && timeout --signal=TERM --kill-after=5s 180s \
-              gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss)
-            timeout --signal=TERM --kill-after=5s 180s just build-core
-            timeout --signal=TERM --kill-after=5s 180s just deps-dev
-            timeout --signal=TERM --kill-after=5s 180s just build-testing
+            (cd core && gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss)
+            just build-core
+            just deps-dev
+            just build-testing
           '
           # ASP belongs to Lab's development package, not its production store.
           # Append its compiled outputs after the caller's existing input order.

@@ -859,3 +859,239 @@ The two local producer pin candidates are preserved for review. They are not
 pushed to Parser PR21 or ASCENT PR1 under authorization for the other producer
 and consumer PRs. Cold installation, current-head remote CI and the previously
 recorded Core scale obligations remain open.
+
+* Follow-up audit of the published revisions (2026-11-09)
+
+Bridge PR18 advances to =9aa4de6adc1f566f78586b046ba9452c1e996d7b=
+with sixteen successful checks and the SMP check skipped. It is five commits
+ahead of the consumed =fe3796e= revision and includes changes to signal cleanup
+and Gambit archive linking. Lab's Scheme dependency and AITIA's Cargo
+dependency still select =fe3796e=. Consumer qualification for the newer bridge
+revision is pending.
+[[https://github.com/tao3k/gerbil-scheme-rust/pull/18/checks][Bridge checks]]
+
+AITIA =f06d418= again fails in dependency admission with a 180000ms limit,
+four effective build cores, and a peak process-tree PSS of 5560382464 bytes.
+The receipt reports =elapsedMs 180550=. The timeout snapshot includes a
+running =cc1= descendant of =gsc=. The log identifies =table~0.c= during the
+same build, in =table-order=. This identifies an active compiler workload at
+the deadline. The snapshot alone cannot assign the whole elapsed time to
+that translation unit. The linked-delivery step has no result from this run.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42513927014/job/128832688119][Admission log]]
+
+Lab =fea64411= has separate failures. The Linux runtime job reaches exit 124
+in =build-library=. The macOS runtime job reports signal 9 in the same
+recipe, with no cause established by that signal alone. Both the macOS
+package job and the macOS source-build job report that =gambuild-C= is
+missing from the Bazel =local_gerbil= repository path during ASCENT
+compilation. This is a toolchain handoff failure observed on two paths.
+The Linux package and external Bazel jobs each reach their existing
+twelve-minute step limits.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42510923371][Lab CI]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42510923336/job/128823585600][macOS source build]]
+
+Parser PR21 and ASCENT PR1 still match the base revisions of the local
+one-line Core pin candidates. Parser has one failing macOS semantics check,
+ASCENT has eight failing checks, and Core PR19 has two failing build-and-test
+checks. The POO =table.ss= and =build.ss= files are identical between
+=1f4b1720= and =6394e95=. The candidate pins address dependency identity.
+A separate cold run on the aligned revisions is required to measure any
+change in installation time.
+
+* Remove the three-minute build cutoffs (2026-11-09)
+
+AITIA removes the 180-second installation override and the 180-second
+wrappers around dependency fetch, prerequisite preparation and the local
+Scheme build. Lab's two build scripts invoke =gxi= directly. CI retains
+its job deadline and the pinned Bazel installer retains its memory guard
+and default 600-second wall-clock deadline. Test budgets retain their
+separate role.
+
+The workflow parses as YAML and the changed shell steps pass =bash -n=.
+AITIA's =just build-scheme= exits 0 with the installed local packages.
+Lab's =just build-library= is still running compiler children at 197
+seconds, then exits 70 after a compiler worker reports =Stack overflow=.
+This run establishes that the old deadline is gone and leaves the complete
+Lab build and CI cold installation open.
+
+* Lab compile-worker stack overflow follow-up (2026-11-09)
+
+Lab PR34 =fea64411296a1f2db5c1a192013421ad5cc73bd2= contains its current
+PR base =4da003496fa5ffb30111ed3dc7fa51ac68f3d030=. Its Core gitlink,
+local Core checkout, and installed Yuanxu source all match current Core
+PR19 =520aa69eff289a3e9535a2d242adaf50ec4de63c=. The installed POO source
+is =6394e95ca35d0d8f602bce2178bcdcdbb1b68309=. The separate main workspace
+Core checkout has unrelated uncommitted changes.
+[[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab PR]]
+[[https://github.com/tao3k/gebril-yuanxu/pull/19][Yuanxu PR]]
+
+The same 2G heap and automatically selected build capacity were used for
+the diagnostic runs. The incremental build returned 0 in 146 seconds
+after compiling 56 targets against products retained from the first
+failure. In a separate package output directory, the same installed
+dependency cohort was copied without any Lab library or static products.
+The full =just build-library= command then failed with exit 70 at 357
+seconds, within its diagnostic 600-second guard. The original and
+isolated failures occurred in distinct =std/make= workers (6 and 9).
+The native barrier propagated the worker exception. Both failures had an
+empty Scheme continuation backtrace.
+
+The isolated run expanded 938 module contexts in the library-spec stage
+and produced 445 library targets. Yuanxu's module projection subsequently
+reported 290 newly registered contexts. The compiler started 208 targets
+before failure. The last parent-process GC reported a 2.0G heap and
+approximately 1.8G live data. The producer resource guard admitted all
+12 logical cores on this 32 GiB host. These observations establish
+process heap pressure and reproduce the overflow with fresh Lab outputs.
+They leave the retained-object ownership and allocation site unproven.
+The installed cohort includes the earlier local Parser and ASCENT pin
+candidates, so it cannot qualify a cold CI package installation.
+
+Publication remains pending a validated fix. The local 180-second cutoff
+removal is retained and the PR branches and dependency locks still refer
+to the previously published revisions.
+
+* 4G heap diagnostic control (2026-11-09)
+
+The Lab and Yuanxu revisions, installed dependency cohort, diagnostic
+options, automatically selected build capacity and 600-second guard match
+the 2G isolated-output run. A new output directory starts without any Lab
+products. The sole resource-policy change is the diagnostic =max-heap=4G=
+process option.
+
+The run exits 0 in 381 seconds after 512 compile starts. Compiler-input
+verification and the main return both complete. No stack or heap overflow
+is reported. The library specification again expands 938 module contexts
+for 445 library targets, and Yuanxu projection adds 290 registered
+contexts. The completed =std/make= phase records another 803 contexts,
+including 46 with an identity already present at the start of that phase.
+
+The greatest GC-reported live totals are 1899341424 bytes on the failing
+2G run and 1906217320 bytes on the successful 4G run. The 2G run stops
+after 208 compile starts. The close live totals and the different outcomes
+identify heap headroom as the controlling difference in this comparison.
+The installed runtime reports Gambit =ea114fc=. Its matching
+=lib/_kernel.scm= stack-limit handler calls =___stack_limit= and
+=___garbage_collect=, then raises =Stack overflow= if collection reports
+overflow. Thus the observed error can originate from inability to extend
+the Scheme stack under the VM heap cap. The run does not identify which
+objects account for the retained compiler memory.
+
+This is a complete isolated Lab build against an installed dependency
+cohort. The workflow heap setting and the CI cold-installation result are
+outside this diagnostic change.
+
+* Lab build-source audit and process boundary control (2026-11-09)
+
+The earlier PR run at Lab =3f0af42a= did pass Gerbil package builds and
+native unit-test jobs on Linux and macOS. Its Scheme package entry used the
+ASP PackageSpec facade and standard Gerbil build. The current
+=build-development.ss= computes the native library closure, prepares the
+Yuanxu-selected graph, and invokes =std/make= in the same process. The CI
+success at =a63f78eb= was a lock-refresh run that skipped those build jobs.
+The historical successful PR run used a different Gerbil release and
+source cohort. This history establishes the changed Lab build shape and
+does not isolate a first failing source commit.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/38102454919][Successful PR CI]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/41001516764][Lock refresh]]
+
+A diagnostic control keeps the installed Gambit and 2G heap and starts
+without Lab outputs. The existing =agentic-ai-lab-build-spec= runs in a
+separate process, writes 445 retained library targets and exits. A temporary
+diagnostic entry passes those targets to the existing Yuanxu projection and
+=std/make=. This entry is removed on exit and has no production handoff
+contract. The combined command keeps a 600-second guard.
+
+The most recent GC before entering =std/make= reports 411336256 live
+bytes in this control, versus 1384340784 bytes in the original 2G run.
+The compiler later reaches 1871748248 reported live bytes. It passes
+the original 208 compile starts but reaches the 600-second guard with
+exit 124 at 340 starts. It leaves 339 Lab interfaces, all in the 512-file
+reference roster of the successful 4G build. The other 173 are missing.
+No overflow appears before the deadline.
+
+Releasing the first specification process lowers the initial compiler
+memory and shifts the failure boundary. It does not qualify a complete
+2G build. Remaining investigation belongs to the Lab build demand and
+the compiler contexts retained through its full library and Module
+compilation. No candidate is promoted and no installed toolchain files
+are edited.
+
+* Calibrated 2G process boundary control (2026-11-09)
+
+The first specification-process control invoked =gxi= directly with
+=GERBIL_BUILD_CORES= unset. It therefore used one native Make worker
+instead of the Justfile's automatically selected value. Its 600-second
+refusal is retained, but the outcome cannot isolate the process boundary.
+An attempted optimizer-off control had the same launcher mismatch and was
+stopped before compilation. Its status is not a compiler result.
+
+A fresh-output control resolves =GERBIL_BUILD_CORES= through the actual
+Lab Justfile, which selects 12 on the test host. It keeps optimization,
+the 2G heap and the 600-second guard. The original Lab library-spec
+function yields 445 targets and exits in its own process. The fresh
+compiler process consumes those targets through Yuanxu's existing
+projection and Make guards.
+
+The run completes in 413 seconds with exit 0. It starts all 512 distinct
+compile targets and reaches the product-require and main-return stages.
+Its 512 =.ssi= and 512 =.ssxi.ss= filenames match the 4G reference exactly.
+The last GC before Make reports 411275976 live bytes, versus 1384340784
+in the failed 2G combined-process run. The highest GC-reported live
+total during the corrected control is 1875277928 bytes. No overflow or
+compiler-error marker appears.
+
+This establishes a complete 2G build with the specification process
+released, while retaining the native optimizer and automatic parallelism.
+The temporary target file is a diagnostic input and has no production
+currentness handoff. A production change must keep the library demand
+bound to its source and package inputs and preserve Yuanxu's existing
+checks across the process boundary.
+
+The unchanged =just test-file t/yuanxu-deployment-downstream-test.ss=
+also passes using the new 2G outputs as the production library and the
+existing ASP development dependency separately. It reports 45 selected
+targets, four owners, three selected tests, one runtime qualification,
+cold A/B, no hot recompilation and clean isolation. Both the inner and
+outer harness report =OK= and the refusal markers are absent.
+
+* Lab production specification handoff (2026-11-09)
+
+Lab PR34 =7ccf807631f103bb2dcf8587d08303e11abce053= moves library
+specification expansion into a child of the existing
+=build-development.ss= entry. The child records the native load path and
+Yuanxu observations of reached sources, package metadata and dependency
+interfaces. It exits before the parent projects the selected Graph and
+calls Make. The parent streams the observations through
+=module-source-admit-current!= before and after the build. The same
+init-owned compiler checks and product checks remain in the Make path.
+The private handoff directory is removed when the invocation exits.
+Gambit diagnostics use the normal output channels.
+
+Two failed controls were retained. Mixing the handoff with stdout was
+rejected because Gambit emits GC notifications there. Holding the
+entire byte snapshot in the compiler VM reproduced a worker stack
+overflow in 369 seconds. The final handoff streams the observations
+from the private file and releases each row after validation.
+
+The normal =just build-library= command starts with no Lab outputs and
+finishes in 442 seconds under a 2G heap, the Justfile's automatic 12-core
+allocation, optimization enabled and a 600-second guard. It compiles
+512 distinct targets. The relative filenames of 512 interfaces,
+512 optimizer metadata files, 993 objects and 512 static products match
+the complete 4G reference. A focused test of the production reader
+accepts current inputs and refuses changed source bytes, changed
+dependency-interface bytes, newly introduced package metadata and an
+import-path substitution.
+
+The same outputs pass the unchanged
+=just test-file t/yuanxu-deployment-downstream-test.ss= entry. Its
+receipt records 45 targets, four owners, three selected tests and one
+runtime qualification. Cold A/B, hot no-op and clean isolation pass.
+Both harnesses finish with =OK=.
+
+AITIA pins this Lab revision. Its cold package workflow drops the
+180-second override and prerequisite wrappers. The existing provider
+installation guard defaults to 600 seconds and the Scheme job retains
+its job limit and 2G process heap. The fresh CI installation result
+requires a separate receipt.
