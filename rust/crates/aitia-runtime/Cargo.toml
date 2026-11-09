@@ -10,10 +10,12 @@ publish.workspace = true
 description = "AITIA owner-scoped Scheme program execution"
 
 [features]
-sysml = ["dep:opensysml", "dep:aitia-jj"]
-linked-program = ["dep:gerbil-scheme", "gerbil-scheme/external-program", "dep:gerbil-scheme-aot-build", "dep:gerbil-scheme-sys", "dep:aitia-jj", "dep:serde", "dep:serde_json"]
+gitops = ["dep:aitia-jj"]
+sysml = ["dep:opensysml", "gitops"]
+linked-program = ["dep:gerbil-scheme", "gerbil-scheme/external-program", "dep:gerbil-scheme-aot-build", "dep:gerbil-scheme-sys", "gitops", "dep:serde", "dep:serde_json", "dep:ring"]
 
 [dependencies]
+ring = { version = "=0.17.14", optional = true }
 opensysml = { version = "=0.12.1", optional = true }
 aitia-jj = { path = "../aitia-jj", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
@@ -54,6 +56,11 @@ name = "linked_program"
 path = "tests/integration/linked_program.rs"
 required-features = ["linked-program"]
 
+
+[[test]]
+name = "agent_input"
+path = "tests/integration/agent_input.rs"
+required-features = ["linked-program"]
 
 [[test]]
 name = "sysml_model"

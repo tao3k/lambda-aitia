@@ -5,31 +5,36 @@
 ;;; This fixture drives real plan / verification / admission / preflight /
 ;;; token / reservation APIs. It never imports model expected states.
 ;;; Configured local runtime callbacks are controls, not a native Cedar proof.
-(import (only-in :std/test check)
+(import
+        (only-in "../../../modules/assurance/effect-host.ss"
+                 assurance-effect-host
+                 assurance-effect-host-authorize!
+                 assurance-effect-host-deliver!
+                 assurance-effect-host-epoch
+                 assurance-effect-host-grant-current?
+                 assurance-effect-host-reserve!
+                 assurance-effect-host-revoke!)
+        (only-in "../../../modules/assurance/cedar-preflight.ss"
+                 assurance-host-cedar-request)
+        (only-in :std/test check)
         (only-in :clan/poo/object .get .o .ref)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
-                 agentic-ai-lab-cedar-decision agentic-ai-lab-cedar-runtime-handoff))
+        (only-in :lambda-aitia/modules/assurance/config Config)
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/decision
+                 agentic-ai-lab-cedar-decision)
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/objects
+                 agentic-ai-lab-cedar-runtime-handoff))
 (export make-lifecycle-fixture lifecycle-action! lifecycle-state
         lifecycle-get lifecycle-set! lifecycle-cut check-lifecycle-traces!)
 
-;;; Replay glue consumes the actual Module scope, not a proof-side evaluator.
-(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+;;; The effect adapter and fixture use the same built Assurance Host registry.
+(def assurance-module-scope Config)
 (def assurance-artifact (.get assurance-module-scope artifact))
 (def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
 (def assurance-claim (.get assurance-module-scope claim))
 (def assurance-decision (.get assurance-module-scope decision))
-(def assurance-effect-host (.get assurance-module-scope effect-host))
-(def assurance-effect-host-authorize! (.get assurance-module-scope effect-authorize!))
-(def assurance-effect-host-deliver! (.get assurance-module-scope effect-deliver!))
-(def assurance-effect-host-epoch (.get assurance-module-scope effect-epoch))
-(def assurance-effect-host-grant-current? (.get assurance-module-scope effect-grant-current?))
-(def assurance-effect-host-reserve! (.get assurance-module-scope effect-reserve!))
-(def assurance-effect-host-revoke! (.get assurance-module-scope effect-revoke!))
 (def assurance-evidence (.get assurance-module-scope evidence))
 (def assurance-host-admission-current? (.get assurance-module-scope host-admission-current?))
 (def assurance-host-admit-verified (.get assurance-module-scope host-admit-verified))
-(def assurance-host-cedar-request (.get assurance-module-scope host-cedar-request))
 (def assurance-host-decision-preflight-current? (.get assurance-module-scope host-preflight-current?))
 (def assurance-host-preflight-decision (.get assurance-module-scope host-preflight))
 (def assurance-host-revoke! (.get assurance-module-scope host-revoke!))
@@ -98,6 +103,12 @@
                 grant-epoch grant-until reservation-revision reservation-epoch reservation-until delivery-status))
     (lifecycle-set! fixture 'delivery-mode 'delivered)
     (lifecycle-set! fixture 'policy-mode 'permit)
+    (lifecycle-set! fixture 'decision-policy "policy")
+    (lifecycle-set! fixture 'decision-policy-digest digest-a)
+    (lifecycle-set! fixture 'decision-entity-digest digest-b)
+    (lifecycle-set! fixture 'runtime-policy-revision "1")
+    (lifecycle-set! fixture 'runtime-policy-digest digest-a)
+    (lifecycle-set! fixture 'runtime-entity-digest digest-b)
     (lifecycle-set! fixture 'cut (force initial-cut))
     (lifecycle-set! fixture 'verification-host
       (assurance-verification-host "lifecycle/verification"
@@ -113,7 +124,9 @@
           (when (lifecycle-get fixture 'authorization-hook)
             ((lifecycle-get fixture 'authorization-hook)))
           (agentic-ai-lab-cedar-decision "local-runtime-decision" (lifecycle-get fixture 'policy-mode)
-            "policy" digest-a digest-b '()))
+            (lifecycle-get fixture 'decision-policy)
+            (lifecycle-get fixture 'decision-policy-digest)
+            (lifecycle-get fixture 'decision-entity-digest) '()))
         (lambda (request token)
           (increment! fixture 'delivery-calls)
           (when (lifecycle-get fixture 'delivery-hook)
@@ -124,7 +137,12 @@
         (lambda ()
           (if (lifecycle-get fixture 'effect-clock-hook)
             ((lifecycle-get fixture 'effect-clock-hook))
-            (lifecycle-get fixture 'clock))) 1))
+            (lifecycle-get fixture 'clock))) 1
+        (lambda (policy-id revision policy-digest entity-digest)
+          (and (equal? policy-id "policy")
+               (equal? revision (lifecycle-get fixture 'runtime-policy-revision))
+               (equal? policy-digest (lifecycle-get fixture 'runtime-policy-digest))
+               (equal? entity-digest (lifecycle-get fixture 'runtime-entity-digest))))))
     fixture))
 
 (def (lifecycle-action! fixture name)
@@ -162,7 +180,7 @@
       ((Authorize UnsafeEarlyGrant)
        (let* ((request (assurance-host-cedar-request vh (lifecycle-get fixture 'preflight)
                          (string-copy "Release") (string-copy digest-a) (agentic-ai-lab-cedar-runtime-handoff
-                                              1 #u8(1) digest-a digest-a digest-b digest-b)))
+                                              3 #u8(1 2 3) digest-a digest-a digest-b digest-b)))
               (grant (and request (assurance-effect-host-authorize! rh vh request))))
          (when grant
            (lifecycle-set! fixture 'request request)

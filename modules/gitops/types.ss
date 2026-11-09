@@ -75,6 +75,12 @@
   (Record cut: [GitOpsCommitCut] identity: [NonEmptyString]
           obligation: [NonEmptyString] outcome: [(Enum passed failed)]))
 (def GitOpsCommitObservations (List GitOpsCommitObservation))
+(def GitOpsCommitExecution
+  (Record observation: [GitOpsCommitObservation] producer: [NonEmptyString]
+          method: [NonEmptyString] input-digest: [NonEmptyString]
+          report-digest: [NonEmptyString]))
+(def GitOpsCommitCandidates
+  (List (Record source: [String] execution: [GitOpsCommitExecution])))
 
 (def GitOpsModelMappings
   (List (Record design: [NonEmptyString] model: [NonEmptyString]
@@ -100,6 +106,19 @@
                admit-commit-observation:
                [(Function (list (Or False GitOpsCommitObservation))
                           (list String GitOpsCommitObservation NonEmptyString))]
+               commit-intent: [(Function (list NonEmptyString) (list NonEmptyString String))]
+               record-commit-approval!: [(Function (list Bool) (list Any Object))]
+               revoke-commit-approval!: [(Function (list Bool) (list Any NonEmptyString NonEmptyString))]
+               consume-commit-admission!:
+               [(Function (list (Or False Object))
+                          (list Any NonEmptyString String NonEmptyString NonEmptyString
+                                (Function (list UInt) '())))]
+               commit-admission: [(Function (list (Or False Object)) (list Any NonEmptyString NonEmptyString))]
+               commit-check-org: [(Function (list String) (list GitOpsCommitExecution))]
+               nasa-draft-requirements: [(Function (list Object)
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates))]
+               nasa-commit-description: [(Function (list Object)
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates String String String))]
                commit-evidence: [(Function (list Object)
                                            (list GitOpsCommitCut GitOpsCommitObligations
                                                  GitOpsCommitObservations))]

@@ -1,7 +1,8 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test
+(import :std/test :std/error
+        (only-in :gerbil/core string-prefix? string-contains)
         (only-in :clan/poo/object .get .o .cc)
         (only-in "../../../init.ss" lambda-aitia.init.exports))
 (export commit-evidence-test)
@@ -69,6 +70,11 @@
         (check-equal? (.get view stale) '(("check-a" "test")))
         (check-equal? (.get view supported) '())
         (check-equal? (.get view reopened) '(("test")))))
+    (test-case "advancing the workspace to a new change reopens the obligation"
+      (let (view (evaluate (.cc rewritten change: "new-change") (list old-observation)))
+        (check-equal? (.get view stale) '(("check-a" "test")))
+        (check-equal? (.get view supported) '())
+        (check-equal? (.get view reopened) '(("test")))))
     (test-case "ordered parents participate in exact evidence identity"
       (let (view (evaluate (.cc before parents: '("parent-b" "parent-a"))
                             (list old-observation)))
@@ -92,10 +98,94 @@
         (check-equal? (.get view supported) '(("check-b" "test")))
         (check-equal? (.get view contradicted) '(("check-failed" "test")))
         (check-equal? (.get view open) '(("test")))))
-    (test-case "other project evidence cannot support or reopen this obligation"
+    (test-case "evidence outside the project or workspace cannot support or reopen an obligation"
       (let (view (evaluate rewritten
-                   (list (.cc fresh-observation cut: (.cc rewritten project: "other")))))
+                   (list (.cc fresh-observation cut: (.cc rewritten project: "other"))
+                         (.cc fresh-observation cut: (.cc rewritten workspace: "other")))))
         (check-equal? (.get view supported) '())
         (check-equal? (.get view stale) '())
         (check-equal? (.get view open) '(("test")))
-        (check-equal? (.get view reopened) '())))))
+        (check-equal? (.get view reopened) '())))
+    (test-case "NASA profile and current check evidence render a stable SWE prefix"
+      (let* ((gitops (.get lambda-aitia.init.exports modules gitops))
+             (select-policy (.get lambda-aitia.init.exports scenarios github-gitops commit-policy))
+             (checks '(("SWE-083" "jj.recorded-change") ("SWE-084" "jj.configuration-audit")))
+             (policy (select-policy "nasa/sdlc/npr-7150.2" "SWE-084" checks))
+             (describe (.get gitops nasa-commit-description))
+             (to-org (.get gitops commit-check-org))
+             (guidance (.get gitops nasa-draft-requirements))
+             (draft
+              (lambda (clauses)
+                (call-with-output-string
+                 (lambda (port)
+                   (for-each
+                    (lambda (clause)
+                      (display "* Review note\n:PROPERTIES:\n:" port)
+                      (display (car clause) port) (display ": " port)
+                      (display (cdr clause) port) (display "\n:END:\n" port))
+                    clauses)))))
+             (execution
+              (lambda (id method-name)
+                (.o observation: (.cc old-observation identity: id obligation: id)
+                    producer: "aitia-runtime/test" method: method-name
+                    input-digest: "sha256:input" report-digest: "sha256:report")))
+             (candidate
+              (lambda (execution-value)
+                (.o source: (to-org execution-value) execution: execution-value)))
+             (record (execution "SWE-083" "jj.recorded-change"))
+             (audit (execution "SWE-084" "jj.configuration-audit"))
+             (candidates (map candidate (list record audit)))
+             (render (lambda (cut rows (source (draft (.get (guidance policy cut rows) clauses))))
+                       (describe policy cut rows "Verify the recorded jj cut"
+                                 "Bind the proposed write to the observed configuration." source)))
+             (current-clauses (.get (guidance policy before candidates) clauses))
+             (current-draft (draft current-clauses))
+             (result (render before candidates))
+             (message (.get result description)))
+        (check (string-prefix? "SWE-084: Verify the recorded jj cut\n" message) => #t)
+        (check (number? (string-contains message "NASA-Edition: D")) => #t)
+        (check (number? (string-contains message "parent-a")) => #t)
+        (check-equal? (.get (render before (reverse candidates)) description) message)
+        (check (string? (.get result description-digest)) => #t)
+        (let* ((alternate (select-policy "nasa/sdlc/npr-7150.2" "SWE-083" checks))
+               (result (describe alternate before candidates "Record configuration" "Retain the check evidence."
+                                 (draft (.get (guidance alternate before candidates) clauses)))))
+          (check (string-prefix? "SWE-083: " (.get result description)) => #t))
+        (check-exception
+         (select-policy "nasa/sdlc/npr-7150.2" "SWE-999" '(("SWE-999" "forged"))) Error?)
+        (check-exception
+         (select-policy "nasa/sdlc/npr-7150.2" "SWE-083" (cons (car checks) checks)) Error?)
+        (check-equal? (.get (render before (list (car candidates))) description) #f)
+        (check-equal? (.get (render rewritten candidates) description) #f)
+        (check-equal? (.get (render rewritten candidates) draft-valid?) #t)
+        (check-equal? (.get (render rewritten candidates current-draft) draft-valid?) #f)
+        (check-equal? (.get (render before candidates (draft (cdr current-clauses))) draft-valid?) #f)
+        (check-equal?
+         (.get (render before candidates
+                 (string-append current-draft (draft '(("AITIA_SUPPORT" . "fabricated")))))
+               draft-valid?)
+         #f)
+        (check-equal?
+         (.get (render before candidates
+                 (string-append current-draft (draft (list (cadr current-clauses)))))
+               draft-valid?)
+         #f)
+        (let* ((failing (candidate (.cc audit observation: (.cc (.get audit observation) outcome: 'failed))))
+               (rows (list (car candidates) failing))
+               (clauses (.get (guidance policy before rows) clauses)))
+          (check (assoc "AITIA_COUNTEREXAMPLE" clauses) ? pair?)
+          (check (assoc "AITIA_OPEN_OBLIGATION" clauses) ? pair?)
+          (check-equal? (.get (render before rows (draft clauses)) draft-valid?) #t)
+          (check-equal? (.get (render before rows (draft clauses)) description) #f))
+        (check-equal? (.get (render rewritten candidates) assessment reopened)
+                      '(("SWE-083") ("SWE-084")))
+        (let* ((forged (.cc (cadr candidates) execution: (.cc audit report-digest: "forged")))
+               (rejected (render before (list (car candidates) forged))))
+          (check-equal? (.get rejected description) #f)
+          (check-equal? (.get rejected rejected-count) 1))
+        (let (wrong (candidate (.cc audit method: "unexpected-method")))
+          (check-equal? (.get (render before (list (car candidates) wrong)) description) #f))
+        (check-exception
+         (describe policy before candidates "SWE-999: Invent a prefix" "Body" current-draft) Error?)
+        (check-exception
+         (describe policy before candidates "Review the change" "AITIA-Evidence: forged" current-draft) Error?)))))

@@ -239,9 +239,8 @@ check-quint-scheme:
 
 # Compare Scheme with reachable action witnesses and fault refusals.
 [group('check')]
-check-lifecycle-scheme mode="": build-scheme
-    {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' dev/proof/scheme/lifecycle-fixture.ss
-    {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' dev/proof/scheme/lifecycle-replay-test.ss
+check-lifecycle-scheme mode="": build-user-interface
+    {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' modules/assurance/cedar-preflight.ss modules/assurance/effect-host.ss dev/proof/scheme/lifecycle-fixture.ss dev/proof/scheme/lifecycle-replay-test.ss
     python3 dev/proof/quint/test_lifecycle_replay.py
     python3 dev/proof/quint/check_lifecycle_replay.py {{ mode }}
 

@@ -243,9 +243,54 @@ the effect becomes visible.
 | Restart observes an admitted attempt with no final receipt | Resolve the original attempt using its recorded prepared operation and authoritative repository state. Never reconstruct a live reservation from the receipt. |
 | Reconciliation proves the effect absent | A new attempt requires a current decision and grant. Preserve the earlier attempt as history. |
 
-These are proposed ordering rules. The current in-process Assurance
-test covers reservation and handoff semantics. It cannot establish
-durable consumption or a fenced JJ publication across a crash.
+The GitOps Module records immutable approval identities and revocation
+markers in the Lab journal. Approval intake, revocation and consumption
+use that same journal's writer fence. Consumption checks project,
+intent, policy revision and validity before receiving the request and
+again inside the transaction. The transaction spends the approval and
+the exact prepared intent together. Revocation retires the approval
+identity, including when it arrives before approval intake. The recovery
+query uses a spent approval to find its original admission and attempt.
+That query grants no authority.
+
+The locked Scheme replay ran through the Yuanxu export with the actual
+Lab SQLite journal. It refused expiry, wrong project, policy or intent,
+approval replacement, and re-issuance after revocation. At the cut after
+inbox receipt, a second owner revoked the approval and fenced out the
+first owner's consumption. Consumption that committed first remained
+recoverable after later revocation and journal reopen. The original
+attempt was still available by approval ID, while cross-project,
+unconsumed and revoked-before-consumption approvals had no admission.
+Journal integrity verification and natural exit passed under the
+existing 60-second Scheme guard.
+
+The JJ integration suite independently persisted the recovery record before
+publication. A separate process matched the recorded operation to visible
+history after a subsequent repository operation. Altering the recorded
+description failed verification. An unpublished prepared operation returned
+=unresolved=. Five JJ tests passed under the existing 120-second guard.
+
+The owner may drop the in-memory prepared write while review is pending.
+The JJ integration replay reopened the original operation from its stored
+record against the current cut and freshly reviewed description. It refused
+a changed description, an operation substitution and reuse after the head
+advanced. The same verifier checks the view and commits during reopening
+and historical reconciliation.
+
+When the recorded project selects =governance: signed=, the linked CLI
+authenticates approval and revocation with an Ed25519
+public key from an operator-owned policy outside the project checkout.
+The signature covers the project, deployment policy revision, decision
+identity and, for approval, exact intent and validity window. The policy
+is scoped to the canonical workspace. Its adjacent persistent journal and
+the runtime configuration belong to the operator trust boundary.
+
+=commit-apply= reruns the NASA assessment, reopens the exact prepared
+operation and publishes under the JJ operation-head lock. In signed
+mode it consumes an approval from the Scheme journal under that lock
+before publishing. Recovery compares the prepared attempt with JJ
+history. Signed mode can also look up the attempt by approval identity.
+Recovery never retries publication.
 
 ** Repository, checkout and Git export effects
 
@@ -373,6 +418,34 @@ declared conditions. A continuously pulling and reconciling controller
 is a separate future integration. No GitHub publication or controller
 is needed to qualify the local Case.
 
+* Evidence validity experiments
+
+These are proposed controls for the Assurance Support cases. JJ supplies
+the current repository coordinate through =aitia-jj=. Aitia determines
+what that change means for its claims. Other providers can supply their
+own exact revision and workspace identity through the same observation
+boundary.
+
+| Controlled change | Required outcome |
+|-------------------+------------------|
+| Same JJ change ID, rewritten commit or tree | Keep the lineage and historical receipt. Refuse the old receipt as support for a different tested subject until correspondence is established. |
+| New JJ change in the same workspace, with the same tree | Keep the prior observation as history and reopen an obligation that lost support. Bind a fresh observation to the new commit and operation. |
+| New PR head or merge-group SHA | Bind review and each workflow attempt to its actual tested subject. The composed revision carries its own required check and obligation bindings. |
+| Valid build attestation for the same artifact | Admit the verified provenance relationship within its scope. Keep behavioral and security claims dependent on their own supporting evidence. |
+| Nix environment, checker or Provider version changes | Reevaluate the obligations that depended on the changed inputs. Reopen retention or atomicity assumptions when their Provider binding changes. |
+| Agent Context projection changes while code stays the same | Reevaluate semantic preservation and actual consumption for the changed projection. Preserve unrelated history. |
+| Dependency or influence relation is missing | Use the full semantic snapshot as the conservative invalidation boundary. |
+
+For each injection, compare the full-snapshot baseline and the proposed
+impact closure. Record stale support accepted, stale support detected,
+obligations reopened, unrelated obligations reopened, and verification
+work repeated. A scoped rule is eligible for qualification only with a
+complete dependency account for the tested judgment. Record the Aitia
+semantic snapshot and Host admission receipt separately from the JJ
+operation, PR review, workflow attempt, environment and artifact identity.
+
+[[https://docs.github.com/en/actions/concepts/security/artifact-attestations][GitHub build provenance scope]]
+
 * AITIA self-application acceptance
 
 | Witness | Required evidence |
@@ -390,6 +463,229 @@ linked tests exercise configuration and the read-only boundary. The FFI
 port specified here, evidence custody for actual selected check execution,
 guarded local writes and crash recovery are design obligations. The managed local writer is a candidate. Its repository ownership,
 conditional publication and durable attempt protocol remain unqualified.
+
+** PR2 publication check
+
+The NASA Scenario composes the delivery profile with =npr-7150.2=.
+The current CLI observes the JJ cut, validates project configuration,
+reports selected check results and verifies a proposed NASA commit
+description. Finalizing that description through JJ with independent
+Governance admission remains a separate qualification obligation.
+
+*** Project policy and evidence-driven Org Contract
+
+The recorded =.agents/aita/project.json= selects a project identity, NASA
+Profile, primary requirement and requirement-to-method bindings. The Scheme
+Contract validates the declaration shape. The Scenario resolves its catalog,
+checks every referenced requirement and supplies the edition and source-lock
+digest. Another Project can select its own applicable bindings and headline
+prefix. A requirement reference identifies a scope of work and does not
+certify compliance.
+
+A fixed Org Contract answers whether supplied Elements satisfy declared
+rules. For example, it can require an observation to carry a producer,
+method and exact input cut, then check those values against trusted
+execution data. Those checks apply consistently across changes.
+
+The commit workflow also needs to determine which clauses this particular
+draft must satisfy. That decision depends on relations among the recorded JJ
+changes, the selected NASA Profile and the evidence at the current cut.
+ASCENT evaluates those relations before drafting. Scheme projects the
+result into an Org Contract using registered predicates and gives the same
+derived clauses to the model and the validator. Each clause retains its
+triggering facts and identifiers so a reviewer can explain its origin.
+This is the dynamic Org Contract. Its clauses vary with the assessed change,
+while Orgize owns Contract execution.
+
+The model chooses what to explain, which supported relationships to
+emphasize and how to phrase the title and body. The configured requirement
+provides the title prefix. Draft validation checks the required Org
+references against the current assessment. Governance owns permission to
+write through JJ.
+
+For example, a configuration audit with current evidence gives the model
+the audited cut and the usable evidence references. A rewrite that reopens
+the audit requires the draft to identify the open obligation. The same
+narrative input can produce a reviewable proposal at either cut. It can
+produce a description eligible for a write grant only at the supported cut.
+The model may propose additional claims or relationships for review. Those
+proposals enter the graph with their own provenance and need separate
+admission before they can satisfy a Contract clause.
+
+The implementation evaluates configured obligations through ASCENT. It
+projects current support, counterexamples, open and reopened obligations
+into Orgize assertions over the draft's references. The draft carries a
+context digest for the exact cut, selected requirements and projected
+clauses. Missing, duplicate and foreign references fail review. A fresh
+draft can describe reopened obligations while the description remains
+withheld. The rendered description puts the configured =SWE-*= identifier
+before the draft title and binds the exact cut, methods, evidence and draft
+digest. The local Scheme suite passed the dynamic clause cases. Selection
+of new applicable requirements from arbitrary changed items or proposed
+relations remains open.
+
+The Rust CLI owns the current =jj.recorded-change= and
+=jj.configuration-audit= executions. The first enumerates the recorded
+parent-to-commit path changes. The second reads the Git object directly
+and compares its commit, tree and ordered parents with the JJ cut.
+Scheme binds the execution facts to their Org representations before
+ASCENT evaluates support. =aitia commit-description= accepts only the
+draft title, body and Org references. The locked integration passed the
+two check methods, dynamic draft validation and the ADR 0008 cases.
+The linked test took 73.36 seconds under its existing 120-second guard.
+This scope establishes configuration evidence for the recorded candidate.
+
+An isolated Aitia candidate at =492de3b263cad4f668198afae6c9b109e9bba3e8= had
+60 recorded path changes and produced this reviewed heading:
+
+#+begin_example
+SWE-084: Bind commit drafts to audited jj configuration
+#+end_example
+
+Both configured checks supported their scoped requirements. Reading the
+workspace after rendering confirmed the same commit and operation.
+The fixture then rewrote the description, producing
+=cf50c8f7aa4299c1c8786e8b6238196ab1005cb9= with the same tree. The old draft was
+refused and produced no description. No Governance admission or PR
+publication occurred in this fixture.
+
+The locked linked integration run read a test project's configured
+=SWE-083= prefix, edition D and check method from its recorded manifest.
+Its change inventory retained the recorded commit, tree and parents
+and excluded unrecorded files. The same run passed ADR 0008. The
+preceding invocation reached the 120-second guard. The repeat used the
+same guard and completed. Five JJ tests and the Scheme commit evidence
+suite passed.
+
+An isolated copy of the Aitia changes produced a read-only
+=aitia commit-context= preview at commit =0e53465783a5131397aaacd870dcb898f940c21b=.
+It returned 60 recorded paths, the project's configured
+=SWE-084= prefix and edition D. The preview created no write admission.
+
+*** Preparation on the AITIA change
+
+=aitia commit-prepare= reruns the draft assessment and returns the
+unpublished JJ operation with the reviewed cut and description. In a
+disposable copy of the AITIA worktree, the recorded candidate
+=8ceb6abb76bef2988e8f25df3cd01ef779542677= contained 62 changed paths.
+Its =SWE-084= description prepared the resulting commit
+=ff4b9da254c827b50538c0e6b2307493ef0a3471=. Independent JJ observation
+confirmed that the original operation and commit remained visible.
+A description-only rewrite to =3b6a65f1331442be4d4a47031fd78c276cfa7a3b=
+preserved the tree and invalidated the old draft. The refused preparation
+returned no attempt. The fixture exercised preparation and invalidation
+without a Governance write or remote publication.
+
+The locked linked replay refused a draft with missing Org references and
+reopened the exact attempt from a valid draft without advancing the head.
+The run in the sandbox reached the subsequent ADR 0008 check and failed
+there. The same linked replay with local loopback available passed all
+assertions in 91.04 seconds under the existing 120-second guard.
+
+*** Signed publication on an isolated AITIA change
+
+The locked linked build reused the Lab pin and selected the existing
+=ring= version for Ed25519 verification. In a disposable AITIA checkout,
+a separate fixture signer reviewed the exact intent for the recorded
+64-path candidate =8fc27a72e0d0618428a2805ee010c27374238b8d=.
+A forged signature, missing approval, signed revocation and expired
+approval were refused. Independent JJ readback confirmed that all four
+left the original cut visible.
+
+A distinct signed approval then published the exact prepared commit
+=355fea12b2b87aedcf50f4b53a20dc9ca3cf90c8=. JJ readback matched the
+prepared operation and preserved the ordered parents and tree
+=53d6bb4d03b2fd42ef2b26d89ddd644ca4a8b24b=. Replay failed. A fresh
+process recovered =applied= by approval ID and found no admission for the
+revoked approval. Each command ran within the existing 120-second guard.
+This run used an isolated signing key and performed no remote publication.
+This fixture exercises the optional signed project policy. AITIA uses
+the default JJ path for PR2.
+
+The default linked Rust suite now covers the signed route with a fixture
+key and the actual Scheme journal. It rejects a forged signature, checks
+that preparation leaves the cut visible, publishes with a valid approval
+and recovers the same attempt in a separate process. The locked suite
+passed both default tests in 79.96 seconds within its existing 120-second
+guard. The separately gated ADR 0008 loopback case is outside that count.
+
+A later candidate audit found a trailing blank line in an added Scheme
+test and two issues under linked all-targets Clippy. The Agent input
+observation now stores its cut behind a private pointer. The loopback
+fixture passes the same three-second timeout directly to connect.
+Formatting and strict linked Clippy passed. The affected Agent input
+loopback test passed in 17.61 seconds, and the two default linked tests
+passed in 70.07 seconds. Both test invocations retained the 120-second
+guard. A separate application against the earlier prepared cut without
+the operator policy was refused, with identical JJ readback before and
+after that refusal.
+
+*** Default Project write
+
+The recorded AITIA policy selects the default path. In the local
+self-application run, a draft missing its Org evidence was refused with
+the same JJ cut before and after. A valid draft then published the exact
+prepared operation while preserving the tree and ordered parents.
+Replay was refused and a separate process recovered =applied= from the
+attempt. The signed policy remains opt-in. Its focused linked regression
+passed in 88.35 seconds under the existing 120-second guard and verified
+that omitting approval cannot fall through to the default path.
+
+*** Implementation and acceptance
+
+1. Prepare the commit proposal from the exact recorded JJ cut. Read
+   the Scenario selection and pinned NPR 7150.2 edition through Yuanxu.
+   Obtain the required checks and the applicable criteria for the
+   project's declared scope. Preserve unresolved applicability and
+   missing evidence in the proposal.
+2. Evaluate the actual checker results for the same cut through Orgize
+   and ASCENT. Generate a deterministic description from the assessed
+   proposal. Bind its bytes, the source-lock digest, the evidence
+   identities, the recorded tree and parents, and the remaining
+   obligations. A description records a bounded engineering assessment.
+3. Prepare the JJ description rewrite without exposing a new operation
+   head. The operation may change only the description of the recorded
+   working-copy leaf and its exact view entry. Compare the expected cut
+   under JJ's own operation-head lock and read back the resulting
+   operation and commit. If the project selects signed Governance,
+   consume the distinct approval under the same lock.
+4. Verify checkout, bookmark and remote publication separately. Reconcile
+   any uncertain write from the retained attempt and JJ history before
+   retrying. Signed projects require a fresh approval after revision or
+   policy changes.
+5. Qualify the actual AITIA change. Refuse missing or foreign evidence,
+   stale cuts, competing writes and a replayed or withdrawn admission.
+   Verify the resulting PR head and record the CI result for that SHA.
+
+The [[file:../../rust/crates/aitia-jj/src/description.rs][JJ description adapter]]
+implements the operation boundary in item 3. It prepares an unpublished
+operation, checks that its view differs only in the selected leaf and
+workspace entry, and compares the full expected cut under JJ's simple
+operation-head lock before invoking the owner-supplied admission. It then
+reads back the commit and description. A signed leaf, unchanged
+description or proposed bookmark rewrite is refused. Five tests passed
+with JJ 0.47.1 under the existing 120-second guard. They include refusal
+without admission, a stale competing operation, preservation of a dirty
+file and refusal of a bookmark rewrite. The test admission is a local
+control. The NASA description producer, durable Governance admission,
+checkout transition and remote publication still need integration.
+
+The local Assurance qualification used the unchanged Lab pin
+=55bf2074=. The linked program excluded Cedar. Agent input HTTP and
+restart, the ADR 0008 CLI check, recorded pytest and the Scheme JJ replay
+passed under the existing guards. See
+[[file:../../docs/rfcs/0006-engineering-runtime-and-library-boundaries.org::*Optional source-bound Cedar integration][RFC 0006]].
+
+On 2026-11-09 the published PR2 head was
+=6970af51a88d7573877606b94c5b49f0e601a66c=. Lean, Quint and Rust
+workspace checks succeeded. The linked-delivery job timed out in
+=install-dependencies= at its 600-second guard and reported workflow
+exit 124. The last successful stage marker was =ORG-PARSER-STAGE OK=.
+The guard receipt reports four effective build cores and 600474 ms
+elapsed. The parser stage marker establishes stage completion. The
+outer install receipt establishes that package installation remained
+incomplete when the guard fired. These checks apply to that published head.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42558250388/job/128968701704][CI job and guard receipt]]
 
 ** Project path fidelity
 

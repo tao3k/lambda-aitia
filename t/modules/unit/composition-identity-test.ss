@@ -51,7 +51,7 @@
           (software-engineering . formal-methods)))
        (check-equal?
         (yuanxu-user-module-selection-flags (list-ref modules 5))
-        '(+quint +lean +cedar))))
+        '(+quint +lean))))
    (test-case "formal-method declarations reuse the Agentic AI Lab Proof module"
      (let* ((scope (.get (.get lambda-aitia.init.exports modules) formal-methods))
             (providers (.get scope providers)))

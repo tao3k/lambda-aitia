@@ -50,6 +50,7 @@ dependencies = [
  "gerbil-scheme-sys",
  "opensysml",
  "quick-xml",
+ "ring",
  "rustix",
  "serde",
  "serde_json",

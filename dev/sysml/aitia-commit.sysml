@@ -4,10 +4,10 @@
 package AitiaCommit {
     private import Views::*;
     private import ScalarValues::*;
-    doc /* Target architecture for an evidence-driven local commit. The current
-         * Rust runtime exposes the SDLC Graph and GitOps evaluation, with
-         * read-only JJ observation and a separate ASCENT evidence query.
-         * Host evidence admission and the write protocol are proposed. */
+    doc /* Evidence-driven local commit. The default Project path validates
+         * a prepared description and publishes through JJ. A Project may
+         * additionally require independent signed Governance approval.
+         * The linked replay and Agent input Cases use Host admission. */
 
     part agentAndHuman {
         doc /* Agents propose change intent and claims. Humans review where policy requires. */
@@ -35,7 +35,7 @@ package AitiaCommit {
         doc /* Derives supported, contradicted, stale, and eligible relations. Eligibility conveys no permission. */
     }
     part governance {
-        doc /* Decides local commit authority over an exact intent, cut, scope, and policy revision. */
+        doc /* Decides local commit authority when required by the Project policy. */
     }
     part operationReceipt {
         doc /* Binds intent, actual before and after JJ operations, resulting revision, and outcome. */
@@ -83,10 +83,30 @@ package AitiaCommit {
         attribute producerId : String;
         attribute outcome : String;
     }
+    item def NasaCommitAssessment {
+        doc /* The selected NASA Scenario binds its edition and catalog digest
+             * to a bounded project assessment. Current support, counterexamples
+             * and remaining obligations are retained with their observations. */
+        item cut : CommitCut;
+        attribute standardEdition : String;
+        attribute standardSourceDigest : String;
+        attribute evidenceIds : String[0..*];
+        attribute openObligationIds : String[0..*];
+        attribute descriptionDigest : String;
+    }
+    item def PreparedDescription {
+        doc /* A stored JJ operation has an exact resulting revision and stays
+             * invisible at head until a guarded write makes it visible. */
+        item expected : CommitCut;
+        attribute preparedOperationId : String;
+        attribute resultingCommitId : String;
+        attribute descriptionDigest : String;
+    }
     item def LocalCommitGrant {
         doc /* Independent Governance record for one intent and cut, with expiry,
              * revocation, and single-use conditions. */
         item intent : CommitIntent;
+        item preparation : PreparedDescription;
         attribute grantId : String;
         attribute policyRevision : String;
     }
@@ -97,7 +117,9 @@ package AitiaCommit {
     part admitObservation;
     part retainRejectedArtifact;
     part evaluate;
-    item authorize : LocalCommitGrant;
+    item nasaAssessment : NasaCommitAssessment;
+    item prepareDescription : PreparedDescription;
+    item authorize : LocalCommitGrant[0..1];
     part validateCurrent;
     part applyLocalCommit;
     part recordOutcome;
@@ -111,7 +133,9 @@ package AitiaCommit {
     connection expectedSubject connect capture to admitObservation;
     connection evidenceInput connect admitObservation to evaluate;
     connection rejectedObservation connect admitObservation to retainRejectedArtifact;
-    connection eligibleCandidate connect evaluate to authorize;
+    connection scopedAssessment connect evaluate to nasaAssessment;
+    connection assessedDescription connect nasaAssessment to prepareDescription;
+    connection eligibleCandidate connect prepareDescription to authorize;
     connection currentGrant connect authorize to validateCurrent;
     connection validatedWrite connect validateCurrent to applyLocalCommit;
     connection observedWrite connect applyLocalCommit to recordOutcome;
@@ -127,8 +151,11 @@ package AitiaCommit {
              * not supply support or contradiction facts to ASCENT. */
     }
     requirement exactCut {
-        doc /* Rewrite, concurrent workspace operation, or changed checked inputs invalidate
-             * the affected evidence and grant. Preserve history and reopen obligations. */
+        doc /* A rewrite, a new workspace change, a concurrent operation or
+             * changed checked inputs invalidates affected evidence and grants.
+             * Within the same project and workspace, losing prior support
+             * reopens its obligation. Identical tree content leaves the exact
+             * cut comparison in force. Preserve historical observations. */
     }
     requirement independentAuthority {
         doc /* ASCENT relations and successful checks cannot mint a local commit grant.
@@ -174,6 +201,309 @@ package AitiaCommit {
     connection exactRevisionForReview connect jjGitOps to modelGapQuery;
     connection groundedGaps connect modelGapQuery to agentProposal;
     connection proposedChanges connect agentProposal to rustRuntime;
+
+    package AssuranceSupport {
+        doc /* Judgments reference the current Assurance snapshot. The linked
+             * Cases project Host witnesses and outstanding obligations.
+             * Scoped assumption reviews use current Host admissions.
+             * General method strength remains design. */
+
+        item def ScopedClaim {
+            attribute claimId : String;
+            attribute snapshotId : String;
+            attribute subjectId : String;
+            attribute propositionId : String;
+        }
+        item def ExecutionObservation {
+            attribute attemptId : String;
+            attribute methodId : String;
+            attribute validatedInputId : String;
+            attribute consumedInputId : String;
+            attribute outcome : String;
+        }
+        item def RecordedAgentInputObservation {
+            attribute sourceOperationId : String;
+            attribute sourceCommitId : String;
+            attribute sourceTreeId : String;
+            attribute historyPath : String;
+            attribute historyDigest : String;
+            attribute deliveredPacketDigest : String;
+        }
+        item def LiveContextDeliveryObservation {
+            attribute sourceCutDigest : String;
+            attribute queryObservationDigest : String;
+            attribute transportAttemptId : String;
+            attribute orgElementId : String;
+            attribute deliveredBodyDigest : String;
+        }
+        item def SupportWitness {
+            attribute obligationId : String;
+            attribute evidenceId : String;
+            attribute admissionId : String;
+            attribute supportRelationId : String;
+            attribute outcomeId : String;
+            attribute outcomeDigest : String;
+            attribute applicabilityScopeId : String;
+            attribute evidenceKind : String;
+            attribute capabilityId : String;
+            attribute producerId : String;
+            attribute toolId : String;
+            attribute toolVersion : String;
+            attribute expiresAt : Integer;
+            attribute inputArtifactIds : String[0..*];
+        }
+        item def AssumptionAssessment {
+            attribute assumptionId : String;
+            attribute ownerId : String[0..1];
+            attribute reviewPolicyId : String[0..1];
+            attribute reviewObligationId : String[0..1];
+            attribute reviewAdmissionId : String[0..1];
+            attribute blocker : String[0..1];
+        }
+        item def ChallengeAssessment {
+            attribute challengeId : String;
+            attribute revision : String;
+            attribute kind : String;
+            attribute challengeState : String;
+            attribute subjectId : String;
+            attribute citedEvidenceId : String;
+            attribute evidenceDigest : String[0..1];
+            attribute applicabilityScopeId : String[0..1];
+            attribute obligationId : String[0..1];
+            attribute defeatRelationId : String[0..1];
+        }
+        item def ResidualDisposition {
+            attribute obligationId : String;
+            attribute decisionId : String;
+            attribute authorityId : String;
+            attribute policyId : String;
+            attribute policyRevision : String;
+            attribute reviewAdmissionId : String;
+            attribute outcomeDigest : String;
+        }
+        item def SupportAssessment {
+            item claim : ScopedClaim;
+            item witnesses : SupportWitness[0..*];
+            item assumptions : AssumptionAssessment[0..*];
+            item challenges : ChallengeAssessment[0..*];
+            item residualDispositions : ResidualDisposition[0..*];
+            attribute obligationIds : String[1..*];
+            attribute methodStrength : String;
+            attribute applicabilityScopeId : String;
+            attribute assumptionIds : String[0..*];
+            attribute defeaterIds : String[0..*];
+            attribute residualObligationIds : String[0..*];
+            attribute sharedDependencyIds : String[0..*];
+            attribute validityBindingId : String;
+        }
+
+        part applicableObjective;
+        part scopedClaim;
+        part rustExecution;
+        part hostAdmission;
+        part assessSupport;
+        part openObligations;
+        part governanceReview;
+        part effectAdmission;
+
+        connection instantiateClaim connect applicableObjective to scopedClaim;
+        connection observedExecution connect rustExecution to hostAdmission;
+        connection admittedObservation connect hostAdmission to assessSupport;
+        connection scopedProposition connect scopedClaim to assessSupport;
+        connection outstandingSupport connect assessSupport to openObligations;
+        connection scopedJudgment connect assessSupport to governanceReview;
+        connection currentAuthority connect governanceReview to effectAdmission;
+
+        requirement preserveInputSemantics {
+            doc /* Compare required meaning across the source and projection.
+                 * Consume the validated input. A failed check blocks use. */
+        }
+        requirement boundConclusion {
+            doc /* A method supports only its observed fragment and declared
+                 * strength within its applicable scope. Retain residuals and
+                 * recheck assumptions and defeaters on change. */
+        }
+        requirement separateEffectAuthority {
+            doc /* Governance owns the current decision for an exact intent.
+                 * An effect adapter checks the live policy revision,
+                 * policy digest and entity digest, and binds the handoff
+                 * sequence, length and payload digest.
+                 * The executor checks authority at the effect boundary. */
+        }
+        package OptionalCedarIntegration {
+            requirement sourceBoundConsumption {
+                doc /* The Scheme Host binds the current preflight and
+                     * independent Governance admission to a Cedar proposal.
+                     * The Runtime authority looks up the exact proposal's
+                     * admission before and after dual Cedar evaluation.
+                     * Both engine receipts and the signed grant bind it.
+                     * Direct and reprojected consumption share one live
+                     * admission check and one grant ledger.
+                     * The optional Cedar adapter shares its request registry
+                     * with its configured delivery owner. The owner verifies the
+                     * consumed admission, intent, sequence and payload before
+                     * delivery and passes consumption provenance to the
+                     * effect operation. The effect outcome is recorded
+                     * separately. */
+            }
+            requirement privateConsumptionFailure {
+                doc /* An exception during the private consume exchange
+                     * retires the request in its owner. Propagate the failure
+                     * and require a validated consumption receipt before
+                     * calling the effect operation, including when the issuer
+                     * consumed the grant but the reply was lost. A delivered result and
+                     * its consumption receipt are distinct from refusal. */
+            }
+
+            requirement durableCedarDispatch {
+                doc /* Commit the application-owned logical operation and consumed
+                     * grant provenance before effect dispatch. Recheck the source
+                     * after that commit. A fresh owner preserves dispatching and
+                     * acknowledged records and refuses another dispatch for
+                     * either. A definite source withdrawal before dispatch
+                     * records withheld. Dispatching requires independent
+                     * reconciliation when the effect outcome is unknown. */
+            }
+
+            requirement reconcileCedarDispatch {
+                doc /* Query an application-configured Provider observation source
+                     * for a dispatching operation. Require a committed observation
+                     * with matching operation, intent and payload digests.
+                     * Persist its receipt separately from grant consumption.
+                     * Reconciliation grants no authority and sends no effect. */
+            }
+        }
+
+        part lostAcknowledgementCase {
+            item atMostOne : ScopedClaim;
+            item boundedReplay : ExecutionObservation;
+            item replaySupport : SupportAssessment;
+            item deploymentSupport : SupportAssessment;
+
+            requirement retryIdentity {
+                doc /* Bind the same key and payload to the same tenant and
+                     * logical operation across attempts and restarts. */
+            }
+            requirement boundedIntentConflict {
+                doc /* After ACK loss, the fixture rejects a changed payload
+                     * under the recorded key. */
+            }
+            requirement boundedConcurrentRetry {
+                doc /* Two restarted workers reach the local provider
+                     * before either receives an ACK.
+                     * Both complete with the original payload as the sole
+                     * persisted effect. The deployed provider requires
+                     * independent evidence. */
+            }
+            requirement boundedConcurrentFirstAttempt {
+                doc /* Two workers reach the local provider with an empty
+                     * effect ledger. The write transaction serializes the
+                     * empty-ledger check and insertion. One worker loses
+                     * its ACK, the other completes, and the ledger has
+                     * one effect and one completed task. */
+            }
+            requirement declaredAssuranceCheck {
+                doc /* Resolve the recorded project declaration and fixture
+                     * paths at one JJ cut. Execute the selected Cases and
+                     * derive the Org observation from the actual process.
+                     * The positive and negative expectations must match
+                     * the admitted support and contradiction. The buggy Case
+                     * must report the declared duplicate-effect assertion
+                     * in its bounded JUnit result. */
+            }
+            requirement replayEvidenceBinding {
+                doc /* Bind the owner-declared project to the recorded run
+                     * at execution. Resolve the assessment workspace and
+                     * require it to match the run's workspace. Admit an Org
+                     * observation when the project, method, selected Case,
+                     * exact JJ cut and digests agree with the recorded
+                     * process. Match the Case to its declared obligation.
+                     * Current passing support requires a Host witness over
+                     * the exact frozen source of the run. A Case failure
+                     * is scoped to its own open obligation. Execution
+                     * errors leave it unassessed. */
+            }
+            requirement providerConditions {
+                doc /* The ADR 0008 deployment assessment is separate from
+                     * bounded replay support. Its open obligations cover
+                     * scoped logical identity, changed intent, retention,
+                     * atomic commit, and concurrent attempts and reconciliation.
+                     * A provider-owner review must assess the assumption
+                     * that the deployed deduplication record covers the
+                     * declared retry horizon. */
+            }
+        }
+        part agentInputCase {
+            item projectedInput : RecordedAgentInputObservation;
+            item liveProviderDelivery : LiveContextDeliveryObservation;
+            item correspondenceSupport : SupportAssessment;
+
+            requirement requiredRelations {
+                doc /* Preserve every required tool call, result link and
+                     * constraint. A result without a source call is refused. */
+            }
+            requirement verifiedConsumption {
+                doc /* The consumer uses the verified packet. A failed check or
+                     * substitution after validation blocks consumption. */
+            }
+            requirement observedDelivery {
+                doc /* Record the digest of the exact packet delivered to a
+                     * successful consumer and bind it to the recorded history.
+                     * Consumer failure produces no delivery observation. */
+            }
+            requirement contextSourceCurrentness {
+                doc /* Resolve the selected Org Element through the live
+                     * Context Query owner. Bind delivery to its observation.
+                     * Replacement or withdrawal reopens correspondence
+                     * even when earlier source bytes are published again. */
+            }
+            requirement recoverContextObservations {
+                doc /* Bind the Context catalog to its owning project before
+                     * use. Export a project-bound checkpoint accepted by the
+                     * recovery codec. Restore the owner-selected checkpoint
+                     * only into a fresh catalog of the same project.
+                     * A restored observation needs successful delivery or
+                     * independently reconciled receipt evidence for admission. */
+            }
+            requirement reconcileIndeterminateDelivery {
+                doc /* Distinguish a definite pre-send failure from unknown
+                     * delivery. Accept a Provider acknowledgement only for
+                     * the matching transport attempt and delivered body.
+                     * Reconciliation performs no second send. */
+            }
+            requirement recoverPendingContextDelivery {
+                doc /* Retain the project, attempt identity, Query observation
+                     * reference and body digest before transport. After
+                     * restart, recover against the trusted record and
+                     * same-project Lab catalog using authenticated Provider
+                     * bytes. Reconciliation creates no send operation. */
+            }
+            requirement retainedDeliveryAdmission {
+                doc /* The first assessment of a completed delivery may
+                     * admit its evidence once. Reassessment uses the
+                     * same Host lease. Expiry or loss of current source
+                     * closes this admission and reopens the obligation. */
+            }
+            requirement providerRequestBinding {
+                doc /* Assemble the request using owner-selected settings
+                     * and the projected input. Check the input within the
+                     * final serialized request. The transport receives
+                     * those bytes, and the receipt identifies that body. */
+            }
+            requirement admittedCorrespondence {
+                doc /* The Assurance Host checks the recorded history and
+                     * delivered packet as two materialized inputs. The
+                     * witness applies to the required fragment of the
+                     * recorded project, commit and history path. */
+            }
+            requirement deliveryCurrentness {
+                doc /* Match the assessment project and resolved workspace to
+                     * the delivery observation, then recheck the exact JJ cut.
+                     * A rewrite preserves the historical delivery and reopens
+                     * current support. Delivery alone grants no effect authority. */
+            }
+        }
+    }
 
     view modelEngineeringGraph {
         doc /* Target tool integration for the existing JJ rewrite case. */
@@ -238,7 +568,7 @@ package AitiaCommit {
 
     item def GitOpsMutation :> GitOpsExchange {
         item intent : CommitIntent;
-        item grant : LocalCommitGrant;
+        item grant : LocalCommitGrant[0..1];
         attribute attemptId : String;
     }
 
@@ -250,7 +580,7 @@ package AitiaCommit {
     }
 
     requirement gitOpsWriteFence {
-        doc /* The expected operation and grant must be enforced at the same
+        doc /* The expected operation and any required grant must be enforced at the same
              * authority boundary as publication of the local JJ mutation.
              * A prior read and a later independent CLI command leave a race. */
     }
@@ -268,11 +598,11 @@ package AitiaCommit {
         doc /* Persist the attempt and its prepared operation identity. */
     }
     part guardedPublication {
-        doc /* Recheck the exact cut and consume a current grant within the
+        doc /* Recheck the exact cut and consume any required grant within the
              * qualified local writer boundary. */
     }
     part refuseLocalWrite {
-        doc /* A stale cut or revoked grant prevents an effect. */
+        doc /* A stale cut or revoked required grant prevents an effect. */
     }
     part reconcileWriteAttempt {
         doc /* Inspect operation reachability and the attributable effect. */

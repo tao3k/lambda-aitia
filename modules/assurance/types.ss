@@ -27,7 +27,10 @@
         AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
         AssuranceVerifierInput AssuranceVerifierOutcome
         AssuranceEvidenceAdmissionReceipt AssuranceVerificationSubject
-        AssuranceRequiredSupport AssessmentRequiredSupport
+        AssuranceRequiredSupport AssessmentRequiredSupport AssuranceSupportWitness
+        AssuranceAssumptionAssessment
+        AssuranceChallengeAssessment
+        AssuranceResidualDisposition
         AssuranceDecisionPreflight
         AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
@@ -61,7 +64,7 @@
                   (and (.slot? value name) (procedure? (.ref value name))))
                 '(artifact claim obligation evidence decision decision? digest
                   snapshot snapshot-canonical? invalidate plan-verification
-                  verification-host host-admit effect-host)))))
+                  verification-host host-admit)))))
 
 (def +assurance-node-kinds+
   '(artifact claim assumption observation event action obligation evidence
@@ -525,7 +528,7 @@
   (or (not value)
       (memq value '(obligation-missing obligation-stale support-link-missing
                     admission-missing admission-invalid
-                    evidence-link-missing))))
+                    evidence-link-missing counterevidence-present claim-not-current source-changed))))
 (def AssessmentRequiredSupport
   (assurance-record-type 'aitia/required-support-assessment
     direct-slots:
@@ -542,21 +545,88 @@
 (def (required-support-global-blockers? values)
   (and (list? values)
        (every required-support-global-blocker? values)))
+;;; An inert witness records the exact verification and the declared method.
+;;; It does not establish a stronger proposition or confer authority.
+(def AssuranceSupportWitness
+  (assurance-record-type 'aitia/support-witness
+    direct-slots:
+    (list (text-slot 'obligation) (text-slot 'evidence)
+          (text-slot 'admission) (text-slot 'relation)
+          (text-slot 'outcome)
+          (enum-slot 'outcome-digest assurance-digest?)
+          (text-slot 'scope)
+          (enum-slot 'declared-evidence-kind assurance-evidence-kind?)
+          (enum-slot 'capability symbol?)
+          (text-slot 'producer) (text-slot 'tool) (text-slot 'tool-version)
+          (enum-slot 'input-artifacts text-list?)
+          (enum-slot 'expires-at nonnegative-integer?))))
+(def (support-witness-list? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceSupportWitness value))
+              values)))
+(def AssuranceAssumptionAssessment
+  (assurance-record-type 'aitia/assumption-assessment
+    direct-slots:
+    (list (text-slot 'assumption)
+          (enum-slot 'owner maybe-text?)
+          (enum-slot 'review-policy maybe-text?)
+          (enum-slot 'obligation maybe-text?)
+          (enum-slot 'admission maybe-text?)
+          (enum-slot 'blocker
+                     (one-of '(#f assumption-missing scope-mismatch assumption-unavailable
+                               review-policy-unhandled validity-unqualified review-missing
+                               claim-not-current source-changed))))))
+(def (assumption-assessments? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceAssumptionAssessment value))
+              values)))
+(def AssuranceChallengeAssessment
+  (assurance-record-type 'aitia/challenge-assessment
+    direct-slots:
+    (list (text-slot 'challenge) (text-slot 'revision)
+          (enum-slot 'kind (one-of '(counterexample finding)))
+          (enum-slot 'state assurance-state?)
+          (text-slot 'subject) (text-slot 'evidence)
+          (enum-slot 'evidence-digest maybe-digest?)
+          (enum-slot 'scope maybe-text?) (enum-slot 'obligation maybe-text?)
+          (enum-slot 'relation maybe-text?))))
+(def (challenge-assessments? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceChallengeAssessment value))
+              values)))
+(def AssuranceResidualDisposition
+  (assurance-record-type 'aitia/residual-disposition
+    direct-slots:
+    (list (text-slot 'obligation) (text-slot 'decision) (text-slot 'authority)
+          (text-slot 'policy) (text-slot 'policy-revision) (text-slot 'admission)
+          (enum-slot 'outcome-digest assurance-digest?))))
+(def (residual-dispositions? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceResidualDisposition value))
+              values)))
 (def AssuranceRequiredSupport
   (assurance-record-type 'aitia/required-support
     direct-slots:
     (list (enum-slot 'schema
                      (lambda (value)
                        (equal? value "lambda-aitia.required-support")))
-          (text-slot 'claim)
+          (text-slot 'claim) (text-slot 'claim-revision)
+          (text-slot 'subject) (text-slot 'predicate) (text-slot 'scope)
+          (enum-slot 'assumptions text-list?)
+          (enum-slot 'assumption-assessments assumption-assessments?)
+          (enum-slot 'challenges challenge-assessments?)
+          (enum-slot 'residual-dispositions residual-dispositions?)
+          (enum-slot 'defeaters text-list?)
           (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'semantic-snapshot-digest assurance-digest?)
           (enum-slot 'requirements required-support-list?)
+          (enum-slot 'witnesses support-witness-list?)
           (enum-slot 'blockers required-support-global-blockers?)
           (enum-slot 'complete? boolean?)
           (enum-slot 'release-authorized? (one-of '(#f))))))
 
 ;;; A Host-issued preflight proves only that an undecided Decision and its
-;;; required support were current at issuance. Cedar/Runtime own authority.
+;;; required support were current at issuance. Governance owns authority.
 (def AssuranceDecisionPreflight
   (assurance-record-type 'aitia/decision-preflight
     direct-slots:

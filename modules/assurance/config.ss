@@ -2,12 +2,21 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 (import :clan/poo/object "types.ss" "objects.ss" "func.ss"
-        "evidence-admission.ss" "host.ss" "effect-host.ss")
+        "evidence-admission.ss" "host.ss" "input-correspondence.ss"
+        "replay-assessment.ss" "context-delivery.ss")
 (export Config)
 
 ;;; Obtaining this POO scope creates no verifier, Host, grant or reservation.
 (def Config
   (.o policy: AssurancePolicy verification-policy: assurance-verification-policy
+      agent-input-corresponds?: assurance-agent-input-corresponds?
+      prepare-context-input: assurance-prepare-context-input
+      prepare-context-body: assurance-prepare-context-body
+      assess-agent-input-delivery: assurance-assess-agent-input-delivery
+      replay-cases: assurance-replay-cases
+      replay-observation-matches?: assurance-replay-observation-matches?
+      assess-replay-deployment: assurance-assess-replay-deployment
+      assess-pytest-replay: assurance-assess-pytest-replay
       evidence-kinds: +assurance-evidence-kinds+
       contracts: (.o required-support-row: AssessmentRequiredSupport)
       required-support-row?: assessment-required-support?
@@ -44,6 +53,7 @@
       plan-verification: assurance-plan-verification
       explain-verifiers: assurance-explain-verifier-choices
       verifier-input: assurance-verifier-input verifier-outcome: assurance-verifier-outcome
+      verifier-outcome-digest: assurance-verifier-outcome-digest
       evaluate-admission: assurance-evaluate-evidence-admission
       verification-subject: assurance-verification-subject
       verification-subject-snapshot: assurance-verification-subject-snapshot
@@ -57,12 +67,5 @@
       host-required-support: assurance-host-required-support
       host-preflight: assurance-host-preflight-decision
       host-preflight-current?: assurance-host-decision-preflight-current?
-      host-cedar-request: assurance-host-cedar-request
-      host-request-current?: assurance-host-cedar-request-current?
       host-revoke!: assurance-host-revoke! host-revoke-admission!: assurance-host-revoke-admission!
-      host-revoke-preflight!: assurance-host-revoke-decision-preflight!
-      effect-host: assurance-effect-host effect-epoch: assurance-effect-host-epoch
-      effect-authorize!: assurance-effect-host-authorize!
-      effect-grant-current?: assurance-effect-host-grant-current?
-      effect-reserve!: assurance-effect-host-reserve! effect-deliver!: assurance-effect-host-deliver!
-      effect-revoke!: assurance-effect-host-revoke!))
+      host-revoke-preflight!: assurance-host-revoke-decision-preflight!))

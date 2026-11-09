@@ -89,6 +89,10 @@ Both Scheme replay modes retain isolated batches with at most 160 steps,
 a 512 MiB worker heap, a 60-second worker deadline and the existing
 12-second silence watchdog. A missing receipt or unsuccessful exit fails
 the gate.
+Fault traces run first and use the same step-budget packer as the action
+witnesses. Each trace constructs its own fixture and Host. A batch may
+contain both kinds of trace and must report completion for every trace
+in order.
 
 Seven additional traces start at reachable states selected from that graph.
 Quint executes the original unsafe operator and must produce an actual

@@ -9,6 +9,8 @@
 #[cfg(feature = "linked-program")]
 mod cli;
 #[cfg(feature = "linked-program")]
+mod cli_commit;
+#[cfg(feature = "linked-program")]
 #[doc(hidden)]
 pub use cli::run_cli;
 
@@ -20,6 +22,12 @@ use program::with_program;
 #[cfg(feature = "linked-program")]
 #[allow(unsafe_code)]
 mod linked;
+#[cfg(all(unix, feature = "linked-program"))]
+pub use linked::{
+    AgentInputSupport, ContextDelivery, ContextDeliveryAttempt, ContextDeliveryReceipt,
+    ContextTransportFailure, PendingContextDelivery, RecordedAgentInput,
+    RecordedAgentInputObservation, ReplayAssessmentScope,
+};
 #[cfg(feature = "linked-program")]
 pub use linked::{AitiaProgram, with_linked_program};
 #[cfg(feature = "linked-program")]
@@ -36,6 +44,8 @@ pub use org_edit::{OrgEdit, OrgEditReview};
 mod pytest;
 #[cfg(unix)]
 pub use pytest::{PytestExit, PytestReport, PytestRun, PytestVerdict, run_frozen_pytest};
+#[cfg(all(unix, feature = "gitops"))]
+pub use pytest::{RecordedPytestRun, run_recorded_pytest};
 
 #[cfg(unix)]
 mod source_tree;

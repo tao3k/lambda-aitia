@@ -36,11 +36,11 @@
      (yuanxu-user-module-selection
       'software-engineering 'assurance '(+causal-evidence))
      (yuanxu-user-module-selection
-      'software-engineering 'formal-methods '(+quint +lean +cedar))))
+      'software-engineering 'formal-methods '(+quint +lean))))
    (yuanxu-settings
     project-kind: 'software-engineering
     composition: 'aitia
-    formal-method-obligations: '(quint lean cedar)
+    formal-method-obligations: '(quint lean)
     runtime-executed?: #f)
    '(project-kind
      composition

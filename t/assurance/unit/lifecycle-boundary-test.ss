@@ -1,23 +1,23 @@
 ;;; -*- Gerbil -*-
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
-(import :std/test :std/error (only-in :clan/poo/object .o .ref)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
-        (only-in :clan/poo/object .get)
+(import
+        (only-in "../../../modules/assurance/effect-host.ss"
+                 assurance-effect-host-authorize!
+                 assurance-effect-host-deliver!
+                 assurance-effect-host-grant-current?
+                 assurance-effect-host-reserve!
+                 assurance-effect-host-revoke!)
+        (only-in "../../../modules/assurance/cedar-preflight.ss"
+                 assurance-host-cedar-request-current?)
+        :std/test :std/error (only-in :clan/poo/object .o .ref .get)
+        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :clan/poo/type Enum Tuple)
         (only-in :clan/poo/testing/type check-property report-diagnostics)
         (prefix-in :clan/poo/testing/property/test pbt.)
         "../../../dev/proof/scheme/lifecycle-fixture.ss")
 (export lifecycle-boundary-test)
 
-;;; Tests consume the admitted Scope; assertions below are unchanged.
-(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
-(def assurance-effect-host-authorize! (.get assurance-module-scope effect-authorize!))
-(def assurance-effect-host-deliver! (.get assurance-module-scope effect-deliver!))
-(def assurance-effect-host-grant-current? (.get assurance-module-scope effect-grant-current?))
-(def assurance-effect-host-reserve! (.get assurance-module-scope effect-reserve!))
-(def assurance-effect-host-revoke! (.get assurance-module-scope effect-revoke!))
-(def assurance-host-cedar-request-current? (.get assurance-module-scope host-request-current?))
 (def (drive fixture actions)
   (for-each (lambda (action) (check (lifecycle-action! fixture action) => #t)) actions)
   fixture)
@@ -59,6 +59,50 @@
            (check (lifecycle-get f 'authorization-calls) => 1)
            (check (lifecycle-action! f 'StartEffect) => #f)
            (check (lifecycle-get f 'delivery-calls) => 0))) '(forbid indeterminate)))
+    (test-case "a permit for another policy cannot reserve an effect"
+      (let (f (drive (make-lifecycle-fixture) '(InstallAdapter Plan Verify Admit Decide)))
+        (lifecycle-set! f 'decision-policy "other-policy")
+        (check (lifecycle-action! f 'Authorize) => #f)
+        (check (lifecycle-get f 'authorization-calls) => 1)
+        (check (lifecycle-action! f 'StartEffect) => #f)
+        (check (lifecycle-get f 'delivery-calls) => 0)))
+    (test-case "same policy name cannot substitute the configured revision or input digests"
+      (for-each
+       (lambda (key)
+         (let (f (drive (make-lifecycle-fixture) '(InstallAdapter Plan Verify Admit Decide)))
+           (lifecycle-set! f key
+             (case key
+               ((runtime-policy-revision) "2")
+               ((decision-policy-digest) (lifecycle-get f 'runtime-entity-digest))
+               ((decision-entity-digest) (lifecycle-get f 'runtime-policy-digest))))
+           (check (lifecycle-action! f 'Authorize) => #f)
+           (check (lifecycle-action! f 'StartEffect) => #f)
+           (check (lifecycle-get f 'delivery-calls) => 0)))
+       '(runtime-policy-revision decision-policy-digest decision-entity-digest)))
+    (test-case "policy replacement invalidates a reservation and rollback cannot revive the grant"
+      (let* ((f (drive (ready) '(StartEffect)))
+             (host (lifecycle-get f 'effect-host))
+             (grant (lifecycle-get f 'grant))
+             (initial (lifecycle-get f 'runtime-policy-digest)))
+        (lifecycle-set! f 'runtime-policy-digest (lifecycle-get f 'runtime-entity-digest))
+        (check (.ref (lifecycle-action! f 'DeliverEffect) 'outcome) => 'rejected)
+        (lifecycle-set! f 'runtime-policy-digest initial)
+        (check (assurance-effect-host-grant-current? host grant) => #f)
+        (check (lifecycle-get f 'delivery-calls) => 0)
+        (check (lifecycle-action! f 'Authorize) => #t)
+        (check (lifecycle-action! f 'StartEffect) => #t)
+        (check (.ref (lifecycle-action! f 'DeliverEffect) 'delivered?) => #t)))
+    (test-case "grant binds the handoff bytes and their sequence separately from intent"
+      (let* ((f (ready))
+             (request (lifecycle-get f 'request))
+             (binding (.ref (.ref (lifecycle-get f 'grant) 'token) 'binding)))
+        (check (.ref binding 'intent-digest) => (.ref request 'intent))
+        (check (.ref binding 'sequence-start) => 3)
+        (check (.ref binding 'sequence-end) => 3)
+        (check (.ref binding 'payload-length) => 3)
+        (check (.ref binding 'payload-digest) => (source-lock-payload-digest #u8(1 2 3)))
+        (check (lifecycle-action! f 'StartEffect) => #t)
+        (check (.ref (lifecycle-action! f 'DeliverEffect) 'delivered?) => #t)))
     (test-case "reserve is not delivery; current reservation hands off exactly once"
       (let (f (ready))
         (check (lifecycle-action! f 'StartEffect) => #t)

@@ -6,7 +6,8 @@
 This case records the historical installed-wheel qualification. Its worker
 is a real child process, its task ledger and provider effect log are SQLite
 files, and the effect provider is a loopback HTTP server. The service commits
-once, withholds the first acknowledgement, and lets a restarted worker retry.
+once and withholds the first acknowledgement. In the fixed Case, two
+restarted workers then retry concurrently.
 
 The =buggy= strategy generates a new provider idempotency key after restart:
 the test must fail with two commits. The =fixed= strategy retains a key derived
@@ -30,11 +31,19 @@ re-verification separate from this test result.
 
 * Coverage boundary
 
-The worker has one fixed job and constant payload; the provider's single SQLite
-row represents both the deduplication key and the effect. This is not a model
-of multi-tenant identity, changed intent, retention expiry, concurrent attempts
-or atomicity across a ledger and an independent external service. Fixed mode
-repairs the injected identity fault, not every idempotency failure mode.
+The worker has one fixed job and constant payload. The provider's SQLite row
+represents both the deduplication key and the effect. The fixed Case also sends
+a changed payload under the original key after the lost acknowledgement.
+The provider returns HTTP 409. The test then starts two real worker processes.
+The Provider waits for both retry requests before returning either ACK.
+Both workers complete, and SQLite retains the original payload as its sole
+effect. The fixed Case separately starts two workers against an empty
+ledger. The Provider synchronizes both requests before they enter the SQLite
+transaction and takes the write lock before checking for a prior effect.
+One worker receives no ACK, the other completes, and the ledger retains
+one effect and a completed task. The deployed Provider's reconciliation
+contract, multi-tenant identity, retention expiry and atomicity with an
+independent external service require separate deployment evidence.
 
 ADR 0008's r2 coverage matrix assigns those remaining qualifications to their
 owners. Existing Agentic AI Lab Cedar authorization and Runtime effect mechanisms
@@ -65,3 +74,161 @@ From =bindings/python=, =uv run --locked --no-sync= ran
 This was a focused source-fixture replay in the existing uv environment, not a
 new installed-wheel qualification or Cedar/Runtime execution receipt. The new
 owner matrix does not promote untested boundaries to passing evidence.
+
+* Recorded Rust replay
+
+The Rust Runtime reads both fixture files from one recorded JJ tree and
+passes their bounded, canonical source payload to the existing frozen
+pytest runner. The Case is selected by its exact pytest node ID
+(=test_unique_effect.py::test_unique_effect_after_lost_ack_and_restart[fixed]=
+or the corresponding =[buggy]= node). The buggy node is a deliberate
+failing control. A checkout change only affects the replay after JJ
+records it. The returned observation can be rechecked against the
+current workspace operation before consumption.
+
+Run the existing Rust test harness with =AITIA_JJ_BIN= and
+=AITIA_PYTEST_PYTHON= pointing to JJ and a Python with pytest.
+
+#+begin_src sh
+cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime \
+  --features gitops --lib observes_adr_0008_at_a_recorded_cut -- --ignored
+#+end_src
+
+The local integration test passed with JJ v0.47.1, including both real
+Provider outcomes, a checkout substitution, invalid paths, and refusal
+of the old recorded cut after a rewrite. Its observation has no Host
+admission or effect authority.
+
+* Project check
+
+A project that contains the ADR 0008 fixture at its declared paths can
+enable the Assurance service in its recorded =.agents/aita/project.json=.
+
+#+begin_src json
+{
+  "schemaVersion": 1,
+  "services": {
+    "assurance": { "enable": true, "project": "job-executor", "profile": "adr-0008" }
+  }
+}
+#+end_src
+
+Run =aitia check= from the project or a subdirectory with
+=AITIA_PYTEST_PYTHON= set to the owner-selected absolute Python executable
+with pytest. Scheme selects both Cases. Rust executes the exact jj tree
+that supplied the declaration. Scheme renders the Org observations from
+the actual process results and submits them to the same Orgize Contract
+and Assurance assessment used by linked callers.
+
+The JSON response contains each Case, its expectation, the assessment
+and the generated Org observation. The fixed Case must supply support
+and the buggy Case must supply the declared duplicate-effect
+counterexample. Rust reads the failure message from the bounded JUnit
+report. Scheme requires the first line to identify the assertion that
+expected one effect and observed two. The report digest binds that message
+to the observation. A setup error, unrelated failure or unexpected outcome
+fails the check. Matching both expectations leaves
+the separate deployment assessment and effect authority to their
+respective owners.
+
+The CLI integration ran from a nested directory. It matched both
+expectations at the original commit while the checkout held an unrecorded
+substitution. After recording that substituted file, the same command
+returned an unsuccessful check with no admitted Case results. A separate
+recorded revision made only the buggy Case fail on an unrelated assertion.
+The fixed Case still supplied support, while the buggy Case yielded no
+admitted counterexample and the command failed. The replay-generated Org carried the original project and commit. The Scheme
+configuration test also checked disabled service selection and rejected
+an unknown profile.
+
+* Linked runtime replay assessment
+
+The execution owner supplies the project identity when recording the run.
+The =assess_recorded_pytest= operation takes that run, an expected project
+and workspace, a declared selector and obligation, and an Org observation.
+The Runtime resolves the workspace through jj and checks it against the
+run's recorded root. The existing Orgize Contract and Element Query check
+the observation against the project, recorded cut, selector, producer,
+method, disposition, frozen source digest and actual JUnit report digest.
+The ADR profile binds the selector to its declared obligation.
+Changing both the Org property and the assessment scope to exchange
+=fixed-check= and =buggy-check= was refused in both directions. ASCENT then derives support,
+contradiction and reopened obligations at the observed current cut.
+A setup error or incomplete execution cannot supply a Case result.
+
+With the staged linked program, run the same harness using
+=--features linked-program=. The local run with JJ v0.47.1 admitted the
+fixed result as support and the buggy result as a contradiction scoped to
+its own obligation. It refused altered method, source digest, report
+digest, outcome and selector. It also refused an Org project substitution,
+even with the same substitution in the assessment request, and an
+assessment targeted at another real jj workspace. After the jj rewrite,
+the original passing observation became historical and its obligation reopened. The earlier
+negative observation was also historical. The linked run with the changed-payload
+control passed under the existing budget. Both the HTTP 409 and the original
+persisted payload are assertions of the fixed Case. The concurrent retry
+test also requires both restarted workers to complete. The empty-ledger
+competition requires one lost ACK and one successful completion. The buggy control
+still fails on two commits. The report carries no release authority.
+
+The linked replay also restored the original source bytes and advanced the
+same jj workspace to a new change. The tree matched the original, while
+the change and exact cut differed. The former passing observation stayed
+historical and reopened its obligation. The former failed observation
+stayed historical with no current contradiction or lost-support signal.
+A fresh run admitted support at the new cut without granting release
+authority. Quint's commit-evidence tests also exercise the new-change
+transition and the violation produced by accepting support by tree ID alone.
+
+The linked operation now requires a Scheme Assurance Host witness before
+reporting current passing support. Rust reconstructs the frozen source from
+the recorded inventory and checks it against the run's input digest. The
+Host materializes those bytes and issues a witness scoped to the selected
+pytest Case. The linked test observed one witness for the fixed Case,
+an open obligation with a contradiction and no supporting witness for the
+buggy Case, and no current Host assessment for either result after the JJ
+rewrite. It exercised the same runtime entry for all three outcomes.
+
+The test explicitly selects the =adr-0008= deployment profile. It checks
+that both fixture outcomes leave five deployment integration obligations
+and the provider retry-contract review open. The assessment identifies
+the retention assumption, the =provider-owner= review role and the
+=review-missing= blocker. Adding =DEPLOYMENT_COMPLETE= to the Org
+observation does not affect this assessment. The linked entry rejects an
+unknown profile. After the rewrite, the deployment assessment binds to
+the new commit and retains the six open obligations and the review blocker.
+The linked replay and the Scheme required-support regression passed under
+their existing budgets.
+
+The Host lives for one assessment. The frozen source travels inside the
+existing 4 MiB linked request budget. Evidence from a deployed provider and
+retaining admissions across assessments remain open.
+
+* Orgize, ASCENT and Assurance Host replay
+
+The same Rust test can export the actual recorded cut, frozen input bytes
+and the two observed outcomes for the existing Scheme proof harness.
+This exchange is restricted to qualification. The proof reads the record
+produced by its Rust test process as the independent observation source.
+
+#+begin_src sh
+record="$(mktemp)"
+trap 'rm -f "$record"' EXIT
+AITIA_ADR_REPLAY_EVIDENCE="$record" cargo test --locked \
+  --manifest-path rust/Cargo.toml -p aitia-runtime --features gitops --lib \
+  observes_adr_0008_at_a_recorded_cut -- --ignored
+AITIA_JJ_REPLAY_CUTS="$record" GAMBOPT=max-heap=512M,debug=q \
+  timeout --foreground --signal=TERM --kill-after=3s 60s \
+  gerbil test -v 3 dev/proof/scheme/jj-commit-evidence-test.ss
+#+end_src
+
+The proof uses the existing Orgize source Contract and GitOps ASCENT rules.
+It associates the fixed and buggy selectors with separate obligations,
+checks the Host's source digest and rejects a substituted successful
+outcome. After the recorded rewrite, ASCENT reopens the fixed obligation
+and the Host refuses the former admission. The receipt still carries
+no authority to execute an effect. The combined local run exported the
+record from the linked Rust replay with the changed-payload control and
+the same-tree successor cut. Gerbil consumed that record, verified
+reopening across both transitions and exited successfully under the
+existing 60-second proof guard.

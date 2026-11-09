@@ -259,3 +259,339 @@ fn linked_scheme_program_publishes_the_sdlc_graph_and_gitops_decision() {
     program.close().expect("clean linked AITIA shutdown");
     check_command_line();
 }
+
+#[test]
+#[ignore = "requires JJ, pytest and a local loopback Provider"]
+fn check_runs_the_recorded_assurance_profile() {
+    let jj = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
+    let python = std::env::var_os("AITIA_PYTEST_PYTHON").expect("set AITIA_PYTEST_PYTHON");
+    let workspace = tempfile::tempdir().unwrap();
+    let root = workspace.path();
+    let run_jj = |args: &[&str]| {
+        let result = Command::new(&jj)
+            .current_dir(root)
+            .args([
+                "--config",
+                "user.name='AITIA Test'",
+                "--config",
+                "user.email='test@example.invalid'",
+            ])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+    };
+    run_jj(&["git", "init", "--colocate"]);
+    std::fs::create_dir_all(root.join(".agents/aita")).unwrap();
+    std::fs::write(
+        root.join(".agents/aita/project.json"),
+        br#"{"schemaVersion":1,"services":{"assurance":{"enable":true,"project":"cli-assurance","profile":"adr-0008"},"commit":{"project":"cli-assurance","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-083","checks":[{"requirement":"SWE-083","method":"jj.recorded-change"},{"requirement":"SWE-084","method":"jj.configuration-audit"}]}}}"#,
+    ).unwrap();
+    let directory = "dev/qualification/job-executor";
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../..")
+        .join(directory);
+    let recorded = root.join(directory);
+    std::fs::create_dir_all(&recorded).unwrap();
+    for file in ["worker.py", "test_unique_effect.py"] {
+        std::fs::copy(fixture.join(file), recorded.join(file)).unwrap();
+    }
+    run_jj(&[
+        "describe",
+        "-m",
+        "record the Assurance profile and its cases",
+    ]);
+    let original = aitia_jj::observe_workspace(root).unwrap();
+    std::fs::write(
+        recorded.join("test_unique_effect.py"),
+        "raise RuntimeError('unrecorded edit')",
+    )
+    .unwrap();
+
+    std::fs::write(recorded.join("unrecorded.txt"), "parallel edit").unwrap();
+    let context = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .arg("commit-context")
+        .current_dir(&recorded)
+        .output()
+        .unwrap();
+    assert!(context.status.success(), "{:?}", context);
+    let context: Value = serde_json::from_slice(&context.stdout).unwrap();
+    assert_eq!(context["policy"]["project"], "cli-assurance");
+    assert_eq!(context["policy"]["primary"], "SWE-083");
+    assert_eq!(context["policy"]["edition"], "D");
+    assert_eq!(
+        context["policy"]["checks"][0]["method"],
+        "jj.recorded-change"
+    );
+    assert_eq!(context["cut"]["commit"], original.commit_id());
+    assert_eq!(context["cut"]["tree"], original.tree_id());
+    assert_eq!(
+        context["cut"]["parents"],
+        serde_json::json!(original.parent_ids())
+    );
+    assert_eq!(context["changes"].as_array().unwrap().len(), 3);
+    assert_eq!(context["review"]["open"], serde_json::json!([]));
+    assert_eq!(context["review"]["supported"].as_array().unwrap().len(), 2);
+    let clauses = context["review"]["clauses"].as_array().unwrap();
+    let org: String = clauses
+        .iter()
+        .map(|clause| {
+            format!(
+                "* Review\n:PROPERTIES:\n:{}: {}\n:END:\n",
+                clause["property"].as_str().unwrap(),
+                clause["value"].as_str().unwrap()
+            )
+        })
+        .collect();
+    let run_draft = |command, org: &str| {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+            .arg(command)
+            .current_dir(&recorded)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        serde_json::to_writer(
+            child.stdin.take().unwrap(),
+            &serde_json::json!({
+                "title": "Record the candidate configuration",
+                "body": "Bind the recorded paths and audited Git object.",
+                "org": org,
+            }),
+        )
+        .unwrap();
+        child.wait_with_output().unwrap()
+    };
+    let description = run_draft("commit-description", &org);
+    assert!(description.status.success(), "{:?}", description);
+    let description: Value = serde_json::from_slice(&description.stdout).unwrap();
+    assert_eq!(description["review"]["draftValid"], true);
+    let rendered = description["review"]["description"].as_str().unwrap();
+    assert!(rendered.starts_with("SWE-083: Record the candidate configuration\n"));
+    assert!(rendered.contains(original.tree_id()));
+    assert!(rendered.contains("AITIA-Draft: sha256:"));
+
+    let refused = run_draft("commit-prepare", "");
+    assert!(!refused.status.success(), "{:?}", refused);
+    let refused: Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert!(refused.get("attempt").is_none());
+    let prepared = run_draft("commit-prepare", &org);
+    assert!(prepared.status.success(), "{:?}", prepared);
+    let prepared: Value = serde_json::from_slice(&prepared.stdout).unwrap();
+    assert_eq!(prepared["review"]["description"], rendered);
+    let attempt: aitia_jj::DescriptionRecovery =
+        serde_json::from_value(prepared["attempt"].clone()).unwrap();
+    let reopened = aitia_jj::reopen_description(&original, rendered, &attempt).unwrap();
+    assert_eq!(reopened.proposed_receipt().expected, original);
+    assert_eq!(aitia_jj::observe_workspace(root).unwrap(), original);
+
+    let check = || {
+        Command::new(env!("CARGO_BIN_EXE_aitia"))
+            .arg("check")
+            .current_dir(&recorded)
+            .env("AITIA_PYTEST_PYTHON", &python)
+            .output()
+            .unwrap()
+    };
+    let passing = check();
+    assert!(
+        passing.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&passing.stderr),
+        String::from_utf8_lossy(&passing.stdout)
+    );
+    let receipt: Value = serde_json::from_slice(&passing.stdout).unwrap();
+    assert_eq!(receipt["cut"]["commit_id"], original.commit_id());
+    let cases = receipt["checks"]["assurance"]["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 2);
+    for case in cases {
+        assert_eq!(case["matched"], true);
+        let assessment = &case["assessment"];
+        assert_eq!(assessment["revision"], original.commit_id());
+        assert_eq!(assessment["releaseAuthorized"], false);
+        assert_eq!(assessment["deployment"]["assessment"]["complete"], false);
+        let org = assessment["observationOrg"].as_str().unwrap();
+        assert!(org.contains(":PROJECT: cli-assurance\n"));
+        assert!(org.contains(&format!(":COMMIT: {}\n", original.commit_id())));
+    }
+    assert_eq!(cases[0]["assessment"]["supported"][0][1], "fixed-check");
+    assert_eq!(cases[1]["assessment"]["contradicted"][0][1], "buggy-check");
+
+    let original_test = std::fs::read_to_string(fixture.join("test_unique_effect.py")).unwrap();
+    let unrelated = original_test
+        .replace("assert committed == 1,", "assert mode != \"buggy\",")
+        .replace(
+            "ADR0008 duplicate effects: expected 1, observed",
+            "unrelated failure, count",
+        );
+    assert_ne!(unrelated, original_test);
+    std::fs::write(recorded.join("test_unique_effect.py"), unrelated).unwrap();
+    run_jj(&["describe", "-m", "record an unrelated buggy-case assertion"]);
+    let unrelated = check();
+    assert!(!unrelated.status.success());
+    let report: Value = serde_json::from_slice(&unrelated.stdout).unwrap();
+    let cases = report["checks"]["assurance"]["cases"].as_array().unwrap();
+    assert_eq!(cases[0]["matched"], true);
+    assert_eq!(cases[1]["matched"], false);
+    assert!(cases[1]["assessment"].is_null());
+
+    std::fs::write(
+        recorded.join("test_unique_effect.py"),
+        "raise RuntimeError('recorded collection error')",
+    )
+    .unwrap();
+    run_jj(&["describe", "-m", "record the broken test source"]);
+    let failure = check();
+    assert!(!failure.status.success());
+    let receipt: Value = serde_json::from_slice(&failure.stdout).unwrap();
+    assert_ne!(receipt["cut"]["commit_id"], original.commit_id());
+    for case in receipt["checks"]["assurance"]["cases"].as_array().unwrap() {
+        assert_eq!(case["matched"], false);
+        assert!(case["assessment"].is_null());
+    }
+}
+
+#[test]
+fn signed_commit_uses_the_prepared_operation_and_durable_approval() {
+    use ring::signature::{Ed25519KeyPair, KeyPair};
+
+    fn hex(bytes: &[u8]) -> String {
+        use std::fmt::Write as _;
+        bytes.iter().fold(String::new(), |mut output, byte| {
+            write!(output, "{byte:02x}").unwrap();
+            output
+        })
+    }
+
+    let jj = std::env::var_os("AITIA_JJ_BIN").unwrap_or_else(|| "jj".into());
+    let fixture = tempfile::tempdir().unwrap();
+    let workspace = fixture.path().join("workspace");
+    let policy = fixture.path().join("authority.json");
+    std::fs::create_dir(&workspace).unwrap();
+    let workspace = workspace.canonicalize().unwrap();
+    let run_jj = |args: &[&str]| {
+        let result = Command::new(&jj)
+            .current_dir(&workspace)
+            .args([
+                "--config",
+                "user.name='AITIA Test'",
+                "--config",
+                "user.email='test@example.invalid'",
+            ])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(result.status.success(), "{result:?}");
+    };
+    run_jj(&["git", "init", "--colocate"]);
+    std::fs::create_dir_all(workspace.join(".agents/aita")).unwrap();
+    std::fs::write(
+        workspace.join(".agents/aita/project.json"),
+        br#"{"schemaVersion":1,"services":{"commit":{"project":"signed-fixture","governance":"signed","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-084","checks":[{"requirement":"SWE-084","method":"jj.configuration-audit"}]}}}"#,
+    ).unwrap();
+    run_jj(&["describe", "-m", "record project profile"]);
+    let original = aitia_jj::observe_workspace(&workspace).unwrap();
+
+    let signer = Ed25519KeyPair::from_seed_unchecked(&[42; 32]).unwrap();
+    std::fs::write(
+        &policy,
+        json!({
+            "project": "signed-fixture", "workspace": workspace,
+            "publicKey": hex(signer.public_key().as_ref()),
+        })
+        .to_string(),
+    )
+    .unwrap();
+
+    let run = |operation: &str, input: Value| {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+            .arg(operation)
+            .current_dir(&workspace)
+            .env("AITIA_GOVERNANCE_POLICY", &policy)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        serde_json::to_writer(child.stdin.take().unwrap(), &input).unwrap();
+        child.wait_with_output().unwrap()
+    };
+    let json_output = |result: std::process::Output| {
+        assert!(result.status.success(), "{result:?}");
+        serde_json::from_slice::<Value>(&result.stdout).unwrap()
+    };
+
+    let context = json_output(run("commit-context", Value::Null));
+    let org: String = context["review"]["clauses"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|clause| {
+            format!(
+                "* Evidence\n:PROPERTIES:\n:{}: {}\n:END:\n",
+                clause["property"].as_str().unwrap(),
+                clause["value"].as_str().unwrap()
+            )
+        })
+        .collect();
+    let draft = json!({"title":"Audit the recorded configuration",
+        "body":"Bind the Git object to its recorded cut.", "org":org});
+    let prepared = json_output(run("commit-prepare", draft.clone()));
+    assert_eq!(
+        prepared["governanceRevision"],
+        context["governanceRevision"]
+    );
+    let denied = run(
+        "commit-apply",
+        json!({"draft":draft, "attempt":prepared["attempt"]}),
+    );
+    assert!(!denied.status.success(), "{denied:?}");
+    assert!(String::from_utf8_lossy(&denied.stderr).contains("requires a signed commit approval"));
+    assert_eq!(aitia_jj::observe_workspace(&workspace).unwrap(), original);
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let message = json!({"kind":"aitia.commit.approve.v1", "project":"signed-fixture",
+        "revision":prepared["governanceRevision"], "approval":"first",
+        "intent":prepared["intent"], "notBefore":now, "expiresAt":now + 300})
+    .to_string();
+    let forged = run(
+        "commit-decision",
+        json!({"message":message, "signature":"00".repeat(64)}),
+    );
+    assert!(!forged.status.success(), "{forged:?}");
+    assert!(String::from_utf8_lossy(&forged.stderr).contains("signature rejected"));
+    assert_eq!(aitia_jj::observe_workspace(&workspace).unwrap(), original);
+    json_output(run(
+        "commit-decision",
+        json!({"message":message,
+        "signature":hex(signer.sign(message.as_bytes()).as_ref())}),
+    ));
+    let written = json_output(run(
+        "commit-apply",
+        json!({
+            "draft":draft, "attempt":prepared["attempt"], "approval":"first"
+        }),
+    ));
+    let published = aitia_jj::observe_workspace(&workspace).unwrap();
+    assert_eq!(
+        written["receipt"]["resulting_commit"],
+        published.commit_id()
+    );
+    assert_eq!(
+        prepared["attempt"]["resulting_operation"],
+        published.operation_id()
+    );
+    assert_eq!(published.parent_ids(), original.parent_ids());
+    assert_eq!(published.tree_id(), original.tree_id());
+    let recovered = json_output(run("commit-recover", json!({"approval":"first"})));
+    assert_eq!(recovered["outcome"], "applied");
+    assert_eq!(recovered["attempt"], prepared["attempt"]);
+}

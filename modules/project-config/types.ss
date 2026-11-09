@@ -22,7 +22,28 @@
        ((type . "object")
         (additionalProperties . #f)
         (properties .
-         ((sysml .
+         ((assurance .
+           ((type . "object")
+            (additionalProperties . #f)
+            (required . ("enable" "project" "profile"))
+            (properties . ((enable . ((type . "boolean")))
+                           (project . ((type . "string") (minLength . 1)))
+                           (profile . ((enum . ("adr-0008"))))))))
+          (commit .
+           ((type . "object")
+            (additionalProperties . #f)
+            (required . ("project" "profile" "primary" "checks"))
+            (properties . ((project . ((type . "string") (minLength . 1)))
+                           (profile . ((enum . ("nasa/sdlc/npr-7150.2"))))
+                           (primary . ((type . "string") (minLength . 1)))
+                           (governance . ((enum . ("signed"))))
+                           (checks . ((type . "array") (minItems . 1)
+                                      (items . ((type . "object")
+                                                (additionalProperties . #f)
+                                                (required . ("requirement" "method"))
+                                                (properties . ((requirement . ((type . "string") (minLength . 1)))
+                                                               (method . ((type . "string") (minLength . 1)))))))))))))
+          (sysml .
            ((type . "object")
             (additionalProperties . #f)
             (required . ("enable" "parse"))

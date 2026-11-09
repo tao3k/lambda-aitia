@@ -33,7 +33,11 @@
 ;; dispatches the operation identities returned by this projection.
 (def (project-checks effective)
   (let* ((services (hash-get effective 'services))
-         (sysml (hash-get services 'sysml)))
-    (if (and sysml (hash-get sysml 'enable) (hash-get sysml 'parse))
-        #("sysml.parse")
-        #())))
+         (sysml (hash-get services 'sysml))
+         (assurance (hash-get services 'assurance)))
+    (list->vector
+     (append
+      (if (and sysml (hash-get sysml 'enable) (hash-get sysml 'parse))
+          '("sysml.parse") '())
+      (if (and assurance (hash-get assurance 'enable))
+          '("assurance.replay") '())))))

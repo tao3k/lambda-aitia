@@ -6,8 +6,9 @@
 ;;; An application-configured capability for verification. Adapter, clock and
 ;;; lease are private to the exact issued Host object; neither an editable POO
 ;;; presentation nor a per-call time argument selects authority.
-(import (only-in :clan/poo/object .o .ref .slot? .alist object?)
-        (only-in :std/list/list find every filter delete-duplicates/hash)
+(import (only-in :clan/poo/object .o .ref .slot? object?)
+        (only-in :std/crypto/random random-bytes)
+        (only-in :std/list/list find every filter filter-map delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
         (only-in :clan/poo/mop validate)
         (only-in :yuanxu/contribution/verification
@@ -16,21 +17,19 @@
                  yuanxu-revoke-verification!)
         (only-in :yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
-                 agentic-ai-lab-cedar-runtime-handoff?
-                 agentic-ai-lab-cedar-authorization-request
-                 agentic-ai-lab-cedar-authorization-request?)
         (only-in "types.ss"
                  assurance-snapshot? assurance-artifact? assurance-claim?
-                 assurance-obligation?
+                 assurance-obligation? assurance-assumption? assurance-evidence? assurance-digest?
                  assurance-decision? assurance-decision-preflight?
-                 AssuranceRequiredSupport AssessmentRequiredSupport
-                 AssuranceDecisionPreflight)
+                 AssuranceRequiredSupport AssessmentRequiredSupport AssuranceSupportWitness
+                 AssuranceAssumptionAssessment AssuranceChallengeAssessment
+                 AssuranceResidualDisposition AssuranceDecisionPreflight)
         (only-in "func.ss"
                  assurance-snapshot-canonical? assurance-node-canonical
                  assurance-canonical-digest)
         (only-in "evidence-admission.ss"
                  assurance-evaluate-evidence-admission
+                 assurance-verifier-outcome-digest
                  assurance-evidence-outcome-bound?
                  assurance-verification-subject
                  assurance-snapshot-semantic-digest
@@ -47,7 +46,7 @@
         assurance-host-required-support
         assurance-host-preflight-decision
         assurance-host-decision-preflight-current?
-        assurance-host-cedar-request assurance-host-cedar-request-current?
+        assurance-host-current-preflight-binding assurance-host-governance-source
         assurance-host-revoke-decision-preflight!
         assurance-host-revoke-admission!)
 
@@ -55,7 +54,6 @@
 (def issued-host-receipts (make-hash-table-eq weak-keys: #t))
 (def issued-admissions (make-hash-table-eq weak-keys: #t))
 (def issued-decision-preflights (make-hash-table-eq weak-keys: #t))
-(def issued-cedar-requests (make-hash-table-eq weak-keys: #t))
 
 (def (host-entry host)
   (let (entry (hash-get issued-hosts host))
@@ -105,13 +103,18 @@
 
 (def (assurance-verification-host
       identity-value operation clock lease snapshot-source
-      source-reader: (source-reader #f))
+      source-reader: (source-reader #f)
+      execution-reader: (execution-reader #f)
+      governance-reader: (governance-reader #f))
   (unless (and (string? identity-value)
                (> (string-length identity-value) 0)
                (procedure? operation) (procedure? clock)
                (exact-integer? lease) (> lease 0)
                (procedure? snapshot-source)
-               (or (not source-reader) (procedure? source-reader)))
+               (or (not source-reader) (procedure? source-reader))
+               (or (not execution-reader)
+                   (and source-reader (procedure? execution-reader)))
+               (or (not governance-reader) (procedure? governance-reader)))
     (error "invalid assurance verification Host configuration"))
   (let* ((host (.o identity: (string-copy identity-value)))
          (adapter
@@ -135,16 +138,39 @@
            assurance-verification-subject-snapshot)))
     (hash-put! issued-hosts host
                (vector (string-copy identity-value) adapter clock lease -1
-                       snapshot-source 0 #f 0 source-reader))
+                       snapshot-source 0 #f 0 source-reader execution-reader governance-reader))
     host))
+
+;;; A configured reader returns the owner-recorded digest of an attempt, or
+;;; #f if custody is absent or withdrawn. It must not derive it from a request.
+(def (host-execution-current? entry outcome outcome-digest)
+  (let (reader (vector-ref entry 10))
+    (or (not reader)
+        (equal? outcome-digest (reader (.ref outcome 'identity))))))
+
+(def (host-seal-execution-current? entry receipt outcome)
+  (let (issued (hash-get issued-host-receipts receipt))
+    (and issued
+         (or (not (vector-ref entry 10))
+             (let (digest-value (assurance-verifier-outcome-digest outcome))
+               (and (equal? digest-value (vector-ref issued 2))
+                    (or (host-execution-current? entry outcome digest-value)
+                        (begin
+                          (hash-remove! issued-host-receipts receipt)
+                          (yuanxu-revoke-verification! (vector-ref entry 1) receipt)
+                          #f))))))))
 
 ;;; An eligible report alone is never an issued seal. The configured operation
 ;;; must independently return #t over the complete frozen semantic subject.
 (def (assurance-host-verify host snapshot obligation evidence outcome)
   (let* ((entry (required-host-entry host))
          (eligibility
-          (assurance-evaluate-evidence-admission snapshot obligation outcome)))
+          (assurance-evaluate-evidence-admission snapshot obligation outcome))
+         (execution-digest
+          (and (vector-ref entry 10) (.ref eligibility 'eligible?)
+               (assurance-verifier-outcome-digest outcome))))
     (and (.ref eligibility 'eligible?)
+         (host-execution-current? entry outcome execution-digest)
          (assurance-evidence-outcome-bound? snapshot evidence outcome)
          (host-snapshot-current? entry snapshot obligation evidence outcome)
          (host-outcome-inputs-current? host snapshot outcome)
@@ -156,10 +182,11 @@
                    snapshot obligation evidence outcome)
                   now (+ now (vector-ref entry 3))))
              (and receipt
-                  (if (host-outcome-inputs-current? host snapshot outcome)
+                  (if (and (host-execution-current? entry outcome execution-digest)
+                           (host-outcome-inputs-current? host snapshot outcome))
                     (begin
                       (hash-put! issued-host-receipts receipt
-                                 (vector host (vector-ref entry 8)))
+                                 (vector host (vector-ref entry 8) execution-digest))
                       receipt)
                     (begin
                       (yuanxu-revoke-verification! (vector-ref entry 1)
@@ -174,6 +201,7 @@
       (and issued (eq? host (vector-ref issued 0))
            (host-snapshot-current? entry snapshot obligation evidence outcome)
            (host-outcome-inputs-current? host snapshot outcome)
+           (host-seal-execution-current? entry receipt outcome)
            (= (vector-ref issued 1) (vector-ref entry 8))
          (assurance-support-sealed-under-adapter?
           relation evidence obligation snapshot outcome
@@ -209,6 +237,7 @@
          (= (vector-ref issued 1) (vector-ref entry 8))
          (host-outcome-inputs-current? host snapshot outcome)
          (assurance-evidence-outcome-bound? snapshot evidence outcome)
+         (host-seal-execution-current? entry receipt outcome)
          (yuanxu-verification-valid?
           (vector-ref entry 1) receipt
           (assurance-verification-subject snapshot obligation evidence outcome)
@@ -281,6 +310,7 @@
               (eq? (.ref evidence 'admission-state) 'candidate)
               (equal? (assurance-verification-subject-snapshot subject)
                       (vector-ref issued 6))
+              (host-seal-execution-current? host-state (vector-ref issued 1) outcome)
               (yuanxu-verification-valid?
                (vector-ref host-state 1) (vector-ref issued 1)
                subject now)
@@ -412,38 +442,67 @@
                           '(hypothesized counterfactual)))))
         (.ref snapshot 'relations)))
 
-(def (admitted-requirement-blocker host host-state snapshot obligation admissions)
+(def (admitted-requirement-support host host-state snapshot obligation-value admissions
+                                   authority: (authority #f) output-digest: (output-digest #f))
   (let* ((matching
           (filter (lambda (admission)
                     (let (issued (admission-entry host admission))
                       (and issued
                            (equal? (.ref (vector-ref issued 7) 'identity)
-                                   (.ref obligation 'identity)))))
+                                   (.ref obligation-value 'identity))
+                           (or (not authority)
+                               (equal? authority
+                                       (.ref (vector-ref issued 9) 'accountable-authority)))
+                           (or (not output-digest)
+                               (equal? output-digest (.ref (vector-ref issued 9) 'output-digest))))))
                   admissions)))
     (if (null? matching)
-      'admission-missing
+      (values 'admission-missing #f)
       (let loop ((remaining matching) (saw-current? #f))
         (if (null? remaining)
-          (if saw-current? 'evidence-link-missing 'admission-invalid)
+          (values (if saw-current? 'evidence-link-missing 'admission-invalid) #f)
           (let* ((issued (admission-entry host (car remaining)))
                  (current (current-admission-snapshot host-state issued)))
             (if (and current
                      (equal? (assurance-snapshot-semantic-digest current)
                              (assurance-snapshot-semantic-digest snapshot)))
-              (if (find (lambda (relation)
-                          (assurance-candidate-support-structural?
-                           relation (vector-ref issued 8) obligation snapshot))
-                        (.ref snapshot 'relations))
-                #f
-                (loop (cdr remaining) #t))
+              (let* ((evidence-value (vector-ref issued 8))
+                     (verifier-result (vector-ref issued 9))
+                     (support-relation
+                      (find (lambda (candidate)
+                              (assurance-candidate-support-structural?
+                               candidate evidence-value obligation-value snapshot))
+                            (.ref snapshot 'relations))))
+                (if support-relation
+                  (values #f
+                          (validate
+                           AssuranceSupportWitness
+                           (.o (:: @ (.ref AssuranceSupportWitness 'proto))
+                               obligation: (.ref obligation-value 'identity)
+                               evidence: (.ref evidence-value 'identity)
+                               admission: (string-copy (vector-ref issued 2))
+                               relation: (.ref support-relation 'identity)
+                               outcome: (.ref verifier-result 'identity)
+                               outcome-digest: (assurance-verifier-outcome-digest verifier-result)
+                               scope: (.ref obligation-value 'scope)
+                               declared-evidence-kind: (.ref obligation-value 'evidence-kind)
+                               capability: (.ref obligation-value 'capability)
+                               producer: (.ref evidence-value 'producer)
+                               tool: (.ref evidence-value 'tool)
+                               tool-version: (.ref evidence-value 'tool-version)
+                               input-artifacts: (.ref evidence-value 'input-artifacts)
+                               expires-at: (vector-ref issued 5))))
+                  (loop (cdr remaining) #t)))
               (loop (cdr remaining) saw-current?))))))))
 
-(def (required-support-row host host-state snapshot claim-value identity admissions)
+(def (required-support-row host host-state snapshot claim-value identity admissions
+                           target: (target claim-value) authority: (authority #f)
+                           output-digest: (output-digest #f))
   (let* ((obligation (snapshot-node snapshot identity))
-         (reason
+         ((values reason witness)
           (cond
            ((not (and obligation (assurance-obligation? obligation)))
-            'obligation-missing)
+            (values 'obligation-missing #f))
            ((or (not (equal? (.ref obligation 'claim) (.ref claim-value 'identity)))
                 (not (equal? (.ref obligation 'subject) (.ref claim-value 'subject)))
                 (not (equal? (.ref obligation 'scope) (.ref claim-value 'scope)))
@@ -456,16 +515,143 @@
                 (memq (.ref obligation 'state)
                       '(violated stale conflicted hypothesized counterfactual
                         not-applicable)))
-            'obligation-stale)
-           ((not (required-support-link? snapshot obligation claim-value))
-            'support-link-missing)
+            (values 'obligation-stale #f))
+           ((not (required-support-link? snapshot obligation target))
+            (values 'support-link-missing #f))
            (else
-            (admitted-requirement-blocker
-             host host-state snapshot obligation admissions)))))
-    (validate
-     AssessmentRequiredSupport
-     (.o (:: @ (.ref AssessmentRequiredSupport 'proto))
-         obligation: identity supported?: (not reason) blocker: reason))))
+            (admitted-requirement-support
+             host host-state snapshot obligation admissions
+             authority: authority output-digest: output-digest)))))
+    (cons (support-assessment-row identity reason) witness)))
+
+(def (support-assessment-row identity reason)
+  (validate AssessmentRequiredSupport
+    (.o (:: @ (.ref AssessmentRequiredSupport 'proto))
+        obligation: identity supported?: (not reason) blocker: reason)))
+
+;; Review is scoped evidence for an explicit premise. A matching authority
+;; string on its own has no standing without a current Host admission.
+(def (assumption-review-witness host host-state snapshot assumption rows admissions)
+  (ormap
+   (lambda (row)
+     (and (.ref row 'supported?)
+          (let (obligation (snapshot-node snapshot (.ref row 'obligation)))
+            (and (eq? (.ref obligation 'evidence-kind) 'human-review)
+                 (eq? (.ref obligation 'capability) 'assumption-review)
+                 (required-support-link? snapshot obligation assumption)
+                 (let-values (((_ witness)
+                               (admitted-requirement-support
+                                host host-state snapshot obligation admissions
+                                authority: (.ref assumption 'owner))))
+                   witness)))))
+   rows))
+
+(def (assumption-assessment host host-state snapshot claim-value rows admissions identity)
+  (let* ((node (snapshot-node snapshot identity))
+         (assumption (and node (assurance-assumption? node) node))
+         (owner-value (and assumption (.ref assumption 'owner)))
+         (policy-value (and assumption (.ref assumption 'review-policy)))
+         ((values reason witness)
+          (cond
+           ((not assumption) (values 'assumption-missing #f))
+           ((not (equal? (.ref assumption 'scope) (.ref claim-value 'scope)))
+            (values 'scope-mismatch #f))
+           ((not (memq (.ref assumption 'state) '(unknown supported)))
+            (values 'assumption-unavailable #f))
+           ((not (equal? policy-value "human-review"))
+            (values 'review-policy-unhandled #f))
+           ;; The Host clock is monotonic. It cannot interpret a date.
+           ((.ref assumption 'expires-at) (values 'validity-unqualified #f))
+           (else
+            (let (review (and (vector-ref host-state 10)
+                              (assumption-review-witness
+                               host host-state snapshot assumption rows admissions)))
+              (values (and (not review) 'review-missing) review))))))
+    (validate AssuranceAssumptionAssessment
+      (.o (:: @ (.ref AssuranceAssumptionAssessment 'proto))
+          assumption: identity owner: owner-value review-policy: policy-value
+          obligation: (and witness (.ref witness 'obligation))
+          admission: (and witness (.ref witness 'admission)) blocker: reason))))
+
+;; A challenge remains visible even if its cited evidence is missing or out
+;; of scope. Only a matching citation and defeat edge acquire trace fields.
+(def (challenge-assessment snapshot claim-value node)
+  (let* ((identity (.ref node 'identity))
+         (citation (.ref node 'evidence))
+         (evidence-node (snapshot-node snapshot citation))
+         (relation-value
+          (find (lambda (edge)
+                  (and (eq? (.ref edge 'relation) 'defeats)
+                       (eq? (.ref edge 'modality) 'observed)
+                       (equal? (.ref edge 'source) identity)
+                       (equal? (.ref edge 'target) (.ref claim-value 'identity))))
+                (.ref snapshot 'relations)))
+         (digest-value
+          (and relation-value evidence-node (assurance-evidence? evidence-node)
+               (eq? (.ref node 'state) 'supported)
+               (eq? (.ref evidence-node 'state) 'supported)
+               (equal? (.ref node 'subject) (.ref claim-value 'subject))
+               (equal? (.ref node 'revision) (.ref claim-value 'revision))
+               (equal? (.ref evidence-node 'revision) (.ref claim-value 'revision))
+               (equal? (.ref evidence-node 'subject) (.ref claim-value 'subject))
+               (equal? (.ref evidence-node 'scope) (.ref claim-value 'scope))
+               (.ref evidence-node 'content-digest))))
+    (validate AssuranceChallengeAssessment
+      (.o (:: @ (.ref AssuranceChallengeAssessment 'proto))
+          challenge: identity revision: (.ref node 'revision)
+          kind: (.ref node 'kind) state: (.ref node 'state)
+          subject: (.ref node 'subject) evidence: citation
+          evidence-digest: digest-value
+          scope: (and digest-value (.ref evidence-node 'scope))
+          obligation: (and digest-value (.ref evidence-node 'obligation))
+          relation: (and relation-value (.ref relation-value 'identity))))))
+
+;; Governance can accept exposure to a residual. Its review is attached to
+;; the Decision and never becomes a support witness for the engineering claim.
+(def (residual-disposition host host-state snapshot claim-value row admissions)
+  (let* ((residual (.ref row 'obligation))
+         (decision-ids
+          (delete-duplicates/hash
+           (filter-map (lambda (edge)
+                         (and (eq? (.ref edge 'relation) 'requires-review)
+                              (not (memq (.ref edge 'modality) '(hypothesized counterfactual)))
+                              (equal? (.ref edge 'source) residual)
+                              (.ref edge 'target)))
+                       (.ref snapshot 'relations))))
+         (decision-value
+          (and (pair? decision-ids) (null? (cdr decision-ids))
+               (snapshot-node snapshot (car decision-ids)))))
+    (and decision-value (assurance-decision? decision-value)
+         (eq? (.ref decision-value 'state) 'supported)
+         (eq? (.ref decision-value 'outcome) 'allow)
+         (equal? (.ref decision-value 'subject) (.ref claim-value 'subject))
+         (equal? (.ref decision-value 'revision) (.ref snapshot 'revision))
+         (equal? (.ref decision-value 'snapshot) (.ref snapshot 'identity))
+         (equal? (.ref decision-value 'policy) (.ref snapshot 'policy-identity))
+         (decision-depends-on-claim? snapshot decision-value claim-value)
+         (let* ((authority-value (.ref decision-value 'authority))
+                (decision-digest
+                 (assurance-canonical-digest (assurance-node-canonical decision-value)))
+                (review
+                 (ormap (lambda (node)
+                          (and (assurance-obligation? node)
+                               (eq? (.ref node 'evidence-kind) 'human-review)
+                               (eq? (.ref node 'capability) 'residual-risk-acceptance)
+                               (not (member (.ref node 'identity)
+                                            (.ref claim-value 'support-requirements)))
+                               (cdr (required-support-row
+                                     host host-state snapshot claim-value (.ref node 'identity)
+                                     admissions target: decision-value authority: authority-value
+                                     output-digest: decision-digest))))
+                        (.ref snapshot 'nodes))))
+           (and review
+                (validate AssuranceResidualDisposition
+                  (.o (:: @ (.ref AssuranceResidualDisposition 'proto))
+                      obligation: residual decision: (.ref decision-value 'identity)
+                      authority: authority-value policy: (.ref decision-value 'policy)
+                      policy-revision: (.ref snapshot 'policy-revision)
+                      admission: (.ref review 'admission)
+                      outcome-digest: (.ref review 'outcome-digest))))))))
 
 ;;; Inert, explainable input for a later Decision evaluator. Completion means
 ;;; only that every declared support requirement has a current Host witness;
@@ -475,14 +661,26 @@
     (error "invalid required-support inputs"))
   (let* ((host-state (required-host-entry host))
          (snapshot (host-current-snapshot host-state))
+         (initial-digest (vector-ref host-state 7))
          (initial-epoch (vector-ref host-state 8))
          (current-claim (snapshot-node snapshot (.ref claim-value 'identity)))
          (required-identities (.ref claim-value 'support-requirements))
-         (rows
+         (assessments
           (map (lambda (identity)
                  (required-support-row
                   host host-state snapshot claim-value identity admissions))
                required-identities))
+         (checked-rows (map car assessments))
+         (assumption-rows
+          (map (lambda (identity)
+                 (assumption-assessment host host-state snapshot claim-value
+                                        checked-rows admissions identity))
+               (.ref claim-value 'assumptions)))
+         (challenge-nodes
+          (filter (lambda (node)
+                    (and (memq (.ref node 'kind) '(counterexample finding))
+                         (equal? (.ref node 'challenges) (.ref claim-value 'identity))))
+                  (.ref snapshot 'nodes)))
          (global-blockers
           (append
            (if (pair? (.ref snapshot 'conflicts)) '(snapshot-conflicted) '())
@@ -498,7 +696,7 @@
            (if (= (length required-identities)
                   (length (delete-duplicates/hash required-identities)))
              '() '(duplicate-requirements))
-           (if (pair? (.ref claim-value 'assumptions))
+           (if (find (lambda (row) (.ref row 'blocker)) assumption-rows)
              '(assumptions-unresolved) '())
            (if (pair? (.ref claim-value 'defeaters))
              '(defeaters-unresolved) '())
@@ -506,28 +704,71 @@
                      '(violated stale conflicted hypothesized counterfactual
                        not-applicable))
              '(claim-state-blocked) '())
-           (if (find (lambda (node)
-                       (and (memq (.ref node 'kind)
-                                  '(counterexample finding))
-                            (equal? (.ref node 'challenges)
-                                    (.ref claim-value 'identity))))
-                     (.ref snapshot 'nodes))
+           (if (pair? challenge-nodes)
              '(challenge-unresolved) '())))
-         (final-snapshot (host-current-snapshot host-state))
+         (dispositions
+          (if (and (vector-ref host-state 10)
+                   (not (memq 'claim-not-current global-blockers))
+                   (not (memq 'snapshot-conflicted global-blockers))
+                   (not (memq 'snapshot-unresolved global-blockers)))
+            (filter-map (lambda (row)
+                          (and (memq (.ref row 'blocker) '(admission-missing admission-invalid))
+                               (residual-disposition host host-state snapshot claim-value
+                                                     row admissions)))
+                        checked-rows)
+            '()))
+         (_ (host-current-snapshot host-state))
          (final-blockers
           (append global-blockers
                   (if (and (= initial-epoch (vector-ref host-state 8))
-                           (equal?
-                            (assurance-snapshot-semantic-digest snapshot)
-                            (assurance-snapshot-semantic-digest final-snapshot)))
-                    '() '(source-changed)))))
+                           (equal? initial-digest (vector-ref host-state 7)))
+                    '() '(source-changed))))
+         (invalid-cut
+          (cond ((memq 'source-changed final-blockers) 'source-changed)
+                ((memq 'claim-not-current final-blockers) 'claim-not-current)
+                (else #f)))
+         (challenge-rows
+          (if invalid-cut '()
+            (map (lambda (node) (challenge-assessment snapshot claim-value node))
+                 challenge-nodes)))
+         (rows (if invalid-cut
+                 (map (lambda (identity) (support-assessment-row identity invalid-cut))
+                      required-identities)
+                 (map (lambda (row)
+                        (if (and (eq? (.ref row 'blocker) 'admission-missing)
+                                 (find (lambda (challenge)
+                                         (equal? (.ref challenge 'obligation)
+                                                 (.ref row 'obligation)))
+                                       challenge-rows))
+                          (support-assessment-row (.ref row 'obligation) 'counterevidence-present)
+                          row))
+                      checked-rows))))
     (validate
      AssuranceRequiredSupport
      (.o (:: @ (.ref AssuranceRequiredSupport 'proto))
          schema: "lambda-aitia.required-support"
          claim: (.ref claim-value 'identity)
+         claim-revision: (.ref claim-value 'revision)
+         subject: (.ref claim-value 'subject)
+         predicate: (.ref claim-value 'predicate)
+         scope: (.ref claim-value 'scope)
+         assumptions: (.ref claim-value 'assumptions)
+         assumption-assessments:
+         (if invalid-cut
+           (map (lambda (row)
+                  (validate AssuranceAssumptionAssessment
+                    (.o (:: @ row) obligation: #f admission: #f blocker: invalid-cut)))
+                assumption-rows)
+           assumption-rows)
+         defeaters: (.ref claim-value 'defeaters)
+         challenges: challenge-rows
+         residual-dispositions: (if invalid-cut '() dispositions)
          snapshot-digest: (.ref snapshot 'digest)
+         semantic-snapshot-digest: (string-copy initial-digest)
          requirements: rows blockers: final-blockers
+         witnesses: (if invalid-cut
+                      '()
+                      (filter (lambda (witness) witness) (map cdr assessments)))
          complete?: (and (null? final-blockers)
                          (pair? rows)
                          (every (lambda (row) (.ref row 'supported?)) rows))
@@ -576,7 +817,7 @@
        (= epoch-value (vector-ref host-state 8))))
 
 ;;; This capability attests a currently bound *undecided* Decision candidate.
-;;; It cannot be projected as Cedar permit or Runtime effect authorization.
+;;; It conveys no policy decision or effect authorization.
 (def (assurance-host-preflight-decision
       host decision-value claim-value admissions)
   (unless (list? admissions)
@@ -649,69 +890,59 @@
                 (same-host-cut?
                  host-state snapshot-value (vector-ref issued 7)))))))
 
-;;; Project a current preflight into Agentic AI Lab's inert Cedar request family.
-;;; The request is editable input, not a Host seal, Cedar outcome or effect grant.
-;;; The Runtime Host must independently validate the current source cut at use.
-(def (cedar-request-fingerprint request)
-  ;; Freeze a value digest, not aliases to caller-visible mutable strings.
-  (assurance-canonical-digest
-   (list (.ref request 'principal) (.ref request 'action)
-         (.ref request 'resource) (.alist (.ref request 'context))
-         (.ref request 'intent) (.alist (.ref request 'handoff)))))
-
-(def (assurance-host-cedar-request host preflight action-value intent-value
-                                    handoff-value)
-  (unless (agentic-ai-lab-cedar-runtime-handoff? handoff-value)
-    (error "Decision Cedar projection requires a Agentic AI Lab runtime handoff"))
-  (let* ((host-state (required-host-entry host))
+;; A policy adapter may project a current preflight into its request format.
+;; These descriptive facts convey no authority and expose no Host state.
+(def (assurance-host-current-preflight-binding host preflight)
+  (let* ((state (required-host-entry host))
          (issued (decision-preflight-entry host preflight)))
     (and issued
          (assurance-host-decision-preflight-current? host preflight)
-         (let* ((snapshot-value (host-current-snapshot host-state))
-                (epoch-value (vector-ref host-state 8))
-                (decision-value (vector-ref issued 8))
-                (claim-value (vector-ref issued 9))
-                (context-value
-                 (.o aitia_schema: "lambda-aitia.cedar-preflight.v1"
-                     agentic_ai_lab_preflight_only: #t
-                     aitia_preflight: (vector-ref issued 1)
-                     aitia_decision: (vector-ref issued 3)
-                     aitia_claim: (vector-ref issued 4)
-                     aitia_snapshot_digest: (vector-ref issued 5)
-                     aitia_snapshot_semantic_digest: (vector-ref issued 6)
-                     aitia_policy: (.ref decision-value 'policy)
-                     aitia_policy_revision: (.ref snapshot-value 'policy-revision)
-                     aitia_preflight_only: #t))
-                (request
-                 (agentic-ai-lab-cedar-authorization-request
-                  (.ref decision-value 'authority) action-value
-                  (.ref claim-value 'subject) context-value intent-value
-                  handoff-value)))
-           (and (= epoch-value (vector-ref issued 7))
-                (same-host-cut? host-state snapshot-value epoch-value)
-                (assurance-host-decision-preflight-current? host preflight)
-                (begin
-                  (hash-put! issued-cedar-requests request
-                             (vector host preflight epoch-value
-                                     (cedar-request-fingerprint request)))
-                  request))))))
+         (let* ((snapshot (host-current-snapshot state))
+                (epoch (vector-ref issued 7))
+                (decision-node (vector-ref issued 8))
+                (claim-node (vector-ref issued 9)))
+           (and (same-host-cut? state snapshot epoch)
+                (equal? (assurance-snapshot-semantic-digest snapshot) (vector-ref issued 6))
+                (.o preflight: (string-copy (vector-ref issued 1))
+                    decision: (string-copy (vector-ref issued 3))
+                    claim: (string-copy (vector-ref issued 4))
+                    snapshot-digest: (string-copy (vector-ref issued 5))
+                    snapshot-semantic-digest: (string-copy (vector-ref issued 6))
+                    policy: (string-copy (.ref decision-node 'policy))
+                    policy-revision: (string-copy (.ref snapshot 'policy-revision))
+                    principal: (string-copy (.ref decision-node 'authority))
+                    resource: (string-copy (.ref claim-node 'subject))))))))
 
-;;; Source-owned use-time check for the exact Host-issued request. This does
-;;; not evaluate Cedar or permit an effect. A future Runtime integration must
-;;; call it at use and retain authorization and effect-handoff ownership.
-(def (assurance-host-cedar-request-current? host request)
-  (let* ((host-state (required-host-entry host))
-         (issued (hash-get issued-cedar-requests request)))
-    (and issued
-         (eq? host (vector-ref issued 0))
-         (agentic-ai-lab-cedar-authorization-request? request)
-         (object? (.ref request 'context))
-         (agentic-ai-lab-cedar-runtime-handoff? (.ref request 'handoff))
-         (= (vector-ref issued 2) (vector-ref host-state 8))
-         (equal? (cedar-request-fingerprint request) (vector-ref issued 3))
-         (assurance-host-decision-preflight-current?
-          host (vector-ref issued 1))
-         (= (vector-ref issued 2) (vector-ref host-state 8)))))
+;; The owner-configured Governance reader is the independent authority.
+;; The provider adapter supplies its exact proposal binding and currentness.
+(def (assurance-host-governance-source host preflight key request proposal current?)
+  (let* ((state (required-host-entry host))
+         (reader (vector-ref state 11))
+         (until (and reader (+ (host-instant state) (vector-ref state 3)))))
+    (def (live?)
+      (and (assurance-host-decision-preflight-current? host preflight)
+           (current?)
+           (< (host-instant state) until)))
+    (and reader (live?)
+         (let (approved (reader (string-copy key) request proposal))
+           (and (assurance-digest? approved) (live?)
+                (let* ((approval-digest (string-copy approved))
+                       (admission-digest
+                        (assurance-canonical-digest
+                         (list 'aitia/governance-source-admission.v1 (vector-ref state 0)
+                               (random-bytes 32) key approval-digest)))
+                       (owner (current-thread))
+                       (retired? #f))
+                  (lambda ()
+                    (unless (eq? owner (current-thread))
+                      (error "Governance source admission requires its serialized owner"))
+                    (cond
+                     (retired? #f)
+                     ((and (live?)
+                           (equal? approval-digest (reader (string-copy key) request proposal))
+                           (live?))
+                      (string-copy admission-digest))
+                     (else (set! retired? #t) #f)))))))))
 
 (def (assurance-host-revoke-decision-preflight! host preflight)
   (required-host-entry host)

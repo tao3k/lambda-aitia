@@ -46,12 +46,47 @@ pub fn capture_source_tree(root: &Path) -> io::Result<Vec<u8>> {
         entries: Vec::new(),
     };
     capture.walk(directory.as_fd(), "")?;
-    capture.entries.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    encode_source_tree(capture.entries, capture.size)
+}
 
-    let mut output = Vec::with_capacity(capture.size);
+#[cfg(feature = "gitops")]
+pub(crate) fn capture_recorded_source_tree(
+    cut: &aitia_jj::WorkspaceCut,
+    paths: &[&str],
+) -> Result<Vec<u8>, aitia_jj::JjObservationError> {
+    use aitia_jj::JjObservationError;
+
+    let mut paths = paths.to_vec();
+    paths.sort_unstable();
+    if paths.is_empty()
+        || paths.len() > MAX_FILES
+        || paths.iter().any(|path| !valid_frozen_path(path))
+        || paths.windows(2).any(|pair| pair[0] == pair[1])
+    {
+        return Err(JjObservationError::Output(
+            "invalid recorded source paths".into(),
+        ));
+    }
+    let header = paths.iter().try_fold(MAGIC.len() + 8, |size, path| {
+        size.checked_add(ENTRY_HEADER)?.checked_add(path.len())
+    });
+    let available = header
+        .and_then(|size| MAX_BYTES.checked_sub(size))
+        .ok_or_else(|| {
+            JjObservationError::Output("recorded source paths exceed capture limit".into())
+        })?;
+    let contents = aitia_jj::read_recorded_files(cut, &paths, available)?;
+    let size = MAX_BYTES - available + contents.iter().map(Vec::len).sum::<usize>();
+    let entries = paths.into_iter().map(str::to_owned).zip(contents).collect();
+    encode_source_tree(entries, size).map_err(JjObservationError::Io)
+}
+
+fn encode_source_tree(mut entries: Vec<(String, Vec<u8>)>, size: usize) -> io::Result<Vec<u8>> {
+    entries.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    let mut output = Vec::with_capacity(size);
     output.extend_from_slice(MAGIC);
-    output.extend_from_slice(&(capture.entries.len() as u64).to_be_bytes());
-    for (path, bytes) in capture.entries {
+    output.extend_from_slice(&(entries.len() as u64).to_be_bytes());
+    for (path, bytes) in entries {
         let length = u32::try_from(path.len()).map_err(|_| invalid("source path is too long"))?;
         output.extend_from_slice(&length.to_be_bytes());
         output.extend_from_slice(path.as_bytes());

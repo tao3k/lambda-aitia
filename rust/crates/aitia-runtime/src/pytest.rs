@@ -118,7 +118,92 @@ pub struct PytestReport {
     pub sha256: String,
     pub passed: usize,
     pub failed: usize,
+    /// Setup or execution errors, included in the failed count.
+    pub errors: usize,
     pub skipped: usize,
+    /// Messages attached to failure elements, in report order.
+    pub failure_messages: Vec<String>,
+}
+
+/// A process observation tied to a recorded project and input inventory.
+#[cfg(feature = "gitops")]
+#[derive(Debug)]
+pub struct RecordedPytestRun {
+    project: String,
+    cut: aitia_jj::WorkspaceCut,
+    #[cfg(feature = "linked-program")]
+    paths: Vec<String>,
+    observation: PytestRun,
+}
+
+#[cfg(feature = "gitops")]
+impl RecordedPytestRun {
+    /// Project identity supplied by the execution owner when recording the run.
+    #[must_use]
+    pub fn project(&self) -> &str {
+        &self.project
+    }
+
+    /// Repository identity of the executed inputs, retained after a rewrite.
+    #[must_use]
+    pub fn cut(&self) -> &aitia_jj::WorkspaceCut {
+        &self.cut
+    }
+
+    #[cfg(feature = "linked-program")]
+    pub(crate) fn recorded_source(&self) -> Result<Vec<u8>, aitia_jj::JjObservationError> {
+        let paths: Vec<_> = self.paths.iter().map(String::as_str).collect();
+        crate::source_tree::capture_recorded_source_tree(&self.cut, &paths)
+    }
+
+    /// The historical process result, regardless of the workspace's current cut.
+    #[must_use]
+    pub fn observation(&self) -> &PytestRun {
+        &self.observation
+    }
+
+    /// Recheck the workspace before handing the observation to a consumer.
+    ///
+    /// # Errors
+    /// Refuses an unreadable workspace or a different exact cut.
+    pub fn current_observation(&self) -> Result<&PytestRun, aitia_jj::JjObservationError> {
+        if aitia_jj::observe_workspace(self.cut.workspace_root())? != self.cut {
+            return Err(aitia_jj::JjObservationError::ChangedOperation);
+        }
+        Ok(&self.observation)
+    }
+}
+
+/// Run pytest using only the specified files from an exact recorded JJ cut.
+/// The execution owner supplies the project that owns the cut.
+///
+/// # Errors
+/// Refuses an invalid project, invalid or stale source cut, invalid test selection, or
+/// a failure to execute or observe the test process.
+#[cfg(feature = "gitops")]
+pub fn run_recorded_pytest(
+    interpreter: &Path,
+    project: &str,
+    cut: aitia_jj::WorkspaceCut,
+    paths: &[&str],
+    selectors: &[&str],
+) -> Result<RecordedPytestRun, aitia_jj::JjObservationError> {
+    if project.is_empty() || project.trim() != project || project.chars().any(char::is_control) {
+        return Err(aitia_jj::JjObservationError::Io(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "expected a nonempty project identity",
+        )));
+    }
+    let payload = crate::source_tree::capture_recorded_source_tree(&cut, paths)?;
+    let observation = run_frozen_pytest(interpreter, &payload, selectors)
+        .map_err(aitia_jj::JjObservationError::Io)?;
+    Ok(RecordedPytestRun {
+        project: project.to_owned(),
+        cut,
+        #[cfg(feature = "linked-program")]
+        paths: paths.iter().map(|path| (*path).to_owned()).collect(),
+        observation,
+    })
 }
 
 /// Execute named pytest tests from an isolated copy of a frozen source tree.
@@ -222,6 +307,7 @@ fn read_report(path: &Path) -> Option<PytestReport> {
 enum CaseOutcome {
     Passed,
     Failed,
+    Error,
     Skipped,
 }
 
@@ -232,7 +318,9 @@ fn parse_report(bytes: &[u8]) -> Option<PytestReport> {
         sha256: String::new(),
         passed: 0,
         failed: 0,
+        errors: 0,
         skipped: 0,
+        failure_messages: Vec::new(),
     };
     let mut root_seen = false;
     let mut depth = 0_usize;
@@ -243,8 +331,13 @@ fn parse_report(bytes: &[u8]) -> Option<PytestReport> {
             Event::Start(start) => {
                 let name = start.name();
                 let name = name.as_ref();
+                let mut failure_message = None;
                 for attribute in start.attributes() {
-                    attribute.ok()?.unescape_value().ok()?;
+                    let attribute = attribute.ok()?;
+                    let value = attribute.unescape_value().ok()?;
+                    if name == b"failure" && attribute.key.as_ref() == b"message" {
+                        failure_message = Some(value.into_owned());
+                    }
                 }
                 if depth == 0 {
                     if root_seen || !matches!(name, b"testsuites" | b"testsuite") {
@@ -266,10 +359,15 @@ fn parse_report(bytes: &[u8]) -> Option<PytestReport> {
                         Some((case_depth, outcome @ CaseOutcome::Passed))
                             if *case_depth + 1 == depth =>
                         {
-                            *outcome = if name == b"skipped" {
-                                CaseOutcome::Skipped
-                            } else {
-                                CaseOutcome::Failed
+                            *outcome = match name {
+                                b"skipped" => CaseOutcome::Skipped,
+                                b"error" => CaseOutcome::Error,
+                                _ => {
+                                    report
+                                        .failure_messages
+                                        .push(failure_message.unwrap_or_default());
+                                    CaseOutcome::Failed
+                                }
                             };
                         }
                         _ => return None,
@@ -282,6 +380,10 @@ fn parse_report(bytes: &[u8]) -> Option<PytestReport> {
                     match case.take()?.1 {
                         CaseOutcome::Passed => report.passed += 1,
                         CaseOutcome::Failed => report.failed += 1,
+                        CaseOutcome::Error => {
+                            report.errors += 1;
+                            report.failed += 1;
+                        }
                         CaseOutcome::Skipped => report.skipped += 1,
                     }
                 }

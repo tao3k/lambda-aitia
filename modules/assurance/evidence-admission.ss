@@ -16,7 +16,7 @@
                  assurance-relation-canonical)
         "types.ss")
 
-(export assurance-verifier-input assurance-verifier-outcome
+(export assurance-verifier-input assurance-verifier-outcome assurance-verifier-outcome-digest
         assurance-evaluate-evidence-admission
         assurance-evidence-outcome-bound?
         assurance-verification-subject
@@ -88,6 +88,11 @@
         (.ref reported-result 'output-digest)
         (.ref reported-result 'accountable-authority)
         (.ref reported-result 'review-scope)))
+
+(def (assurance-verifier-outcome-digest outcome)
+  (unless (assurance-verifier-outcome? outcome)
+    (error "invalid assurance verifier outcome"))
+  (assurance-canonical-digest (outcome-canonical outcome)))
 
 (def (assurance-verification-subject snapshot-value obligation-value
                                      evidence-value outcome-value)
@@ -272,7 +277,7 @@
             'human-authority-missing)
            (else #f)))
          (reported-digest
-          (assurance-canonical-digest (outcome-canonical reported-result)))
+          (assurance-verifier-outcome-digest reported-result))
          (receipt-digest
           (assurance-canonical-digest
            (list 'lambda-aitia.evidence-admission

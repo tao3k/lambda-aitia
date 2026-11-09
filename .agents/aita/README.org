@@ -24,16 +24,71 @@ declaration carries data. Scheme owns its interpretation and defaults.
 
 * AITIA's own commit Case
 
+The =services.commit= declaration selects the project identity, NASA
+Profile and the primary requirement used as the title prefix. Its
+=checks= list maps catalog requirements to project methods. Scheme
+rejects identifiers outside the selected catalog and duplicate mappings.
+=aitia commit-context= reads this declaration and the change inventory
+from one recorded JJ cut. The output contains relative paths, the
+standard edition and source-lock digest, and the exact tree, parents
+and operation. A dirty configuration edit becomes effective after JJ
+records it.
+
+The Runtime can produce evidence for =jj.recorded-change= and
+=jj.configuration-audit=. The audit reads the Git object and compares
+its tree and ordered parents with the recorded JJ cut. An unimplemented
+method remains open. The context's =review.clauses= tells a drafter
+which Org references the current assessment requires. ASCENT derives these
+clauses from the selected Profile and evidence at the recorded cut.
+Scheme turns them into an Org Contract for that draft. The drafter chooses
+how to explain the change within those clauses. Send the draft as
+={"title":"…","body":"…","org":"…"}= to =aitia commit-description=.
+The Runtime reevaluates the live cut and Scheme executes the generated
+Org Contract. A successful response contains the rendered description
+and digest for review. =aitia commit-prepare= takes the same draft,
+reruns those checks and adds the exact unpublished JJ attempt to the
+response. The attempt identifies the expected and resulting operations
+and commits. Preserve the attempt for recovery. A successful prepare
+leaves the visible repository head unchanged.
+
+By default, =commit-apply= takes the original =draft= and prepared
+=attempt=. It reruns the checks and writes through JJ under its
+operation-head lock. =commit-recover= accepts the same =attempt= and
+checks it against JJ history. Use the normal JJ bookmark and push
+commands after reading back the written commit.
+
+For independent signed approval, set =services.commit.governance= to
+=signed= in the recorded project declaration. Set =AITIA_GOVERNANCE_POLICY= to the
+operator-owned JSON file outside the workspace. Its fields are =project=,
+=workspace= (canonical workspace path) and =publicKey= (hex-encoded
+Ed25519 public key). The adjacent =.sqlite= journal is persistent state.
+The runtime configuration and journal directory are part of the operator
+trust boundary. Keep the private signing key with the reviewer.
+
+=commit-prepare= returns the =intent= and, with that configuration, the
+=governanceRevision= for review. If the operator provisions the policy
+after preparation, =commit-context= reports the revision without
+preparing a different operation. =commit-decision= takes =message= and
+=signature=. The signature is hex-encoded Ed25519 over the exact UTF-8
+message. The approval message is JSON with =kind= equal to
+=aitia.commit.approve.v1= and fields =project=, =revision=, =approval=,
+=intent=, =notBefore= and =expiresAt=. The time bounds are Unix seconds.
+A revocation uses =aitia.commit.revoke.v1= and =project=, =revision= and
+=approval=. A reviewer supplies a fresh approval identity for each decision.
+
+In signed mode, =commit-apply= also requires the =approval= identity.
+It consumes the journal approval under the JJ operation-head lock.
+=commit-recover= can retrieve the admitted attempt by approval identity.
+Recovery checks history without retrying a write.
+
 The intended first execution is the AITIA change that introduces this
 configuration. JJ supplies the recorded commit and operation. The NASA
 SDLC catalog and Yuanxu Scenario supply applicable engineering
 obligations. The SysML check produces a parse observation. Quint remains an independent qualification lane. ORG Contract
 binds observations to independent execution data. ASCENT derives
 current support, gaps, contradictions and reopened obligations.
-Governance controls local finalization. See the
+The recorded Project declaration selects any required Governance approval. See the
 [[file:../../dev/sysml/README.org][commit design and verification evidence]].
 
-The project discovery and manifest read are an initial implementation
-slice. The real AITIA checkout currently requires its own JJ workspace
-before the command can read a recorded AITIA manifest. The linked NASA,
-ORG and ASCENT commit execution still needs qualification.
+AITIA uses the default JJ path. The independent-approval qualification
+uses an isolated JJ workspace and fixture signer.

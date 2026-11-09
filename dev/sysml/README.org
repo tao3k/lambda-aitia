@@ -16,6 +16,30 @@ in these views are design obligations.
 The [[file:gitops-lifecycle.org][GitOps lifecycle and FFI boundary]] defines the target operation
 contract between the Scheme Module and the Rust JJ adapter.
 
+* Executable Assurance research scope
+
+This design extends the existing Assurance Module. These references assign
+each research question to its architecture owner and verification boundary.
+
+| Research question | Design owner and evidence target |
+|-------------------+----------------------------------|
+| What does admitted evidence support? | [[file:../../docs/rfcs/0001-causal-assurance-core.org::*Support assessment][RFC 0001]] defines support, conditional closure, residuals and independent authorization. |
+| How do assumptions and defeaters change? | RFC 0001 records scoped dispositions and the affected obligations. The current Host's conservative gate is the comparison control. |
+| Which fragment did the method observe? | RFC 0001 binds strength, coverage and shared dependencies. [[file:../../docs/rfcs/0006-engineering-runtime-and-library-boundaries.org::*Execution and support assessment][RFC 0006]] binds the method to the input actually consumed. |
+| Where do applicable objectives come from? | [[file:../../docs/rfcs/nasa-ai-assurance-objectives.org][NASA objective design]] separates standards lineage, project applicability and demonstrated support. |
+| Where can the judgment be falsified? | The SysML AssuranceSupport package and RFC 0001 pair the ADR 0008 bounded replay with Agent input projection faults. |
+| How does support age across revisions? | [[file:gitops-lifecycle.org::*Evidence validity experiments][GitOps evidence validity experiments]] bind the exact tested subject and compare scoped invalidation against the full snapshot gate. |
+
+The local SysML checks qualify the structure of the architecture. The
+bounded behavioral results are recorded separately in
+[[file:../../docs/rfcs/0001-causal-assurance-core.org::*Agent input delivery boundary][RFC 0001]]
+and the [[file:../qualification/job-executor/README.org::*Linked runtime replay assessment][ADR 0008 qualification]].
+The linked runs check the exact Agent input sent to the consumer, the
+fixed and buggy Worker outcomes, and reopening after the recorded source
+changes. [[file:../../docs/rfcs/0006-engineering-runtime-and-library-boundaries.org::*Durable dispatch and acknowledgement][RFC 0006]]
+records local Cedar delivery and fresh-process recovery, including the
+remaining deployed Provider qualification.
+
 * Rust workspace boundaries
 
 | Crate | Responsibility in this slice |

@@ -173,6 +173,39 @@ The OpenSysML Rust adapter has a local service qualification for the named
 commit design. Binding it to a live JJ cut, delivering executable
 JavaScript and admitting model observations remain open.
 
+* Execution and support assessment
+
+The current =aitia check= reads the project declaration and SysML documents
+at one recorded JJ cut. ProjectConfig resolves the effective declaration
+in Scheme, and Rust dispatches the selected =sysml.parse= adapter. The
+separate =quint-check= command runs a supplied driver and model. Neither
+entry issues a Host-admitted observation for a specific obligation today.
+
+In the proposed handoff, the Scheme Graph selects the obligation, the
+method and its declared inputs under the applicable Project Profile.
+Rust resolves recorded inputs through =aitia-jj=, supervises the selected
+adapter and records the attempt, tool identity, input actually consumed,
+configuration, termination and observed result. An external driver is
+bound to the same admitted input closure as the model it checks. Adapter
+failure, cancellation or an unverified consumed input yields a diagnostic
+and leaves the obligation open.
+
+The Assurance Host compares the observation with its independent execution
+custody and the ORG declaration. The same Scheme graph supplies the
+[[file:0001-causal-assurance-core.org::*Support assessment][support judgment]],
+including any residual. Rust consumes that judgment as context for
+reporting and uses an independent current Governance decision at an
+effect boundary. JJ identifies the recorded project subject and its
+changes. Scheme evaluates their meaning for the claim.
+
+=aitia-runtime= owns execution and observation, =aitia-jj= owns repository
+operations, and =aitia-python= exposes the same Rust surface through
+PyO3/Maturin. OpenSysML parse results establish model parsing for the
+captured documents. Quint establishes bounded behavioral results under
+the selected model and parameters. A later semantic claim needs an
+explicit mapping from its proposition to that observation and its scope.
+These handoffs are design obligations.
+
 * Ownership and dependency direction
 
 | Owner | Responsibility | Excluded responsibility |
@@ -189,6 +222,26 @@ Yuanxu Ops already provides =ProcessScript.=; Lab already has Rust assessment,
 Context interaction and trajectory code. Reuse must be assessed before adding
 another scheduler, runner or event store. Scheme may perform explicit bounded
 Ops; choosing Rust for long-lived execution does not erase that capability.
+
+** Support and impact composition
+
+Use the existing Yuanxu Module and Profile composition to select standards,
+methods and Assurance obligations. Project configuration selects capabilities.
+It carries no independent judgment policy. Lab owns reusable Task, Session,
+Agentic Context, Temporal Causality and Governance mechanisms. AITIA's
+=aitia-jj= supplies the first concrete repository adapter. GitHub remains
+a feature of GitOps. Aitia owns the applicability, evidence interpretation
+and obligation state for its SDLC.
+
+Orgize checks the source document and Contract. ASCENT derives reasons for
+current support, contradiction, stale evidence and open obligations from
+admitted facts. Those reasons can guide multiple Agent proposals. Temporal
+Causality supplies the event and causal-cut relations. MRR is a research
+consumer for cross-source lineage and impact queries. Before using its
+results to narrow invalidation, qualify dependency coverage against the
+full-snapshot baseline. Governance and Cedar retain the effect-time
+authority decision. LeanPOO qualifies conditional composition laws and
+Quint explores temporal behavior and failure interleavings.
 
 ** Current dependency graph and cycle prohibition
 
@@ -293,6 +346,262 @@ does not establish execution. Replay and concurrent attempts require one
 authoritative consumption point, not independent Scheme/Rust copies of state.
 The concrete synchronization and durable authority contract remain open.
 
+** Optional source-bound Cedar integration
+
+The Assurance Host provides current preflight facts and an owner-configured
+Governance source check. A project selects its policy adapter separately.
+The default Assurance scope loads neither the Cedar request projection nor
+either Cedar effect adapter. ADR 0008 and Agent input assessment use the
+default scope. The software engineering profile selects Quint and Lean.
+The formal-method catalog keeps Cedar available for projects that select
+its policy checks.
+
+A separate package pool resolved the unchanged Lab pin =55bf2074= and
+its Core gitlink =520aa69e= from local Git mirrors through the existing
+package fetch entry. The first Lab =just build-library= run stopped
+with a worker stack overflow before Aitia was built. A retry in the same
+pool completed the Lab library. Aitia's first staging attempt reached
+the system OpenSSL lookup. With the installed OpenSSL =pkg-config= path
+available, =just stage-rust-program= succeeded. All 38 selected Lab and
+Aitia modules resolved to the isolated library. The linked manifest
+contained no Cedar provider, Cedar preflight or delivery adapter, or
+optional effect Host. The remaining libraries were reused from the
+local dependency pool. In a serial run on that program, the Agent input
+HTTP and restart Case, the ADR 0008 CLI check, and the recorded pytest
+replay all passed under their 120-second guards. The Scheme replay of
+that run's recorded JJ observations reached the final harness =OK=
+under its existing 60-second guard. The public Lab pin was unchanged.
+
+The optional signed Cedar delivery adapter requires a source-aware Lab port.
+Lab PR 34 still points to the pinned
+=55bf2074a7ebbd3ad2708a1e17e566a71eb70249= revision. The local Lab commit
+=7d042674115f6d9d3b33105fd36b8f01496ab79c= adds an administrative
+=Authority::new_with_source_lookup= constructor. Its registry resolves the
+canonical digest of the entire original proposal to a current authenticated
+admission. Both signed engine receipts and the grant bind those two digests.
+The authority rechecks the lookup after dual evaluation and at the shared
+consume boundary, including direct consumption and proposal reprojection.
+An observed source replacement permanently retires the affected grant.
+The registry owner must retire admission identities on withdrawal and
+serialize source changes with effect admission.
+
+The local Lab qualification built the AOT Host and passed 13 authorization
+tests under the existing 120-second guard. A repeat run used the Cedar
+workspace archived from the exact local commit and the healthcare fixtures
+byte-matched against the recorded Episteme gitlink. The new cases cover source
+movement before signing, withdrawal, rollback, stripped preflight
+context, and both forms of one-time consumption. The native tests use an
+owner-controlled fixture registry.
+
+The linked Gerbil/Rust conformance target also passed under 120 seconds
+in the Lab checkout. The run selected the installed Gambit prefix and
+the OpenSSL library directory reported by pkg-config. Earlier runs
+failed on stale build-machine and OpenSSL paths. It built the declared Core source and used the linker symbol emitted by
+the compiler. It exercised ordinary dual authorization and the
+=RuntimeAuthority::new_with_source_lookup= constructor with an actual
+Scheme POO snapshot and projected request. Withdrawal refused the old
+grant. A new registry generation permitted a fresh grant, and the
+consumed handoff matched the POO request. Replaying that grant failed.
+
+The optional =cedar-preflight.ss= adapter provides =assurance-host-cedar-source-admission=. The application
+supplies a policy context and the exact Host-issued preflight request. A
+Governance reader installed on the Host looks up approval for both the
+original request and complete Cedar policy proposal. The Host returns the
+projected proposal and an owner-local lookup only while that approval and
+the original source are current. The projection retains the preflight
+marker and passes the policy fields to Cedar. Aitia's snapshot bindings
+remain in the Host. A new admission has a fresh identity. An observed
+withdrawal, input change or expiry retires the lookup.
+
+The Scheme preflight suite verified refusal without Governance approval,
+context substitution, copied preflight requests, withdrawal followed by
+restoration, and revocation of the underlying evidence. A new approval
+lookup received a different admission identity. This exercised the live
+Scheme source using a controlled Governance reader.
+The rebuilt Aitia program passed ADR 0008 and Agent HTTP, and the serial
+Quint/Scheme replay passed all 16 actions and seven fault traces under
+the existing budgets.
+
+The private Cedar Runtime port now requests that live lookup during
+issuance, after dual evaluation, and again before consuming the signed
+grant. A Cedar application explicitly opens the delivery owner with the
+Cedar preflight adapter's source-admission operation. Both operations use
+the same adapter registry and validate the original Assurance Host. Before invoking its configured
+effect operation, it checks the consumed source admission against the
+live lookup and checks the intent, sequence and payload against the
+proposal. It passes the effect operation the consumed grant ID, source
+admission and proposal digests, decision receipt digest, authority
+instance, policy revision, intent, sequence and payload digest. These
+fields identify consumption. The effect operation records its outcome
+separately. The effect operation runs before delivery returns. The returned
+object carries the completed result and the consumption provenance even
+when the callback returns false. Refusal has no such object. A consumed
+request stays spent within that owner. If the private consume exchange
+raises, the owner retires the request and propagates the failure. The
+effect callback requires a validated consumption receipt.
+
+The local integration test used the Lab working-copy issuer and
+Rust/Lean Host with the corresponding Scheme port module. It checked
+that missing approval and withdrawal at consumption produced no file
+write. A fresh current admission delivered the exact three-byte payload
+once with matching consumption provenance. The test verified that the
+write occurred before it read any receipt slot and that a false callback
+result still returned a delivery receipt. A separate case interrupted
+the Governance lookup during private consumption. The transport reported
+a broken pipe, no effect ran and replay did not call Governance again.
+The proof-only relay also observed the issuer's successful =consumed=
+reply, waited for the issuer to exit successfully and sent only the reply
+header to Scheme. The port rejected the incomplete frame. The delivery
+owner ran no effect and refused the same request without another
+Governance lookup.
+Another request wrote its payload and then raised an error simulating a
+lost acknowledgement. The
+effect operation had already received the consumption provenance and
+retrying that request produced no additional write. This replay check
+covers the same request in the same owner process. The test started and
+waited for its own Host and passed with the existing Scheme
+heap and timeout. An initial integration attempt loaded a separate Host
+registry. Resolving the operation through the issuing Yuanxu Scope fixed
+the ownership mismatch. The ADR 0008 and Agent HTTP regressions passed.
+
+#+begin_src sh
+AITIA_CEDAR_HOST="$cedar_host" AITIA_CEDAR_ISSUER="$cedar_issuer" \
+  just test-proof-scheme cedar-delivery-test.ss
+#+end_src
+
+In the earlier integrated run, the regular Aitia build staged the
+Assurance Scope from the available package pool and the proof loaded the
+Cedar export from that scope. The current proof loads the optional Cedar
+adapters explicitly.
+The serial repeat compiled the Cedar port from the local commit and
+rebuilt its Rust issuer from the commit archive. The consumer passed
+under the existing guard with those artifacts and the existing Rust/Lean
+Host. An earlier overlapping run reached the guard before the harness
+completed. The pinned Lab source still lacks the source-lookup constructor input and
+=consume-source!= operation. A lockfile-only installation and delivery
+run requires a published Lab revision that supplies both. The local
+commit is available in the producer checkout and the Aitia pin still
+refers to the published revision.
+
+A separate local package-manager run used the existing
+=runtime-dependencies.ss --fetch-only= entry with an isolated Gerbil
+package directory. The consumer declaration selected =7d042674= and Git
+resolved the Lab origin to the local producer checkout. Gerbil recorded
+the full revision in the package tag. The package checkout and the Core
+gitlink at =520aa69e= matched the declared sources. This checked
+immutable source selection through the same package entry used by CI,
+with the remaining dependencies supplied by the existing local pool.
+The installed source then completed Lab's standard =just build-library=.
+The ordinary Cedar library interface is built through that target.
+Selecting =authorization= as a Yuanxu Module was rejected because its
+interface is an ordinary library export.
+
+Aitia used the resulting package library directory and the existing
+issuer and Rust/Lean Host. The first consumer run reached the 60-second
+guard without completion markers. A complete serial rerun under the
+same guard and heap, with per-Case logging, passed all six Cedar Cases
+and exited successfully. The Lab port was loaded from the package build.
+The public dependency lock and a cold recursive installation remain
+separate verification steps.
+
+The same isolated Lab package was then used for a clean Aitia source
+build. That build exposed a missing declaration for the Context
+delivery module: the linked operations had imported it directly and
+the previous pool had already compiled it. The Assurance Scope now
+declares the module and provides the preparation and recovery
+operations. =just stage-rust-program= passed after that correction.
+All 38 Lab and Aitia modules selected by the linked program manifest
+resolved to the isolated package library. A serial run of that program
+passed the Agent input HTTP and process-restart Case, the
+=aitia check= ADR 0008 profile, and the recorded JJ replay of both
+the fixed and buggy Worker. The Scheme replay consumed the observations
+emitted by that Rust run and reached the final harness =OK=.
+The Rust Cases retained their 120-second guards and the Scheme replay
+retained its 60-second guard.
+[[file:0001-causal-assurance-core.org][RFC 0001]] describes the claims and
+the checks for substituted inputs and reopened obligations.
+
+The first isolated Cedar repeat reached the fresh Gerbil child's
+512 MiB heap limit before recovery. A minimal probe imported the compiled
+AITIA entry successfully, then reproduced the overflow in Yuanxu
+=link-module-context= when reading the Assurance scope. Selecting only
+Assurance through Yuanxu still reached that limit. The recovery proof
+now imports the built Assurance =Config= exported by the same Module
+declaration and exercises the delivery API in both processes. The
+isolated run passed all six parent Cases and the fresh-process recovery
+Case, with the final harness =OK=. The outer proof kept the existing
+60-second guard and 1 GiB heap, and the child kept 512 MiB.
+This qualifies process recovery at the Assurance Module boundary.
+The linked Rust ADR 0008 and Agent input Cases exercise the product
+entry through Yuanxu. Cold Yuanxu assembly under the recovery child's
+512 MiB limit remains unqualified.
+
+After the Cedar extraction, the optional adapter passed Decision
+preflight, all six delivery Cases with the fresh-process recovery
+marker, and the local lifecycle boundary suite. These runs used
+the isolated =7d042674= Lab library under the original budgets.
+The recovery and lifecycle fixtures use the built Assurance Config
+from the same registry as the adapter. Mixing a separately instantiated
+Yuanxu source scope with the installed adapter reproduced an unissued
+Host error. The default linked runtime Cases exercise their own
+Yuanxu-owned scope through the Rust bridge.
+
+With the public Lab pin, the first Quint/Scheme correspondence rerun
+reached the 12-second silence watchdog while loading the optional
+adapter sources in the worker. The replay build now compiles both
+adapters before the fixture and reuses the built Assurance Config.
+The repeat exhausted 19,042 Quint states and matched 26 Scheme states
+across nine witnesses covering 16 actions, plus seven fault traces.
+The worker retained its 512 MiB heap, 60-second deadline and 12-second
+silence watchdog.
+
+** Durable dispatch and acknowledgement
+
+An application can provide its Lab journal to =open-cedar-delivery= and
+pass a stable, project-scoped logical operation identity to =.deliver!=.
+After validating the consumed handoff, the owner commits =dispatching=
+and the consumption provenance to the existing fenced journal. It checks
+the live source again before invoking the effect. A definite withdrawal
+at that check records =withheld= with the original grant provenance.
+Neither dispatch nor Provider reconciliation is eligible for that
+operation. If the effect returns, the owner commits =acknowledged=
+with the original provenance. This
+records the callback's return, so the application must return only after
+its transport has established the outcome it treats as acknowledged.
+A failure that leaves the effect outcome unknown keeps =dispatching=
+and requires independent reconciliation.
+
+The Cedar proof wrote a file and injected acknowledgement loss. A separate
+operation returned successfully and persisted =acknowledged=. An independent
+Gerbil process then opened the same journal, started a fresh Rust/Lean
+Host and created a fresh delivery owner and Host request. It refused both
+operations before consulting Governance. The application still owns the stable operation
+identity and configures the Provider observation reader. =.reconcile!= queries that reader for a
+=dispatching= record and requires a committed observation with matching
+operation identity, intent and payload digests and a valid receipt digest.
+It preserves the original grant provenance and stores the Provider
+observation separately in the fenced journal. The =reconciled= state
+continues to block dispatch. The reader authenticates the Provider and
+supplies the trusted observation. The reconciliation operation never
+invokes Governance or sends the effect.
+
+The local reader used the persisted effect bytes and a separate Provider
+record from the lost-ACK case. Unknown outcome, substituted operation,
+intent or payload, and an invalid receipt digest left the record
+=dispatching=. The matching committed observation moved it to
+=reconciled=. The fresh Gerbil process performed these checks through the
+same delivery API, refused terminal reconciliation without another read,
+and verified the journal chain before exiting. The complete packaged
+Cedar suite required the child Case completion and the outer harness
+=OK= under the existing guard and heap budget. A deployed Provider's authenticated reader remains
+to be qualified.
+
+A separate proof withdrew Governance approval at the journal's
+=after-commit= cut for =dispatching=. The next source check recorded
+=withheld= with the consumed payload digest. The effect callback and
+Provider reader were never invoked. Repeating delivery and reconciliation
+left the operation closed, and journal verification passed.
+
 Recheck currentness at the defined effect-start linearization boundary. A revoke
 ordered before start rejects it; a revoke ordered after start cannot undo an
 external effect and instead requests cancellation and records the actual outcome.
@@ -325,10 +634,10 @@ delivery are not selected or implemented by this RFC.
 
 | Source-inspected capability | Existing boundary | Remaining qualification |
 |-----------------------------+-------------------+-------------------------|
-| Aitia Assurance Host over Yuanxu verification | candidate/admission distinction, private receipt identity, source/epoch checks | Rust observation and opaque-capability consumer parity |
-| SDLC design/implementation/support review | revision-bound mapping and actual Assurance consumption | complete connected engineering Case across a runtime restart |
-| Aitia local effect/retirement Hosts | serialized local state; effect delivery explicitly not durable | persistent consumption, reconciliation and real provider evidence |
-| Rust Session and Maturin wheel | SDLC Graph, GitOps evaluation, ORG Contract evaluation, source capture, bounded frozen pytest replay and ORG edit preflight | Host admission/authorization/recovery transport and trusted ORG projection custody |
+| Aitia Assurance Host over Yuanxu verification | linked Rust ADR 0008 and Agent input Cases assess exact-source evidence through the Scheme Host | other observation methods and public dependency installation |
+| SDLC design/implementation/support review | revision-bound mapping and support review; bounded ADR replay and Agent input restart Cases in RFC 0001 | broader SDLC transitions and deployed Provider qualification |
+| Aitia effect Hosts and Cedar delivery | serialized local admission; optional Lab journal fences a consumed operation across process restart and records reconciliation | deployed authenticated Provider reader and production fault qualification |
+| Rust Session and Maturin wheel | SDLC Graph, GitOps evaluation, ORG Contract evaluation, source capture, bounded frozen pytest replay and ORG edit preflight | wheel distribution qualification for the linked Assurance path |
 | Lab Rust assessment/Context/trajectory | existing reusable implementations | owner/cohort audit and selected SDLC integration; no old Memory redesign implied |
 | DE models, ASCENT rules and method/review consumers | selected Rust/Quint/Lean case and source-bound review code | current cohort replay; project formation still capture-blocked |
 | Orgize pinned by Lab | declared Scheme dependency and existing language owner | current consumer lint/Query/Contract and execution-identity parity |

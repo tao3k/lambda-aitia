@@ -1,6 +1,15 @@
 {
   "schemaVersion": 1,
   "services": {
+    "commit": {
+      "project": "tao3k/lambda-aitia",
+      "profile": "nasa/sdlc/npr-7150.2",
+      "primary": "SWE-084",
+      "checks": [
+        { "requirement": "SWE-083", "method": "jj.recorded-change" },
+        { "requirement": "SWE-084", "method": "jj.configuration-audit" }
+      ]
+    },
     "sysml": { "enable": true, "parse": true }
   }
 }

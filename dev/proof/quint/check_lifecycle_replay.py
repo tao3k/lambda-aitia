@@ -37,11 +37,19 @@ FAULTS = (("unsafeStep", "NoUnsafeEffectStart", "UnsafeStart"),
 SOURCE_CUT = ("dev/proof/quint/AssuranceLifecycle.qnt", "dev/proof/quint/EffectAdmission.qnt",
               "dev/proof/quint/package-lock.json", "dev/proof/quint/check_lifecycle_replay.py",
               "dev/proof/quint/test_lifecycle_replay.py",
-              "dev/proof/quint/process_runner.py", "justfile", "build.ss", "gerbil.pkg",
+              "dev/proof/quint/process_runner.py", "justfile", "build.ss", "gerbil.pkg", "init.ss",
               "testing-interface.ss", "testing-observer.ss", "run-test.ss",
               "t/modules/unit/testing-resource-test.ss",
-              "modules/assurance/host.ss", "modules/assurance/effect-host.ss",
-              "modules/assurance/interface.ss", "dev/proof/scheme/lifecycle-fixture.ss",
+              "modules/assurance/config.ss", "modules/assurance/interface.ss",
+              "modules/assurance/host.ss", "modules/assurance/cedar-preflight.ss",
+              "modules/assurance/effect-host.ss",
+              "modules/assurance/evidence-admission.ss", "modules/assurance/func.ss",
+              "modules/assurance/objects.ss", "modules/assurance/types.ss",
+              "modules/assurance/invalidation-projection.ss",
+              "modules/assurance/verification-projection.ss",
+              "modules/assurance/input-correspondence.ss",
+              "modules/assurance/observed-support.ss", "modules/assurance/replay-assessment.ss",
+              "dev/proof/scheme/lifecycle-fixture.ss",
               "dev/proof/scheme/lifecycle-replay-test.ss", "t/assurance/unit/lifecycle-boundary-test.ss")
 
 
@@ -327,14 +335,15 @@ def main():
             raise RuntimeError(f"incomplete action coverage: {covered ^ set(ACTIONS)}")
         print(f"LIFECYCLE-GRAPH-OK: states={count} graph-edges={len(edges)} actions={len(covered)} traces={len(traces)}", flush=True)
         faults = negative_traces(quint, work, traces)
-        replay(work, "faults", faults)
         selected = traces if stress else action_witnesses(traces)
         completed = 0
         # Each isolated Scheme process gets the existing 512 MiB heap.
-        # Finish one batch before admitting another.
-        for chunk, batch in enumerate(batches(selected)):
+        # Run faults first and reuse any space left in their batch.
+        for chunk, batch in enumerate(batches(faults + selected)):
             completed += replay(work, chunk, batch)
-            print(f"LIFECYCLE-REPLAY: traces={completed}/{len(selected)}", flush=True)
+            witness_count = max(0, completed - len(faults))
+            print(f"LIFECYCLE-REPLAY: traces={witness_count}/{len(selected)} "
+                  f"faults={min(completed, len(faults))}/{len(faults)}", flush=True)
         if hashes != source_hashes():
             raise RuntimeError("declared lifecycle source cut changed during verification")
         print("LIFECYCLE-SOURCE-CUT: " + json.dumps(hashes, sort_keys=True), flush=True)
@@ -343,7 +352,7 @@ def main():
         mode = "stress" if stress else "action-witnesses"
         print(f"LIFECYCLE-SCHEME-OK: mode={mode} model-states={count} "
               f"replayed-states={replayed_states} actions={len(covered)}/16 "
-              f"traces={completed}/{len(selected)} faults={len(faults)}/7", flush=True)
+              f"traces={completed - len(faults)}/{len(selected)} faults={len(faults)}/7", flush=True)
 
 
 if __name__ == "__main__":

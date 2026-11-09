@@ -31,6 +31,18 @@
         (check-equal?
          (checks (decode "{\"schemaVersion\":1,\"services\":{\"sysml\":{\"enable\":true,\"parse\":false}}}"))
          #())
+        (check-equal?
+         (checks (decode "{\"schemaVersion\":1,\"services\":{\"assurance\":{\"enable\":true,\"project\":\"example\",\"profile\":\"adr-0008\"}}}"))
+         #("assurance.replay"))
+        (check-equal?
+         (checks (configure
+                  (.o schemaVersion: 1
+                      services: (hash (assurance (hash (enable #f) (project "example")
+                                                       (profile "adr-0008")))))))
+         #())
+        (check-equal?
+         (decode "{\"schemaVersion\":1,\"services\":{\"assurance\":{\"enable\":true,\"project\":\"example\",\"profile\":\"unknown\"}}}")
+         #f)
         (check-equal? (decode "{}") #f)
         (check-equal? (decode "{\"schemaVersion\":1,\"models\":{}}") #f)
         (check-equal? (decode "{\"schemaVersion\":1,\"services\":{\"sysml\":{\"enable\":true}}}") #f)))))

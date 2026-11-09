@@ -3,19 +3,24 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test :std/error
+(import
+        (only-in "../../../modules/assurance/cedar-preflight.ss"
+                 assurance-host-cedar-request
+                 assurance-host-cedar-source-admission
+                 assurance-host-cedar-request-current?)
+        :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/interface
+        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/objects
                  agentic-ai-lab-cedar-runtime-handoff
                  agentic-ai-lab-cedar-authorization-request?
                  agentic-ai-lab-cedar-authorization-request->runtime)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :lambda-aitia/modules/assurance/config Config)
         (only-in :clan/poo/object .get))
 
-(export decision-preflight-test)
+(export decision-preflight-test make-cedar-delivery-fixture)
 
-;;; Tests consume the admitted Scope; assertions below are unchanged.
-(def assurance-module-scope (.get (.get lambda-aitia.init.exports modules) assurance))
+;;; Use the built Assurance exports in both the unit suite and Cedar recovery fixture.
+(def assurance-module-scope Config)
 (def assurance-artifact (.get assurance-module-scope artifact))
 (def assurance-bind-obligation-to-snapshot (.get assurance-module-scope bind-obligation))
 (def assurance-claim (.get assurance-module-scope claim))
@@ -24,8 +29,6 @@
 (def assurance-evidence (.get assurance-module-scope evidence))
 (def assurance-host-admission-current? (.get assurance-module-scope host-admission-current?))
 (def assurance-host-admit (.get assurance-module-scope host-admit))
-(def assurance-host-cedar-request (.get assurance-module-scope host-cedar-request))
-(def assurance-host-cedar-request-current? (.get assurance-module-scope host-request-current?))
 (def assurance-host-decision-preflight-current? (.get assurance-module-scope host-preflight-current?))
 (def assurance-host-preflight-decision (.get assurance-module-scope host-preflight))
 (def assurance-host-revoke-admission! (.get assurance-module-scope host-revoke-admission!))
@@ -39,18 +42,20 @@
 
 (def digest-a (string-append "sha256:" (make-string 64 #\a)))
 (def digest-b (string-append "sha256:" (make-string 64 #\b)))
+(def release-subject "Job::\"release\"")
+(def release-authority "User::\"maintainer\"")
 (def artifact
   (assurance-artifact "artifact/source" "r1" 'supported digest-a
                       owner: "maintainer" media-kind: 'scheme-source))
 (def claim
   (assurance-claim "claim/release" "r1" 'unknown digest-b
-                   subject: "software/release" predicate: "ready"
+                   subject: release-subject predicate: "ready"
                    support-requirements: '("obligation/test")
                    scope: "repository" valid-from: "2026-09-23"))
 (def obligation
   (assurance-obligation
    "obligation/test" "r1" 'unknown digest-a
-   subject: "software/release" claim: "claim/release"
+   subject: release-subject claim: "claim/release"
    snapshot: "snapshot/software" evidence-kind: 'native-test
    capability: 'gerbil-test scope: "repository"))
 (def evidence
@@ -58,13 +63,13 @@
    "evidence/test" "r1" 'supported digest-b
    producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
    input-artifacts: '("artifact/source") obligation: "obligation/test"
-   subject: "software/release" scope: "repository"
+   subject: release-subject scope: "repository"
    valid-from: "2026-09-23" admission-state: 'candidate))
 (def decision
   (assurance-decision
    "decision/release" "r1" 'unknown digest-a
-   subject: "software/release" snapshot: "snapshot/software"
-   policy: "policy/release" authority: "maintainer" outcome: 'unknown))
+   subject: release-subject snapshot: "snapshot/software"
+   policy: "policy/release" authority: release-authority outcome: 'unknown))
 (def evidence-link
   (assurance-relation "relation/discharge" 'assurance 'discharges
                       "evidence/test" "obligation/test" 'observed))
@@ -96,19 +101,27 @@
   (assurance-verifier-outcome
    "outcome/test" 'succeeded
    producer: "gxtest" tool: "gerbil-test" tool-version: "v19"
-   obligation: "obligation/test" subject: "software/release"
+   obligation: "obligation/test" subject: release-subject
    scope: "repository" snapshot-revision: "r1"
    snapshot-context-digest: (.ref snapshot-value 'context-digest)
    inputs: (list (assurance-verifier-input artifact))
    output-digest: digest-b))
-(def (make-host source)
+(def (make-host source governance-reader: (governance-reader #f))
   (assurance-verification-host
    "host/decision-preflight"
    (lambda (subject-value issued-at expires-at) #t)
-   (lambda () 11) 9 source))
+   (lambda () 11) 9 source governance-reader: governance-reader))
 (def handoff
   (agentic-ai-lab-cedar-runtime-handoff
    1 #u8(1 2 3) digest-a digest-a digest-b digest-b))
+
+(def (make-cedar-delivery-fixture governance-reader)
+  (let* ((snapshot-value (bound-cut relations))
+         (host (make-host (lambda () snapshot-value) governance-reader: governance-reader))
+         (admission (assurance-host-admit
+                     host (bound-obligation snapshot-value) evidence (reported-outcome snapshot-value)))
+         (preflight (assurance-host-preflight-decision host decision claim (list admission))))
+    (values host (assurance-host-cedar-request host preflight "Action::\"release\"" digest-a handoff))))
 
 (def decision-preflight-test
   (test-suite "Host Decision preflight is not authorization"
@@ -185,8 +198,8 @@
           host (.o (:: @ request) action: "Deploy")) #f)
         (check-equal?
          (assurance-host-cedar-request-current? other-host request) #f)
-        (check-equal? (hash-get runtime-value "principal") "maintainer")
-        (check-equal? (hash-get runtime-value "resource") "software/release")
+        (check-equal? (hash-get runtime-value "principal") release-authority)
+        (check-equal? (hash-get runtime-value "resource") release-subject)
         (check-equal? (hash-get context-value "aitia_preflight")
                       (.ref preflight 'identity))
         (check-equal? (hash-get context-value "aitia_policy") "policy/release")
@@ -204,6 +217,58 @@
         (check-equal?
          (assurance-host-cedar-request
           host preflight "Release" digest-a handoff) #f)))
+
+    (test-case "Cedar source lookup requires a separate live Governance admission"
+      (let* ((snapshot-value (bound-cut relations))
+             (approval #f)
+             (key #f)
+             (host (make-host (lambda () snapshot-value)
+                     governance-reader:
+                     (lambda (candidate original proposal)
+                       (unless key (set! key candidate))
+                       (and (equal? key candidate) approval))))
+             (admission (assurance-host-admit
+                         host (bound-obligation snapshot-value) evidence
+                         (reported-outcome snapshot-value)))
+             (preflight (assurance-host-preflight-decision host decision claim (list admission)))
+             (request (assurance-host-cedar-request host preflight "Release" digest-a handoff))
+             (policy-context (.o approved: #t blocked: #f)))
+        (let-values (((proposal lookup)
+                      (assurance-host-cedar-source-admission host request policy-context)))
+          (check-equal? proposal #f)
+          (check-equal? lookup #f))
+        (set! approval digest-b)
+        (let-values (((proposal lookup)
+                      (assurance-host-cedar-source-admission host request policy-context)))
+          (check-equal? (assurance-host-cedar-request-current? host proposal) #f)
+          (let* ((projected (agentic-ai-lab-cedar-authorization-request->runtime proposal))
+                 (context (hash-get projected "context"))
+                 (initial (lookup)))
+            (check-equal? (hash-get context "agentic_ai_lab_preflight_only") #t)
+            (check-equal? (hash-get context "approved") #t)
+            (check-equal? (hash-key? context "aitia_policy") #f)
+            (check-equal? (hash-get projected "intent_digest") digest-a)
+            (check-equal? (string? initial) #t)
+            (let-values (((substitute resolve)
+                          (assurance-host-cedar-source-admission
+                           host request (.o approved: #f blocked: #f))))
+              (check-equal? substitute #f)
+              (check-equal? resolve #f))
+            (let-values (((copy resolve)
+                          (assurance-host-cedar-source-admission
+                           host (.o (:: @ request)) policy-context)))
+              (check-equal? copy #f)
+              (check-equal? resolve #f))
+            (set! approval #f)
+            (check-equal? (lookup) #f)
+            (set! approval digest-b)
+            (check-equal? (lookup) #f)
+            (let-values (((fresh resolve)
+                          (assurance-host-cedar-source-admission host request policy-context)))
+              (check-equal? (agentic-ai-lab-cedar-authorization-request? fresh) #t)
+              (check-equal? (equal? (resolve) initial) #f)
+              (assurance-host-revoke-admission! host admission)
+              (check-equal? (resolve) #f))))))
 
     (test-case "source change and rollback cannot revive a preflight"
       (let* ((current (bound-cut relations))
