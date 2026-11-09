@@ -1163,6 +1163,9 @@ The existing prebuilt provider regression passes on macOS, including
 caller flags and propagation of an injected exit status. The auto provider
 regression passes on Gerbil =1cfb032= and Gambit =ea114fc=, with a real
 =compile-module= invocation producing a static object and a dynamic bundle.
+Importing the resulting module returns the expected binding. Running the
+same compiler launcher without its sibling driver reproduces the missing
+=gambuild-C= refusal after generating the static object.
 Lab pins the Bazel change and checks the synchronized Linux and Darwin
 lock projections using its existing dependency contract.
 [[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab consumer PR]]
@@ -1181,3 +1184,44 @@ selected cores. It produced 301 Scheme interfaces, 301 static Scheme
 sources, 655 dynamic objects and 37 compressed language artifacts.
 This is a local producer baseline. The Linux package installation with
 four automatically selected cores remains a separate verification.
+
+A cold-build experiment reused the parser IR verified by admission during
+program lowering, avoiding a second sidecar read and decode. It completed in
+154422 ms under the same heap, automatic 12-core selection and 600-second
+guard. All four output rosters matched the baseline and all 37 compressed
+language artifacts matched byte for byte. This measurement provides no
+elapsed-time improvement. The experimental source change was withdrawn and
+the Parser dependency was not promoted on this evidence.
+
+** Producer CI and locked-install observations
+
+The first Bazel CI at =37fc044= refused its stale extension lock on Linux
+and the Darwin provider probe expected a static object from the older
+Gerbil release. Follow-up =20d409ece2adea86607b77245be8542dd27c07f8= refreshes
+the cross-platform extension digest and requires the static Scheme source
+and dynamic object across both release families. It carries the same
+toolchain implementation as Lab's pin. Its exact-head Linux job passes.
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42554723182][Initial producer CI]]
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42555265294][Follow-up producer CI]]
+
+AITIA =f5f9780118ffecf01b3c0709905ba7029d4dd098= pins Lab
+=8fce5a773ea04e66cb934f10e048887ec25e58e3=. Its Linux cold run reaches
+Parser artifact generation after about 382 seconds and Parser module
+compilation after about 410 seconds. The receipt records =timeoutMs 600000=,
+=elapsedMs 600676=, four automatically admitted cores, peak tree PSS
+=5785529344= bytes and guard exit =71= (installer exit =124=). Gerbil and C
+compiler workers remain active at the cut. The installer has yet to reach
+Orgize and linked delivery. Lean, Quint and the Rust workspace pass on this
+head.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42554943718/job/128958449305][Linux cold installation]]
+
+A separate macOS cold run at Lab =8fce5a77= starts with an empty package
+directory. The existing Bazel environment runner binds the declared tags,
+then =@local_gerbil//:install_dependencies= compiles them with the 2G
+heap and 12 automatically selected cores. It reaches 91 POO, 273 Yuanxu
+and 24 Parser Scheme interfaces before the unchanged guard expires.
+Its receipt records =elapsedMs 602851=, =timeoutMs 600000=, Darwin peak
+process-tree physical footprint =6009372672= bytes and guard exit =71=
+(installer exit =124=). The active cold dependency path remains open on
+both platforms. The complete Parser-only build above uses already
+compiled dependencies.
