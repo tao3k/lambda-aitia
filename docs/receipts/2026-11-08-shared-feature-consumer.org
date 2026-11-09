@@ -1095,3 +1095,35 @@ AITIA pins this Lab revision. Its cold package workflow drops the
 installation guard defaults to 600 seconds and the Scheme job retains
 its job limit and 2G process heap. The fresh CI installation result
 requires a separate receipt.
+
+* CI cold-install result and exact prefetch binding (2026-11-09)
+
+The production warm build returns 0 in 124 seconds and starts no compile
+targets. AITIA's standard =just build-scheme= also returns 0 against the
+new Lab library.
+
+AITIA CI for =d18200a= misses the package cache and runs the native cold
+installer. The preparatory fetch obtains each declared commit, but the
+installer selects =main= for already-cloned Parser, Bridge and Orgize
+repositories. When it reaches Orgize, the native package resolver rejects
+=gerbil-poo= tags =099b381588360a8a49fd772f666a1a00351366f5= and
+=cd4de644385a591b879e3de5795418b5b7e9d767= as incompatible. The provider
+receipt reports =elapsedMs 590147=, =timeoutMs 600000= and =exitCode 70=.
+Lean, Quint and Rust workspace pass. The native prerequisites and linked
+delivery steps are skipped after the installation error.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42551204780/job/128946978208][Cold installation log]]
+
+Lab's macOS package job separately fails during ASCENT dependency
+compilation because Bazel's =local_gerbil= path lacks =gambuild-C=. It
+does not reach the new Lab compiler entry.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42551117706/job/128946701651][macOS package log]]
+
+Lab =d63744be735e13382b7cf0542e345c0647498954= uses the existing
+=runtime-dependencies.ss --fetch-only= path to call Gerbil's =pkg-update=
+after obtaining each pinned commit. The native API binds the checkout
+and tag before =deps --install= resolves the graph. The empty local
+package directory check verifies all four exact checkouts and tags for
+Parser, Bridge, Orgize and ASCENT. The preparatory step produces no
+Lab library. The build-source handoff code and its 2G qualification
+inputs are unchanged. AITIA pins this new Lab revision for a second
+cold CI run.
