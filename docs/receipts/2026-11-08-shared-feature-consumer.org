@@ -1127,3 +1127,57 @@ Parser, Bridge, Orgize and ASCENT. The preparatory step produces no
 Lab library. The build-source handoff code and its 2G qualification
 inputs are unchanged. AITIA pins this new Lab revision for a second
 cold CI run.
+
+* Cold CI with exact source tags (2026-11-09)
+
+AITIA =dc1593bdef65a64ecb4655ff3d35373adcb18190= misses the native
+package cache. The CI log confirms that prefetch checks out each declared
+Parser, Bridge, Orgize and ASCENT revision. Installation reaches Parser's
+TLA+ parser and language assertion compilation before the provider
+terminates it. The guard receipt records =elapsedMs 601352=,
+=timeoutMs 600000=, four effective build cores, =peakRssBytes 5775001600=,
+=outcome timeout= and =exitCode 71=. The workflow step reports 124.
+The process snapshot shows active =gxi=, =gsc= and =cc1= at the deadline.
+The prior incompatible-tag error does not occur in this run. The
+complete dependency installation and native delivery remain unverified.
+Lean, Quint and Rust workspace checks pass.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42552558329/job/128951143387][Exact-pin cold installation]]
+
+On Lab =d63744be=, the macOS source-build and macOS package jobs both
+retain the =gambuild-C= missing-path failure during dependency
+compilation. They do not exercise the production handoff.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42552510593/job/128950994829][macOS source build]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42552510672/job/128951095089][macOS package build]]
+
+* Darwin dynamic driver and Parser cold compilation
+
+The macOS failure originates in Gerbil's static-object compilation branch.
+That branch invokes =gambuild-C= beside =GERBIL_GSC= to link the dynamic
+bundle. The mapped Gambit installation was already present in =GAMBOPT=.
+The Bazel toolchain generated =gerbil-gsc= but omitted the sibling driver.
+Bazel =37fc044d63cb9eafd969d3d6fd0e218608acd6d9= supplies the companion
+as a toolchain input and uses the same C compiler and dynamic flags.
+[[https://github.com/tao3k/gerbil-bazel/pull/58][Bazel producer PR]]
+
+The existing prebuilt provider regression passes on macOS, including
+caller flags and propagation of an injected exit status. The auto provider
+regression passes on Gerbil =1cfb032= and Gambit =ea114fc=, with a real
+=compile-module= invocation producing a static object and a dynamic bundle.
+Lab pins the Bazel change and checks the synchronized Linux and Darwin
+lock projections using its existing dependency contract.
+[[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab consumer PR]]
+
+In the previous Linux cold install, the first Parser compilation began
+approximately 414 seconds after the 600-second guard started. Generation
+of Parser's grammar artifacts began approximately 386 seconds after guard
+start. The guard expired while the compiler was active, before Orgize
+and the rest of the dependency install could finish.
+
+A separate Parser build used an empty Parser output directory and the
+installed Yuanxu and POO libraries. The Parser source was =36fb2c71= with
+the local Yuanxu pin aligned to =520aa69=. Under the 2G heap setting and
+the same 600-second guard, it completed in 121773 ms with 12 automatically
+selected cores. It produced 301 Scheme interfaces, 301 static Scheme
+sources, 655 dynamic objects and 37 compressed language artifacts.
+This is a local producer baseline. The Linux package installation with
+four automatically selected cores remains a separate verification.
