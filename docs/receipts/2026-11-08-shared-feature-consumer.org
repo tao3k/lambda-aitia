@@ -1200,7 +1200,8 @@ and the Darwin provider probe expected a static object from the older
 Gerbil release. Follow-up =20d409ece2adea86607b77245be8542dd27c07f8= refreshes
 the cross-platform extension digest and requires the static Scheme source
 and dynamic object across both release families. It carries the same
-toolchain implementation as Lab's pin. Its exact-head Linux job passes.
+toolchain implementation as Lab's first pin. Its exact-head Linux and
+macOS jobs both pass.
 [[https://github.com/tao3k/gerbil-bazel/actions/runs/42554723182][Initial producer CI]]
 [[https://github.com/tao3k/gerbil-bazel/actions/runs/42555265294][Follow-up producer CI]]
 
@@ -1225,3 +1226,17 @@ process-tree physical footprint =6009372672= bytes and guard exit =71=
 (installer exit =124=). The active cold dependency path remains open on
 both platforms. The complete Parser-only build above uses already
 compiled dependencies.
+
+Lab's macOS Bazel source-build at =8fce5a77= reaches a different cut. The
+POO =6394e95= and Rust bridge =fe3796e= Bazel package actions issue successful
+receipts, with guarded times of 530675 ms and 60744 ms respectively, each
+at three automatically admitted cores. The original 12-minute workflow
+step then expires during the Yuanxu package action, before the graph
+reaches ASCENT's original missing-driver case. This establishes progress
+through the first package actions, while leaving the macOS downstream
+graph unqualified.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42554847878/job/128958162503][macOS Bazel source-build]]
+
+Lab =55bf2074a7ebbd3ad2708a1e17e566a71eb70249= then selects the qualified Bazel head.
+Strict Bazel lock resolution and the Gerbil dependency contract pass.
+The install receipts above remain tied to the measured Lab and AITIA heads.
