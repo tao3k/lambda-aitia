@@ -18,7 +18,6 @@ use jj_lib::{
 };
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// An observation of an already recorded workspace. This carries no grant.
 /// Identity fields are fixed by the adapter when it observes the workspace.
@@ -67,7 +66,6 @@ impl WorkspaceCut {
 #[derive(Debug)]
 pub enum JjObservationError {
     Io(std::io::Error),
-    Command(String),
     Output(String),
     Repository(String),
     ChangedOperation,
@@ -77,9 +75,7 @@ impl std::fmt::Display for JjObservationError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "{error}"),
-            Self::Command(error) | Self::Output(error) | Self::Repository(error) => {
-                formatter.write_str(error)
-            }
+            Self::Output(error) | Self::Repository(error) => formatter.write_str(error),
             Self::ChangedOperation => {
                 formatter.write_str("JJ operation changed during observation")
             }
@@ -183,22 +179,6 @@ pub(super) async fn require_current(
         return Err(JjObservationError::ChangedOperation);
     }
     Ok(())
-}
-
-// Git appends a newline to path output. Trailing spaces belong
-// to the path, and stripping them can select a different repository.
-fn path_line(output: &str) -> &str {
-    output.strip_suffix('\n').unwrap_or(output)
-}
-
-fn output(command: &mut Command) -> Result<String, JjObservationError> {
-    let result = command.output().map_err(JjObservationError::Io)?;
-    if !result.status.success() {
-        return Err(JjObservationError::Command(
-            String::from_utf8_lossy(&result.stderr).into_owned(),
-        ));
-    }
-    String::from_utf8(result.stdout).map_err(|error| JjObservationError::Output(error.to_string()))
 }
 
 /// Read project configuration from the recorded commit of the nearest Git project.
@@ -499,15 +479,14 @@ async fn file_at_commit(
 /// # Errors
 /// The directory must be in a Git working tree.
 pub fn git_project_root(directory: &Path) -> Result<PathBuf, JjObservationError> {
-    let root = output(
-        Command::new("git")
-            .current_dir(directory)
-            .env_remove("GIT_DIR")
-            .env_remove("GIT_WORK_TREE")
-            .env_remove("GIT_COMMON_DIR")
-            .args(["rev-parse", "--show-toplevel"]),
-    )?;
-    Path::new(path_line(&root))
-        .canonicalize()
-        .map_err(JjObservationError::Io)
+    // Bootstrap has no JJ workspace yet. Reuse its backend's read-only
+    // discovery primitive; recorded trees and all mutations remain JJ-owned.
+    // This API does not apply GIT_DIR/GIT_WORK_TREE environment overrides.
+    let (repository, _) = gix::discover::upwards(directory).map_err(repository_error)?;
+    let (_, root) = repository.into_repository_and_work_tree_directories();
+    root.ok_or_else(|| {
+        JjObservationError::Output("nearest Git repository has no working tree".into())
+    })?
+    .canonicalize()
+    .map_err(JjObservationError::Io)
 }

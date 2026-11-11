@@ -25,7 +25,8 @@ declaration carries data. Scheme owns its interpretation and defaults.
 * AITIA's own commit Case
 
 The =services.commit= declaration selects the project identity, NASA
-Profile and the primary requirement used as the title prefix. Its
+Profile and the primary engineering requirement. The reviewed draft supplies
+the title. NASA clause identifiers remain evidence and obligation references. Its
 =checks= list maps catalog requirements to project methods. Scheme
 rejects identifiers outside the selected catalog and duplicate mappings.
 =aitia commit-context= reads this declaration and the change inventory
@@ -42,10 +43,16 @@ which Org references the current assessment requires. ASCENT derives these
 clauses from the selected Profile and evidence at the recorded cut.
 Scheme turns them into an Org Contract for that draft. The drafter chooses
 how to explain the change within those clauses. Send the draft as
-={"title":"…","body":"…","org":"…"}= to =aitia commit-description=.
+={"title":"…","body":"…","org":"…","context":"…"}= to
+=aitia commit-description=. Copy =context= from the machine response
+=review.context=. The Org properties carry readable obligation references.
+The Runtime context binds those references to the exact cut and observations
+outside the Org document.
 The Runtime reevaluates the live cut and Scheme executes the generated
 Org Contract. A successful response contains the rendered description
-and digest for review. =aitia commit-prepare= takes the same draft,
+and digest for review. The description contains the reviewed title and body.
+Machine cut identities, evidence digests and source locks stay in Runtime
+receipts and JJ operations. =aitia commit-prepare= takes the same draft,
 reruns those checks and adds the exact unpublished JJ attempt to the
 response. The attempt identifies the expected and resulting operations
 and commits. Preserve the attempt for recovery. A successful prepare
@@ -54,8 +61,13 @@ leaves the visible repository head unchanged.
 By default, =commit-apply= takes the original =draft= and prepared
 =attempt=. It reruns the checks and writes through JJ under its
 operation-head lock. =commit-recover= accepts the same =attempt= and
-checks it against JJ history. Use the normal JJ bookmark and push
-commands after reading back the written commit.
+checks it against JJ history. After reading back the written commit, pass the same approved request to
+=aitia jj git push --remote origin --bookmark name=. The command rechecks
+the applied receipt, current candidate and exact description before JJ
+advances the existing remote bookmark. The backend requires preserved
+bookmark ancestry and enforces the remote lease. Transport errors leave an
+unknown remote outcome for reconciliation. Independent signed description
+approval remains scoped to its local write and cannot authorize this push.
 
 For independent signed approval, set =services.commit.governance= to
 =signed= in the recorded project declaration. Set =AITIA_GOVERNANCE_POLICY= to the

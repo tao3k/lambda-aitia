@@ -49,7 +49,29 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let command = args.next();
     let command = command.as_deref().and_then(std::ffi::OsStr::to_str);
-    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia commit-context\n       aitia commit-description < draft.json\n       aitia commit-prepare < draft.json\n       aitia commit-decision < signed.json\n       aitia commit-apply < approved.json\n       aitia commit-recover < approval.json";
+    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia commit-context\n       aitia commit-description < draft.json\n       aitia commit-prepare < draft.json\n       aitia commit-decision < signed.json\n       aitia commit-apply < approved.json\n       aitia commit-recover < approval.json\n       aitia jj git push [--remote origin] --bookmark name < approved.json";
+    if command == Some("jj") {
+        let arguments: Vec<_> = args.collect();
+        let words: Option<Vec<_>> = arguments.iter().map(|word| word.to_str()).collect();
+        let words = words.ok_or_else(|| io::Error::other("JJ arguments must be UTF-8"))?;
+        let (remote, bookmark) = match words.as_slice() {
+            ["git", "push", "--bookmark", bookmark] => ("origin", *bookmark),
+            ["git", "push", "--remote", remote, "--bookmark", bookmark]
+            | ["git", "push", "--bookmark", bookmark, "--remote", remote] => (*remote, *bookmark),
+            _ => {
+                return Err(io::Error::other(
+                    "usage: aitia jj git push [--remote origin] --bookmark name < approved.json",
+                )
+                .into());
+            }
+        };
+        let input = read_request()?;
+        let receipt = with_linked_program(|program| {
+            Ok(cli_commit::push(&program, &input, remote, bookmark))
+        })??;
+        writeln!(io::stdout().lock(), "{receipt}")?;
+        return Ok(());
+    }
     if command == Some("check") {
         if args.next().is_some() {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
@@ -231,9 +253,10 @@ pub(super) struct CommitNarration {
     title: String,
     body: String,
     org: String,
+    pub(super) context: String,
 }
 
-fn nasa_commit_report(
+pub(super) fn nasa_commit_report(
     program: &AitiaProgram<'_>,
     draft: Option<&CommitNarration>,
 ) -> Result<(WorkspaceCut, serde_json::Value), Box<dyn std::error::Error>> {

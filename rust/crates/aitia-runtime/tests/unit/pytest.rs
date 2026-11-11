@@ -212,20 +212,20 @@ fn check_adr_0008_at_a_recorded_cut(
         })
         .transpose()?;
     #[cfg(feature = "linked-program")]
-    let (fixed_org, buggy_org) = {
-        let fixed_org = replay_org(&fixed, "fixed-check", "passed");
-        let buggy_org = replay_org(&buggy, "buggy-check", "failed");
+    let (fixed_receipt, buggy_receipt) = {
+        let fixed_receipt = replay_receipt(&fixed, "fixed-check", "passed");
+        let buggy_receipt = replay_receipt(&buggy, "buggy-check", "failed");
         let supported = program
             .assess_recorded_pytest(
                 adr_scope(root, "fixed-check", &fixed_selector),
-                &fixed_org,
+                &fixed_receipt,
                 &fixed,
             )?
             .expect("admitted fixed replay");
         let contradicted = program
             .assess_recorded_pytest(
                 adr_scope(root, "buggy-check", &buggy_selector),
-                &buggy_org,
+                &buggy_receipt,
                 &buggy,
             )?
             .expect("admitted buggy replay");
@@ -276,7 +276,7 @@ fn check_adr_0008_at_a_recorded_cut(
         assert_eq!(premises[0]["blocker"], "review-missing");
         assert_eq!(premises[0]["admission"], false);
         assert_eq!(contradicted["deployment"], *deployment);
-        let promoted_org = fixed_org.replace(":END:", ":DEPLOYMENT_COMPLETE: true\n:END:");
+        let promoted_org = fixed_receipt.replace(":END:", ":DEPLOYMENT_COMPLETE: true\n:END:");
         let promoted = program
             .assess_recorded_pytest(
                 adr_scope(root, "fixed-check", &fixed_selector),
@@ -291,19 +291,21 @@ fn check_adr_0008_at_a_recorded_cut(
         };
         assert!(
             program
-                .assess_recorded_pytest(unknown, &fixed_org, &fixed)
+                .assess_recorded_pytest(unknown, &fixed_receipt, &fixed)
                 .is_err()
         );
 
-        let relabelled_org =
-            fixed_org.replace(":PROJECT: jj-qualification", ":PROJECT: another-project");
+        let relabelled_receipt = fixed_receipt.replace(
+            "\"PROJECT\":\"jj-qualification\"",
+            "\"PROJECT\":\"another-project\"",
+        );
         let relabelled_scope = crate::ReplayAssessmentScope {
             project: "another-project",
             ..adr_scope(root, "fixed-check", &fixed_selector)
         };
         assert!(
             program
-                .assess_recorded_pytest(relabelled_scope, &relabelled_org, &fixed)?
+                .assess_recorded_pytest(relabelled_scope, &relabelled_receipt, &fixed)?
                 .is_none()
         );
         let other = tempfile::tempdir()?;
@@ -316,7 +318,7 @@ fn check_adr_0008_at_a_recorded_cut(
             program
                 .assess_recorded_pytest(
                     adr_scope(other.path(), "fixed-check", &fixed_selector),
-                    &fixed_org,
+                    &fixed_receipt,
                     &fixed
                 )?
                 .is_none()
@@ -370,14 +372,14 @@ fn check_adr_0008_at_a_recorded_cut(
         for (run, org, selector, original, relabelled) in [
             (
                 &fixed,
-                &fixed_org,
+                &fixed_receipt,
                 &fixed_selector,
                 "fixed-check",
                 "buggy-check",
             ),
             (
                 &buggy,
-                &buggy_org,
+                &buggy_receipt,
                 &buggy_selector,
                 "buggy-check",
                 "fixed-check",
@@ -400,11 +402,11 @@ fn check_adr_0008_at_a_recorded_cut(
         }
 
         for invalid in [
-            relabelled_org,
-            fixed_org.replace(":METHOD: pytest", ":METHOD: proof"),
-            fixed_org.replace(&current_fixed.source_sha256, &"0".repeat(64)),
-            fixed_org.replace(":OUTCOME: passed", ":OUTCOME: failed"),
-            fixed_org.replace(
+            relabelled_receipt,
+            fixed_receipt.replace("\"METHOD\":\"pytest\"", "\"METHOD\":\"proof\""),
+            fixed_receipt.replace(&current_fixed.source_sha256, &"0".repeat(64)),
+            fixed_receipt.replace("\"OUTCOME\":\"passed\"", "\"OUTCOME\":\"failed\""),
+            fixed_receipt.replace(
                 &current_fixed.report.as_ref().unwrap().sha256,
                 &"0".repeat(64),
             ),
@@ -423,12 +425,12 @@ fn check_adr_0008_at_a_recorded_cut(
             program
                 .assess_recorded_pytest(
                     adr_scope(root, "fixed-check", &buggy_selector),
-                    &fixed_org,
+                    &fixed_receipt,
                     &fixed
                 )?
                 .is_none()
         );
-        (fixed_org, buggy_org)
+        (fixed_receipt, buggy_receipt)
     };
     let stale = observe_workspace(root)?;
     jj(&["describe", "-m", "record the modified worker"])?;
@@ -450,14 +452,14 @@ fn check_adr_0008_at_a_recorded_cut(
         let stale_fixed = program
             .assess_recorded_pytest(
                 adr_scope(root, "fixed-check", &fixed_selector),
-                &fixed_org,
+                &fixed_receipt,
                 &fixed,
             )?
             .expect("historical fixed replay");
         let stale_buggy = program
             .assess_recorded_pytest(
                 adr_scope(root, "buggy-check", &buggy_selector),
-                &buggy_org,
+                &buggy_receipt,
                 &buggy,
             )?
             .expect("historical buggy replay");
@@ -503,7 +505,7 @@ fn check_adr_0008_at_a_recorded_cut(
         let historical = program
             .assess_recorded_pytest(
                 adr_scope(root, "fixed-check", &fixed_selector),
-                &fixed_org,
+                &fixed_receipt,
                 &fixed,
             )?
             .expect("history after advancing to a new change");
@@ -516,7 +518,7 @@ fn check_adr_0008_at_a_recorded_cut(
         let old_counterexample = program
             .assess_recorded_pytest(
                 adr_scope(root, "buggy-check", &buggy_selector),
-                &buggy_org,
+                &buggy_receipt,
                 &buggy,
             )?
             .expect("counterexample history after advancing to a new change");
@@ -534,11 +536,11 @@ fn check_adr_0008_at_a_recorded_cut(
             &paths,
             &[&fixed_selector],
         )?;
-        let current_org = replay_org(&current_run, "fixed-check", "passed");
+        let current_receipt = replay_receipt(&current_run, "fixed-check", "passed");
         let current = program
             .assess_recorded_pytest(
                 adr_scope(root, "fixed-check", &fixed_selector),
-                &current_org,
+                &current_receipt,
                 &current_run,
             )?
             .expect("new run admits support at the new cut");
@@ -593,15 +595,12 @@ fn adr_scope<'a>(
 }
 
 #[cfg(feature = "linked-program")]
-fn replay_org(run: &crate::RecordedPytestRun, obligation: &str, outcome: &str) -> String {
-    use std::fmt::Write;
-
+fn replay_receipt(run: &crate::RecordedPytestRun, obligation: &str, outcome: &str) -> String {
     let cut = run.cut();
     let process = run.observation();
     let report = process.report.as_ref().unwrap();
     let parents = serde_json::to_string(cut.parent_ids()).unwrap();
-    let mut org = String::from("* Replay observation\n:PROPERTIES:\n");
-    for (key, value) in [
+    let fields = [
         ("PROJECT", run.project()),
         ("WORKSPACE", cut.workspace_name()),
         ("CHANGE", cut.change_id()),
@@ -617,11 +616,13 @@ fn replay_org(run: &crate::RecordedPytestRun, obligation: &str, outcome: &str) -
         ("SELECTOR", &process.selectors[0]),
         ("SOURCE_SHA256", &process.source_sha256),
         ("REPORT_SHA256", &report.sha256),
-    ] {
-        writeln!(org, ":{key}: {value}").unwrap();
-    }
-    org.push_str(":END:\n");
-    org
+    ];
+    serde_json::to_string(
+        &fields
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>(),
+    )
+    .unwrap()
 }
 
 #[test]

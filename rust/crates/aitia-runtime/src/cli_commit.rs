@@ -279,6 +279,48 @@ pub(super) fn recover(
     Ok(json!({ "attempt": record, "outcome": outcome }))
 }
 
+pub(super) fn push(
+    program: &AitiaProgram<'_>,
+    input: &str,
+    remote: &str,
+    bookmark: &str,
+) -> Result<Value> {
+    let mut input: Apply = serde_json::from_str(input)?;
+    let current = aitia_jj::observe_workspace(std::path::Path::new("."))?;
+    if current.operation_id() != input.attempt.resulting_operation
+        || current.commit_id() != input.attempt.resulting_commit
+        || reconcile_description(current.workspace_root(), &input.attempt)?
+            != aitia_jj::DescriptionOutcome::Applied
+    {
+        return Err(io::Error::other("Push requires the current applied review receipt").into());
+    }
+    let (_, context) = super::cli::nasa_commit_report(program, None)?;
+    if context["policy"]["governance"] != "default" || input.approval.is_some() {
+        return Err(io::Error::other(
+            "Signed description approval does not authorize a remote push",
+        )
+        .into());
+    }
+    // Recheck the written candidate using current observations. The original
+    // narration and Org references must still render the reviewed description.
+    input.draft.context = context["review"]["context"]
+        .as_str()
+        .ok_or_else(|| io::Error::other("Missing current review context"))?
+        .to_owned();
+    let (checked, report) = super::cli::nasa_commit_report(program, Some(&input.draft))?;
+    let actual = description(&report)?;
+    if checked != current || actual != input.attempt.description {
+        return Err(io::Error::other("Written commit differs from the reviewed candidate").into());
+    }
+    Ok(serde_json::to_value(aitia_jj::push_reviewed_description(
+        &checked,
+        actual,
+        remote,
+        bookmark,
+        || true,
+    )?)?)
+}
+
 fn description(report: &Value) -> Result<&str> {
     report["review"]["description"]
         .as_str()

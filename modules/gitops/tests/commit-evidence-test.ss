@@ -106,13 +106,13 @@
         (check-equal? (.get view stale) '())
         (check-equal? (.get view open) '(("test")))
         (check-equal? (.get view reopened) '())))
-    (test-case "NASA profile and current check evidence render a stable SWE prefix"
+    (test-case "NASA profile validates readable narration against current evidence"
       (let* ((gitops (.get lambda-aitia.init.exports modules gitops))
              (select-policy (.get lambda-aitia.init.exports scenarios github-gitops commit-policy))
              (checks '(("SWE-083" "jj.recorded-change") ("SWE-084" "jj.configuration-audit")))
              (policy (select-policy "nasa/sdlc/npr-7150.2" "SWE-084" checks))
              (describe (.get gitops nasa-commit-description))
-             (to-org (.get gitops commit-check-org))
+             (to-receipt (.get gitops commit-check-receipt))
              (guidance (.get gitops nasa-draft-requirements))
              (draft
               (lambda (clauses)
@@ -131,26 +131,55 @@
                     input-digest: "sha256:input" report-digest: "sha256:report")))
              (candidate
               (lambda (execution-value)
-                (.o source: (to-org execution-value) execution: execution-value)))
+                (.o source: (to-receipt execution-value) execution: execution-value)))
              (record (execution "SWE-083" "jj.recorded-change"))
              (audit (execution "SWE-084" "jj.configuration-audit"))
              (candidates (map candidate (list record audit)))
-             (render (lambda (cut rows (source (draft (.get (guidance policy cut rows) clauses))))
+             (render (lambda (cut rows (source (draft (.get (guidance policy cut rows) clauses)))
+                             (context (.get (guidance policy cut rows) context)))
                        (describe policy cut rows "Verify the recorded jj cut"
-                                 "Bind the proposed write to the observed configuration." source)))
+                                 "Bind the proposed write to the observed configuration." source context)))
              (current-clauses (.get (guidance policy before candidates) clauses))
              (current-draft (draft current-clauses))
              (result (render before candidates))
              (message (.get result description)))
-        (check (string-prefix? "SWE-084: Verify the recorded jj cut\n" message) => #t)
-        (check (number? (string-contains message "NASA-Edition: D")) => #t)
-        (check (number? (string-contains message "parent-a")) => #t)
+        (check (string-prefix? "Verify the recorded jj cut\n" message) => #t)
+        (check-equal? message
+          "Verify the recorded jj cut\n\nBind the proposed write to the observed configuration.\n")
+        (for-each
+         (lambda (metadata)
+           (check-equal? (string-contains message metadata) #f))
+         '("NASA-Source-Lock:" "NASA-Edition:" "NASA-Requirements:" "JJ-Cut:"
+           "AITIA-Draft:" "AITIA-Evidence:" "sha256:" "parent-a"))
         (check-equal? (.get (render before (reverse candidates)) description) message)
         (check (string? (.get result description-digest)) => #t)
+        (check-equal? (string-contains current-draft "sha256:") #f)
+        (check-equal? (string-contains current-draft "AITIA_CONTEXT") #f)
+        (let (forged-draft (string-append current-draft
+                             (draft '(("SOURCE_SHA256" . "sha256:forged")))))
+          (check-equal? (.get (render before candidates forged-draft) draft-valid?) #f))
+        (let* ((receipt (.get (car candidates) source))
+               (duplicate (string-append (substring receipt 0 (- (string-length receipt) 1))
+                                         ",\"OUTCOME\":\"failed\"}")))
+          (check-equal? (.get (render before
+                                (list (.cc (car candidates) source: duplicate) (cadr candidates)))
+                             description) #f))
+        (let* ((fresh (map (lambda (candidate-value)
+                            (let (execution-value (.get candidate-value execution))
+                              (candidate (.cc execution-value
+                                           observation: (.cc (.get execution-value observation)
+                                                             cut: rewritten)))))
+                          candidates))
+               (fresh-draft (draft (.get (guidance policy rewritten fresh) clauses))))
+          (check-equal? fresh-draft current-draft)
+          (check-equal? (.get (render rewritten fresh fresh-draft
+                                    (.get (guidance policy before candidates) context)) draft-valid?) #f)
+          (check-equal? (.get (render rewritten fresh fresh-draft) draft-valid?) #t))
         (let* ((alternate (select-policy "nasa/sdlc/npr-7150.2" "SWE-083" checks))
                (result (describe alternate before candidates "Record configuration" "Retain the check evidence."
-                                 (draft (.get (guidance alternate before candidates) clauses)))))
-          (check (string-prefix? "SWE-083: " (.get result description)) => #t))
+                                 (draft (.get (guidance alternate before candidates) clauses))
+                                 (.get (guidance alternate before candidates) context))))
+          (check (string-prefix? "Record configuration\n" (.get result description)) => #t))
         (check-exception
          (select-policy "nasa/sdlc/npr-7150.2" "SWE-999" '(("SWE-999" "forged"))) Error?)
         (check-exception
@@ -186,6 +215,8 @@
         (let (wrong (candidate (.cc audit method: "unexpected-method")))
           (check-equal? (.get (render before (list (car candidates) wrong)) description) #f))
         (check-exception
-         (describe policy before candidates "SWE-999: Invent a prefix" "Body" current-draft) Error?)
+         (describe policy before candidates "SWE-999: Invent a prefix" "Body" current-draft
+                   (.get (guidance policy before candidates) context)) Error?)
         (check-exception
-         (describe policy before candidates "Review the change" "AITIA-Evidence: forged" current-draft) Error?)))))
+         (describe policy before candidates "Review the change" "AITIA-Evidence: forged" current-draft
+                   (.get (guidance policy before candidates) context)) Error?)))))

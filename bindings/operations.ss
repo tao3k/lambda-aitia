@@ -414,7 +414,7 @@
     (let* ((policy (select-project-commit-policy selection))
            (cut-value (replay-cut (hash-ref selection 'project) (json-required input "cut")))
            (gitops (.get lambda-aitia.init.exports modules gitops))
-           (to-org (.get gitops commit-check-org))
+           (to-receipt (.get gitops commit-check-receipt))
            (candidates
             (map (lambda (row)
                    (let (execution-value
@@ -424,13 +424,14 @@
                              method: (json-required row "method") producer: "aitia-runtime/jj-lib"
                              input-digest: (json-required row "inputDigest")
                              report-digest: (json-required row "reportDigest")))
-                     (.o execution: execution-value source: (to-org execution-value))))
+                     (.o execution: execution-value source: (to-receipt execution-value))))
                  (json-list input "checks")))
            (draft (hash-get input "draft"))
            (review (if draft
                        ((.get gitops nasa-commit-description)
                         policy cut-value candidates (json-required draft "title")
-                        (json-required draft "body") (json-required draft "org"))
+                        (json-required draft "body") (json-required draft "org")
+                        (json-required draft "context"))
                        ((.get gitops nasa-draft-requirements) policy cut-value candidates)))
            (assessment-value (.get review assessment)))
       (def (rows key)
@@ -438,6 +439,7 @@
       (json->string
        (hash (supported (rows 'supported)) (contradicted (rows 'contradicted))
              (open (rows 'open)) (reopened (rows 'reopened))
+             (context (.get review context))
              (clauses (if draft (void)
                           (list->vector
                            (map (lambda (row) (hash (property (car row)) (value (cdr row))))
@@ -462,8 +464,8 @@
          (failure-message (hash-get input "failureMessage"))
          (input-digest (json-required input "sourceDigest"))
          (report-digest (json-required input "reportDigest"))
-         (generated (and (hash-get input "generateOrg")
-                         ((.get gitops replay-org) observation selector input-digest report-digest)))
+         (generated (and (hash-get input "generateReceipt")
+                         ((.get gitops replay-receipt) observation selector input-digest report-digest)))
          (result (and (or (not profile)
                           ((.get lambda-aitia.init.exports modules assurance replay-observation-matches?)
                            profile selector (.get observation obligation)
@@ -498,7 +500,7 @@
                      (supported (rows 'supported)) (contradicted (rows 'contradicted))
                      (stale (rows 'stale)) (open (rows 'open)) (reopened (rows 'reopened))
                      (releaseAuthorized #f)
-                     (observationOrg (or generated (void)))
+                     (observationReceipt (or generated (void)))
                      (failureMessage (if (string? failure-message) failure-message (void)))
                      (assurance (if assessment (support-fields assessment) (void)))
                      (deployment (if deployment (deployment-fields deployment) (void)))))))

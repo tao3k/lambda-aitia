@@ -86,7 +86,11 @@ package AitiaCommit {
     item def NasaCommitAssessment {
         doc /* The selected NASA Scenario binds its edition and catalog digest
              * to a bounded project assessment. Current support, counterexamples
-             * and remaining obligations are retained with their observations. */
+             * and remaining obligations are retained with their observations.
+             * Runtime receipts retain exact identity and digest bindings.
+             * The commit description contains the reviewed title and narrative.
+             * Org review properties reference readable obligations; a separate
+             * Runtime context binds their Contract to the current cut. */
         item cut : CommitCut;
         attribute standardEdition : String;
         attribute standardSourceDigest : String;

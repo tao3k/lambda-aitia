@@ -7,5 +7,6 @@
   tags: '(software-engineering sdlc)
   core: (.o requires: (.o Assurance: (.o module-id: 'assurance))
             scope-contract: SdlcScopeContract
-            exports: (make-sdlc-scope Assurance))
+            exports: (make-sdlc-scope Assurance)
+            projections: (list Build))
   features: (.o))

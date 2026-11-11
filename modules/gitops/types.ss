@@ -114,11 +114,11 @@
                           (list Any NonEmptyString String NonEmptyString NonEmptyString
                                 (Function (list UInt) '())))]
                commit-admission: [(Function (list (Or False Object)) (list Any NonEmptyString NonEmptyString))]
-               commit-check-org: [(Function (list String) (list GitOpsCommitExecution))]
+               commit-check-receipt: [(Function (list String) (list GitOpsCommitExecution))]
                nasa-draft-requirements: [(Function (list Object)
                  (list Object GitOpsCommitCut GitOpsCommitCandidates))]
                nasa-commit-description: [(Function (list Object)
-                 (list Object GitOpsCommitCut GitOpsCommitCandidates String String String))]
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates String String String String))]
                commit-evidence: [(Function (list Object)
                                            (list GitOpsCommitCut GitOpsCommitObligations
                                                  GitOpsCommitObservations))]

@@ -52,22 +52,22 @@ test-jj-commit-evidence:
 build-scheme:
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
 
-[group('build')]
-build-user-interface:
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} ./build.ss compile --modules github-gitops
-
 # Stage the bridge-owned AOT inputs using the installed Scheme/Rust bridge.
 [group('rust')]
-stage-rust-program: build-user-interface
+stage-rust-program: build-scheme
     mkdir -p '{{ build_root }}/aitia-program'
-    AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import :gerbil/compiler :gerbil-scheme-rust/scheme/program-build) (for-each (lambda (source) (compile-module source [output-dir: (path-expand "lib" (getenv "GERBIL_PATH")) invoke-gsc: #t optimize: #t static: #t])) ["init.ss" "bindings/operations.ss" "rust/scheme/program.ss"]) (gerbil-rs-stage-program "rust/scheme/program.ss" (getenv "AITIA_PROGRAM_OUTPUT"))'
+    GERBIL_LOADPATH='{{ GERBIL_PATH }}/lib' AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import (only-in :gerbil/expander core-resolve-library-module-path) :gerbil-scheme-rust/scheme/program-build) (gerbil-rs-stage-program (core-resolve-library-module-path (quote :lambda-aitia/rust/scheme/program)) (getenv "AITIA_PROGRAM_OUTPUT"))'
 
 [group('rust')]
 build-rust-cli features="linked-program,sysml": stage-rust-program
     AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
 
 [group('rust')]
-test-rust-linked-program: stage-rust-program
+build-rust-linked-tests: stage-rust-program
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program --no-run
+
+[group('rust')]
+test-rust-linked-program: build-rust-linked-tests
     AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program -- --nocapture
 
 [group('rust')]
@@ -126,7 +126,6 @@ _test-scheme-file path:
 [group('check')]
 test-integration:
     just build-scheme
-    just build-user-interface
     just test-scheme bindings
     just test-scheme integration
 
@@ -239,7 +238,7 @@ check-quint-scheme:
 
 # Compare Scheme with reachable action witnesses and fault refusals.
 [group('check')]
-check-lifecycle-scheme mode="": build-user-interface
+check-lifecycle-scheme mode="": build-scheme
     {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' modules/assurance/cedar-preflight.ss modules/assurance/effect-host.ss dev/proof/scheme/lifecycle-fixture.ss dev/proof/scheme/lifecycle-replay-test.ss
     python3 dev/proof/quint/test_lifecycle_replay.py
     python3 dev/proof/quint/check_lifecycle_replay.py {{ mode }}

@@ -36,12 +36,9 @@
         (cons "OUTCOME" outcome)))
 
 (def (observation-source fields)
-  (apply string-append
-         "* Commit observation\n:PROPERTIES:\n"
-         (append (map (lambda (field)
-                        (string-append ":" (car field) ": " (cdr field) "\n"))
-                      fields)
-                 '(":END:\n"))))
+  (let (record (make-hash-table))
+    (for-each (lambda (field) (hash-put! record (car field) (cdr field))) fields)
+    (call-with-output-string (lambda (port) (write-json port record)))))
 
 (def (check-recorded-support cuts before rewritten advanced)
   (let* ((runs (hash-ref cuts "runs"))
@@ -52,13 +49,13 @@
          (producer-id "aitia-runtime/pytest")
          (gitops (.get lambda-aitia.init.exports modules gitops))
          (assurance (.get lambda-aitia.init.exports modules assurance))
-         (admit-org (.get gitops admit-commit-observation))
+         (admit-receipt (.get gitops admit-commit-observation))
          (derive (.get gitops commit-evidence))
-         (fixed-fact (admit-org
+         (fixed-fact (admit-receipt
                       (observation-source (evidence-fields before producer-id "fixed" "passed"))
                       (.o cut: before identity: "fixed" obligation: "check" outcome: 'passed)
                       producer-id))
-         (buggy-fact (admit-org
+         (buggy-fact (admit-receipt
                       (observation-source (evidence-fields before producer-id "buggy" "failed" "buggy-check"))
                       (.o cut: before identity: "buggy" obligation: "buggy-check" outcome: 'failed)
                       producer-id))

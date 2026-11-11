@@ -75,6 +75,57 @@ fn observation_preserves_dirty_workspace_and_distinguishes_a_rewrite() {
 }
 
 #[test]
+fn git_discovery_keeps_bootstrap_worktree_and_bare_boundaries() {
+    let directory = tempfile::tempdir().unwrap();
+    let project = directory.path().join("project ");
+    gix::init(&project).unwrap();
+    let nested = project.join("src/nested");
+    std::fs::create_dir_all(&nested).unwrap();
+    assert_eq!(
+        aitia_jj::git_project_root(&nested).unwrap(),
+        project.canonicalize().unwrap()
+    );
+    // Git is fixture setup only. The production discovery never executes it.
+    let commit = Command::new("git")
+        .current_dir(&project)
+        .args([
+            "-c",
+            "user.name=AITIA Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "--allow-empty",
+            "-m",
+            "Worktree discovery fixture",
+        ])
+        .output()
+        .unwrap();
+    assert!(commit.status.success(), "{commit:?}");
+    let worktree = directory.path().join("worktree ");
+    let created = Command::new("git")
+        .current_dir(&project)
+        .args(["worktree", "add", "--detach"])
+        .arg(&worktree)
+        .arg("HEAD")
+        .output()
+        .unwrap();
+    assert!(created.status.success(), "{created:?}");
+    assert!(worktree.join(".git").is_file());
+    let inside = worktree.join("src");
+    std::fs::create_dir(&inside).unwrap();
+    assert_eq!(
+        aitia_jj::git_project_root(&inside).unwrap(),
+        worktree.canonicalize().unwrap()
+    );
+    let bare = directory.path().join("bare.git");
+    gix::init_bare(&bare).unwrap();
+    assert!(aitia_jj::git_project_root(&bare).is_err());
+    let invalid = directory.path().join("invalid");
+    std::fs::create_dir_all(invalid.join(".git")).unwrap();
+    assert!(aitia_jj::git_project_root(&invalid).is_err());
+}
+
+#[test]
 fn a_nested_git_project_reads_its_recorded_manifest() {
     let executable = PathBuf::from(std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN"));
     let directory = tempfile::tempdir().unwrap();
@@ -263,4 +314,262 @@ fn description_prepare_refuses_a_bookmark_rewrite() {
     let cut = observe_workspace(workspace).unwrap();
     assert!(aitia_jj::prepare_description(&cut, "new description").is_err());
     assert_eq!(observe_workspace(workspace).unwrap(), cut);
+}
+
+#[test]
+fn reviewed_push_preserves_history_and_rejects_stale_cuts_and_remote_leases() {
+    let executable = PathBuf::from(std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN"));
+    let directory = tempfile::tempdir().unwrap();
+    let workspace = directory.path().join("workspace");
+    let remote = directory.path().join("remote.git");
+    std::fs::create_dir(&workspace).unwrap();
+    assert!(
+        Command::new("git")
+            .args(["init", "--bare"])
+            .arg(&remote)
+            .status()
+            .unwrap()
+            .success()
+    );
+    jj(&executable, &workspace, &["git", "init", "--colocate"]);
+    std::fs::write(workspace.join("base.txt"), "base\n").unwrap();
+    jj(&executable, &workspace, &["describe", "-m", "Base"]);
+    jj(
+        &executable,
+        &workspace,
+        &["bookmark", "create", "reviewed", "-r", "@"],
+    );
+    jj(
+        &executable,
+        &workspace,
+        &["git", "remote", "add", "origin", remote.to_str().unwrap()],
+    );
+    jj(
+        &executable,
+        &workspace,
+        &[
+            "git",
+            "push",
+            "--remote",
+            "origin",
+            "--bookmark",
+            "reviewed",
+        ],
+    );
+    let base = observe_workspace(&workspace).unwrap();
+    jj(&executable, &workspace, &["new", "-m", "Candidate"]);
+    std::fs::write(workspace.join("candidate.txt"), "reviewed\n").unwrap();
+    jj(&executable, &workspace, &["describe", "-m", "Candidate"]);
+    let original = observe_workspace(&workspace).unwrap();
+    let description = "Publish reviewed change\n\nEvidence\nThe candidate was checked.\n\nOpen\nLocal fixture only.\n";
+    aitia_jj::prepare_description(&original, description)
+        .unwrap()
+        .publish(|_| true)
+        .unwrap();
+    let current = observe_workspace(&workspace).unwrap();
+    assert!(matches!(
+        aitia_jj::push_reviewed_description(
+            &original,
+            description,
+            "origin",
+            "reviewed",
+            || panic!("stale cut")
+        ),
+        Err(aitia_jj::JjObservationError::ChangedOperation)
+    ));
+    assert!(
+        aitia_jj::push_reviewed_description(&current, "forged", "origin", "reviewed", || panic!(
+            "unreviewed description"
+        ))
+        .is_err()
+    );
+    assert!(
+        aitia_jj::push_reviewed_description(&current, description, "origin", "absent", || panic!(
+            "absent bookmark"
+        ))
+        .is_err()
+    );
+    assert!(
+        aitia_jj::push_reviewed_description(&current, description, "origin", "reviewed", || false)
+            .is_err()
+    );
+    let remote_head = || {
+        let result = Command::new("git")
+            .arg("--git-dir")
+            .arg(&remote)
+            .args(["rev-parse", "refs/heads/reviewed"])
+            .output()
+            .unwrap();
+        assert!(result.status.success());
+        String::from_utf8(result.stdout).unwrap().trim().to_owned()
+    };
+    assert_eq!(remote_head(), base.commit_id());
+    let receipt =
+        aitia_jj::push_reviewed_description(&current, description, "origin", "reviewed", || true)
+            .unwrap();
+    assert_eq!(receipt.commit, current.commit_id());
+    assert_eq!(remote_head(), current.commit_id());
+    let object = Command::new("git")
+        .arg("--git-dir")
+        .arg(&remote)
+        .args(["cat-file", "commit", current.commit_id()])
+        .output()
+        .unwrap();
+    assert!(object.status.success());
+    let object = String::from_utf8(object.stdout).unwrap();
+    assert_eq!(object.split_once("\n\n").unwrap().1, description);
+    assert!(
+        Command::new("git")
+            .arg("--git-dir")
+            .arg(&remote)
+            .args(["update-ref", "refs/heads/reviewed", base.commit_id()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let after = observe_workspace(&workspace).unwrap();
+    let refused =
+        aitia_jj::push_reviewed_description(&after, description, "origin", "reviewed", || true);
+    assert!(
+        refused.is_err(),
+        "a stale remote lease must refuse publication"
+    );
+    assert_eq!(remote_head(), base.commit_id());
+    jj(
+        &executable,
+        &workspace,
+        &["new", "root()", "-m", "Unrelated"],
+    );
+    let unrelated = observe_workspace(&workspace).unwrap();
+    aitia_jj::prepare_description(&unrelated, "Unrelated reviewed\n")
+        .unwrap()
+        .publish(|_| true)
+        .unwrap();
+    let unrelated = observe_workspace(&workspace).unwrap();
+    let refused = aitia_jj::push_reviewed_description(
+        &unrelated,
+        "Unrelated reviewed\n",
+        "origin",
+        "reviewed",
+        || panic!("non-fast-forward"),
+    );
+    assert!(
+        refused
+            .unwrap_err()
+            .to_string()
+            .contains("preserve bookmark history")
+    );
+    assert_eq!(remote_head(), base.commit_id());
+}
+
+#[test]
+fn reviewed_push_preserves_divergent_unpublished_local_work() {
+    let executable = PathBuf::from(std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN"));
+    let directory = tempfile::tempdir().unwrap();
+    let workspace = directory.path().join("workspace");
+    let remote = directory.path().join("remote.git");
+    std::fs::create_dir(&workspace).unwrap();
+    assert!(
+        Command::new("git")
+            .args(["init", "--bare"])
+            .arg(&remote)
+            .status()
+            .unwrap()
+            .success()
+    );
+    jj(&executable, &workspace, &["git", "init", "--colocate"]);
+    std::fs::write(workspace.join("base.txt"), "base\n").unwrap();
+    jj(&executable, &workspace, &["describe", "-m", "Base"]);
+    jj(
+        &executable,
+        &workspace,
+        &["bookmark", "create", "reviewed", "-r", "@"],
+    );
+    jj(
+        &executable,
+        &workspace,
+        &["git", "remote", "add", "origin", remote.to_str().unwrap()],
+    );
+    jj(
+        &executable,
+        &workspace,
+        &[
+            "git",
+            "push",
+            "--remote",
+            "origin",
+            "--bookmark",
+            "reviewed",
+        ],
+    );
+    let base = observe_workspace(&workspace).unwrap();
+    jj(
+        &executable,
+        &workspace,
+        &["new", "-m", "Independent local work"],
+    );
+    std::fs::write(workspace.join("private.txt"), "preserve unpublished work\n").unwrap();
+    jj(
+        &executable,
+        &workspace,
+        &["bookmark", "set", "reviewed", "-r", "@"],
+    );
+    let private = observe_workspace(&workspace).unwrap();
+    jj(
+        &executable,
+        &workspace,
+        &["new", base.commit_id(), "-m", "Candidate"],
+    );
+    std::fs::write(workspace.join("candidate.txt"), "reviewed change\n").unwrap();
+    jj(&executable, &workspace, &["status"]);
+    let candidate = observe_workspace(&workspace).unwrap();
+    let description = "fix(review): preserve parallel local work\n";
+    aitia_jj::prepare_description(&candidate, description)
+        .unwrap()
+        .publish(|_| true)
+        .unwrap();
+    let candidate = observe_workspace(&workspace).unwrap();
+    let receipt =
+        aitia_jj::push_reviewed_description(&candidate, description, "origin", "reviewed", || true)
+            .unwrap();
+    assert_eq!(receipt.commit, candidate.commit_id());
+    let local = Command::new(&executable)
+        .current_dir(&workspace)
+        .args([
+            "--ignore-working-copy",
+            "log",
+            "--no-graph",
+            "-r",
+            "reviewed",
+            "-T",
+            "commit_id",
+        ])
+        .output()
+        .unwrap();
+    assert!(local.status.success(), "{local:?}");
+    assert_eq!(
+        String::from_utf8(local.stdout).unwrap().trim(),
+        private.commit_id()
+    );
+    let native_local = Command::new("git")
+        .current_dir(&workspace)
+        .args(["rev-parse", "refs/heads/reviewed"])
+        .output()
+        .unwrap();
+    assert!(native_local.status.success());
+    assert_eq!(
+        String::from_utf8(native_local.stdout).unwrap().trim(),
+        private.commit_id()
+    );
+    let published = Command::new("git")
+        .arg("--git-dir")
+        .arg(&remote)
+        .args(["rev-parse", "refs/heads/reviewed"])
+        .output()
+        .unwrap();
+    assert!(published.status.success());
+    assert_eq!(
+        String::from_utf8(published.stdout).unwrap().trim(),
+        candidate.commit_id()
+    );
 }

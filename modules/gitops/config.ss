@@ -16,13 +16,13 @@
       evaluate: gitops-evaluate-default
       admit-commit-observation: gitops-admit-commit-observation
       assess-replay-observation: gitops-assess-replay-observation
-      replay-org: gitops-replay-org
+      replay-receipt: gitops-replay-receipt
       commit-intent: gitops-commit-intent
       record-commit-approval!: gitops-record-commit-approval!
       revoke-commit-approval!: gitops-revoke-commit-approval!
       consume-commit-admission!: gitops-consume-commit-admission!
       commit-admission: gitops-commit-admission
-      commit-check-org: gitops-commit-check-org
+      commit-check-receipt: gitops-commit-check-receipt
       nasa-draft-requirements: gitops-nasa-draft-requirements
       nasa-commit-description: gitops-nasa-commit-description
       commit-evidence: gitops-commit-evidence

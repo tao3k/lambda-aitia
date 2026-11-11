@@ -6,9 +6,19 @@
 #[cfg(unix)]
 use gerbil_scheme::{CollectionKind, ObjectKind, RootedSchemeObject};
 use gerbil_scheme::{GerbilRuntime, LinkedGerbilProgram, LinkedObjectExport, NativeError};
-use gerbil_scheme_sys::{GerbilGlobalState, GerbilModuleOrLink};
+use gerbil_scheme_sys::{
+    GerbilGlobalState, GerbilModuleOrLink, gerbil_scheme_rust_take_call_error_raw,
+};
 
 pub(crate) const MAX_REQUEST_BYTES: u64 = 4 * 1024 * 1024;
+
+// Adapt the bridge's argument-free, one-shot diagnostic export to its safe
+// bytevector owner API. The input is unused and never retained.
+unsafe extern "C" fn linked_call_error(_: *const u8, _: usize) -> i64 {
+    // SAFETY: callers bind this only on the initialized Scheme owner, after
+    // a failed rooted call. The bridge transfers at most one diagnostic root.
+    unsafe { gerbil_scheme_rust_take_call_error_raw() }
+}
 
 unsafe extern "C" {
     fn ___LNK_aitia__program(state: *mut GerbilGlobalState) -> *mut GerbilModuleOrLink;
@@ -744,17 +754,17 @@ impl<'runtime> AitiaProgram<'runtime> {
     pub fn assess_recorded_pytest(
         &self,
         scope: ReplayAssessmentScope<'_>,
-        org_source: &str,
+        receipt_source: &str,
         run: &crate::RecordedPytestRun,
     ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error>> {
-        self.assess_pytest_replay(scope, Some(org_source), run)
+        self.assess_pytest_replay(scope, Some(receipt_source), run)
     }
 
     #[cfg(unix)]
     pub(crate) fn assess_pytest_replay(
         &self,
         scope: ReplayAssessmentScope<'_>,
-        org_source: Option<&str>,
+        receipt_source: Option<&str>,
         run: &crate::RecordedPytestRun,
     ) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error>> {
         use crate::{PytestExit, PytestVerdict};
@@ -802,8 +812,8 @@ impl<'runtime> AitiaProgram<'runtime> {
             "identity": report.sha256,
             "outcome": outcome,
             "selector": scope.selector,
-            "source": org_source,
-            "generateOrg": org_source.is_none(),
+            "source": receipt_source,
+            "generateReceipt": receipt_source.is_none(),
             "sourceDigest": process.source_sha256,
             "reportDigest": report.sha256,
         });
@@ -865,12 +875,18 @@ impl<'runtime> AitiaProgram<'runtime> {
         request: &str,
     ) -> Result<String, NativeError> {
         let request = self.runtime.string_from_utf8(request)?.into_object();
-        operation
-            .call(&request)
-            .into_result()?
-            .into_string()?
-            .to_string()
-            .into_result()
+        let response = operation.call(&request).into_result();
+        if response.is_err() {
+            // SAFETY: the existing bridge export belongs to this initialized
+            // archive and consumes only this owner's immediately preceding error.
+            let diagnostic = unsafe { self.runtime.bind_bytes_export(linked_call_error) }
+                .and_then(|export| export.call(&[]).into_result())
+                .and_then(|bytes| bytes.to_vec().into_result());
+            if let Ok(message) = diagnostic {
+                eprintln!("{}", String::from_utf8_lossy(&message));
+            }
+        }
+        response?.into_string()?.to_string().into_result()
     }
 }
 
