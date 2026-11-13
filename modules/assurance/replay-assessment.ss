@@ -4,7 +4,7 @@
 
 (import (only-in :clan/poo/object .o .ref)
         (only-in :std/list/list find)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "objects.ss" assurance-artifact assurance-claim assurance-assumption assurance-obligation
                  assurance-evidence assurance-relation assurance-counterexample)
         (only-in "func.ss" assurance-canonical-digest assurance-snapshot

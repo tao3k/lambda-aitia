@@ -8,7 +8,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :std/encoding/hex hex-decode)
         (only-in :std/hash/misc hash-remove!)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "cedar-preflight.ss" assurance-host-cedar-request-current?)
         :agentic-ai-lab/modules/governance/policy/authorized-effect-token
         (only-in :agentic-ai-lab/modules/authorization/providers/cedar/decision

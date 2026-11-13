@@ -1,0 +1,2444 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0007 — Source-bound commit engineering
+#+startup: overview
+
+* Engineering identity and readable intent
+:PROPERTIES:
+:ID: lambda-aitia-commit-engineering
+:ENGINEERING_ID: RFC-0007
+:STATUS: implementation-in-progress
+:END:
+
+This RFC owns the engineering item for source-bound commit narration. Its
+identity is independent of PR 2 and of NASA requirements such as SWE-083 and
+SWE-084. The RFC number identifies this design record; it is not a fabricated
+issue number or a claim of NASA certification.
+
+** Ownership
+
+The NASA Profile selects applicable engineering obligations and their evidence
+methods. It does not prescribe a Conventional Commit grammar. The project
+Scheme/POO configuration owns its title convention, vocabulary, scope mapping
+and references to engineering records. Project language sources supply context
+for Agent deliberation; an optional =primaryLanguage= is an explicit project
+declaration, not a global default. JSON supplies ordinary configured values
+through the same Scheme Contract. The program selection is
+=programs.jj.enable= and =programs.jj.settings=, separate from runtime services.
+
+Rust reads the current JJ cut, changed paths and configured source documents
+through JJ's Rust library and backend. Agent narration cannot replace those
+observations. Scheme verifies the ORG Element and executes its uniqueness
+Contract before admitting a configured engineering reference. ASCENT derives
+eligible candidates and explicit missing, conflicting or out-of-scope relations.
+The LLM proposes intent and explains its choice; eligibility does not authorize
+a write or establish that the proposed intent is factually correct.
+
+** RFC, ADR and domain relations
+
+The current project configuration declares one engineering reference,
+=RFC-0007=, and one commit scope, =gitops=. The ADR module already owns
+decision status, revision, options, consequences and typed links including
+=refines-rfc=, =implements-rfc= and reciprocal supersession.
+[[file:../adrs/0002-standardize-ADR-and-connect-RFC.org][ADR 0002]] defines
+the RFC relationship and the Assurance projection.
+
+The review graph should keep the engineering item, the applicable
+architecture decisions and the affected domains as distinct relations.
+A change may have one primary engineering reference for its title and
+several related decisions. A domain groups responsibilities declared by
+the project and its Modules. A commit scope identifies affected paths.
+Domain membership should follow declared Module ownership and typed
+document links. The proposal can suggest additional relations for review.
+It cannot establish them by matching a filename or title.
+
+Read the referenced ORG Elements at the selected JJ revision. Use the ADR
+module to validate decision status, revision and links. ASCENT can then
+relate changed paths to their declared domains, RFCs and relevant ADRs.
+A superseded decision remains visible in historical review and needs
+reassessment before it can support a current claim. The existing ADR
+Assurance projection preserves this distinction and grants no authority.
+
+[[file:../adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]]
+and [[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]]
+provide a recorded pair for the execution-runtime domain. The current
+commit engineering Case keeps RFC 0007 as its primary reference. Related
+decisions should appear when an explicit relation has been admitted.
+The ADR and domain projection into commit review and GQL remains open.
+
+** Structured proposal
+
+An Agent supplies =identity=, =reference=, =type=, =scope=, =summary= and
+=rationale=, alongside the reviewed body, ORG assessment and current context.
+The proposal also records =language= and =languageSource=. The LLM assesses
+the project documentation and any explicit primary-language declaration.
+ASCENT relates the proposed language to an observed project source and reports
+conflicts with an explicit project declaration. There is no built-in English
+requirement. Unicode narration is valid; structural checks reject control
+characters, not languages. Neither a source link nor a character check proves
+that a text is written in the proposed language. Linguistic and substantive
+correctness remain review obligations. A rationale is retained as proposed reasoning, not execution
+evidence.
+
+Without an explicit primary-language declaration, the Agent may infer the
+language from the observed main project documents; it does not fall back to
+English. A missing or stale language source leaves the proposal Open. An
+explicit declaration that conflicts with the proposal also leaves it Open;
+ASCENT exposes that conflict for review rather than choosing a language by
+character set or filename.
+
+The linked push fixture uses this project's English review style and reads a
+recorded ORG engineering item. A proposal conflicting with its language
+declaration and a proposal citing an unrecorded language source each leave a
+distinct Open reason without issuing a prepare attempt. The renderer does not
+select a project language; its Evidence and Open labels are section names.
+
+For this RFC the project policy can render:
+
+#+begin_example
+AITIA-RFC-0007 feat(gitops): Validate source-bound commit intent
+#+end_example
+
+The reference must match the configured document, unique stable ORG ID and
+=ENGINEERING_ID= on the same headline. PR identity is a review association.
+NASA SWE identifiers name obligations. Neither supplies a missing engineering
+item. Other projects may declare their own engineering records and vocabulary;
+the runtime must not derive an identifier from title keywords or manufacture a
+counter.
+
+The configuration export selects the NASA policy once. Its Rust caller
+keeps the Scheme review configuration rooted while it gathers JJ and
+provider facts. The review consumes that object with the captured facts.
+Rust uses the public configuration projection to select its checks, and
+each subsequent admission resolves the configuration for its own cut.
+
+The Scheme policy evaluates each immutable review observation with the
+ASCENT one-shot evaluator. Each invocation checks that the evaluation
+finished before using its rows. Preparation and subsequent admission
+capture fresh facts through the same policy. Historical evidence remains
+available through its revision and recorded source.
+
+ASCENT compares the declared =(identity, document, Element)= relations
+separately from the ORG observations that resolve them. Two distinct
+document/Element pairs for one identity are a conflict even if one document
+is missing, belongs to an old cut, or does not contain the claimed Element.
+An unverified declaration remains visible as unresolved alongside the
+conflict. The proposal stays Open and cannot prepare a write. Identical
+declarations do not create a second origin. Multiple source observations for
+the same path cannot establish its current identity by selecting the one
+that passes validation.
+
+The Scheme regression reproduced two cases where the earlier rules rendered
+a title: a competing origin had no current document, and a second observation
+of the same path failed validation. The fixed rules reject both. The suite
+also covers a retired origin, a forged Element, conflicting Element IDs in
+one document, and repeated identical declarations.
+
+The linked JJ replay recorded two declarations for =WORK-1= with one
+missing document. Prepare returned both =conflictingReferences= and
+=unresolvedReferences=, issued no attempt, and left the recorded workspace
+unchanged. Replacing the old declaration with one verified origin allowed
+a fresh review and the existing local-remote push and readback. All five
+linked cases passed in 40.93 seconds under the unchanged guard. OpenSysML
+also loaded the updated EngineeringReference model.
+
+** Invalidation and effects
+
+The machine review context binds the NASA selection, current cut, naming
+policy, project-language sources, compiled Scheme program identity, source
+contents and observed change paths. These machine bindings stay
+in runtime custody and JJ, rather than human-readable hash trailers. Source or
+policy revision requires re-evaluation even when the ORG ID remains unchanged.
+Missing or conflicting facts remain Open; old context cannot authorize the
+revised candidate.
+
+The linked JJ replay replaces a configured engineering source with a second
+recorded ORG document containing the same Element and engineering identity.
+The rendered description and project language source stay unchanged. The old
+preview cannot prepare on the replacement cut, and its prepared attempt
+cannot apply even with the new preview. Both refusals leave the recorded
+workspace unchanged. A fresh preview and attempt complete the local-remote
+push and actual commit readback. All five linked tests passed in 31.77 seconds
+under the unchanged 120-second guard.
+
+This is a recorded engineering association replay, separate from provider PR
+association. The read-only GitHub check confirmed PR 2's published head and
+base branches. Its head is the base of the isolated review candidate, which
+has no configured remote. The PR's checks therefore do not qualify the
+candidate tree. Provider observations must be revalidated and admitted before
+Scheme/ASCENT can use them as support.
+
+=aitia jj commit= now reports =recordedReviewBookmarks=. JJ reads them from
+the current operation, without snapshotting, fetching, or reading a provider.
+JJ uses its index to find recorded remote bookmark targets reachable from
+the candidate. For each remote it keeps targets that are not ancestors of
+another reachable target on that remote. It retains distinct bookmarks at
+the same head, incomparable targets after a merge, and reachable conflicts.
+A conflicted target has no selected commit. JJ excludes its local Git
+pseudo-remote and resolves the push lease under the operation lock.
+An empty discovery result does not establish PR absence.
+The list is discovery input, not admitted provider evidence or a reviewed
+push destination.
+
+The same discovery result reports a canonical =githubRepository= when the
+current JJ backend resolves every configured fetch and push URL to the same
+repository on =github.com=. An HTTPS or SSH URL contributes only its
+=owner/repository= identity. Alternate hosts, split destinations, and local
+remotes leave that field empty. Git configuration can change without
+advancing the JJ operation, so this observation must be re-read before
+provider association; it cannot be replayed as an immutable operation fact.
+
+The read-only =aitia jj commit= context also emits =providerReview= for a
+single unambiguous GitHub bookmark. Rust queries GitHub through the
+recorded JJ remote. A PR response must name the same repository for both
+head and base, match the source bookmark, and identify the exact recorded
+head. Each check run must bind that head. A partial, unavailable or
+inconsistent check-run list is unknown. Local and unsupported remotes do
+not make a request. The runtime re-observes the bookmark and configuration
+before returning the provider result. GitHub redirects are not followed.
+
+The Project manifest does not declare PR number, source or target branch.
+ASCENT relates the provider response to the exact JJ bookmark and an
+eligible recorded head. When a GitHub bookmark is relevant and the
+association is ambiguous, stale, or unavailable, =gitops.pull-request=
+remains Open. An empty open PR list triggers a [[https://docs.github.com/en/rest/git/refs#get-a-reference][GitHub Git reference lookup]].
+The exact branch ref must identify a commit at the recorded JJ head before
+ASCENT derives the no-open-PR route. Missing refs, unexpected object types,
+and moved heads cannot close the obligation. The list and ref are separate
+provider reads. Prepare, apply and push repeat them as needed, and JJ still
+enforces the remote lease at transport.
+The provider query requires a canonical GitHub remote and a unique
+bookmark candidate. Split destinations and ambiguous candidates cannot
+establish PR absence.
+
+The review context binds the repository, remote, PR number, source,
+source revision, target branch, target revision and provider update time.
+Prepare, apply and push observe the association again. A change to the
+reported target revision requires a new review even when the target branch,
+source revision and provider update time are identical. A response missing
+the target revision cannot establish a PR association. Under the JJ
+operation lock, push resolves the selected
+remote and reads the selected bookmark's lease before transport. A GitHub
+destination must match the repository, remote, bookmark and head from the
+current PR association or from a successful observation that found no open PR.
+Once JJ has selected the lease, the Runtime reads the provider and its
+checks again. The fresh observation must equal the facts admitted by Scheme. A retarget, target revision change, replacement PR, lost provider,
+or transition between a PR and confirmed absence refuses transport even when
+the remote Git head is identical. A split or undiscovered GitHub route is
+refused. Review binds an opaque identity of the ordered effective fetch
+and push URLs. Under the lease, the selected remote, bookmark, head and
+route identity must match a reviewed observation. This also applies to
+local remotes, which require no provider request. GitHub PR
+metadata remains external to JJ's lock and can change after the final read.
+After the admission callback returns, the Runtime reopens Git configuration
+and compares the ordered effective fetch and push URLs with the route used
+for admission. A missing route or changed URL refuses transport before a
+JJ transaction starts, including when both destinations have the same
+bookmark head. JJ retains ownership of the bookmark lease and Git transport.
+Git resolves the remote name when its transport starts, so an external
+configuration write after the final read remains outside this check.
+Recovery reads the existing operation outcome and issues no new effect.
+The provider's update time is not a monotonic event sequence.
+
+After losing a push response, =aitia jj git push --recover --bookmark NAME=
+accepts the original =attempt= envelope and an optional =--remote=. A
+successful transport must positively acknowledge the single requested
+bookmark, and JJ's transaction must record the applied commit as its remote
+target. AITIA then records the remote name and bookmark on the visible JJ
+operation. Recovery checks that operation's exact applied parent and the
+recorded remote target before returning the historical acknowledgement.
+It uses local JJ history without contacting the remote. If transport
+finished but its acknowledgement never became visible in JJ history, the
+outcome stays unresolved. A historical acknowledgement carries no claim
+about the current remote branch and grants no further write.
+The linked fixture returned unresolved before transport, recovered the
+exact receipt after a local-remote push, refused a forged description, and
+preserved the receipt after the workspace advanced. A different bookmark
+remained unresolved. The recovery calls left the JJ operation unchanged.
+The JJ regression supplies a successful Git exit with an empty reference
+status list. The previous implementation returned a push receipt even when
+the remote was untouched. The updated implementation leaves the local cut
+unchanged and recovery unresolved in two cases: a missing remote update and
+a completed remote update whose acknowledgement is lost. Recovery issues no
+transport in either case. A full acknowledgement on the restored test
+remote allows the normal leased push and commit readback. The JJ unit test
+and all nine workspace cases passed under the existing 120-second guard.
+Workspace tests, the ASP Rust policy gate, linked Rust tests and the
+OpenSysML model check passed under the existing guards.
+
+If the review changes after apply, =aitia jj commit preview --applied=
+accepts the draft and exact attempt in the same envelope used by push.
+JJ verifies that the applied rewrite is current and identifies its original
+review cut. AITIA evaluates that cut with current rules and provider
+observations. The report compares the preview prose with the actual
+commit. The reviewed context can be used for push when the prose matches
+and all push admission checks pass. The preview itself performs no write.
+The linked test refused an unpublished attempt, then refused to push a
+fresh review whose title differed from the written commit. It accepted a
+fresh review of the unchanged description and read that description from
+the local remote after push. A separate read-only preview at the local RFC
+0007 candidate retained the original cut and left the current operation
+unchanged. OpenSysML resolved =appliedReviewRefresh=.
+
+The target advancement replay kept the source revision, target branch,
+provider update time, candidate and evidence unchanged. Both observations
+produced the same preview prose. Prepare's Scheme admission rejected the
+earlier context and accepted the newly reviewed context. The Rust provider
+test also rejected an empty target revision. A read-only run against PR 2
+confirmed that the target revision reported for =main= reached the admitted
+ASCENT association. Its published source revision was an ancestor of the
+local candidate.
+
+The first full Scheme run completed its assertions but reached the
+60-second exit guard. A serial rerun exited naturally in 53.31 seconds.
+The linked Rust gate passed 15 unit and five integration tests with three
+existing ignored cases. OpenSysML resolved =targetRevision= and passed the
+recorded-document controls.
+
+The response identifies whether the observed head is the candidate. A
+published ancestor's check runs remain observations of that ancestor. Association
+does not satisfy any NASA obligation or authorize an effect. The current
+check-run response is available for review; admission of selected
+provider checks remains open.
+
+The JJ workspace fixture confirmed that equivalent HTTPS and SSH endpoints
+produce the same repository identity. Different fetch and push destinations,
+an additional mismatching push URL, a lookalike host and a nondefault port
+did not produce a repository identity. The result contained no URL credentials.
+All eight JJ tests passed; all five linked cases passed in 47.06 seconds under
+the existing guard, and OpenSysML resolved the repository field.
+
+A separate read-only provider control selected by the configured repository
+and source bookmark and returned exactly PR 2, targeting =main=. Its published
+head matched the remote-tracking ref. On that published head, =Native
+admission and linked delivery= failed and the three other reported checks
+passed. None of those results qualifies the unpublished candidate. The
+earlier control was external to AITIA. The linked =aitia jj commit= later
+queried the real PR using a separate, read-only JJ copy of the same 49-path
+candidate. It reported PR 2, target =main=, and =onCandidate=false= for the
+four published-head checks. The same check failed and the other three
+passed. No provider CLI, publish, or draft approval was needed.
+
+The linked implementation then admitted the same observed PR through ASCENT
+with no PR declaration in =project.json=. A fresh =aitia jj commit preview=
+and =aitia jj commit prepare= accepted the association and produced a
+preparation record for the 49-path candidate. Repeating prepare with the
+same draft and unchanged JJ cut while the provider request was unavailable
+returned =gitops.pull-request= in Open and produced no preparation record.
+All five focused Scheme modules, three Rust provider tests and five linked
+cases passed. The linked suite completed in 48.40 seconds under the existing
+120-second guard.
+OpenSysML resolved the live association requirement and the provider
+update-time field. The test also exercised recorded-document reads through JJ.
+
+The JJ route regression changed only the local Git push URL after description
+approval. The operation and remote head remained unchanged, and the selected
+route was classified as split before any transport. Restoring the local route
+allowed the existing leased publication and actual commit readback. The JJ
+unit test and seven workspace tests passed on the repeat with the existing
+120-second guard. The first invocation reached that guard during compilation.
+The linked CLI regression used the same split-route control with Git transport
+restricted to the local file protocol. It refused the unchanged draft before
+transport and kept the operation and remote head intact. With the route
+restored, the normal local push read back the reviewed description. Fourteen
+Rust unit tests and five linked cases passed. The linked cases finished in
+80.86 seconds under the existing 120-second guard after a separate build.
+The lease-admission regression changes the push URL inside the admission
+callback to a second local repository with the same bookmark head. The
+previous implementation failed the rejection assertion. The updated fixture
+requires the destination-change error, an unchanged JJ cut, and unchanged
+heads in both repositories. Restoring the route allows a leased push and
+readback of the exact reviewed description. The JJ unit test and all eight
+workspace cases passed under the existing 120-second guard.
+The default Apple linker crashed in the first link attempt. The installed
+classic Apple linker completed the local verification build.
+OpenSysML parsed the updated route requirement and passed the JJ recorded-model test.
+
+The JJ ancestry regression used a local remote with a shared bookmark, a topic
+and alias, and an independently published sibling. Two unpublished commits
+above the topic still discovered both topic bookmarks, excluding the older
+shared target and the unreachable sibling. A merge made the sibling reachable
+without collapsing either history. The old JJ operation was refused after the
+merge. The JJ unit test and all eight workspace tests passed under the same
+120-second guard.
+Scheme replay accepted a provider response naming the selected older bookmark
+head. It kept the obligation open for a different head, multiple candidate
+rows, and a conflicted bookmark with no resolved head. All five focused Scheme
+modules passed under the existing 60-second guard after the dependency load
+path was restored. Fourteen Rust unit tests and all five linked cases passed;
+the linked cases finished in 40.84 seconds. OpenSysML parsed the updated
+ancestry requirement and passed the recorded-model case.
+A read-only GitHub run used the same 49-path PR 2 candidate tree with an
+unpublished revision inserted between the published head and the candidate.
+The CLI found PR 2 targeting =main= through its older bookmark. GitHub
+checks stayed attached to the published ancestor. An auxiliary bookmark on
+the candidate initially made prepare refuse a rewrite that would affect
+more than the workspace leaf. After removing the auxiliary bookmark in the
+fixture, preview and prepare succeeded. With the JJ cut unchanged and the
+provider made unavailable, the same draft reopened =gitops.pull-request=
+and yielded no preparation record.
+
+A separate live GitHub check used a local candidate based on the recorded
+=main= bookmark. The empty open-PR list and exact branch ref produced an
+admitted =pullRequestAbsence= route. A second fixture changed only the
+local observation of the remote head. The GitHub branch read returned
+=stale-head= and the report kept =gitops.pull-request= open. In the positive
+fixture, prepare initially refused the missing engineering source. After
+the fixture included the referenced RFC, a fresh preview and prepare
+succeeded. GitHub was queried read-only. The provider unit also covered
+missing, malformed, wrong-name and wrong-object refs, and escaped branch
+names. The five focused Scheme modules, fifteen Rust unit tests, five linked
+cases and OpenSysML passed. The linked cases ran in 44.21 seconds under the
+existing 120-second guard.
+
+The Rust provider tests verified that ambiguous bookmarks and PRs, forged
+repository/branch data, and stale heads do not yield an association.
+Stale or incomplete check runs did not yield a check list. The local
+linked fixture returned =unsupported-remote= without a provider request
+and still completed the existing local-remote replay. All five linked
+cases passed in 47.45 seconds under the unchanged guard. OpenSysML resolved
+the observed head and candidate-match fields in =ProviderReviewObservation=.
+
+The JJ gate passed its unit test and seven workspace tests. The local remote
+fixture preserved two candidates, excluded a local-only bookmark and refused
+an old operation. An out-of-band remote change left the cached observation
+unchanged, while the actual push lease refused publication. The linked
+five-case suite passed in 48.27 seconds under the existing 120-second guard;
+its CLI fixture returned the actual recorded remote target. OpenSysML
+resolved the matching model item.
+
+The compiled-program binding is calculated from the bridge's actual linked
+program archive during the build, then embedded as a constant. A manifest is
+only a list of paths and options: its text may be unchanged while a Scheme
+module at one of those paths changes. The earlier manifest-only binding did
+not establish rule-content currentness. Runtime must neither hash an entire
+archive on startup nor read build files or a Scheme checkout to establish it.
+This machine binding is not a human-readable commit trailer or ORG metadata.
+
+=aitia jj commit= exposes policy and relations for deliberation.
+=aitia jj commit prepare= reruns assessment and prepares the exact canonical description.
+=aitia jj commit apply= rechecks the accepted draft and actual JJ result.
+=aitia jj git push= must read back that actual description and retain the
+existing ancestry, remote lease, authorization and recovery checks. No second
+Git transport or alternate commit writer is introduced.
+
+Multiple proposals remain available. ASCENT does not select a fixed exploration
+route or turn absence of a relation into permission. Existing Governance
+decisions remain separate from evidence support and semantic eligibility.
+
+** Commit description layout
+
+The previous renderer joined the title and a free-form body. The ORG
+Contract checks the evidence claims in separate review material; it does not
+by itself require those claims to be presented in the commit. A valid preview
+could therefore omit evidence prose, unresolved work, or both.
+
+The description now renders structured narration against the applicable
+commit-check results from ASCENT. Scheme seals the rendered
+text together with the reviewed claims. The Agent supplies concise prose
+in the project's language and references the applicable relation rows. The
+renderer owns section order, blank lines and list formatting. Plain Git
+output must stay readable without a Markdown renderer. The section roles are:
+
+- Change and rationale: what changed and why a reviewer should care.
+- Evidence: the checks actually run, their observed result and scope. A
+  claim of passing must refer to admitted evidence. An absent check cannot
+  be written as a pass. OpenSysML reports the parsed file or the number of
+  parsed files here when the full affected model scope was verified.
+  An unresolved applicable model check appears in Open.
+- Open: unresolved obligations that apply to this change or its verified PR
+  target. Include what is unresolved and what result would close it. Omit
+  this section only when the assessment has no unresolved rows to disclose;
+  an unknown or stale observation is not closure. The policy distinguishes
+  a disclosed review gap from a blocking prerequisite.
+- Evidence query: include an executable revision-based query when the
+  provider can resolve it to the original report. Do not emit a placeholder
+  query or repeat JJ object identities in the prose.
+
+The implemented input carries =narration.change= and two arrays of
+={obligation,text}= rows. Evidence covers supported and contradicted checks;
+Scheme labels failed or conflicting outcomes. Open covers every applicable
+unresolved commit check. Missing, duplicate and invented narration rows do
+not produce a valid preview. =previewDescription= can show an unresolved
+draft; =description= is absent when an obligation blocks preparation. The
+same preview does not authorize application or transport. For a uniquely
+associated PR, ASCENT derives an Open disclosure when a check on the observed
+PR head has no completed success or its check inventory is unavailable.
+The disclosure is separate from blocking commit prerequisites. The Agent
+must explain it in the draft and the ORG review must reference it. The
+observation binds the review context across prepare, apply and push.
+Provider checks on the PR head do not establish candidate evidence.
+Revision query rendering in the commit body remains open.
+
+The linked candidate read PR 2 and its four checks. ASCENT produced
+=gitops.pull-request-checks= in =Open= with an empty blocking set.
+Removing the narration for that row refused preview. With the disclosure,
+preview and prepare agreed on the description, and the JJ operation stayed
+unchanged. The standalone Scheme runs reached the existing 60-second guard.
+The joint run reached its 120-second guard before finishing the linked
+commit and OpenSysML cases. These remain open verification gates for this
+change.
+
+The Provider tests now verify stable check ordering and reject duplicate,
+incomplete or different-head results. The transport gate refuses a check
+conclusion change or a missing inventory even when the PR identity and
+remote lease remain unchanged. All 18 linked Runtime unit tests passed.
+One standalone Scheme repeat emitted every module receipt and =OK= but
+reached the exit deadline. A subsequent attempt with direct evidence-test
+imports reached the same guard before finishing. The full joint repeat also
+reached its guard. These outcomes do not qualify the complete Scheme or
+linked delivery gates.
+
+The PR association and check-disclosure rules now have a separate Scheme
+source owner. Commit evidence consumes the association value, and GitOps
+Config composes both owners. The standard build published the association
+module. Its linked CLI repeated the live PR 2 context, omitted-disclosure
+refusal, preview and prepare on the 76-path candidate. The accepted
+description retained the Open disclosure and the JJ operation stayed
+unchanged. The full Scheme and joint verification attempts still reached
+their existing guards during concurrent host builds. This run does not
+establish a reduction in qualification time.
+
+The timed Scheme repeat first reached test discovery at 27.97 seconds
+and entered the evidence test at 54.62 seconds. Its guard expired before
+the assertions finished. The previously passing baseline also reached
+the same guard on the host. The 60-second command exercises source
+discovery, module loading, assertions and exit through Gerbil's test
+harness. It does not launch the linked AITIA binary.
+
+The relinked AOT development executable generated the same PR 2
+description at preview and prepare, with the verified OpenSysML model path
+under Evidence. The review operation stayed unchanged. One invocation
+per command on that 76-path candidate took 18 ms for help, 1.412 seconds
+for local project manifest, 4.643 seconds for commit context, 3.882 seconds
+for preview and 4.101 seconds for prepare. These are end-to-end observations.
+The three review commands include GitHub and OpenSysML observations.
+The local manifest measurement includes JJ lookup and Scheme configuration
+validation. The measurements do not isolate VM startup or SDK latency.
+The five linked CLI cases passed in 101.05 seconds, and the joint guard
+expired during OpenSysML.
+
+The five Scheme test modules completed under the existing source-test guard.
+The newly linked five-case suite passed in 41.33 seconds under the unchanged
+120-second guard. It read the English Evidence text back byte for byte from
+the local remote. A recorded change that selected an unimplemented check
+rendered its obligation under Open and was refused at preparation; the remote
+did not change. The readback also rejects missing Evidence, invented Open
+rows, and text changed after review. OpenSysML resolved the updated model.
+
+PR state and obligation state are distinct. An open PR does not by itself
+create a failing check. An unresolved obligation that applies to that PR
+belongs in Open while it remains unresolved. Provider facts must match the
+current source and target before they can determine applicability; an
+ambiguous association stays explicit and does not inherit another revision's
+checks.
+
+*** Linked review result projection
+
+The linked review export returns its Scheme result as a rooted value. The
+Rust CLI projects scalars and collections through the existing bridge and
+serializes the CLI response. The Scheme policy and its canonical evidence
+and review-context digests still own the admission decision. The project
+configuration entry still uses JSON across its linked boundary. Strings
+returned in the CLI response are materialized as owned UTF-8 in Rust.
+
+On the same recorded 79-path PR 2 candidate, the relinked development
+binary observed PR 2 and passed OpenSysML in context, preview and prepare.
+Preview and prepare produced the same reviewed description. Comparing
+before and after showed identical context and preview output apart from
+the linked-policy review context. Prepare also produced a fresh intent
+and proposed operation. Single-invocation elapsed times were 6.70, 3.05
+and 3.86 seconds, respectively. These include live provider reads and do
+not qualify a reduction in transport latency.
+
+The linked-program suite passed five Cases in 64.22 seconds, including
+local-remote push and commit readback, signed approval, and refusal of
+an unresolved obligation. The separate compiled-project declaration
+Case was ignored because this archive did not include its qualification
+input. The OpenSysML suite passed its Case in 28.51 seconds. Both suites
+ran under the existing joint 120-second guard.
+
+A separate rebuild embedded the trusted POO qualification declaration.
+Its recorded-source test passed in 10.72 seconds with Scheme source
+access and process execution denied. The overlay controlled the derived
+slot, dirty changes had no effect, and recorded replacements or deletion
+were refused. Restoring the source without an overlay restored the
+declared defaults. The stock archive refused the same recorded Scheme
+input. The project-specific archive identity test passed independently.
+OpenSysML parsed the updated assessment boundary on a recorded JJ cut.
+The Commit Evidence, Write Recovery and Attempt Competition Quint suites
+passed 16 executable Cases under their existing guards.
+
+The restored stock build recovered the previously applied 79-path
+candidate as applied. Revision GQL returned all 79 changed-path rows
+and reproduced the recorded-change, configuration-audit and OpenSysML
+reports. The description matched the applied commit receipt, no reports
+were missing, and the JJ operation stayed unchanged during both reads.
+
+** Qualification boundaries
+
+The gates establish separate claims; a successful source-backed test does not
+establish a source-free binary or an authorized remote effect.
+
+| Gate | Observed result | What it establishes |
+|------+-----------------+---------------------|
+| Scheme semantic projection and value configuration | Initial 14 Cases passed | Reference/source admission, conflicts, language proposal and context invalidation under the then-installed Core |
+| Complete GitOps and ProjectConfig test directories | An earlier current-Core run passed all 29 Cases | Existing evidence, authorization and configuration consumers through their public Module scopes; this is not a cold-load reliability claim |
+| Latest complete project-language consumer run | All 30 Cases passed with MODULE-OK, HARNESS-OK, final OK and natural exit under the unchanged 512M/60-second limits | Complete affected consumer directories, including language inference and stale-source controls; earlier guard failures remain retained |
+| JJ Rust owner unit and integration tests | 1 unit and 7 integration tests passed | Concurrent-head refusal, exact cuts, history/lease checks and preservation of unpublished local work |
+| OpenSysML SDK model and recorded-input test | Passed with the actual cached service | Updated model, new engineering/narration types and language fields resolve; malformed and stale recorded inputs are refused |
+| Linked Rust/Scheme/JJ target from the actual standard staging entrypoint | 4 passed, 0 failed, 1 existing Provider Case ignored; 16.11 seconds under the unchanged 120-second guard | Actual archive-content binding, CLI/VM operation, signed approval/revocation, proposal refusals, local-remote push, exact commit-body readback and replay refusal |
+| ASP Rust workspace development gate | Passed after removing an unnecessary build helper module | Existing thin-build-script and dependency policy; the rejected helper run is retained, with no rule suppression |
+
+The first cold JJ owner command reached its guard during compilation, before
+executing tests. That failed run is retained. A separate compilation qualification
+completed, followed by the complete original run under its unchanged 120-second
+guard. This is distinct from a claim that the original cold command passed.
+
+The broader source gate now uses =just test-commit-semantics= to discover the
+complete affected test directories through Gerbil's standard runner. It retains
+the original heap and 60-second guard. The extended reasoning Case permits a
+multi-line justification rather than imposing the title's length on reasoning.
+The language Cases also permit an inferred project language without an explicit
+declaration. A declared language-source path needs a single observation from
+the current JJ cut. Missing, stale, or competing observations keep the proposal
+Open. Those semantic
+Cases passed. The latest complete directory run also passed without changing
+the guard or workload. A later two-second external sample observed both GC scanning/marking and POO
+read-route/slot-observation work. That short sample does not establish the
+root cause of the earlier variable-duration failures or a repair. Passed and failed runs remain separate
+evidence; cold-load reliability is not established by this pass.
+Raw logs remain local execution artifacts.
+
+*** Compiler environment and Module declarations
+
+The Darwin linker failure was reproduced with the exact generated object.
+The ambient Nix linker failed to resolve the system C symbols. The same GCC,
+SDK and object linked successfully with the system linker, without modifying
+Gambit or the FFI implementation. Standard package compilation then passed.
+This qualification uses the system toolchain, not the ambient Nix linker.
+
+AITIA's maintained Module Interfaces now explicitly import the Module System's
+=.def= declaration. Their former unqualified binding selected POO's ordinary
+=.def= during native compilation, leaving adjacent-role contracts unbound.
+The declaration owner performs role association; business Interfaces do not
+implement another loader or duplicate a build inventory. The original parallel
+staged changes remain separate from this work.
+
+*** Compiler products and the standard package entry
+
+The package store was aligned with the latest published Core PR head using
+standard package operations. Its tagged update exposed a package-manager
+failure in the dependency phase; dependencies and the package build were then
+completed through the standard commands from the selected checkout. Package
+source and stored tag now agree. This does not establish native-program closure.
+
+The earlier linked program refused startup with
+=init has no compiled Module publication=. Ordinary package compilation supplied
+a false program-publication argument. This exposed a missing program-publication
+boundary in the previous staging path, rather than evidence that Core lacks
+publication or that ordinary library compilation grants it.
+
+A diagnostic using Core's existing =yuanxu-project-source-spec= and explicit
+=.compile= API passed the complete 90-target product check. The selected Graph
+already reaches init and the real program roots; no additional target inventory
+was required. Its compiled init contains =module-program-namespace=, and the
+bridge staging manifest selects that exact program product. The diagnostic
+uses standard Make and current installed dependencies. It does not establish
+that the normal build/staging entrypoint has been repaired.
+
+The integrated =just stage-rust-program= now invokes the actual =build.ss=
+main generated by =defbuild-script= within that Core boundary. The script
+accepts Core's output-directory parameter; it does not implement another Make
+dispatcher. A fresh compiler process reads the admitted product directory,
+keeping dependency-library lookup distinct from the earlier source expander.
+Core checks the publication before and after that process, including failure
+cleanup. No business scope warming or replacement module registry is used.
+
+The actual entrypoint produced a complete 90-unit AITIA catalog with stable
+product references and the compiled init publication. Its separately linked
+program passed the complete Runtime suite and existing ASP development gate.
+An earlier
+same-process staging experiment exited successfully but retained only three
+AITIA units. Its incomplete catalog is rejected evidence, not a successful
+program publication.
+
+The first diagnostic incorrectly sent Make outputs outside the issuer's output
+extent and failed its missing-product check. Correcting that use exposed old
+unissued object generations in the package output; the issuer correctly refused
+them. Those failed observations remain separate. Compilation into the program's
+own product directory passed without deleting historical objects or weakening
+the issuer. A source lookup fallback, direct business-role imports in Rust,
+second Scheme VM or hand-built AITIA namespace is not an accepted repair.
+
+The complete linked Runtime suite then passed against those explicit products.
+Its new proposal controls executed: PR and NASA identifiers cannot replace the
+engineering reference; unsupported types, unaffected scopes and free-form title
+bypasses are refused. Existing approval, revocation, recovery, exact commit-body
+readback and local-remote replay controls remain in the same suite. Its macOS
+controls deny source-file reads and Scheme compiler execution. The earlier
+startup failures remain recorded separately; the pre-existing Provider Case
+was not executed or counted as passed.
+
+This is not yet a qualified PR2 publication. The owned candidate has since
+passed the local gates described below; its current-Changes review and
+locked dependency installation remain separate obligations. The executable
+fixtures are local projects, not a remote
+PR2 push. There is no claim of whole-project NASA compliance.
+
+The Scheme ProjectConfig scope provides =resolve= for a POO declaration,
+=decode= for an independent JSON declaration, and =extend= for JSON data
+over a POO declaration. The =extend= slot uses Yuanxu =config-defaults=.
+Omitted nested object fields inherit through POO. Explicit false, arrays and
+null are supplied values. The final projection uses the same project
+Contract, so null or unknown fields are refused where the Contract disallows
+them. An overlay can disable a program without replacing its settings.
+
+The configuration replay checks nested inheritance, array replacement,
+explicit disable and Contract refusals for null, unknown fields and an
+unsupported schema version. A functional POO slot recomputes its language
+source after the overlay changes the input language. The exact configuration
+case exited naturally in 6.45 seconds. The AOT build completed and fifteen
+Rust unit cases and five linked CLI cases passed. The linked cases completed
+in 52.98 seconds under the existing 120-second guard. OpenSysML parsed the
+overlay requirement.
+The full five-module Scheme replay passed with the compiled inputs. It
+emitted all success markers at 48.64 seconds and exited naturally at 56.67
+seconds under the original 60-second guard. Earlier runs that hit the
+guard and the separate configuration-directory heap failure remain failed
+diagnostics.
+
+For a project-specific build, set =AITIA_PROJECT_DECLARATION= to the trusted
+=project.ss= input when staging the linked program through the existing
+build entry. This file contains one Scheme expression that returns a POO
+declaration. The compiler admits the regular file, reads the expression, and
+embeds its source text and compiled expression together. The expression
+uses the packaged Scheme bindings. The compiled archive identifies the
+policy program used in review.
+
+At runtime JJ reads =.agents/aita/project.ss= and =.agents/aita/project.json=
+from one recorded tree, under the total request budget. Scheme compares the
+recorded declaration to the packaged source before calling the compiled
+expression. The JSON overlay is optional in this build and is validated by
+the same Contract. A changed or removed declaration is refused. The stock
+build accepts standalone JSON and refuses a recorded Scheme declaration for
+which it has no compiled code. The CLI does not read a working-copy Scheme
+file, evaluate Scheme text from the repository, or start a compiler.
+
+The compiled-declaration qualification uses
+[[file:../../dev/qualification/project-declaration.ss][a project declaration with a derived POO slot]].
+Stage the project-specific program with that source, then run the linked test
+=compiled_project_declaration_requires_its_recorded_source= with =--ignored=.
+Under the macOS process control it read the recorded inputs while Scheme
+source access and child processes were denied. The JSON overlay changed the
+input of the derived slot. Dirty source edits were ignored, a recorded
+replacement and recorded deletion were refused, and the source alone worked
+without JSON. The linked control passed in 9.85 seconds under the existing
+120-second guard.
+
+The current qualification rebuild ran the same control in 8.38 seconds.
+It also verified the process restrictions before starting the CLI and
+recorded an executable replacement for =project.ss=. The changed, removed
+and executable sources all produced the exact source-mismatch diagnostic
+and no manifest. The executable replacement's error marker was never
+emitted. Running the same input through the stock build produced the
+compiled-declaration-required diagnostic. The separate archive identity
+test passed against the project-specific build.
+
+The same binary ran discovery, preview and prepare against a disposable
+56-path candidate based on PR 2. The prepared description matched the
+preview. Changing only the recorded Scheme declaration in a second local
+copy blocked replay of the earlier draft and left the candidate untouched.
+The JJ unit and eight workspace cases passed, including same-cut optional
+input reads and their shared size budget. GitHub reads were read-only.
+The stock binary refused the recorded Scheme declaration. Its standalone
+JSON regressions passed fifteen Rust unit cases and five linked CLI cases.
+The linked suite completed in 46.27 seconds under the unchanged guard.
+OpenSysML also resolved the updated project declaration requirement.
+
+The project-specific rebuild also ran discovery, preview and prepare on
+a fresh 72-path PR 2 qualification copy containing the recorded declaration.
+OpenSysML passed and preview matched the prepared description byte for
+byte. In a second copy, recording a source-only edit refused the prior
+draft with the same source-mismatch diagnostic. Prepare emitted no attempt
+and the second copy's operation remained unchanged.
+
+*** Compiled-program review invalidation
+
+The former runtime binding identified manifest text, which names files rather
+than their compiled contents. Updating a module in place could therefore leave
+that binding unchanged. The build now identifies the archive returned by the
+bridge, embeds only its identity, and performs no archive or manifest reads at
+runtime. Rust observes this build fact; Scheme still owns the rule that an old
+review context cannot support a new program context.
+
+The executable regression independently calculates the actual linked archive's
+identity and compares it with the embedded value; it explicitly rejects the
+old manifest-only value. Build code streams the bridge's archive through
+standard I/O and the digest library. It does not need another helper module,
+archive parser or fallback. Content binding does not claim that arbitrary file
+bytes are an authentic program or authorize a different binary.
+
+A separate consumer control keeps the recorded project cut, change paths,
+project policy, source documents and evidence clauses identical. The updated
+tool refuses a review produced by the earlier manifest-bound tool: intent is
+still eligible, but the description is null, draft validity is false and no
+attempt is issued. Refreshing only the review context admits prepare with the
+identical human-readable description. No apply or push occurs in this control.
+
+The title length rule provides a second executable control. With the same
+local JJ candidate and evidence, the earlier build rejects a rendered title
+of 72 characters. The revised build accepts it and rejects 73 as
+=invalid-narration=. For a shorter title, the two builds render the same
+description. The revised build rejects the earlier draft during prepare
+with no admitted description or attempt. A fresh preview and prepare succeed
+with identical prose. The candidate commit and JJ operation stay unchanged
+throughout this control.
+
+On the revised build, =just test-commit-semantics= passed all five test
+modules in 56.33 seconds under the existing 60-second guard. The linked Rust
+gate passed 15 unit tests and five integration tests with three existing
+ignored cases. The OpenSysML consumer passed its recorded-model checks.
+
+=CompiledPolicyProgram= and =compiledPolicyCurrentness= express the same
+boundary in SysML. The real OpenSysML SDK resolves both and retains the
+malformed-model and stale-recorded-input controls. Parsing the model is not a
+formal proof of the executable rule.
+
+*** Current-Changes consumer Case
+
+A local JJ fixture originally froze 35 owned change paths while excluding the
+parallel RFC edit and GitOps Config import. It has no push remote. This is a
+historical consumer fixture for the then-compiled tool. It does not establish
+the later candidate build.
+
+The tool reads the configured RFC Element and README from that fixture's
+recorded tree, with no missing source. ASCENT admits the proposed reference,
+type, affected scope and source-grounded language. The readable title is:
+
+#+begin_example
+AITIA-RFC-0007 feat(gitops): Ground commit intent in project evidence
+#+end_example
+
+The description separates the problem, behavior, bounded Evidence and Open
+obligations. Source revision invalidates the earlier review context: the old
+draft is refused, its description is null, and no attempt is issued. Fresh
+context admits the proposal and prepare binds exactly the reviewed description.
+This observation grants neither apply nor push authority. The Case does not
+modify the author checkout's staged changes or publish a commit. The subsequent
+archive-binding fix changes the author candidate; that earlier 35-path fixture
+is historical evidence and must not be called the latest complete candidate.
+
+The later owned candidate contains 40 changed paths. Its standard staging entry
+produced the complete 90-unit catalog. A Rust build linked those exact products;
+the complete linked suite passed four Cases with the existing Provider Case
+ignored, followed by the unchanged ASP development gate. Runtime execution took
+14.35 seconds; this is a functional-suite duration, not a hot-call benchmark.
+The suite now rejects Agent-supplied host sources, changed paths and rule
+context. The complete Scheme directories also passed all 30 Cases, including
+source-association replacement, in 47.165 seconds under the same limits.
+Neither run includes the parallel staged RFC or GitOps Config edits.
+
+*** Inherited dependency qualification gap
+
+The installed Core used for the linked replay supplies compiled-role
+publication. The current ASCENT PR also declares a Core revision containing
+that capability. Lab PR 34 still declares the earlier ASCENT revision from
+before that alignment. Its Parser declaration, also reached through Orgize,
+selects the earlier Core revision. Lab's Core gitlink and the Gerbil package
+manager's transitive selections are separate observations.
+
+Consequently neither the local replay nor advancing the Lab ASCENT pin alone
+establishes a reproducible installation. Parser and ASCENT must agree on one
+qualified Core selection, Orgize and Lab must agree on Parser, and the Lab
+cohort must install before AITIA takes the updated Lab lock. AITIA continues to
+declare Lab as its dependency entry point.
+
+Variable cold-load duration, distributed higher-order configuration, remote
+CI and revision-GQL traversal remain Open.
+A source-bound description is not evidence that those capabilities are closed.
+
+
+** Revision-based Coding Review lineage: audited boundary
+
+AITIA's historical review query remains a design obligation. Lab Query owns
+Query values, parser-backed GQL projection, result Contracts and source
+admission. The node selector handles one node; the separate Scheme graph
+selector executes bounded paths over an admitted Yuanxu Graph. The existing
+Lab suite passed the revision filter and changed-to-unchanged-code join,
+and rejected stale semantic revisions, incomplete coverage claimed as
+complete, dangling edges, excluded reached nodes and excess results. The
+selector reports whether the ElementSpace is complete and grants no action
+authority. Its result explicitly does not verify external provenance.
+AITIA can consume this selector; it still needs to supply the revision-bound
+Graph, admit source observations and retrieve historical reports. The Lab
+fixture does not establish those AITIA behaviors.
+
+The AITIA commit journal records Governance approval, revocation,
+consumption and recovery attempts. The operation named =intent= computes an
+identity. A caller retains the =apply= result separately for report custody.
+The authorization journal alone cannot recover the check reports.
+
+=aitia jj commit evidence <revision> < applied.json= reads a retained apply
+result at the specified full result revision. JJ must find the exact
+description rewrite in local operation history. It checks the committed
+body and reconstructs the original changed-path inventory and Git object
+audit. Rust compares the archived reports and their content digests with
+these observations. It also reproduces the input digest from the original
+cut, recorded Scheme and JSON sources, and the changed-path inventory.
+The historical source read uses the same total budget as the live read.
+A matching report from a different input cut fails readback. The archived
+NASA requirement must equal the one selected for that method by Scheme.
+Rust recomputes the execution identity from that check, the input digest
+and the reproduced report digest using the same function as live review.
+Changing either label or identity refuses the archive. Missing
+reports stay explicit. The result includes
+only verified host observations and carries no approval, NASA conclusion,
+GitHub publication claim or current applicability decision. A later
+workspace change does not replace the original cut.
+
+The linked CLI reread the existing applied fixture and reproduced its GQL
+output. Independent replacements of the inventory's requirement with
+=SWE-084= and of its execution identity were both refused before any output.
+The JJ operation did not advance. The joint suite passed five CLI cases in
+61.01 seconds and the OpenSysML case in 27.82 seconds under the existing
+120-second guard.
+
+If the apply response was lost, pass the =applied= result from
+=aitia jj commit recover= as the evidence command's input. JJ verifies
+the operation independently of the supplied outcome and reconstructs the
+original cut, changed paths and exact committed description. Both archived
+check reports remain missing. An unresolved result or a claimed apply that
+is invisible in JJ history fails readback.
+
+Direct recovery takes an attempt record and reconciles it against the
+nearest Git project's JJ workspace without evaluating current project
+configuration. An independent nested Git project cannot borrow the
+parent's workspace. Recovery by approval still resolves the current
+project and reads the operator-owned Governance journal. An input naming
+both an attempt and an approval is refused.
+
+One JJ unit test and nine workspace cases passed, including recovery from
+a project subdirectory and refusal from an independent nested Git project
+without its own JJ workspace. Five linked CLI cases and the OpenSysML case
+passed under the joint 120-second guard. The CLI recovered the original
+attempt after the current manifest moved to an unsupported schema. Approval
+lookup and a mixed recovery input were refused. A separate read of the
+applied review fixture returned the same attempt without advancing JJ.
+
+The linked tests recovered both a direct attempt and a signed admission,
+rejected a forged applied outcome before publication, and repeated the
+readback after the workspace advanced. A separate run recovered the actual
+description and original cut of the local RFC 0007 review fixture with only
+its recovery result as evidence input. Both reports remained missing.
+The existing Rust gates passed 15 unit and five linked tests, with three
+existing ignored cases. OpenSysML resolved =recoveredReviewRead= and passed
+its recorded-document controls.
+
+Scheme now projects the verified observations into a Yuanxu revision
+graph. Changed paths keep the before and after tree entries. Recorded
+configuration files also appear when they are unchanged. An inventory
+edge relates a changed path to the report that enumerated it. The Git
+configuration audit belongs to the revision as a whole. Missing reports
+have their own state and edge. The graph reports unknown dependency
+coverage and carries no authorization.
+
+Before constructing the graph, Scheme rejects duplicate changes, project
+inputs, reports and parsed paths. A report cannot be both verified and
+missing. Verified model reports require observed model paths, and each
+parse edge must point from a changed regular SysML file at that revision.
+The JJ and OpenSysML adapters still own revision lookup and original report
+reproduction. The same graph validation applies to ordinary evidence
+readback and GQL.
+
+Historical model evidence uses the project declaration and data at the
+original JJ cut. The linked Scheme configuration Contract selects the
+check, and Rust dispatches only the selected operation. When parsing was
+disabled, a changed SysML path produces neither a missing parse report
+nor a verified parse edge, and an attached parse archive is refused.
+An affected model with configuration that the linked Contract cannot
+admit produces an error. Later project edits cannot change the selected
+revision's settings.
+
+The same recorded configuration selects the JJ inventory and configuration
+audit. For a nonempty recorded change, readback expects only the methods
+selected by the Scheme commit profile and implemented by the JJ adapter.
+It refuses archived methods outside that selection, even when their raw
+report matches the recorded tree. Projects with no enabled commit profile
+have no JJ report obligation in this readback. The resulting graph still
+records JJ changes and project inputs, with report edges limited to verified
+observations.
+
+The signed-approval fixture selected only the configuration audit. Its
+recovery reported that audit missing and refused an extra inventory archive
+containing the genuine changed-path report and matching input digest.
+The OpenSysML fixture verified that disabling the commit profile and model
+parse left no missing reports. The joint guard passed five CLI cases in
+57.82 seconds and the OpenSysML case in 27.32 seconds. A separate readback
+of a historical revision selecting both JJ methods reproduced the previous
+GQL results with and without the archived inventory. The JJ operation
+remained unchanged.
+
+The first linked replay returned an interrupted OpenSysML transport call
+when historical parsing ran on the active Scheme owner thread. Live and
+historical parsing now use the same Rust worker, with each path supplying
+its own recorded document reader. The joint rerun passed five linked CLI
+cases in 57.52 seconds and the OpenSysML case in 27.48 seconds under the
+existing 120-second guard. The model case verified enabled and disabled
+historical settings, refused a parse report attached to the disabled
+revision, and retained the original enabled revision's result after
+later configuration edits.
+
+The five-module Scheme command reached all assertion and harness success
+markers in one attempt, then hit its 60-second exit deadline. A second
+attempt hit the same guard before the commit-evidence module finished.
+Those attempts left the Scheme gate open. The regression cases distinguish a missing
+report from an attempted parse edge, and reject duplicate facts plus
+unchanged, deleted, symlink and non-SysML parse paths.
+The linked program built with the same dependency products. Five CLI
+cases passed in 52.80 seconds and the OpenSysML case passed in 21.04
+seconds under the joint 120-second guard. Historical CLI readback with and
+without the archived inventory returned the same graph and GQL rows as
+before the validation change. Neither read advanced the JJ operation.
+
+A later baseline emitted all five module receipts, the harness receipt
+and the final =OK= at 58.53 seconds. The process still exited with the
+guard's status 124. The Project Config tests now use their configuration
+owner directly. The evidence tests use the actual NASA catalog and the
+same policy selection function used by the GitHub scenario. The full CLI
+continues to exercise the published scenario through =init.ss=.
+With those imports, the standard five-module command finished and exited
+naturally in 45.29 seconds. Its 512 MiB heap and 60-second guard were
+unchanged. The compiler and its module cleanup were left in place.
+Standard staging rebuilt the CLI. The first joint run passed the five CLI
+cases and reached the 120-second guard during OpenSysML. A full repeat
+using the same staged program passed the five CLI cases in 76.63 seconds
+and the OpenSysML case in 28.47 seconds within that guard.
+
+The graph supplies observed inputs to =aitia jj commit evidence <revision>
+--gql=. The CLI first verifies the applied JJ revision and archived reports
+through the ordinary evidence path. Scheme then asks the Lab Query module
+to follow =Revision= through =FileVersion= to the report that enumerated it.
+An executed query returns parser-rendered GQL, the selected revision, and
+path and method rows under partial coverage. It carries no action authority.
+The same revision query also returns =projectInputs= and =modelEvidence=
+selections. Each contains its own executed GQL, revision, and rows.
+=projectInputs= follows =reads_config= and reports the path and whether it
+changed. This exposes recorded inputs that a changed-file review would miss.
+=modelEvidence= follows =changes= and =parsed_by= to a reproduced OpenSysML
+report in the evidence response. A missing report leaves that selection empty
+and appears in =missingReports=. These paths establish observed inputs and
+reports. Unchanged code-dependency coverage stays unknown.
+
+The linked binary ran the inventory, configuration and model queries against
+the previously applied local review fixture. It returned the inventory row
+for =modules/gitops/commit-evidence.ss= and the unchanged configuration row
+for =.agents/aita/project.json=. The fixture has no affected SysML path.
+Removing the archived inventory made that selection empty and reported the
+missing method while retaining the configuration row. Both reads preserved
+the latest JJ operation. The Lab selector came from the locally qualified
+producer build.
+
+The same linked program passed five delivery cases in 50.92 seconds and
+the OpenSysML case in 21.04 seconds under the existing 120-second guard.
+The commit fixture checked a changed configuration row. The model fixture
+selected the original parse report, rejected forged and out-of-scope
+archives, returned no model rows with the archive omitted, and preserved
+the selected revision's result after a later invalid model change.
+The Lab revision used in that comparison exposed single-node selection.
+Its binary returned an explicit unavailable status alongside the verified
+observations. Admitting code dependencies and discovering retained
+Artifacts across checkouts remain Open. The local
+recovery history is required for readback and may be unavailable in a clone
+or after pruning.
+
+Each graph node now supplies its Yuanxu identity to the Query owner. The
+CLI still emits that identity under =id=. A source qualification used the
+main repository's Lab graph selector on the AITIA graph reconstructed from
+the verified local RFC 0007 readback. It followed =Revision= through the
+changed =FileVersion= to its recorded-change report and emitted the
+parser-rendered GQL and the observed path and method. It returned partial
+coverage, rejected a stale semantic revision and a complete-coverage claim,
+and returned no report row when the archive was missing. This checks the
+graph contract with the source selector. The pinned Lab package and its
+current PR do not expose that selector to the AITIA binary. The source
+qualification and locked-binary capability report are separate evidence.
+An isolated Lab library build applied the four selector files to the
+observed Lab PR head and used its declared Core source. AITIA staged and
+linked against that producer build. The resulting binary executed the
+inventory query on the same applied local revision as the stock binary.
+Their reproduced host evidence and graph matched. The stock query was
+unavailable, while the producer-linked query returned the changed file
+and its inventory report under partial coverage. Removing the archived
+inventory produced zero rows. Selecting the original revision instead of
+the applied one was refused. The readbacks left JJ history unchanged.
+On the same 74-path review candidate, the stock program accepted its
+prepared draft while the newly linked program refused the old review
+context. Refreshing preview under the new program admitted prepare with
+the identical English description and left the JJ operation unchanged.
+Five linked cases and the OpenSysML case passed with the new producer
+under the original joint guard.
+This qualification used an installed pool with different Parser and
+Orgize revisions from the producer declaration. Published dependency
+alignment and a cold install still require their own qualification.
+The rebuilt CLI read the same local revision from JJ and emitted a graph
+identical to the Scheme serialization. The linked gate checked unique node
+IDs and report edges with five integration cases passing. Workspace format,
+Clippy, ASP Rust and OpenSysML also passed under their existing guards.
+
+The linked regression checked file-version and report edges, removed a
+report without admitting its edge, and retained the same graph after the
+workspace advanced. A separate local apply with one changed GitOps file
+included the unchanged =project.json= input and matched its file identity
+against the actual Git commit. Dependency coverage remained unknown. The
+first linked run found a POO slot whose expression resolved back to itself.
+Using distinct value bindings fixed the cycle. The rebuilt linked suite
+passed in 56.92 seconds, and the JJ and OpenSysML gates passed under the
+unchanged guards.
+
+The linked fixture refused an unpublished preparation even when it named
+a readable result object. After apply and a local remote push, it read the
+commit body and reproduced both original reports. Changing the selected
+revision or body was refused. Changing an archived report and recomputing
+its digest was also refused. Removing a report produced an explicit
+missing entry, and advancing the workspace did not change the earlier
+result. The complete linked suite passed in 83.88 seconds under the
+existing 120-second guard. The JJ unit and eight workspace tests and the
+OpenSysML readback requirement test also passed.
+
+*** Relation and ownership obligations
+
+The lookup entry is =(project, revision)= resolved by JJ Rust. A proposal cut
+and an actual resulting commit are distinct objects. A stored preparation must
+not silently become a published revision, and a moved bookmark must not change
+the meaning of an already selected revision.
+
+The JJ adapter now reads an exact commit ID from the nearest Git project's JJ
+store. It shares the regular-file checks and total byte limit of the current-cut
+reader. Unlike a current-cut read, this historical read does not require the
+workspace operation to stay current. The real nested-project test verifies
+that the old revision and rewritten revision return their own file contents,
+while the old current-cut read refuses the changed operation. Short IDs,
+workspace aliases, escaping paths, missing files and reads over the byte
+limit are rejected. All eight cases in the JJ observation gate passed.
+The adapter supplies file observations; a readable object, including one left
+by preparation, does not prove an applied or published revision.
+OpenSysML resolves =ReviewRevision= and =historicalReviewRead= in the recorded
+model test. All five linked consumer cases also passed in 18.69 seconds
+against the previously staged Scheme program, including approval and actual
+local push readback. The original 120-second guards were unchanged.
+
+The read model relates that entry to changed file versions, relevant unchanged
+file versions, ORG Elements and Contracts, model properties, check executions,
+raw reports and unresolved coverage. Every asserted relation retains its source
+revision and assessment status. Source-backed relation observations are distinct
+from LLM-proposed relationships. Unknown coverage remains unknown when an edge
+is absent; absence alone cannot establish independence or a passing check.
+
+JJ supplies repository observations and revision lookup. Rust owns report I/O
+and runtime provider execution. Orgize owns Elements and Contract validation.
+Lab Query owns query admission and results, and Temporal Causality supplies
+revision/withdrawal semantics. AITIA owns software-engineering applicability and
+coverage; ASCENT derives support, conflicts and reopened obligations from those
+admitted observations. No second GQL parser, Git writer or authorization engine
+belongs in this integration.
+
+A query result must retain the selected revision, relation sources, check input
+scope, outcome and a resolvable original-report reference. The report belongs
+in the separate Artifact history, not in the source checkout or commit body.
+Unavailable reports remain explicit missing evidence. A query may disclose a
+historical passed execution while separately reporting that it no longer
+supports the current obligation. Shared evidence never grants push authority.
+
+*** Required executable controls
+
+The positive consumer selects a recorded revision, follows both changed and
+relevant unchanged code to an admitted check, and reads the original report.
+Its GQL comes from the existing parser-backed Query representation; displaying
+query text without executing the provider is insufficient evidence.
+
+The same consumer must retain missing-dependency and unknown-coverage cases,
+refuse a relation from another revision as current support, retain withdrawn
+relations as history, expose missing raw reports, and distinguish an old passed
+execution from current applicability. An unrelated later commit or bookmark
+move must not change the original selected-revision result. None of these
+controls is established by the current title/prepare tests.
+
+
+*** Original JJ check observations: implemented transport
+
+The commit review also observes changed SysML documents when the project
+enables =sysml.parse=. Rust passes the exact recorded paths to OpenSysML
+and returns its structured observation. ASCENT derives checklist
+applicability from the effective project selection and changed paths.
+The observation must cover the exact affected document list. The review
+context binds the model identity and the checklist appears in the English
+description only when it applies. A missing, unreadable or invalid model
+keeps =sysml.parse= Open and blocks preparation and push. The model check
+is a project obligation independent of the selected NASA clauses. A
+deleted model or a changed model with unresolved references requires
+further model evidence before it can close.
+
+For an applied revision with an archived model observation, evidence
+readback reparses the exact affected files from that immutable revision.
+It compares the document list and model identity with the archived
+report. The verified document list supplies the =parsed_by= relations.
+Live review and historical readback both apply the existing 4 MiB request
+budget to the combined source bytes of the recorded model set before calling
+OpenSysML. A candidate exceeding this budget keeps =sysml.parse= Open.
+An archived success report cannot bypass the same source check on readback.
+Later working-copy
+contents are outside that comparison. A missing archive leaves a
+missing report for the changed model paths without asserting historical
+applicability or passing status.
+The linked OpenSysML case applied an isolated reviewed model change and
+reproduced its archived report. It refused an unrelated path and a
+forged model identity, reported an omitted archive, and reproduced
+the same evidence after a later revision recorded a broken model.
+The same test observed a deleted model as Open and verified that a
+missing archive supplies no =parsed_by= relation. The linked cases
+passed before the joint command reached its existing wall guard. The
+OpenSysML case passed separately against the same compiled products
+under the existing guard.
+
+The Runtime now retains the structured report for each observed selected JJ
+check in the returned =executions= array, alongside the method, requirement and
+input/report bindings. Previously it calculated an identity and discarded the
+configuration-audit report. The recorded-change report equals the returned
+Changes, and the configuration-audit report identifies the independently checked
+commit and tree. Report bindings identify the serialized structured report.
+These are machine receipt fields, not metadata appended to commit prose.
+
+The host collects each observation once. Full reports stay on Rust's return
+path; Scheme receives the compact receipt facts. Agent-supplied =executions=
+are refused by the same strict draft-input boundary as forged sources and rule
+context. Existing semantic eligibility, authorization and recovery are unchanged.
+
+The owned candidate's complete linked suite passed four Cases, with the original
+Provider Case ignored, in 13.50 seconds under the unchanged Runtime guard. Its
+existing ASP gate also passed. The expanded consumer checks the original report
+against Changes, the audit against the actual revision/tree and each report's
+binding. The first attempt was refused by the outer macOS sandbox before the
+consumer's own sandbox could start. The normal run retained that source/compiler
+access isolation and passed; no test or isolation assertion was skipped.
+
+This earlier change retained the original observations in the CLI response.
+The revision readback above now verifies those observations. Durable Artifact
+discovery and GQL path execution remain separate obligations.
+
+*** Recorded Provider consumer
+
+The linked Provider Case now compares the exact four recorded paths:
+project settings, the ORG engineering item, the test and its worker. The
+previous three-path assertion failed after the engineering item was added.
+The corrected test continues to exclude unrecorded edits and checks the
+canonical title, the absence of machine receipt identifiers in the prose,
+refusal of a missing ORG assessment and exact prepare recovery. It exercises
+the local Provider with the recorded test, rejects an unrelated failure as
+the intended counterexample, and rejects a broken test collection. The
+complete Case passed in 16.52 seconds under the existing deadline. The standard
+linked suite now requires its JJ and pytest executables and does not skip the
+Provider. All five Cases ran and passed in 22.34 seconds under the unchanged
+120-second guard, including signed approval and local JJ push with actual
+description readback. These executions linked the previously staged Scheme
+program; they do not establish cold installation of the declared inheritance
+chain or a new staging of that program.
+
+
+*** Authenticated PR observation on the local candidate
+
+The anonymous GitHub request returned HTTP 403 with zero remaining
+requests. The same binary used its existing =GH_TOKEN= input to resolve
+PR 2 from the recorded JJ bookmark. The observed checks belonged to the
+published parent of the 77-path candidate. Scheme kept the failed delivery
+check in Open and admitted preparation with that disclosure. OpenSysML
+parsed the affected model. Omitting the Open entry was refused, and a
+draft with an older linked review context produced no prepared attempt.
+Preview and prepare returned the same description. These operations
+left the JJ operation unchanged.
+
+One authenticated run took 3.555 seconds for context, 3.856 seconds for
+preview, and 3.809 seconds for prepare. The candidate remains local.
+
+*** Applied candidate and revision readback
+
+An isolated copy of the authenticated 77-path PR 2 candidate completed
+context, preview, prepare and apply. The actual JJ commit description
+matched the reviewed bytes. Revision GQL executed against the applied
+commit and returned 77 inventory rows, the changed project configuration
+and the reproduced OpenSysML parse of =dev/sysml/aitia-commit.sysml=.
+It reported partial coverage and issued no authority.
+
+Recovery identified the same applied commit using the prepared attempt.
+Readback with only that recovery record explicitly reported three
+missing reports and returned no inventory or model rows. It retained the
+revision and project inputs. Recovery and both reads left the JJ
+operation unchanged. This run used the real PR association for read-only
+observation and wrote only to the isolated JJ repository.
+
+The applied candidate also exercised the push boundary with the live
+PR association. An earlier review context was refused because it could
+not reproduce the admitted description. The current context paired with
+a different destination bookmark was refused as a route mismatch. The
+controls restricted Git transport to local files. Push recovery reported
+an unresolved outcome with no acknowledgement, and the JJ operation
+stayed at the applied cut.
+
+A second isolated copy replayed the same 77 changed paths against a
+local bare Git remote seeded with the published parent. Switching from
+GitHub to the local remote invalidated the earlier draft because the
+local route had no applicable PR check. A fresh context and review
+admitted the local draft. AITIA applied it and pushed through the JJ
+backend. The remote ref pointed to the applied commit, and reading
+the remote commit object returned the reviewed description byte for
+byte. Push recovery returned the original acknowledgement. A second
+push using the consumed attempt was refused and left both the remote
+ref and JJ operation unchanged. Revision GQL returned the 77 inventory
+rows and the reproduced OpenSysML report after the push.
+
+*** Provider drift and write recovery controls
+
+The same linked runtime passed all 18 enabled Rust unit cases. The
+provider controls refuse ambiguous, forged or stale PR associations and
+incomplete checks. The push controls refuse a changed PR target, base,
+check conclusion or observation time while the JJ branch lease still
+matches. They also cover an open PR appearing after the reviewed
+absence. The JJ observation gate passed one unit case and nine workspace
+cases, including stale writes before admission, changed remote routes,
+preservation of divergent local work and unresolved push acknowledgement.
+
+The three Quint commit modules passed their 16 executable witnesses.
+They cover exact-cut evidence, reopening after a rewrite, competing
+attempts, withdrawal and ambiguous recovery. The Rust and JJ runs
+exercise the host and effect boundaries independently of those model
+witnesses. The Rust and JJ guards remained at 120 seconds and each
+Quint witness module retained its 60-second guard.
+
+*** Push destination changes with an unchanged bookmark lease
+
+The linked CLI test switches the push URL from the reviewed bare
+repository to a second local repository with the same bookmark and
+commit. It refuses the old review and leaves both refs and the JJ
+operation unchanged. Restoring the route admits a refreshed review and
+the original test completes push, readback and recovery.
+
+The JJ suite passed one unit and nine workspace cases. Two linked
+attempts passed all five CLI cases in 65.12 and 93.41 seconds. Both
+reached the original joint 120-second guard during OpenSysML. The
+OpenSysML case passed separately in 33.64 seconds on the same build.
+
+The transport identity now stays in the Rust observation. Scheme receives
+its contribution to the opaque review context. The CLI's bookmark
+projection retains the remote name, bookmark, head and provider
+repository without exposing the internal route identity. The linked
+test verifies the exact public projection and still refuses a route
+replacement at the same head. The complete joint run passed five CLI
+cases in 57.60 seconds and the OpenSysML case in 29.07 seconds under
+the original 120-second guard.
+
+The route-bound build observed the real PR association for the updated
+78-path candidate. It refused an earlier review context and a draft
+that omitted the outstanding delivery check. The refreshed preview,
+prepare and actual local commit had identical description bytes.
+Revision GQL executed against that applied commit and returned all
+78 inventory rows and the reproduced OpenSysML report with no missing
+reports. The push route was observed through GitHub and the write
+occurred only in an isolated JJ repository.
+
+The private-route build repeated evidence readback on the applied
+78-path candidate. Omitting both the inventory and OpenSysML archives
+left their GQL selections empty and reported both methods missing.
+The configuration report and project input remained available.
+Duplicate inventory, a substituted input digest and a forged SysML
+model digest were refused before emitting evidence. The SysML control
+reproduced the report with the local OpenSysML service before rejecting
+the substituted archive. These controls did not advance the JJ
+operation.
+
+*** Commit semantics refusals on the current PR candidate
+
+Six individual proposal mutations on the 78-path candidate retained
+the same live PR association and passing OpenSysML observation. PR
+and NASA identifiers substituted for the engineering reference each
+produced =missing-reference=. An invented type, unaffected scope,
+unrecorded language source and overlong title produced
+=unsupported-type=, =unaffected-scope=, =missing-language-source=
+and =invalid-narration= respectively.
+
+A separate copy recorded a second origin for =RFC-0007= whose Element
+could not be resolved. ASCENT reported =conflicting-reference= even
+though the other origin was valid. All seven refusals left the
+description empty, generated no prepared attempt and preserved the
+JJ operation observed at the beginning of the corresponding control.
+
+*** Refreshing an applied review after a linked program update
+
+The current binary replayed an already applied 78-path PR 2 candidate
+from the preceding build. Push refused its prior review context.
+=preview --applied= recomputed the review under current rules,
+returned a new context and matched the recorded description byte for
+byte. Substituting only that context allowed push admission to reach
+the live PR destination check, which refused the deliberately wrong
+bookmark. The original attempt still recovered the same applied
+commit. These controls preserved the JJ operation and allowed only
+local Git transport.
+
+The rooted review-result build repeated the old-context refusal on the
+already applied 79-path candidate. Applied preview confirmed the live
+PR association and OpenSysML result and renewed the context for the
+same written description. Substituting that context reached destination
+validation, which refused the unconfigured route. Neither refusal
+advanced the JJ operation. The linked Rust unit suite passed 18 Cases,
+including stale or ambiguous PR association and changed checks on an
+unchanged head. Two separately gated pytest observation Cases were
+ignored by this unit invocation.
+
+On a separate copy of the 79-path candidate, the same binary ran
+discovery, preview, prepare and apply using the updated ORG and SysML
+sources. The title used the recorded engineering reference. The actual
+JJ commit description matched the preview byte for byte. Revision GQL
+returned all 79 paths and all three check reports. This run exercised
+the local write boundary.
+
+*** Declared dependency cold-install control
+
+The published PR 2 native delivery job missed its exact package-cache key.
+Its guarded dependency install reached the 600-second deadline while
+compiling Orgize. Its first Orgize compilation marker was only about 23
+seconds before the deadline, after the POO and Parser compilation phases.
+The receipt reports four effective build cores and peak
+process-tree PSS of about 5.82 GiB. The job exited with status 124 before
+AITIA's Scheme semantic and linked delivery steps started. Local linked
+success cannot qualify that install.
+
+The workflow now checks the install receipt on both cache restore and
+fresh install. It saves the dependency cache immediately after a
+completed install, before building Lab and Core test prerequisites.
+A later prerequisite failure therefore does not discard the successful
+install. The cache key and install guard remain the same. Local workflow
+controls accepted a completed receipt and refused timeout, nonzero
+exit and missing receipts. This change improves reuse after a successful
+install. The first cold install on the hosted runner still needs a
+successful receipt.
+
+The receipt check also requires the resource guard schema, the
+install-dependencies label, both successful exit statuses and the
+600-second budget. Cache save uses the primary key emitted by restore.
+Local controls rejected a receipt from a different phase, an altered
+budget, a failed child and malformed values. The cold log showed no
+repeated compile-file entries. The package sequence used four effective
+cores and reached Orgize at the end of the shared guard, so this cache
+change does not qualify a clean first install.
+
+The earlier authenticated 79-path candidate includes the workflow change.
+Its reviewed description records receipt validation and cache
+publication. An isolated apply produced the exact reviewed bytes.
+Revision GQL selected the workflow through the original
+=jj.recorded-change= report and returned all 79 inventory rows with
+no missing reports. Recovery identified the same applied commit.
+The readback and recovery preserved the JJ operation.
+
+The refreshed 79-path candidate included the stricter guard receipt
+contract and reused the restore step's primary cache key. It completed
+authenticated preview, prepare and isolated apply. The actual commit
+description matched the reviewed prose, and revision GQL recovered the
+workflow through the recorded-change report with no missing reports.
+The repository cache inventory contained no exact Gerbil package cache.
+The pinned Lab build published receipts and context evidence, with no
+observed dependency package archive for the AITIA runner.
+
+The Rust workspace audit found a module declaration ordering
+difference. After formatting, the workspace format check passed.
+The workspace Clippy and test recipes passed, including the ASP Rust
+development gates. Clippy also passed with =linked-program,sysml=
+enabled, with warnings denied and the original 120-second guard.
+These checks used the locally qualified Scheme products.
+
+The current published PR 2 check still exits with status 124 during
+Orgize compilation. The locally linked candidate completed five CLI cases
+in 69.54 seconds and the OpenSysML case in 27.82 seconds within the existing
+joint 120-second guard. The separate project declaration control passed in
+10.59 seconds with the existing macOS process restrictions. These local
+runs reuse the qualified dependency products.
+
+The same local binary executed revision GQL against the applied RFC 0007
+fixture. The inventory linked =modules/gitops/commit-evidence.ss= to its
+recorded-change report and the configuration selection returned the
+unchanged =.agents/aita/project.json=. The fixture has no affected SysML
+paths. Removing the inventory archive produced zero inventory rows and
+an explicit missing report while preserving the configuration row. The
+original revision was refused as a substitute for the applied revision.
+The query reported partial coverage and no action authority. These reads
+left the JJ operation unchanged.
+
+An isolated =gerbil build= of Lab's declared Orgize source reused its
+declared Parser products and their package manifests. The generated fold
+package and Orgize modules compiled, the installed event-tape ABI probe
+passed, and Parser staging finished. The build exited under the existing
+600-second guard and 4 GiB heap limit. This qualifies the Orgize build
+with Parser already installed. It leaves the complete dependency
+acquisition and cold-install gate open.
+
+The subsequent Lab build used the declared Parser, Orgize and ASCENT
+products and built the Core source selected by its gitlink. The Parser
+dependency's installed Yuanxu did not export the cancellation entry
+required by Lab. Making both versions available caused expansion to pick
+an incompatible JSON Schema interface. Using one Core for Lab resolved
+that lookup. Sharing the Core output directory with the Lab build then
+triggered the stale-source guard when Lab rewrote a consumed Funflow
+interface. With separate Core input and Lab output directories, the
+standard Lab library build completed and published the Query selector.
+The observed Core interface bytes matched before and after the Lab build.
+The staged AITIA program included that selector and the declared Orgize
+interfaces. On the same applied local revision the GQL result linked
+=modules/gitops/commit-evidence.ss= to the =jj.recorded-change= report.
+Removing the archive returned zero rows and explicitly reported the
+missing observations. The host evidence and lineage graph matched the
+earlier local readback, and the JJ operation stayed unchanged. The query
+reported partial coverage and no action authority. Coverage of unchanged
+dependencies remains an open obligation.
+
+The same linked program passed five default delivery cases in 51.72
+seconds and the OpenSysML case in 21.57 seconds under the shared
+120-second guard. The delivery cases exercised durable signed approval,
+local push with actual commit readback without a Scheme compiler,
+refusal with an unresolved obligation, and the ORG and Graph consumers.
+The project declaration case requires its own compiled input and is
+qualified separately. Staging that input with the same dependency products
+and running the linked case under its macOS process restrictions passed in
+8.28 seconds. The linked program accepted the recorded declaration and
+optional JSON overlay and refused a recorded replacement or deletion.
+An initial invocation stopped before those assertions because the outer
+sandbox refused the nested macOS policy. The successful run kept the
+test's source and child-process restrictions and the 120-second guard.
+
+The two Yuanxu selectors used by the semantic CI recipe include all five
+GitOps and project configuration test files. The local package pool lacked
+the compiled Lab testing extension used by the selected test runner, so
+the local attempt to run that exact owner recipe stopped before assertions.
+The direct Scheme test run remains independent evidence.
+
+A later isolated diagnostic compiled the testing extension from the pinned
+Lab source. The first attempt then selected the ASCENT checkout's ASP
+artifact and failed at a POO calling convention mismatch. Selecting Lab's
+declared development ASP artifact let the existing Yuanxu entry dispatch
+all three selected GitOps files. Its first cold child failed with heap
+overflow at 512 MiB. The same file also failed when called directly at
+that heap limit. A one-shot diagnostic located the overflow at the first
+GitOps role access, before any journal was opened. The earlier five-file
+process ran the admission file last and passed. Importing the compiled
+init explicitly in a separate diagnostic reached the existing deadline
+before a harness marker. The owner test route therefore remains open.
+No repository dependency, runner, heap or timeout changed in these
+diagnostics.
+
+The next cold controls read the GitOps role successfully at 512 MiB, both
+with the GitHub Feature and without it. Importing the journal alone did
+not reproduce the failure. The isolated tests now import the exact
+owners they exercise: the journal tests import commit admission and the
+evidence tests consume the GitOps configuration value. The NASA case
+still selects its standard through the scenario. Yuanxu still selects
+the test files, and the linked CLI continues to exercise the published
+GitOps role. No journal assertion or negative control was removed.
+
+With the isolated Lab testing extension available, the existing Yuanxu
+commands passed all three GitOps files and both Project Configuration
+files as separate 512 MiB children. The parent heap and 120-second
+guard were unchanged. The combined five-file Scheme suite also exited
+naturally in 50.34 seconds within its 60-second guard.
+This qualifies the local owner route with the
+staged dependencies. A cold installation on the published PR remains open.
+
+The linked delivery recipe now compiles the commit and recorded SysML
+consumers together and runs both inside its existing 120-second guard.
+The updated recipe passed against the already staged Scheme program,
+including the malformed-model and stale-cut controls. The remote
+cold-install gate remains open.
+
+A fresh standard package directory was created for the owned candidate, using
+its unchanged package declaration and the current installed Gerbil toolchain.
+=gerbil deps --install= failed before compilation while checking out the
+Lab-selected Parser revision. This run retained the existing 4G heap and
+600-second guard; it exited with package error status rather than timing out.
+The already qualified dependency store was not changed.
+
+The clone was not shallow. Its ordinary remote branch refs did not contain the
+fixed revision. A separate exact-revision fetch succeeded without checking out
+or changing any source, proving the object remains remotely obtainable. The
+installed package manager clones/fetches advertised refs, attempts checkout,
+and only then pulls the selected revision. Its checkout therefore fails before
+that later acquisition can run. The diagnostic fetch is not a successful cold
+installation and does not repair the installed package manager.
+
+The fetched Parser package declaration also fixes the older Core. Consequently
+updating ASCENT alone cannot qualify the inherited dependency cohort. Producer
+promotion must account for every Core constraint in the selected dependency
+closure and the standard package-manager acquisition boundary. No dependency
+pin, producer source or installed toolchain was changed in this control.
+
+
+** Preserving review through apply and push
+
+*** Recorded execution replay
+
+=just test-jj-recorded-evidence= runs the existing Rust ADR-0008 producer
+against real JJ history and pytest, then passes its fresh result to the
+Scheme GitOps and Assurance modules. The positive and negative outcomes
+must share the captured source. The fixed execution supplies support,
+the duplicate-effect execution supplies a counterexample, and a rewrite
+or a new change with the same tree reopens the affected obligation.
+The replay also exercises the Host's refusal of the wrong project and
+execution identity. Support never grants release authority.
+
+The replay now invokes Gerbil's test runner directly, as the commit
+semantics recipe does. The isolated dependency products did not export
+the Lab development observability module imported by the generic test
+wrapper. With the standard runner the Rust producer passed in 3.44
+seconds and the same Scheme proof passed and exited normally under the
+existing 60-second guard and 512 MiB test heap.
+
+The Rust producer and Scheme replay passed in a qualification copy with
+Python 3.14, pytest 9.0.2, and the original 120-second and 60-second
+guards. The ADR-0008 HTTP fixture binds the numeric loopback address
+directly, removing reverse DNS from its setup. The delivery recipe runs
+this replay alongside the separate =test-jj-commit-evidence= command,
+which exercises the project init's public GitOps projection.
+
+The =check-semantic= recipe already discovers the five GitOps and
+ProjectConfig test files through the two Yuanxu Module IDs. The
+Module-selected runs passed all five files under the existing
+120-second launcher guards and declared test profiles. The separate
+=test-commit-semantics= command remains a focused control. It passed
+with the existing 512 MiB and 60-second bounds. Running it again from
+=check-semantic= would duplicate the selected files.
+
+The local aggregate entered source admission after rebuilding the
+Lab development inputs against the selected POO products. Source
+admission passed. The next step, =gerbil build=, stopped because the
+local package store lacked the generated manifest for AITIA's declared
+Lab dependency. These observations qualify the Module tests and source
+admission individually. The aggregate still needs the package-managed
+Lab installation before it can finish.
+
+The guarded dependency install starts in the pinned Lab checkout and
+installs the packages declared by Lab. AITIA declares Lab itself as a
+dependency, so its standard package build also needs the Lab package
+manifest. The CI prerequisite now registers the existing pinned Lab
+checkout with =gxpkg link= and runs =gxpkg build= on that registered
+package after Core is built. Gerbil generates the dependency manifest.
+The cached dependency install and its 600-second receipt remain scoped
+to the original Lab dependency phase. Registration runs after both a
+fresh install and a cache restore.
+
+A package-manager control reproduced the missing-manifest failure in an
+empty store. Registering the fixture checkout and building it through
+=gxpkg= let the consumer's ordinary =gerbil build= complete and record
+the checkout's actual revision in its generated manifest. This control
+exercises package registration. It leaves the full pinned cohort and
+hosted cold installation to their own qualification.
+
+A separate Darwin installation fetched the exact Lab dependency sources.
+Its first attempt failed while linking POO with an undefined =_memset=
+symbol. With the system SDK and compiler search path, compilation passed
+that point and reached Parser. The 600-second command ended during
+Parser compilation, before Lab registration or any AITIA semantic test.
+The outer diagnostic handler returned failure and did not retain the
+child's exact exit code.
+
+A continuation reused the same locked package store and kept the
+600-second guard, 2 GiB per-process heap and automatic core count.
+Parser and the Scheme bridge progressed into Orgize. The generated
+document and inline fold build emitted =GENERATION-OK=. The package
+command still returned 124 while resolving the compiled tape modules,
+before Lab registration or the downstream AITIA gate. The successful
+generation marker qualifies only that intermediate phase.
+
+A subsequent invocation using the same Darwin package store completed
+the original dependency install with exit 0. It emitted
+=COMPILED-INTERFACE-ABI-OK= and reached package tagging. This is
+incremental installation evidence for the prior Lab pin.
+
+*** Yuanxu release alignment
+
+The linked Lab checkout moves to the Yuanxu =v0.1.0= release and its
+declared POO dependency. Parser's =v0.1.0= package, the current Orgize
+PR head and the ASCENT PR's release-alignment head each declare the
+same Yuanxu release. Lab's Bazel bridge projection follows the linked
+Rust bridge revision. Lab's package-to-Bazel projection checker and
+the frozen Bazel module lock check passed.
+
+The release publishes Scheme modules under =tao3k/yuanxu= and exports
+=std-make-spec= as the admitted target list. Lab and AITIA consumers
+use that namespace and pass the projection to Gerbil's standard
+build entry. AITIA retains Yuanxu's output directory for linked
+program staging and the platform-specific compiler options. The
+release-specific Scheme build and downstream validation precede
+Rust delivery qualification.
+
+The first release Core installation reached the 600-second guard while
+compiling its pinned POO dependency. Reusing that package store completed
+the standard Core build with exit 0 under the same guard. Gerbil then
+generated the Yuanxu package manifest from the clean Lab Core checkout.
+CI now checks the Lab revision, the Core gitlink and the absence of Core
+worktree changes before registering Lab. The same checks accepted a
+locked clean checkout and detected the different revision and staged
+changes in the POO Flow development checkout.
+
+The development link and package tag are separate. In the isolated
+store, =gxpkg link= followed by =gxpkg build= produced a manifest from
+the correct detached Core checkout. Parser then requested the
+=v0.1.0= dependency tag. Without tag metadata, Gerbil v0.19 read the
+empty branch name of the detached checkout and failed in
+=pkg-tag-incompatible?=. The ordinary tagged update command also failed
+on its tagged package lookup. A package-managed checkout of the same
+release, bound with the =pkg-update= API used by Lab's existing
+prefetch entry, produced the tag metadata. The subsequent dependency
+install reached the same 600-second guard during Parser's Org grammar
+artifact generation.
+
+Lab's default =build.ss spec= returned an empty target list. A selected
+=ai-agentic-context= projection first failed on the former Yuanxu
+prelude namespace in a nested package declaration. After aligning the
+Module and Scenario package preludes with the release, the same
+projection exited successfully and listed the five Context targets.
+This checks target selection. Compilation of the selected targets and
+AITIA downstream qualification remain open.
+
+The resumed package build reached Orgize after Parser's grammar
+generation. Orgize's compiled interface probe reported
+=COMPILED-INTERFACE-ABI-OK= with the bridge runtime available. The
+subsequent parser staging also needs the OpenSSL, zlib, and SQLite
+=pkg-config= inputs. After providing all three dependencies through
+=pkg-config= and using the Lab Darwin compiler environment, the Orgize
+build reported =ORG-PARSER-STAGE OK= and exited 0. The ASCENT package
+build also exited 0 with that compiler environment. The GHQ Lab
+checkout registered through Gerbil's package manager and its default
+build exited successfully. These were resumed builds.
+
+The commit-semantics consumer could not run against the previous
+package store because it lacked release-namespace interfaces and Lab's
+durable journal. A focused run against the release-aligned store
+returned 137 under the existing 60-second guard without emitting a
+test result. The same guard outside the sandbox reached the test
+module marker and returned 137 before its first Case. A separate
+ASCENT API import reproduced slow loading in isolation. A process
+sample recorded 126 of 191 main-thread samples in Gambit's dynamic
+load call, including Darwin loader image notification. The source
+reader accepted the revised Scheme files. Running the same focused
+GxTest suite through the built ASCENT development executable under
+the same 60-second and 512 MiB limits reached the Cases. Its first
+run exposed a fixture where the same path supplied both engineering
+and language evidence. The expected Open rows now include both
+=missing-reference= and =conflicting-language-source=. The corrected
+suite reported =MODULE-OK=, =HARNESS-OK= and final =OK= and exited 0.
+The standard GxTest invocation and joint validation remain Open.
+
+AITIA's build projection found that a successful default Lab package
+build leaves its Temporal Causality libraries uncompiled. The consumer
+CI now invokes Lab's existing =just build-library= before running
+AITIA. The first local library build found retired Yuanxu Module IDs
+in OpenTofu's required publications. The declaration and its downstream
+controls now use the released IDs. The full library build is a separate
+gate from the default package build.
+
+The next library attempt resolved those IDs and rejected the retired
+=module/build= projection in Nix. Nix and OpenTofu now use their existing
+Gerbil type imports to reach their contract libraries. OpenTofu keeps
+its configured external package projection. The full Lab library and
+AITIA consumer still require verification.
+
+The Yuanxu alignment is published on Lab PR 34. A subsequent Lab library
+attempt reached Gerbil Make and showed that a foreign Module target needs
+Yuanxu's compiler source view. Lab's development entry now runs the
+combined selection and library projection inside the existing Yuanxu
+compiler-input extent. In AITIA, the operations and linked Scheme program
+are retained package entrypoints. The build and linked staging use the
+same declaration for these targets, and SDLC no longer supplies a retired
+=module/build= projection. Linked staging passes the exact admitted target
+list to Gerbil Make inside Yuanxu's compiler-input extent. A focused Make
+spec invocation returned both retained entries and exited 0. The full
+admission, compile and linked readback remain separate gates.
+
+Lab PR 34 also contains the compiler source view fix. That build reached
+the foreign JSON Schema source and stopped on a =fold-right= import
+unavailable in Gerbil v0.19. Yuanxu PR 22 now uses the Gerbil Core list
+bindings. All seven affected sources compiled, and the focused JSON
+Schema control preserved value and diagnostic order. A publication
+diagnostic using the release dependency store still reported heap
+overflow. The corrected Yuanxu dependency cohort and the full Lab
+library build remain Open.
+
+Lab PR 34's Linux ABI job failed before executing its tests. Bazel 9
+rejected an unmatched root Scheme glob in =dev:sources=. Lab now
+declares the package manifest and existing Testing sources. A locked
+Bazel query resolved those files. The replacement head's ABI test run
+is a separate gate.
+
+The License contract job identified a missing SPDX copyright line in
+the existing Context scope test. Lab completed the header and its local
+license check passed. Remote status is tracked on Lab PR 34.
+
+Lab's development test entry exports the existing build projection
+and source-admission suites through =dev.ss=. The =just test-dev=
+recipe ran =gerbil test dev.ss= with the existing 120-second and
+2 GiB limits and reported =MODULE-OK=, =HARNESS-OK= and final =OK=
+with exit 0. The Lab production library remains a prerequisite for
+AITIA's independent consumer validation.
+
+The current AITIA JJ test passed its unit Case and all nine workspace
+Cases with the existing 120-second guard. These exercised real JJ
+records, ambiguous review bookmarks, stale cuts and remote leases,
+divergent unpublished work, and an unresolved recovery without a push
+acknowledgement. Linked Scheme review and commit readback are separate
+gates. The two-suite Scheme consumer attempt stopped while importing
+Lab Governance's compiled objects. After using the Gerbil Core list
+bindings in the AITIA commit path, the focused semantics suite again
+reported =MODULE-OK=, =HARNESS-OK= and final =OK= and exited 0 with the
+ASCENT development executable under the existing 60-second and 512 MiB
+limits. The linked consumer and revision GQL readback remain Open.
+
+JJ now opens the workspace once to observe the declared engineering and
+language source paths. It checks the operation before and after the batch,
+uses one byte budget and returns path-specific read failures for the review.
+The workspace Case read recorded text despite a dirty working copy, kept
+a missing path and an exhausted budget visible, and rejected the whole
+batch when the operation changed. The standard JJ test command again
+passed its unit Case and all nine workspace Cases.
+Both the initial and incremental linked Rust checks using an earlier
+compiled Scheme manifest reached the 120-second guard during the build.
+They supply no linked acceptance for the current Scheme inputs.
+
+A source headline with two =ENGINEERING_ID= properties cannot support a
+reference. Orgize rejects the duplicate property during Element
+projection. Scheme leaves that reference unresolved and ASCENT retains
+the corresponding Open item. The focused test passed through ASCENT's
+development executable in the normal Darwin environment under the
+existing 60-second and 512 MiB limits. The sandboxed attempt reached
+the same guard before completing the suite.
+
+ASCENT distinguishes conflicting scope declarations from an unaffected
+scope. Two declarations for one scope can agree after path order and
+duplicate entries are normalized. Different path sets keep the proposal
+Open and omit that scope from the affected-scope relation. The focused
+Scheme suite passed both controls under the same guard. The linked
+context projection exposes the conflicting scope names for review.
+The existing OpenSysML test also passed with the updated model and
+recorded JJ inputs.
+The linked commit fixture now requires the context to report the
+scope conflict and the reference conflict independently, with no
+prepared attempt. That linked fixture awaits the current program build.
+
+The POO revision declared by Yuanxu PR 22 built successfully under the
+existing 600-second guard. The first Yuanxu attempt identified a missing
+POO package manifest. Gerbil then registered and built the linked POO
+checkout. Yuanxu built successfully against the registered dependency
+under the same 600-second guard. The subsequent Lab library control
+uses those POO and Yuanxu products first on its load path and the
+already-built Parser, Orgize and ASCENT products for the other libraries.
+This control does not qualify a fresh install of the full dependency set.
+Its library specification subprocess returned. Before Make emitted any
+compilation output, a parent-process sample recorded 143 of 144 main-thread
+samples in dynamic loading, including 142 in Darwin's segment mapping
+path at =fcntl=. The build then reached the existing 600-second guard,
+exited 137 and left no compiled Lab interfaces in the output.
+
+Outside the sandbox the same library control advanced to a concrete
+compiler import failure. A release-built =module-prelude.ssi= requested
+a declaration export that was unavailable in the mixed load path.
+The next build uses one isolated package store for POO, Yuanxu,
+Parser, the Scheme bridge, Orgize, and ASCENT. The mixed run exited 70.
+Yuanxu and Parser built successfully in the isolated store under
+the existing per-package guard.
+The Scheme bridge also built successfully in that store. Orgize
+completed document and inline grammar generation.
+
+*** Policy source lineage at the applied revision
+
+Evidence readback resolves the recorded project configuration and asks
+JJ for the regular files named by its engineering and language source
+declarations. JJ reads the selected revision's tree, so an unchanged
+source still has a =has_policy_source= edge. Missing paths produce no
+edge. The edge records file availability. ORG Contract and ASCENT
+still determine which claims the file supports.
+
+The JJ suite passed its unit Case and all nine workspace Cases. The
+historical source control read the recorded regular file after the
+working copy changed to a directory and omitted an absent path. A
+Scheme graph control confirmed that one file can carry both config and
+policy-source edges without a duplicate node. The =review-lineage-test.ss=
+suite passed through =gerbil test= under the existing 512 MiB and
+60-second limits. When the change, config and policy source describe
+one path, the projection checks the recorded file identity and executable
+bit before creating the shared node. The suite rejects a previous file
+version, an executable-bit mismatch, a deleted path, a conflicting
+config observation, a symlink, and duplicate policy-source rows.
+The OpenSysML test accepted the updated lineage model and rejected its
+invalid input control under the existing 120-second guard. The linked
+GQL fixture checks the policy-source path and its changed state. Its
+execution remains Open pending the current linked build.
+
+*** Required graph selection for revision queries
+
+Lab Query publishes the existing bounded Scheme graph selector through
+its Query module. AITIA declares the revision-specific paths and consumes
+that selector for inventory, project configuration, policy sources and
+model evidence. The linked Rust fixtures require executed rows and an
+empty model selection when the parse archive is absent. The results
+retain partial coverage and carry no action authority.
+The Lab selector tests and AITIA revision-query tests passed using the
+Lab source checkout and installed Scheme dependencies. The AITIA tests
+checked revision refusal, unchanged policy sources and empty results
+for missing reports. Lab PR 34 now contains the selector, and AITIA's
+package declaration selects that revision. The package build and linked
+Rust fixtures against that revision remain Open.
+The full Scheme commit-semantics command exited 137 under its existing
+60-second guard in both the sandbox and the host, before a Harness
+receipt. The standalone JJ suite completed its unit test and all nine
+workspace tests under its existing 120-second guard.
+
+In the isolated Yuanxu PR 22 dependency build, Orgize first reached the
+600-second guard during compilation. An incremental retry reached the
+compiled-interface ABI check and exited 70: Gerbil attempted to expand
+the generated =values~0.scm= instead of loading the compiled object.
+The timed-out build had left its interface and generated Scheme files
+without a corresponding object. That run did not publish Orgize, ASCENT,
+or Lab. The package clean and rebuild use the existing guards.
+The clean completed successfully and the next Orgize build restarted
+from generated grammar products. A separate build against the existing
+release dependencies sampled Lab's specification subprocess before Make
+started. The main thread was predominantly scanning and marking the
+Gambit heap. This locates the work before compilation but does not yet
+identify the allocation source.
+
+The clean Orgize run produced the object files missing in the previous
+attempt. It reached dynamic module resolution in the compiled-interface
+check and returned 124 under the existing 600-second package guard. The
+Lab full-library run returned 137 while still in specification expansion.
+The focused Lab Query compilation produced both the selector and config
+objects. AITIA's revision Query suite completed with those compiled
+interfaces first on the load path, using the source checkout for the
+rest of Lab. This qualifies the consumer call to the compiled selector.
+The full package build and linked Rust replay remain Open.
+
+The lineage projection also checks a recorded project configuration file
+against the change inventory when there is no policy-source observation
+for that path. The combined lineage and Query suites rejected a stale
+configuration version, a deleted configuration path and an entry with
+missing executable metadata. Both suites completed under the existing
+60-second and 512 MiB limits. OpenSysML accepted the revised model and
+rejected the invalid-input control under the existing 120-second guard.
+
+The =verifiedReports= selection follows the revision's verified report
+edges, including the Git configuration audit of the commit object, tree
+and parents. The report's method identifies the matching entry in
+=observations=. The configuration file selection separately lists the
+recorded project inputs. The focused Scheme Query suite passed against
+the compiled Lab selector and confirmed that a missing archive yields no
+verified rows. A linked fixture requires both selected JJ reports.
+
+Program staging now prepends its compiled AITIA products to the dependency
+load path used by the enclosing build. This retains the existing package
+selection when the AITIA output is separate from the dependency store.
+The previous staging entry compiled AITIA successfully in that layout,
+then failed to resolve the Scheme bridge's =program-build= module in its
+child. The corrected entry resolved the bridge and reached the static
+link closure. The reused release store lacks static products for Yuanxu's
+=init-syntax= and =body-inclusion= modules despite having their dynamic
+interfaces. Compiling the first module from that exact release in a
+separate output directory produced its static file and advanced the
+closure to the second missing product. This diagnoses the reused store;
+the mixed-cohort staging run did not produce a program manifest.
+
+The Rust archive contract now requires the AITIA lineage and Query modules
+and the Lab graph selector. Under the existing 120-second guard, the
+linked Cargo check rejected the previously staged manifest because it
+lacked the required Query module. The current Scheme compilation produced
+the three modules' static inputs. The positive linked check still requires
+the complete dependency closure.
+
+When a trusted project declaration is selected, staging uses Yuanxu's
+source admission to check its bytes around compilation and manifest
+generation. A missing declared file is rejected before compilation and
+produces no program manifest. The linked runtime still checks the recorded
+declaration against the exact bytes embedded in the program.
+Staging serializes writers through Yuanxu's output lock. The Scheme
+bridge writes its manifest in the link output directory, and AITIA
+publishes it to Cargo's input path after the final source checks. The
+missing-declaration control seeded a previous manifest, then confirmed
+that the failed staging attempt left no manifest at Cargo's input path.
+
+The isolated release rebuild first refused a missing POO package
+registration. With the existing POO registration available in the
+isolated package store, standard Gerbil build regenerated both of the
+missing Yuanxu static files and exited successfully under its existing
+600-second guard. A closure diagnostic reused the compiled AITIA objects
+with those rebuilt products and generated a manifest with 793 module
+entries. The AITIA lineage, revision Query and Lab graph selector each
+appeared once. The diagnostic uses an earlier Lab library with the focused
+compiled selector products, so it does not qualify the locked Lab build.
+The standard staging run sampled in Darwin's =dlopen= segment mapping.
+A later inspection showed that it had moved from a Yuanxu Funflow object
+to an Orgize parser object. The run reached its existing 600-second guard,
+exited 137, and left no published manifest.
+
+The diagnostic manifest linked both Rust test targets. The joint replay
+completed the archive-identity, CLI and Assurance cases before the
+120-second guard. The reviewed-push case also reached the guard when
+run alone, after reaching =commit prepare=. The separate linked SysML
+case reached applied evidence readback and exposed a GitOps Scope
+Contract that still declared six lineage arguments. The host sends seven
+including the policy-source observations. The Scope Contract now declares
+that seventh list, and the Scheme Query case exercises the validated
+Scope instead of calling the implementation directly. The case emitted
+its success markers. The corrected Scope was recompiled and linked using
+the diagnostic dependency cohort. With that binary, the CLI read back an
+already applied local PR 2 candidate with 77 changed paths. GQL returned
+77 inventory rows, the three verified JJ and OpenSysML reports, the
+recorded SysML file, and both policy sources. The missing-report control
+on a separate applied revision returned the verified configuration audit
+and omitted the missing change inventory. The broader linked SysML
+suite reached its 120-second guard. These readbacks qualify the corrected
+Scope on recorded revisions. The current candidate's full replay and
+locked dependency build remain Open.
+
+The corrected diagnostic binary also previewed the current working
+changes in an isolated JJ repository. The snapshot excludes the two
+staged edits already in the shared index and includes the unstaged
+GitOps import. JJ recorded 133 changed paths. ASCENT admitted the RFC
+reference and affected GitOps scope, and OpenSysML parsed the one
+affected model. Scheme rendered the English proposal with both NASA
+evidence rows and the model result. The local snapshot had no review
+remote, so the empty Open list describes this snapshot only. A proposal
+substituting =SWE-084= for the engineering reference was refused with
+=missing-reference= and no attempt. The preview did not apply a commit.
+
+On the same isolated candidate, =prepare= reproduced the exact preview
+description. Recovery reported the prepared attempt as unresolved, and
+modifying the narration after preview was refused without a new attempt.
+The visible JJ operation was identical before and after these checks.
+
+A second local workspace recorded the same candidate tree against the
+published bookmark of PR 2. The GitHub provider resolved the PR and its
+=main= target. It reported the published head's failed Native admission
+and linked delivery check with =onCandidate=false=. ASCENT projected
+=gitops.pull-request-checks= into Open. Scheme rendered that disclosure
+alongside the two NASA evidence items and the recorded OpenSysML result.
+The provider-linked preview produced no attempt or remote update.
+
+The isolated 133-path candidate was subsequently applied through AITIA.
+The actual JJ description matched the reviewed preview byte for byte.
+Recovery reported the attempt as applied, and revision GQL returned all
+133 inventory rows, both JJ reports and the OpenSysML report with no
+missing report. A second isolated workspace recorded the same tree and
+reproduced the same description before pushing through =aitia jj git push=
+to a local bare repository. The remote bookmark pointed to the applied
+commit, its description matched the preview byte for byte, and push
+recovery reported =acknowledged=. The GitHub-associated candidate was
+used only for review. The exact locked-dependency build and the complete
+joint replay remain Open.
+
+The same applied candidate rejected a substituted Git tree in the archived
+configuration audit before emitting GQL results. Replaying the acknowledged
+push request was refused because its description rewrite was no longer
+the current operation. The local operation and remote bookmark were
+unchanged. A readback with only the recovery record returned the actual
+commit description and its policy sources. All three report archives were
+listed as missing, and the verified report and model queries had no rows.
+That readback also preserved the visible JJ operation.
+
+The published PR 2 delivery job stopped during Orgize compilation in
+dependency installation. The job returned 124 at the 600-second guard,
+before AITIA staging or linked tests ran. The diagnostic local replay and
+that published-head result cover different execution paths.
+
+Timing on the diagnostic linked binary showed 0.20 seconds for JJ
+observation, 9.11 seconds for the project manifest, and 34.17 seconds
+for one commit context invocation. A later comparison on a local copy
+completed commit context in 11.99 seconds with the full RFC and 8.03
+seconds with a short document retaining the same Org identity. Both
+returned the same engineering reference and passed the model check.
+The timing varies across invocations. Sampling the manifest path showed
+Scheme execution and Gambit GC inside the linked runtime extent.
+
+The engineering reference check now reuses the uniqueness result from
+Org Contract and inspects the matching headline in the existing graph
+records. This removes the second query index construction while retaining
+the document-wide uniqueness and same-headline requirements. The runtime
+effect of this change still needs a linked rebuild and measurement.
+The changed Scheme module compiled successfully. The complete semantics
+suite reached its 60-second guard before reporting a verdict, both from
+source and with the separately compiled module on the load path.
+
+The local source gate reached the commit semantics and revision-query
+suite verdicts once it used the Lab Query products with bounded Scheme
+graph selection. An older Lab Query product reported a missing
+=.select-scheme-graph= method in the revision-query Cases. The complete
+gate remained Open under the existing 512 MiB heap and 60-second guard.
+The gate now invokes =gerbil test= directly, and the tests reuse an
+evaluation result when checking multiple fields of the same input.
+Draft review also reads headline properties from the graph already
+supplied to Org Contract. The Contract continues to check each required
+property, and the headline scan continues to reject extra properties
+in the reserved evidence fields.
+After that change, a focused source run reached the commit-evidence
+suite under the same guard and exited 137 before its verdict.
+
+A focused replay of the compiled Evidence module and test interface
+completed all thirteen Cases and exited normally under the same
+512 MiB heap and 60-second execution guard. This includes the NASA
+narration Case with current, forged and stale evidence. Compilation
+completed under its separate 120-second guard. A source replay with
+Case-level output reached the execution guard before the Harness
+started. The compiled replay therefore qualifies the assertions and
+process exit for those products. All seven compiled GitOps and project
+configuration test modules then passed together in 44.45 seconds with
+the same heap and execution guard. The test runner reported seven
+=MODULE-OK= receipts, =HARNESS-OK= and final =OK=, then exited zero.
+This local replay used the Lab Query products with bounded graph
+selection alongside the existing dependency products. Qualification
+of the source entry, the locked installation and the linked runtime
+measurement remain Open.
+
+The standard linked staging entry compiled the current AITIA sources and
+published an AOT manifest with 793 modules, including commit evidence.
+The first local attempts stopped at the bridge's =pkg-config= lookup
+and then at the missing Yuanxu =init-syntax= static product. Staging
+completed with the system OpenSSL, zlib and SQLite packages visible to
+=pkg-config= and the rebuilt Yuanxu release products on the dependency
+load path. This qualifies local staging for that dependency set.
+
+Cargo linked the staged program using the system macOS linker and SDK
+after the default linker failed to resolve =libiconv=. In the restricted
+environment the commit fixture could not apply its own sandbox and pytest
+could not open its local socket. With those host capabilities available,
+all five enabled linked integration tests passed in 99.08 seconds.
+They exercised the recorded Assurance profile, signed admission,
+commit readback and local JJ push with Scheme compilers excluded.
+The compiled project declaration test was ignored because this program
+did not embed that qualification input. The joint command then reached
+its original 120-second guard while running the OpenSysML integration
+test. The same linked OpenSysML test passed independently in 39.84
+seconds, including valid and invalid recorded models, changed operations,
+unaffected paths, model removal and oversized input.
+
+The linked gate now includes the existing OpenSysML test in the same
+Cargo test harness as the commit and Assurance tests. Cargo can run the
+independent temporary-workspace cases together. The standalone OpenSysML
+entry still uses the same test source. All six enabled cases passed
+together in 76.46 seconds under the unchanged 120-second guard. The
+compiled project declaration case still requires its separate program
+with the declaration embedded.
+
+Using the rebuilt binary, an isolated 136-path candidate derived from
+the current PR 2 changes passed context, preview, prepare, apply and
+recovery. Preparation preserved the current operation. An altered
+narration with the previous review context was refused before producing
+an attempt. The applied commit and the bookmark in a local bare
+repository both returned the reviewed description byte for byte.
+Commit recovery reported =applied= and push recovery reported
+=acknowledged=. A repeated push request was refused after the review
+origin stopped being the current description rewrite. The local
+operation and remote bookmark stayed at their observed values.
+
+Revision GQL read back 136 changed-file rows and verified
+=jj.recorded-change=, =jj.configuration-audit= and =sysml.parse= with
+no missing report. The local remote yielded no provider-associated
+Open item. PR 2's published-head checks have their own observation
+above. This candidate was published only to the local test remote.
+
+AITIA's Make handoff now scopes the load path to the actual source
+directory selected by Yuanxu, including its compiler source view
+when present. The standard =meta= command still reports =spec=,
+=compile=, and =clean=.
+
+The OpenSysML SDK accepted the updated model and the recorded JJ inputs
+in the standard 120-second test. The test passed with its real local
+service. A prior sandboxed attempt could not bind the loopback socket.
+
+The frozen pytest control passed.
+The first ADR-0008 attempt in the restricted execution environment
+returned a failed child process. With loopback available, the unchanged
+Rust producer passed and the Scheme consumer reported =MODULE-OK=,
+=HARNESS-OK= and final =OK= before its existing guard. This fixture
+qualifies recorded execution admission for ADR-0008. The commit flow
+separately evaluates the two NASA checks selected by AITIA's project
+declaration and the OpenSysML check applicable to the recorded changes.
+
+*** Binding review to the write
+
+The previous push implementation replaced the supplied review context with a
+fresh context before re-rendering. A local-remote regression proved that a
+retired context could therefore push successfully. Correct prose readback did
+not establish that the actual proposal and rules were the reviewed ones. The
+first repair refused a retired context, but a changed rationale still passed:
+the semantic context had omitted the proposal fields.
+
+The semantic context now binds every proposed field, including rationale and
+language. =aitia jj commit preview= is explicitly read-only preview: it may issue a
+fresh context for a newly proposed intent. The preview context binds the
+assessment, canonical title, exact body and exact ORG review material.
+=aitia jj commit= supplies discovery and assessment input for drafting;
+its context cannot stand in for the preview. =aitia jj commit prepare= and
+=aitia jj commit apply= require the exact preview context. A change to prose or to ORG
+requires another preview, even if the new ORG passes the same Contract.
+A caller cannot inject the internal preview flag into a draft. Source
+admission and missing/conflicting-obligation
+checks apply equally to preview; preview grants no write authority.
+
+At push, JJ observes the original cut of the exact currently applied
+description-only transition. It verifies the original/result operations,
+unchanged tree, parents, change identity and other view state, and independently
+audits the original Git object. That typed observation is anchored to the
+current operation; it is not an Agent-provided historical cut. Rust reads the
+identical immutable tree at the current anchor. Scheme re-evaluates the original
+review context under the current compiled program. Push never renews it.
+The existing backend still checks the current cut, actual description, remote
+lease and ancestry before transport.
+
+Scheme also binds signed approval intent to both the prepared rewrite and the
+exact review context. A newly previewed rationale with identical prose cannot
+spend the older grant. The journal's existing key addresses remain unchanged so
+recorded revocations, spent approvals and recovery history stay visible. This
+adds no alternate signer, transport or Governance engine.
+
+The linked signed-approval case exercised an expired approval, a revoked
+approval, a changed operator policy revision and a separately prepared
+intent with identical commit prose. Each reached the write-admission
+boundary and was refused without advancing the JJ operation. The original
+current approval applied once. Revoking it after application left the
+recorded attempt recoverable without renewing authority. Five linked CLI
+cases passed in 62.99 seconds and the OpenSysML case passed in 31.41 seconds
+under the original joint 120-second guard.
+
+The updated Scheme suite passed all five modules under the existing limit.
+The isolated candidate rebuilt AITIA through the standard staging entry and
+passed all five linked cases in 25.15 seconds within the original 120-second
+guard. Changing the body or ORG after preview yields no prepared attempt.
+Changing ORG after apply also refuses push and leaves the local remote
+unchanged; the exact reviewed draft still pushes and reads back correctly.
+OpenSysML accepted the updated model. These gates used the existing
+dependency pool and do not establish a new cold install.
+
+The final owned candidate contains 46 changed paths. Its complete Scheme
+consumer directories passed all 30 Cases and exited naturally under 512M and
+60 seconds. The standard staging entry emitted all 90 AITIA units. The final
+combined Rust build enabled the linked program and SysML together: four linked
+Cases passed, the original Provider Case remained ignored, the ASP gate passed,
+and the real OpenSysML SDK/model/CLI Case passed with twelve symbol lookups.
+The separate JJ owner gate passed one unit and seven integration Cases.
+These results do not replace locked-install or remote-CI qualification.
+
+*** Failure propagation and host I/O
+
+During the new admission test, a lexical variable matching a POO slot name
+created a CyclicSlot. Renaming that lexical value fixed the self-reference;
+no POO or Module System policy was bypassed. The failed observation exposed a
+second validation issue: the standard test function returned a failing status,
+but the recipe discarded it. The recipe now raises on the returned nonzero
+status after the standard runner finishes. An intentional failing Case naturally
+returns nonzero, while the complete positive directories return zero with all
+Module/Harness markers. There is no forced exit or replacement test framework.
+
+The combined SysML CLI initially failed with an interrupted HTTP transport
+while the external SDK ran inside the Scheme-owner scope. SDK transport now
+runs on a scoped Rust host worker and is joined before returning. It carries
+no VM references and does not create another VM, mask signals, retry a model
+operation or relax a deadline. The corresponding full model/CLI Case passed
+with its malformed-source and stale-cut controls intact. This verifies the host
+boundary change in that consumer; it does not identify every possible source
+of interrupted system calls or prove external transport cannot fail.
+
+*** Producer alignment and inherited installation
+
+ASCENT PR 1 publishes the direct Core Module-value consumer. Candidate exposes
+receipt readers alongside its constructors and evidence operations, retaining
+nominal type isolation. Its independent Library consumer passed all three Cases,
+including changed-source rejection and historical-snapshot acceptance. The
+standard build and complete 179-module Source suite passed locally with natural
+exit and unchanged resource guards. The producer fixes were normally pushed;
+these local results do not establish downstream locked-install acceptance.
+
+The complete CI Source gate later timed out with 94 of 95 batches complete and
+candidate-flow unfinished, without an assertion failure. Its detected four-core
+capacity had been overridden with twelve workers. A normal producer follow-up
+removes that override while retaining all modules, isolation, 2G child heap and
+both 180-second guards. The new head's runtime CI remains the acceptance gate. That CI completed seventeen
+batches but rejected the source-import test's expectation for the remaining
+batch. Its expected baseline had omitted the existing bounded refinement, which
+only coincided with the actual batches at twelve workers. An independent bound
+of =ceil(n / workers²)= now defines the expected refinement, retaining exact
+inventory, order, isolation, batch-count, width and runtime-option checks.
+The complete source-import Suite passed with four workers and machine-derived
+capacity under the original 2G/180-second guards, and the test-only correction
+was normally pushed. Production dispatch is unchanged; latest-head CI is still
+required for the complete source gate.
+
+Parser's earlier standard build passed against the preceding Core API. Its first
+source-Contract command printed all three Module markers and final OK but timed
+out before natural exit. Identical diagnostic runs exited normally, including
+a measured 15.07-second run; this does not prove the first timeout's cause.
+A separate failed-import control exposed a zero command status. Checking the
+standard GxTest return value made failures reject naturally, and a deliberately
+failed assertion returned nonzero. No forced exit was introduced.
+
+The Module consumer also exposed a prepared-helper handoff gap. Its proposed
+repair uses the existing test-support owner and init file projection, keeping
+single-file and complete-run budgets separate. Rebuilding was refused first
+for four unissued runtime objects, which were preserved before standard clean.
+Restoring the earlier publication then rejected a missing compiler interface.
+The actual Make spec includes that unit. No object was copied in and no approval
+was edited or removed; those failed runs remain unqualified evidence.
+
+Core PR 19 has now published a newer API: init exposes ordinary Make lists and
+the old build-dispatch wrapper is removed. Parser alignment therefore consumes
+that new list directly through standard =defbuild-script= and the public Core
+prelude. The temporary dispatch adapter is removed. Dependency installation in
+the current Parser package workspace passed through standard Gerbil package
+management. Parser build preparation then refused its retired =module/build=
+records. Seven declarations have since been converted to ordinary Make values.
+An inventory comparison retains all sixty original native entry sources without
+omissions or duplicate targets. Thirty-four package-level public facades retain
+their native identities in the package script; confined Module roots and ABI
+options remain with their Module owners. This source inventory check does not
+prove compilation or semantic equivalence. Build preparation subsequently
+refused an unbound role Contract identifier. The Interfaces had resolved POO's
+ordinary definition macro instead of the public Module declaration macro.
+Selecting that existing declaration import resolved the roles centrally; no
+per-Interface Types imports or loading adapter were added. Standard build passed.
+
+Independent consumption then exposed a missing installed language prelude and
+its macro dependencies. The existing prelude retains its public identity. The
+package's public entries now use Core's public =package-library-spec= to follow
+native imports, excluding targets already declared by Modules. This adds no
+scanner or second target authority. After the declared development dependency
+was installed, the complete three-module source-Contract command passed and
+exited naturally under its original 1G/120-second guard. The selected test
+publication and remaining Module consumers are being verified separately. The preceding publication failures are historical controls,
+not proof that this new producer revision has the same defect or fixes it.
+A subsequent Core head also updates POO. The package manager reported the old
+fixed-tag conflict. Its explicit update moved both source checkouts and tag
+metadata, then failed in a tagged-package path lookup; that failure remains
+recorded. Standard dependency installation completed the matching
+source revisions successfully. No uninstall, SDK modification or manual tag edit was used.
+
+Parser consumer qualification, Orgize/Lab constraint alignment and AITIA's locked
+installation remain Open. AITIA retains one inherited Lab dependency; no second
+loader, temporary SDK or compatibility fallback has been added. PR 2 remains
+unsubmitted and unpushed pending review of its complete description.
+
+ASCENT's complete 179-module Source gate passed on the batch-oracle follow-up
+in 131 seconds under the original 180-second limit. The producer job still
+failed an independent linker-environment test, so that Source success is not
+whole-CI acceptance. The linker control now compiles, links and executes a real
+C program under the configured interpreter environment while checking that an
+inherited fake linker is not used. It no longer mistakes PATH lookup for the
+compiler's actual selection. Linux uses the same compiler search boundary as
+Darwin; the caller's program search path is preserved. All three independent
+Source consumers passed locally with their original subprocess budgets, and
+the fix was normally pushed to the existing producer PR. Latest-head CI and
+the remaining performance/oracle failures stay separate Open obligations.
+
+The full Parser helper publication built successfully on the aligned packages.
+The first single-file consumer still projected the full test roster and exhausted
+its unchanged 1G parent heap. The support owner now accepts the selected files
+for both build and execution, using the same init file-source projection. It
+retains the full-roster default for complete runs. The exact wrapper publication
+and consumer passed with natural exit under 1G/120 seconds; source and loading
+consumers remain under verification. No larger heap or runtime deadline was used.
+
+ASCENT's later compiled DSL run completed fourteen declared modules, while the
+recipe still required fifteen. History shows that the artifact Suite had already
+been removed by the producer refactor. This mismatch remains Open; this round
+has neither lowered the count nor invented a replacement Case. The macOS
+compiler-input control likewise referenced a deleted build helper. Its fixture
+now names the actual init compiler input, preserving the same change/invalidation
+control. That check passed locally, but the complete module retained two other
+compiler-cost attribution failures. Those results are not a full module pass,
+and this test-only correction has not been published.
+
+The selected source consumer first reached its original 120-second outer guard
+without harness output. Its subsequent direct diagnostic and same-owner diagnostic
+both completed naturally, but no blocked stack was captured. Those diagnostics
+do not erase the first timeout or establish a repaired cause. The selected loading
+publication and consumer then passed naturally with the same heap and guards.
+Cold reliability remains Open rather than inferred from the successful diagnostics. A failing assertion
+in a test that imports Parser's public test support was published through the
+same exact selection. The test harness reported the failed check and returned
+nonzero through the support owner under the unchanged guard. The earlier
+ownerless diagnostic had failed in publication before it reached any assertion;
+it is not evidence of failure propagation.
+
+The two local compiler-cost attribution failures above used macOS Python 3.9,
+which is below Workbench's declared Python 3.10 minimum. A retained compiler
+observation contains both successful producer and native-helper records; the
+unsupported interpreter supplies process-relative monotonic clock origins, so
+cross-process publication ordering cannot be established from them. A direct
+parent/child clock control reproduced that distinction. With supported Python
+3.13, the complete 29-test compiler-cost module passed unchanged, including both
+attribution controls and the init-input invalidation correction. No observer,
+allocation assertion, workload, heap or deadline was changed. The two-line fixture
+correction is a separate producer commit; its exact-head CI remains independent
+of local acceptance. The compiled DSL inventory mismatch and performance gate
+remain Open, and the downstream inherited cohort is not yet qualified. Inspection
+of the published Lab PR package declaration confirmed that it still selects the
+older ASCENT and Parser inputs. Publishing a producer correction alone does not
+change the installed AITIA cohort. The AITIA dependency lock remains unchanged
+until a matching Lab selection is validated.
+
+
+The first complete Parser runtime diagnostic returned nonzero after 187 module
+completion markers. Nine failed Cases shared one missing prerequisite: the
+qualification process child. This invocation ran the runtime recipe without
+its qualification build. It is retained as a failed diagnostic, not an
+acceptance run. The existing qualification build owns the child executable. The build produced it successfully.
+The process admission suite then passed with host process topology available,
+including idle, total and closed-output deadline Cases. An earlier sandboxed
+invocation could not run the required =ps= query and is retained separately.
+The prepared full run did not start. After the FFI prerequisites rebuilt,
+standard Make emitted additional object generations for two test helpers.
+Yuanxu refused publication of those generations. An independent empty-output
+diagnostic failed at recovery: the installation's existing approval still
+referenced the archived issuance record. The output was restored to its
+original location without changing the approval. Both refusals are retained;
+neither is a runtime test timeout or a qualification pass.
+
+ASCENT's new producer CI completed with failed Scheme and Python gates. The
+Python job installed the producer wheel, then failed the independent Workbench
+suite: OpenSysML was absent, Gerbil activation did not carry into the test step,
+and the frozen inventory omitted additive obligations from three existing
+models. The pending correction uses the locked design dependencies, activates
+Gerbil in the test step, and points the build controls at the existing build
+entry. An exact inventory comparison passed with every earlier obligation
+retained. The full local Python check remains Open: the locked dependency
+install timed out at PyPI. The macOS job passed all 29 compiler-cost cases and
+the two reference-cache cases before a profile test attempted to import the
+retired build entry. The corrected study reads the existing Module projection
+once and passes only the selected study targets to standard Make. Its local
+control passed inside the original deadline: the reference adopted the
+production compiler options, the production objects remained unchanged, and
+an unchanged repeat reused the reference objects. The guarded Lean check
+passed using the unchanged locked LeanPOO dependency; the Scheme profile
+block matches its Lean source literal.
+
+The preceding ASCENT CI head failed the Linux semantic deadline and the
+table-expression performance recipe. The locally verified profile and
+inventory corrections were pushed to the existing ASCENT PR. Its new CI
+results are a separate gate. On the new head the complete Linux source gate
+again returned 124 under its existing deadline, after 146 distinct module
+completion markers. The Linux performance job completed the table-expression
+measurement but rejected its result against the existing budget; these results do
+not qualify the inherited cohort. The independent Python job dependency fix
+remains local until its locked install can be exercised. The inherited Lab
+and AITIA locks have not been promoted.
+
+The local =just test= run at the current ASCENT PR head used its declared
+Core revision. All 179 Scheme test modules completed and the command exited
+normally. The test phase took 230 seconds with the recipe's existing startup
+and inactivity guards. CI additionally imposes a 180-second wall clock limit;
+the local result qualifies Scheme behavior under the local recipe only. The
+Linux log had completed 14 of 18 started batches when the limit expired; the
+longest completed batch took 164 seconds. On
+the same PR head the Python consumer log confirms missing OpenSysML and =gxi=
+in the Workbench test step. The aggregate runtime and oracle result reflects
+the failed constituent gates; it is not an independent runtime failure.

@@ -7,7 +7,7 @@
         "types.ss"
         :std/list/list
         :gerbil/core
-        (only-in :yuanxu/graph/types
+        (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         (only-in :agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze))

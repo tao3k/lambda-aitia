@@ -4,9 +4,9 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :yuanxu/contribution/verification
+        (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verify yuanxu-revoke-verification!)
-        :yuanxu/contribution/verification
+        :tao3k/yuanxu/contribution/verification
         "../../../modules/sdlc/objects.ss"
         "../../../modules/sdlc/standards/nasa-review.ss"
         "../../../modules/sdlc/standards/nasa-structured.ss"

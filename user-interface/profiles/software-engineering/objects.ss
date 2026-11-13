@@ -8,14 +8,14 @@
 ;;; realization and Runtime execution remain separate Agentic AI Lab phases.
 
 (import (only-in :clan/poo/object .o)
-        (only-in :yuanxu/module-system/schema/relations yuanxu-semantic-identity)
-        (only-in :yuanxu/module-system/authoring/roles yuanxu-semantic-module)
-        (only-in :yuanxu/profile-composition/profile-bundle
+        (only-in :tao3k/yuanxu/module-system/schema/relations yuanxu-semantic-identity)
+        (only-in :tao3k/yuanxu/module-system/authoring/roles yuanxu-semantic-module)
+        (only-in :tao3k/yuanxu/profile-composition/profile-bundle
                  yuanxu-profile-export yuanxu-module-profiles)
-        (only-in :yuanxu/module-system/selection/objects
+        (only-in :tao3k/yuanxu/module-system/selection/objects
                  yuanxu-settings
                  yuanxu-user-module-selection)
-        (only-in :yuanxu/profile-composition/user-profile
+        (only-in :tao3k/yuanxu/profile-composition/user-profile
                  yuanxuUserProfile))
 
 (export AitiaModule)

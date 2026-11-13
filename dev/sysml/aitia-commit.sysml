@@ -73,6 +73,166 @@ package AitiaCommit {
         item cut : CommitCut;
         attribute intentId : String;
         attribute description : String;
+        attribute reviewContext : String;
+    }
+    item def ReviewRevision {
+        doc /* The review selector names a full commit ID in the project's
+             * JJ store. A bookmark or a change ID cannot substitute for it. */
+        attribute projectId : String;
+        attribute commitId : String;
+    }
+    requirement historicalReviewRead {
+        doc /* The same revision continues to select its immutable tree when
+             * the workspace advances. Reproduce the archived JJ report's
+             * input binding from the original cut, recorded Scheme and JSON
+             * sources, and changed paths before projecting the observation.
+             * Readability alone does not establish
+             * apply, publication, current evidence support, or authority. */
+    }
+    requirement recoveredReviewRead {
+        doc /* A recovery result must identify the exact applied operation
+             * in the nearest Git project's JJ history. A direct attempt
+             * can be reconciled even when current configuration cannot
+             * be loaded. Approval lookup requires its Governance journal.
+             * Its original changes and committed
+             * description are readable at the result revision. Missing
+             * archived reports remain missing. Recovery grants no effect. */
+    }
+    requirement appliedReviewRefresh {
+        doc /* Reopen review at the original cut of the verified current
+             * description rewrite. Observe current provider facts and retain
+             * the comparison with the committed description. A new review
+             * context can authorize consideration at push only when the
+             * rendered description still matches the commit. */
+    }
+    requirement acknowledgedPushRecovery {
+        doc /* Record success only if JJ positively acknowledges the sole
+             * requested bookmark and its transaction records the applied
+             * commit as the remote target. Recover a visible acknowledgement
+             * for the exact applied operation, workspace, remote and bookmark. The
+             * historical acknowledgement carries no claim about the
+             * current remote head. Missing history leaves the outcome
+             * unresolved. Recovery performs no transport. */
+    }
+    item def EngineeringReference {
+        doc /* An engineering record has a project-declared identity and a unique
+             * ORG Element in a JJ-recorded source. Its ENGINEERING_ID must match.
+         * A linked PR and a NASA SWE obligation are separate relations.
+         * Distinct declared document/Element pairs for the same identity
+         * conflict even if one cannot resolve on the current cut. */
+        attribute identity : String;
+        attribute sourcePath : String;
+        attribute elementId : String;
+    }
+    item def NarrationProposal {
+        doc /* LLM intent remains a proposal. Scheme renders a canonical title
+             * only after ASCENT relates its reference, allowed type and affected
+             * module scope. Differing path sets under the same scope name
+             * leave the proposal open. The full rendered title may contain up to 72
+             * characters. Rationale is review input, not execution authority. */
+        item reference : EngineeringReference;
+        attribute identity : String;
+        attribute changeType : String;
+        attribute moduleScope : String;
+        attribute summary : String;
+        attribute rationale : String;
+        attribute 'language' : String;
+        attribute languageSource : String;
+        doc /* Language is proposed from observed project documentation and any
+             * explicit project declaration. The declared source path must
+             * resolve to exactly one observation on the current JJ cut.
+             * Missing, stale, or competing observations leave the proposal open.
+             * ASCENT retains source and language conflict relations. */
+    }
+    item def RecordedReviewBookmark {
+        doc /* JJ discovery evidence at one recorded operation. The target must
+             * be reachable from the candidate. On each remote JJ retains the
+             * maximal reachable targets and keeps aliases and conflicts distinct.
+             * A conflicting target has no selected commit. Provider association,
+             * check evidence and authority to push have separate admission. */
+        item cut : CommitCut;
+        attribute remoteName : String;
+        attribute bookmarkName : String;
+        attribute targetCommit : String[0..1];
+        attribute githubRepository : String[0..1];
+        doc /* Current JJ backend configuration supplies a GitHub repository
+             * identity only when fetch and push endpoints agree. Credentials
+             * and raw URLs never enter the observation. The configuration
+             * observation is not part of immutable operation history. */
+    }
+    item def ProviderReviewObservation {
+        doc /* A GitHub response must agree with the recorded repository,
+             * source bookmark and head revision. Check runs refer to that
+             * head. A published ancestor does not supply checks for the candidate.
+             * An observation is not an admitted check or a push grant. */
+        item bookmark : RecordedReviewBookmark;
+        attribute pullRequestNumber : Integer;
+        attribute targetBranch : String;
+        attribute targetRevision : String;
+        attribute headRevision : String;
+        attribute onCandidate : Boolean;
+        attribute updatedAt : String;
+    }
+    item def ProviderBranchAbsence {
+        doc /* An empty open PR response is joined with a successful read of
+             * the exact provider branch ref and its commit target. Scheme
+             * admits the route only if it matches the recorded JJ bookmark. */
+        item bookmark : RecordedReviewBookmark;
+        attribute headRevision : String;
+    }
+    requirement liveReviewAssociation {
+        doc /* Derive PR identity and target from the provider response
+             * associated with the current JJ bookmark. No Project manifest
+             * value supplies a PR identity or target. Bind the observed
+             * association, including its target revision, to review and
+             * revalidate before effects. Target advancement with the same
+             * branch name invalidates the earlier review.
+             * At push, the selected GitHub route and bookmark lease must
+             * match a current PR association or an exact no-open-PR observation.
+             * Re-read the association at lease admission and refuse transport
+             * if the provider observation differs from the admitted review.
+             * A split or undiscovered GitHub route cannot consume admission. */
+    }
+    requirement currentPushDestination {
+        doc /* Bind the effective transport route to the review and compare it
+             * against the selected route under the JJ lease.
+             * After the admission callback, reopen Git configuration and compare
+             * the ordered effective fetch and push URLs with the admitted
+             * route. Refuse a missing or changed route before starting the
+             * transaction, including when the bookmark lease is unchanged.
+             * JJ owns the lease and transport. External configuration can
+             * still change between the final read and transport resolution. */
+    }
+    requirement projectDeclarationOverlay {
+        doc /* Scheme composes JSON data with the project's POO declaration
+             * through Yuanxu. Omitted fields inherit and explicit values
+             * replace their slots. Only the effective value passes to the
+             * project Contract. JJ observes both inputs in one tree.
+             * Scheme evaluates the packaged expression only after matching
+             * its source to the recorded declaration. The archive identity
+             * is part of the review context. */
+    }
+    item def CompiledPolicyProgram {
+        doc /* Scheme owns rule semantics. The build binds the actual linked
+             * program contents, not the manifest's file names. Runtime uses
+             * the embedded identity without reading a checkout or build files. */
+        attribute artifactIdentity : String;
+    }
+    requirement compiledPolicyCurrentness {
+        doc /* Replacing compiled rule contents invalidates an old review even
+             * when project revision and manifest paths are unchanged. Reopen
+             * review before prepare/apply/push; eligibility never grants authority. */
+    }
+    item def NarrationAssessment {
+        doc /* Retain competing proposals and unresolved/conflicting references.
+             * Bind naming policy, source contents and changed paths to the review
+             * context. Any revision requires re-evaluation before prepare/apply
+             * and actual JJ description readback before push. */
+        item proposals : NarrationProposal[0..*];
+        item compiledPolicy : CompiledPolicyProgram;
+        attribute eligibleIds : String[0..*];
+        attribute openReasons : String[0..*];
+        attribute canonicalTitle : String;
     }
     item def EvidenceObservation {
         doc /* Bind the check, input cut, tool and configuration, outcome, and producer. */
@@ -90,7 +250,11 @@ package AitiaCommit {
              * Runtime receipts retain exact identity and digest bindings.
              * The commit description contains the reviewed title and narrative.
              * Org review properties reference readable obligations; a separate
-             * Runtime context binds their Contract to the current cut. */
+             * Runtime context binds their Contract to the current cut. The
+             * linked Scheme export returns a rooted assessment projection.
+             * Rust reads its values through the bridge and serializes the CLI
+             * response. The projection conveys the Scheme decision and does
+             * not independently grant authority. */
         item cut : CommitCut;
         attribute standardEdition : String;
         attribute standardSourceDigest : String;
@@ -105,6 +269,90 @@ package AitiaCommit {
         attribute preparedOperationId : String;
         attribute resultingCommitId : String;
         attribute descriptionDigest : String;
+    }
+    item def DescriptionReviewOrigin {
+        doc /* JJ proves that the current operation is the exact prepared
+             * description-only rewrite: tree, parents and change identity are
+             * unchanged. The original cut and independent Git-object audit are
+             * observed from immutable history, not supplied by the Agent. */
+        item original : CommitCut;
+        item current : CommitCut;
+    }
+    requirement appliedEvidenceReadback {
+        doc /* Resolve the exact result revision through visible JJ operation
+             * history. Resolve the check selection from the original project
+             * configuration through the Scheme Contract. Reproduce selected
+             * inventory and Git audit reports and compare them to the archive.
+             * Verify each archived requirement and execution identity
+             * against the selected check and reproduced inputs and report.
+             * Report missing selected observations and refuse unselected
+             * archives. The readback grants no write authority. */
+    }
+    requirement observedEvidenceLineage {
+        doc /* Project verified JJ observations into one revision graph.
+             * Each Query node exposes the same identity as its Graph node.
+             * The graph relates file versions, recorded config inputs,
+             * and regular files named by the recorded policy
+             * to the revision, and changed files to the inventory that
+             * enumerated them. Missing reports and unknown dependency
+             * coverage remain distinct from observed report edges.
+             * Reject duplicate observations and conflicting report states
+             * before constructing the graph. Config inputs and policy
+             * sources describe regular files. Each must agree with the
+             * recorded file identity and executable bit of any other
+             * observation at its path. A parse edge requires a verified
+             * report and a changed regular SysML file in the selected
+             * revision. */
+    }
+    requirement revisionInventoryQuery {
+        doc /* Verify the applied revision and its archived reports before
+             * selecting paths. Lab Query traverses observed changes to their
+             * inventory and model reports, and reads recorded configuration
+             * and policy source paths with their changed state. Select
+             * verified reports directly from the revision, including the
+             * Git configuration audit of its tree and ordered parents.
+             * A policy source edge records availability. All selections
+             * remain partial and carry no action authority. Missing reports
+             * produce no verified report rows. */
+    }
+    requirement affectedModelAudit {
+        doc /* A project-enabled model check applies to recorded SysML paths
+             * changed by the candidate. The result must cover those exact
+             * paths under the shared source byte budget. Bind the model
+             * observation to review. Render the verified scope in Evidence
+             * and keep an unresolved check in Open. */
+    }
+    requirement historicalModelEvidence {
+        doc /* Resolve affected model paths from the applied revision and
+             * select checks from the recorded project sources through the
+             * same linked Scheme configuration Contract as live review.
+             * A disabled check contributes no missing report. Refuse an
+             * archive outside the selected checks or paths. Apply the same
+             * total source budget as live review before parsing.
+             * Compare an independent OpenSysML result with the archived
+             * report. Emit parsed_by only for documents in the verified
+             * result. A missing archive does not establish a passed check.
+             * Later workspace contents do not enter this comparison. */
+    }
+    requirement reviewContextPreservation {
+        doc /* Push must retain the original narration context and re-evaluate
+             * it under current Scheme rules at the verified origin. A body-only
+             * transition does not renew review. Equal rendered prose does not
+             * excuse a stale context, changed rationale or changed ORG material.
+             * The preview binds the title, body and ORG alongside the assessment.
+             * Scheme renders structured narration against the current evidence
+             * and open obligation rows. A readable unresolved preview is not
+             * a prepared description when a prerequisite remains open.
+             * Disclose unfinished, non-success or unavailable check
+             * observations for the verified PR head. This disclosure binds
+             * review context and carries no evidence about the candidate.
+             * A discovery context cannot substitute for it. Current
+             * operation and actual description are checked before transport.
+             * Replacing the recorded engineering source invalidates its
+             * earlier preview and prepared attempt even if the title,
+             * engineering identity and rendered prose are unchanged.
+             * Signed admission binds the exact context as well as the rewrite;
+             * a fresh preview cannot spend an old-context approval. */
     }
     item def LocalCommitGrant {
         doc /* Independent Governance record for one intent and cut, with expiry,
@@ -526,7 +774,10 @@ package AitiaCommit {
     }
     part gitOpsFfi {
         doc /* Exchanges bounded requests and observations under one owner.
-             * An exchange carries identity and outcome, and issues no grants. */
+             * The Scheme owner selects the project policy for the captured
+             * configuration. The Rust command holds its root while it
+             * collects facts and returns that root for assessment.
+             * The exchange carries identity and outcome, and issues no grants. */
     }
     part jjAdapter {
         doc /* Rust owns repository handles, pinned observations, guarded mutation

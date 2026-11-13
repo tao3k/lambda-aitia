@@ -3,7 +3,7 @@
 
 ;;; Opt-in CLOS crossing; the evaluation semantics belong to the admitted Scope.
 (import (only-in :clan/poo/object .o .get)
-        (only-in :yuanxu/poo-clos/interface
+        (only-in :tao3k/yuanxu/poo-clos/interface
                  poo-clos-generic-protocol poo-clos-method-bundle poo-clos-method
                  poo-clos-class-specializer poo-clos-any-specializer))
 (export GitOpsEvaluation)

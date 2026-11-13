@@ -5,7 +5,7 @@
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
 (import (only-in :clan/poo/mop validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
-        :yuanxu/contribution/verification
+        :tao3k/yuanxu/contribution/verification
         "../types.ss"
         (only-in "nasa-policy.ss"
                  nasa-stage-policy

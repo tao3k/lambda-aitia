@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :std/encoding/json JSONReadOptions string->json)
         (only-in :clan/poo/object .ref)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider
                  context-query-host context-org-source context-org-query
                  context-query-source! context-query-execute context-query-withdraw!)

@@ -7,4 +7,6 @@
 (def Config
   (.o resolve: (cut resolve-project-config ProjectConfigDefaults <>)
       decode: (cut decode-project-config ProjectConfigDefaults <>)
-      checks: project-checks))
+      extend: (cut extend-project-config ProjectConfigDefaults <> <>)
+      checks: project-checks
+      commit: project-commit-settings))

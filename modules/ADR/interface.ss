@@ -4,6 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Roles and their compiler closure are associated by Yuanxu, not restated here.
+(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
 (.def ADR
   identity: 'ADR
   tags: '(software-engineering decisions)

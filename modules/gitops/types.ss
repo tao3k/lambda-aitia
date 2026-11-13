@@ -10,6 +10,7 @@
 (export GitOpsScopeContract NonEmptyString GitOpsEvent GitOpsCheckConclusion
         GitOpsChange GitOpsCheck GitOpsDecision
         GitOpsCommitCut GitOpsCommitObligations GitOpsCommitObservation GitOpsCommitObservations
+        GitOpsCommitNaming GitOpsCommitSources GitOpsCommitProposals
         GitOpsModelMappings GitOpsModelProperties
         gitops-profile? gitops-change? gitops-check? gitops-decision?)
 
@@ -82,6 +83,23 @@
 (def GitOpsCommitCandidates
   (List (Record source: [String] execution: [GitOpsCommitExecution])))
 
+(def GitOpsCommitNaming
+  (Record project-key: [NonEmptyString] types: [(List NonEmptyString)]
+          primary-language: [(Or False NonEmptyString)] language-sources: [(List NonEmptyString)]
+          scopes: [(List (Record name: [NonEmptyString] paths: [(List NonEmptyString)]))]
+          references: [(List (Record identity: [NonEmptyString] source: [NonEmptyString]
+                                     element: [NonEmptyString]))]))
+(def GitOpsCommitSources
+  (List (Record path: [NonEmptyString] text: [String] cut: [GitOpsCommitCut])))
+(def GitOpsCommitProposals
+  (List (Record identity: [NonEmptyString] reference: [NonEmptyString]
+                language: [NonEmptyString] language-source: [NonEmptyString]
+                type: [NonEmptyString] scope: [NonEmptyString]
+                summary: [String] rationale: [String])))
+
+(def GitOpsCommitNarration
+  (Record change: [String] evidence: [(List (List String))] open: [(List (List String))]))
+
 (def GitOpsModelMappings
   (List (Record design: [NonEmptyString] model: [NonEmptyString]
                 property: [NonEmptyString])))
@@ -106,22 +124,30 @@
                admit-commit-observation:
                [(Function (list (Or False GitOpsCommitObservation))
                           (list String GitOpsCommitObservation NonEmptyString))]
-               commit-intent: [(Function (list NonEmptyString) (list NonEmptyString String))]
+               commit-intent: [(Function (list NonEmptyString) (list NonEmptyString String NonEmptyString))]
                record-commit-approval!: [(Function (list Bool) (list Any Object))]
                revoke-commit-approval!: [(Function (list Bool) (list Any NonEmptyString NonEmptyString))]
                consume-commit-admission!:
                [(Function (list (Or False Object))
-                          (list Any NonEmptyString String NonEmptyString NonEmptyString
+                          (list Any NonEmptyString String NonEmptyString NonEmptyString NonEmptyString
                                 (Function (list UInt) '())))]
                commit-admission: [(Function (list (Or False Object)) (list Any NonEmptyString NonEmptyString))]
                commit-check-receipt: [(Function (list String) (list GitOpsCommitExecution))]
+               commit-semantics: [(Function (list Object)
+                 (list GitOpsCommitNaming GitOpsCommitCut GitOpsCommitSources
+                       (List NonEmptyString) GitOpsCommitProposals))]
                nasa-draft-requirements: [(Function (list Object)
                  (list Object GitOpsCommitCut GitOpsCommitCandidates))]
                nasa-commit-description: [(Function (list Object)
-                 (list Object GitOpsCommitCut GitOpsCommitCandidates String String String String))]
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates String GitOpsCommitNarration String String)
+                 keywords: (list (cons 'preview?: Bool)))]
                commit-evidence: [(Function (list Object)
                                            (list GitOpsCommitCut GitOpsCommitObligations
                                                  GitOpsCommitObservations))]
+               review-lineage: [(Function (list Object)
+                 (list String (List Any) (List Any)
+                       (List String) (List String) (List String) (List Any)))]
+               review-query: [(Function (list Object) (list Object String))]
                model-gaps: [(Function (list Object)
                                       (list GitOpsModelMappings (List NonEmptyString)
                                             GitOpsModelProperties))])

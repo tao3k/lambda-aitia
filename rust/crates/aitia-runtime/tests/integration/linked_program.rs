@@ -9,6 +9,155 @@ use std::process::{Command, Stdio};
 #[path = "linked_program/compiled_program.rs"]
 mod compiled_program;
 
+#[path = "linked_program/commit.rs"]
+mod commit;
+
+#[cfg(feature = "sysml")]
+mod sysml_model;
+
+#[test]
+fn review_context_tracks_the_linked_program_instead_of_manifest_paths() {
+    use sha2::{Digest, Sha256};
+
+    let archive = std::path::Path::new(env!("OUT_DIR")).join("libaitia_program.a");
+    let actual = format!(
+        "sha256:{:x}",
+        Sha256::digest(std::fs::read(archive).unwrap())
+    );
+    assert_eq!(actual, env!("AITIA_PROGRAM_CONTEXT"));
+    let manifest = format!(
+        "sha256:{:x}",
+        Sha256::digest(include_bytes!(env!("AITIA_PROGRAM_MANIFEST")))
+    );
+    assert_ne!(actual, manifest, "manifest paths are not program contents");
+}
+
+#[test]
+#[ignore = "requires the project declaration qualification input in the AOT program"]
+fn compiled_project_declaration_requires_its_recorded_source() {
+    let declaration = include_str!("../../../../../dev/qualification/project-declaration.ss");
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path();
+    #[cfg(target_os = "macos")]
+    compiled_program::assert_controls(root);
+    let jj = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
+    let record = |args: &[&str]| {
+        let output = Command::new(&jj)
+            .current_dir(root)
+            .args([
+                "--config",
+                "user.name='AITIA Test'",
+                "--config",
+                "user.email='test@example.invalid'",
+            ])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+    };
+    let run = || {
+        #[cfg(target_os = "macos")]
+        let mut command = compiled_program::command(&["project-manifest"]);
+        #[cfg(not(target_os = "macos"))]
+        let mut command = {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_aitia"));
+            command.arg("project-manifest");
+            command
+        };
+        command
+            .current_dir(root)
+            .env("PATH", "/usr/bin:/bin")
+            .env_remove("GERBIL_HOME")
+            .env_remove("GERBIL_PATH")
+            .env_remove("GERBIL_LOADPATH")
+            .env(
+                "AITIA_PROJECT_DECLARATION",
+                "a runtime path must be ignored",
+            )
+            .output()
+            .unwrap()
+    };
+    let read = || {
+        let output = run();
+        assert!(output.status.success(), "{output:?}");
+        serde_json::from_slice::<Value>(&output.stdout).unwrap()
+    };
+    let assert_source_refused = || {
+        let output = run();
+        assert!(!output.status.success(), "{output:?}");
+        assert!(output.stdout.is_empty(), "{output:?}");
+        let diagnostic = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            diagnostic.contains("recorded project.ss differs from the compiled declaration"),
+            "{output:?}"
+        );
+        assert!(
+            !diagnostic.contains("untrusted declaration evaluated"),
+            "{output:?}"
+        );
+    };
+    record(&["git", "init", "--colocate"]);
+    let directory = root.join(".agents/aita");
+    std::fs::create_dir_all(&directory).unwrap();
+    let source = directory.join("project.ss");
+    let data = directory.join("project.json");
+    std::fs::write(&source, declaration).unwrap();
+    std::fs::write(&data, r#"{"services":{"sysml":{"enable":true}}}"#).unwrap();
+    std::fs::write(root.join("Model.sysml"), "package Model {}").unwrap();
+    record(&[
+        "describe",
+        "-m",
+        "Record Scheme declaration and JSON overlay",
+    ]);
+    let first = read();
+    assert_eq!(first["manifest"]["services"]["sysml"]["parse"], true);
+    assert_eq!(first["inputs"]["sysml"], json!(["Model.sysml"]));
+
+    std::fs::write(&source, format!("{declaration}\n;; changed source\n")).unwrap();
+    assert_eq!(read(), first);
+    record(&["describe", "-m", "Record changed declaration"]);
+    assert_source_refused();
+    std::fs::write(&source, "(error \"untrusted declaration evaluated\")\n").unwrap();
+    record(&["describe", "-m", "Record an executable replacement"]);
+    assert_source_refused();
+    std::fs::remove_file(&source).unwrap();
+    std::fs::write(&data, r#"{"schemaVersion":1}"#).unwrap();
+    record(&["describe", "-m", "Remove compiled declaration"]);
+    assert_source_refused();
+
+    std::fs::write(&source, declaration).unwrap();
+    std::fs::remove_file(&data).unwrap();
+    record(&[
+        "describe",
+        "-m",
+        "Restore the compiled declaration without an overlay",
+    ]);
+    let restored = read();
+    assert_eq!(restored["manifest"]["services"]["sysml"]["parse"], false);
+    assert_eq!(restored["inputs"]["sysml"], json!([]));
+}
+
+fn write_commit_work_item(root: &std::path::Path) {
+    std::fs::write(
+        root.join(".agents/aita/work.org"),
+        "* Engineering work\n:PROPERTIES:\n:ID: work-1\n:ENGINEERING_ID: WORK-1\n:END:\n",
+    )
+    .unwrap();
+}
+
+fn commit_proposal(summary: &str) -> Value {
+    json!({"identity":"narration", "reference":"WORK-1", "type":"fix",
+        "scope":"gitops", "summary":summary, "language":"en", "languageSource":".agents/aita/work.org",
+        "rationale":"Repairs the recorded commit admission boundary"})
+}
+
+fn narration(change: &str, recorded: &str, audited: &str) -> Value {
+    json!({"change":change,"evidence":[
+        {"obligation":"SWE-083","text":recorded},
+        {"obligation":"SWE-084","text":audited}
+    ],"open":[]})
+}
+
 fn run_request(operation: &str, request: &[u8]) -> std::process::Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
         .arg(operation)
@@ -265,7 +414,6 @@ fn linked_scheme_program_publishes_the_sdlc_graph_and_gitops_decision() {
 }
 
 #[test]
-#[ignore = "requires JJ, pytest and a local loopback Provider"]
 fn check_runs_the_recorded_assurance_profile() {
     let jj = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
     let python = std::env::var_os("AITIA_PYTEST_PYTHON").expect("set AITIA_PYTEST_PYTHON");
@@ -293,8 +441,9 @@ fn check_runs_the_recorded_assurance_profile() {
     std::fs::create_dir_all(root.join(".agents/aita")).unwrap();
     std::fs::write(
         root.join(".agents/aita/project.json"),
-        br#"{"schemaVersion":1,"services":{"assurance":{"enable":true,"project":"cli-assurance","profile":"adr-0008"},"commit":{"project":"cli-assurance","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-083","checks":[{"requirement":"SWE-083","method":"jj.recorded-change"},{"requirement":"SWE-084","method":"jj.configuration-audit"}]}}}"#,
+        br#"{"schemaVersion":1,"services":{"assurance":{"enable":true,"project":"cli-assurance","profile":"adr-0008"}},"programs":{"jj":{"enable":true,"settings":{"project":"cli-assurance","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-083","checks":[{"requirement":"SWE-083","method":"jj.recorded-change"},{"requirement":"SWE-084","method":"jj.configuration-audit"}],"naming":{"projectKey":"TEST","types":["feat","fix","test"],"scopes":[{"name":"gitops","paths":[".agents/aita","change.txt"]}],"references":[{"identity":"WORK-1","source":".agents/aita/work.org","element":"work-1"}],"languageSources":[".agents/aita/work.org"]}}}}}"#,
     ).unwrap();
+    write_commit_work_item(root);
     let directory = "dev/qualification/job-executor";
     let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../..")
@@ -317,8 +466,21 @@ fn check_runs_the_recorded_assurance_profile() {
     .unwrap();
 
     std::fs::write(recorded.join("unrecorded.txt"), "parallel edit").unwrap();
+    for arguments in [
+        &["commit-context"][..],
+        &["jj", "commit", "prepare", "extra"],
+    ] {
+        let refused = Command::new(env!("CARGO_BIN_EXE_aitia"))
+            .args(arguments)
+            .current_dir(&recorded)
+            .output()
+            .unwrap();
+        assert!(!refused.status.success(), "{refused:?}");
+        assert!(refused.stdout.is_empty());
+    }
+    assert_eq!(aitia_jj::observe_workspace(root).unwrap(), original);
     let context = Command::new(env!("CARGO_BIN_EXE_aitia"))
-        .arg("commit-context")
+        .args(["jj", "commit"])
         .current_dir(&recorded)
         .output()
         .unwrap();
@@ -337,7 +499,21 @@ fn check_runs_the_recorded_assurance_profile() {
         context["cut"]["parents"],
         serde_json::json!(original.parent_ids())
     );
-    assert_eq!(context["changes"].as_array().unwrap().len(), 3);
+    let paths: Vec<_> = context["changes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|change| change["path"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            ".agents/aita/project.json",
+            ".agents/aita/work.org",
+            "dev/qualification/job-executor/test_unique_effect.py",
+            "dev/qualification/job-executor/worker.py",
+        ]
+    );
     assert_eq!(context["review"]["open"], serde_json::json!([]));
     assert_eq!(context["review"]["supported"].as_array().unwrap().len(), 2);
     let clauses = context["review"]["clauses"].as_array().unwrap();
@@ -351,9 +527,9 @@ fn check_runs_the_recorded_assurance_profile() {
             )
         })
         .collect();
-    let run_draft = |command, org: &str| {
+    let run_draft = |command, org: &str, review_context: &Value| {
         let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
-            .arg(command)
+            .args(["jj", "commit", command])
             .current_dir(&recorded)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -363,30 +539,34 @@ fn check_runs_the_recorded_assurance_profile() {
         serde_json::to_writer(
             child.stdin.take().unwrap(),
             &serde_json::json!({
-                "title": "Record the candidate configuration",
-                "body": "Bind the recorded paths and audited Git object.",
+                "proposal": commit_proposal("Record the candidate configuration"),
+                "narration": narration(
+                    "Bind the recorded paths and audited Git object.",
+                    "JJ read the changed paths.",
+                    "JJ audited the recorded configuration.",
+                ),
                 "org": org,
-                "context": context["review"]["context"],
+                "context": review_context,
             }),
         )
         .unwrap();
         child.wait_with_output().unwrap()
     };
-    let description = run_draft("commit-description", &org);
+    let description = run_draft("preview", &org, &context["review"]["context"]);
     assert!(description.status.success(), "{:?}", description);
     let description: Value = serde_json::from_slice(&description.stdout).unwrap();
     assert_eq!(description["review"]["draftValid"], true);
     let rendered = description["review"]["description"].as_str().unwrap();
-    assert!(rendered.starts_with("Record the candidate configuration\n"));
+    assert!(rendered.starts_with("TEST-WORK-1 fix(gitops): Record the candidate configuration\n"));
     assert!(!rendered.contains(original.tree_id()));
     assert!(!rendered.contains("AITIA-Draft:"));
     assert!(!rendered.contains("sha256:"));
 
-    let refused = run_draft("commit-prepare", "");
+    let refused = run_draft("prepare", "", &description["review"]["context"]);
     assert!(!refused.status.success(), "{:?}", refused);
     let refused: Value = serde_json::from_slice(&refused.stdout).unwrap();
     assert!(refused.get("attempt").is_none());
-    let prepared = run_draft("commit-prepare", &org);
+    let prepared = run_draft("prepare", &org, &description["review"]["context"]);
     assert!(prepared.status.success(), "{:?}", prepared);
     let prepared: Value = serde_json::from_slice(&prepared.stdout).unwrap();
     assert_eq!(prepared["review"]["description"], rendered);
@@ -461,287 +641,4 @@ fn check_runs_the_recorded_assurance_profile() {
         assert_eq!(case["matched"], false);
         assert!(case["assessment"].is_null());
     }
-}
-
-#[test]
-fn signed_commit_uses_the_prepared_operation_and_durable_approval() {
-    use ring::signature::{Ed25519KeyPair, KeyPair};
-
-    fn hex(bytes: &[u8]) -> String {
-        use std::fmt::Write as _;
-        bytes.iter().fold(String::new(), |mut output, byte| {
-            write!(output, "{byte:02x}").unwrap();
-            output
-        })
-    }
-
-    let jj = std::env::var_os("AITIA_JJ_BIN").unwrap_or_else(|| "jj".into());
-    let fixture = tempfile::tempdir().unwrap();
-    let workspace = fixture.path().join("workspace");
-    let policy = fixture.path().join("authority.json");
-    std::fs::create_dir(&workspace).unwrap();
-    let workspace = workspace.canonicalize().unwrap();
-    let run_jj = |args: &[&str]| {
-        let result = Command::new(&jj)
-            .current_dir(&workspace)
-            .args([
-                "--config",
-                "user.name='AITIA Test'",
-                "--config",
-                "user.email='test@example.invalid'",
-            ])
-            .args(args)
-            .output()
-            .unwrap();
-        assert!(result.status.success(), "{result:?}");
-    };
-    run_jj(&["git", "init", "--colocate"]);
-    std::fs::create_dir_all(workspace.join(".agents/aita")).unwrap();
-    std::fs::write(
-        workspace.join(".agents/aita/project.json"),
-        br#"{"schemaVersion":1,"services":{"commit":{"project":"signed-fixture","governance":"signed","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-084","checks":[{"requirement":"SWE-084","method":"jj.configuration-audit"}]}}}"#,
-    ).unwrap();
-    run_jj(&["describe", "-m", "record project profile"]);
-    let original = aitia_jj::observe_workspace(&workspace).unwrap();
-
-    let signer = Ed25519KeyPair::from_seed_unchecked(&[42; 32]).unwrap();
-    std::fs::write(
-        &policy,
-        json!({
-            "project": "signed-fixture", "workspace": workspace,
-            "publicKey": hex(signer.public_key().as_ref()),
-        })
-        .to_string(),
-    )
-    .unwrap();
-
-    let run = |operation: &str, input: Value| {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
-            .arg(operation)
-            .current_dir(&workspace)
-            .env("AITIA_GOVERNANCE_POLICY", &policy)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        serde_json::to_writer(child.stdin.take().unwrap(), &input).unwrap();
-        child.wait_with_output().unwrap()
-    };
-    let json_output = |result: std::process::Output| {
-        assert!(result.status.success(), "{result:?}");
-        serde_json::from_slice::<Value>(&result.stdout).unwrap()
-    };
-
-    let context = json_output(run("commit-context", Value::Null));
-    let org: String = context["review"]["clauses"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|clause| {
-            format!(
-                "* Evidence\n:PROPERTIES:\n:{}: {}\n:END:\n",
-                clause["property"].as_str().unwrap(),
-                clause["value"].as_str().unwrap()
-            )
-        })
-        .collect();
-    let draft = json!({"title":"Audit the recorded configuration",
-        "body":"Bind the Git object to its recorded cut.", "org":org,
-        "context":context["review"]["context"]});
-    let prepared = json_output(run("commit-prepare", draft.clone()));
-    assert_eq!(
-        prepared["governanceRevision"],
-        context["governanceRevision"]
-    );
-    let denied = run(
-        "commit-apply",
-        json!({"draft":draft, "attempt":prepared["attempt"]}),
-    );
-    assert!(!denied.status.success(), "{denied:?}");
-    assert!(String::from_utf8_lossy(&denied.stderr).contains("requires a signed commit approval"));
-    assert_eq!(aitia_jj::observe_workspace(&workspace).unwrap(), original);
-
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let message = json!({"kind":"aitia.commit.approve.v1", "project":"signed-fixture",
-        "revision":prepared["governanceRevision"], "approval":"first",
-        "intent":prepared["intent"], "notBefore":now, "expiresAt":now + 300})
-    .to_string();
-    let forged = run(
-        "commit-decision",
-        json!({"message":message, "signature":"00".repeat(64)}),
-    );
-    assert!(!forged.status.success(), "{forged:?}");
-    assert!(String::from_utf8_lossy(&forged.stderr).contains("signature rejected"));
-    assert_eq!(aitia_jj::observe_workspace(&workspace).unwrap(), original);
-    json_output(run(
-        "commit-decision",
-        json!({"message":message,
-        "signature":hex(signer.sign(message.as_bytes()).as_ref())}),
-    ));
-    let written = json_output(run(
-        "commit-apply",
-        json!({
-            "draft":draft, "attempt":prepared["attempt"], "approval":"first"
-        }),
-    ));
-    let published = aitia_jj::observe_workspace(&workspace).unwrap();
-    assert_eq!(
-        written["receipt"]["resulting_commit"],
-        published.commit_id()
-    );
-    assert_eq!(
-        prepared["attempt"]["resulting_operation"],
-        published.operation_id()
-    );
-    assert_eq!(published.parent_ids(), original.parent_ids());
-    assert_eq!(published.tree_id(), original.tree_id());
-    let recovered = json_output(run("commit-recover", json!({"approval":"first"})));
-    assert_eq!(recovered["outcome"], "applied");
-    assert_eq!(recovered["attempt"], prepared["attempt"]);
-}
-
-#[test]
-fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
-    let jj = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
-    let fixture = tempfile::tempdir().unwrap();
-    let workspace = fixture.path().join("workspace");
-    let remote = fixture.path().join("remote.git");
-    std::fs::create_dir(&workspace).unwrap();
-    assert!(
-        Command::new("git")
-            .args(["init", "--bare"])
-            .arg(&remote)
-            .status()
-            .unwrap()
-            .success()
-    );
-    let run_jj = |args: &[&str]| {
-        let output = Command::new(&jj)
-            .current_dir(&workspace)
-            .args([
-                "--config",
-                "user.name='AITIA Test'",
-                "--config",
-                "user.email='test@example.invalid'",
-            ])
-            .args(args)
-            .output()
-            .unwrap();
-        assert!(output.status.success(), "{output:?}");
-    };
-    run_jj(&["git", "init", "--colocate"]);
-    std::fs::create_dir_all(workspace.join(".agents/aita")).unwrap();
-    std::fs::write(workspace.join(".agents/aita/project.json"), br#"{"schemaVersion":1,"services":{"commit":{"project":"reviewed-push-fixture","profile":"nasa/sdlc/npr-7150.2","primary":"SWE-084","checks":[{"requirement":"SWE-083","method":"jj.recorded-change"},{"requirement":"SWE-084","method":"jj.configuration-audit"}]}}}"#).unwrap();
-    run_jj(&["describe", "-m", "Base"]);
-    run_jj(&["bookmark", "create", "reviewed", "-r", "@"]);
-    run_jj(&["git", "remote", "add", "origin", remote.to_str().unwrap()]);
-    run_jj(&[
-        "git",
-        "push",
-        "--remote",
-        "origin",
-        "--bookmark",
-        "reviewed",
-    ]);
-    let base = aitia_jj::observe_workspace(&workspace).unwrap();
-    run_jj(&["new", "-m", "Candidate"]);
-    std::fs::write(workspace.join("change.txt"), "reviewed change\n").unwrap();
-    run_jj(&["describe", "-m", "Candidate"]);
-    #[cfg(target_os = "macos")]
-    compiled_program::assert_controls(fixture.path());
-    let run = |args: &[&str], input: &Value| {
-        #[cfg(target_os = "macos")]
-        let mut command = compiled_program::command(args);
-        #[cfg(not(target_os = "macos"))]
-        let mut command = {
-            let mut command = Command::new(env!("CARGO_BIN_EXE_aitia"));
-            command.args(args);
-            command
-        };
-        let mut child = command
-            .current_dir(&workspace)
-            .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
-            .env_remove("GERBIL_HOME")
-            .env_remove("GERBIL_PATH")
-            .env_remove("GERBIL_LOADPATH")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        serde_json::to_writer(child.stdin.take().unwrap(), input).unwrap();
-        child.wait_with_output().unwrap()
-    };
-    let json_output = |output: std::process::Output| {
-        assert!(output.status.success(), "{output:?}");
-        serde_json::from_slice::<Value>(&output.stdout).unwrap()
-    };
-    let context = json_output(run(&["commit-context"], &Value::Null));
-    let org: String = context["review"]["clauses"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|clause| {
-            format!(
-                "* Evidence\n:PROPERTIES:\n:{}: {}\n:END:\n",
-                clause["property"].as_str().unwrap(),
-                clause["value"].as_str().unwrap()
-            )
-        })
-        .collect();
-    assert!(!org.contains("sha256:"));
-    let draft = json!({"title":"fix(review): publish the reviewed candidate",
-        "body":"Evidence\nThe recorded change and configuration were checked.\n\nOpen\nBroader model coverage remains open.",
-        "org":org,"context":context["review"]["context"]});
-    let prepared = json_output(run(&["commit-prepare"], &draft));
-    let approved = json!({"draft":draft,"attempt":prepared["attempt"]});
-    let written = json_output(run(&["commit-apply"], &approved));
-    let description = written["review"]["description"].as_str().unwrap();
-    assert!(description.contains("\nEvidence\n"));
-    assert!(description.contains("\nOpen\n"));
-    assert!(!description.contains("sha256:"));
-    assert!(!description.contains("JJ-Cut:"));
-    let head = || {
-        let output = Command::new("git")
-            .arg("--git-dir")
-            .arg(&remote)
-            .args(["rev-parse", "refs/heads/reviewed"])
-            .output()
-            .unwrap();
-        assert!(output.status.success());
-        String::from_utf8(output.stdout).unwrap().trim().to_owned()
-    };
-    let args = [
-        "jj",
-        "git",
-        "push",
-        "--remote",
-        "origin",
-        "--bookmark",
-        "reviewed",
-    ];
-    let mut forged = approved.clone();
-    forged["attempt"]["description"] = json!(format!("{description}forged"));
-    let refused = run(&args, &forged);
-    assert!(!refused.status.success(), "{refused:?}");
-    assert_eq!(head(), base.commit_id());
-    let pushed = json_output(run(&args, &approved));
-    assert_eq!(pushed["commit"], written["receipt"]["resulting_commit"]);
-    assert_eq!(head(), pushed["commit"].as_str().unwrap());
-    let object = Command::new("git")
-        .arg("--git-dir")
-        .arg(&remote)
-        .args(["cat-file", "commit", &head()])
-        .output()
-        .unwrap();
-    assert!(object.status.success());
-    let object = String::from_utf8(object.stdout).unwrap();
-    assert_eq!(object.split_once("\n\n").unwrap().1, description);
-    let replayed = run(&args, &approved);
-    assert!(!replayed.status.success(), "{replayed:?}");
-    assert_eq!(head(), pushed["commit"].as_str().unwrap());
 }

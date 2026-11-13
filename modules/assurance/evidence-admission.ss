@@ -9,7 +9,7 @@
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
         (only-in :clan/poo/mop validate)
-        (only-in :yuanxu/contribution/verification
+        (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-valid?)
         (only-in "func.ss"
                  assurance-canonical-digest assurance-node-canonical

@@ -9,7 +9,7 @@
 (import (only-in :clan/poo/object .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        (only-in :yuanxu/graph/types
+        (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         "types.ss")
 

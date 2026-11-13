@@ -9,7 +9,7 @@
 ;;; Native SDLC authority review. Technical success and authority are separate.
 (import (only-in :clan/poo/mop validate)
         :clan/poo/object :std/list/list
-        :yuanxu/contribution/verification
+        :tao3k/yuanxu/contribution/verification
         "types.ss")
 (export SdlcHistorySource SdlcHistoryDiscovery sdlc-history-source sdlc-history-discovery
         sdlc-history-request sdlc-review-approval sdlc-approval-request

@@ -4,9 +4,9 @@
 (import :std/test
         (only-in :clan/poo/object .call .get .ref)
         (only-in :std/source this-source-file)
-        (only-in :yuanxu/module-system/source/admission
+        (only-in :tao3k/yuanxu/module-system/source/admission
                  call-with-module-source-operation-measurement)
-        (only-in "../../init.ss" lambda-aitia.init.exports))
+        (only-in "../../init.ss" lambda-aitia.init.exports std-make-spec))
 (export source-projection-test)
 
 ;;; No top-level Scope read: the first Case must measure a genuinely cold spec.
@@ -15,7 +15,7 @@
     (test-case "source specification constructs zero business scopes"
       (let-values (((spec counters)
                     (call-with-module-source-operation-measurement
-                     (lambda () ((.get lambda-aitia.init.exports std-make-spec) '()))
+                     (lambda () std-make-spec)
                      accounting?: #f)))
         (check-equal? (pair? spec) #t)
         (check-equal? (hash-ref counters '(calls scope-factory) 0) 0)))
@@ -53,17 +53,13 @@
                        accounting?: #f)))
           (check-equal? (eq? again (car scopes)) #t)
           (check-equal? (hash-ref repeated '(calls scope-factory) 0) 0))))
-    (test-case "formal methods and GitOps are constructed only when demanded"
-      (let-values (((scopes counters)
+    (test-case "GitOps is constructed only when demanded"
+      (let-values (((scope counters)
                     (call-with-module-source-operation-measurement
                      (lambda ()
-                       (let (modules (.get lambda-aitia.init.exports modules))
-                         (list (.get modules formal-methods) (.get modules gitops))))
+                       (.get (.get lambda-aitia.init.exports modules) gitops))
                      accounting?: #f)))
-        (check-equal? (hash-ref counters '(calls scope-factory) 0) 2)
-        (check-equal? (hash-ref counters
-                         '(calls (scope-factory lambda-aitia/modules/formal-methods/interface)) 0) 1)
+        (check-equal? (hash-ref counters '(calls scope-factory) 0) 1)
         (check-equal? (hash-ref counters
                          '(calls (scope-factory lambda-aitia/modules/gitops/interface)) 0) 1)
-        (check-equal? (procedure? (.get (car scopes) engines)) #t)
-        (check-equal? (procedure? (.get (cadr scopes) evaluate)) #t)))))
+        (check-equal? (procedure? (.get scope evaluate)) #t)))))

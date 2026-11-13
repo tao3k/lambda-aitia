@@ -2,10 +2,10 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :yuanxu/profile-composition/profile-bundle
+(import (only-in :tao3k/yuanxu/profile-composition/profile-bundle
                  yuanxu-profile-export yuanxu-module-profiles)
-        (only-in :yuanxu/module-system/schema/relations yuanxu-semantic-identity)
-        (only-in :yuanxu/module-system/authoring/roles yuanxu-semantic-module)
+        (only-in :tao3k/yuanxu/module-system/schema/relations yuanxu-semantic-identity)
+        (only-in :tao3k/yuanxu/module-system/authoring/roles yuanxu-semantic-module)
         "actions.ss")
 (export make-delivery-profile-module)
 

@@ -5,7 +5,7 @@
 (import (only-in :std/list/list find)
         (only-in :std/encoding/json JSONReadOptions json->string string->json)
         (only-in :clan/poo/object .ref)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :agentic-ai-lab/modules/temporal-causality/runtime/monotonic-clock
                  monotonic-seconds)
         (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider

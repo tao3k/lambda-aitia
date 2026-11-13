@@ -8,9 +8,9 @@
 ;;; owned by Agentic AI Lab.
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :yuanxu/graph/algorithms
+        (only-in :tao3k/yuanxu/graph/algorithms
                  yuanxu-graph-loop-analysis-receipt)
-        (only-in :yuanxu/graph/types
+        (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
         (only-in :agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze)

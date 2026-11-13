@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-use crate::AitiaProgram;
+use crate::{AitiaProgram, with_linked_program};
 use aitia_jj::{DescriptionRecovery, WorkspaceCut, reconcile_description, reopen_description};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -99,20 +99,28 @@ enum Decision {
 #[serde(deny_unknown_fields)]
 pub(super) struct Apply {
     pub draft: super::cli::CommitNarration,
-    attempt: DescriptionRecovery,
+    pub attempt: DescriptionRecovery,
     approval: Option<String>,
 }
 
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Recovery {
-    approval: String,
+#[serde(untagged, deny_unknown_fields)]
+pub(super) enum CommitRecovery {
+    Attempt { attempt: DescriptionRecovery },
+    Approval { approval: String },
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DirectRecovery {
     attempt: DescriptionRecovery,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RecoveredDescription {
+    attempt: DescriptionRecovery,
+    outcome: String,
 }
 
 fn hex<const N: usize>(input: &str) -> Result<[u8; N]> {
@@ -150,6 +158,7 @@ pub(super) fn prepare(
             "operation": "intent",
             "project": project,
             "attempt": serde_json::to_string(&record)?,
+            "reviewContext": report["review"]["context"],
         }),
     )?;
     attach_revision(cut, report)?;
@@ -244,7 +253,8 @@ pub(super) fn apply(
         admission = governance.transition(
             program,
             json!({
-                "operation": "consume", "approval": approval, "attempt": attempt
+                "operation": "consume", "approval": approval, "attempt": attempt,
+                "reviewContext": report["review"]["context"]
             }),
         );
         admission.as_ref().is_ok_and(|value| *value == true)
@@ -257,68 +267,369 @@ pub(super) fn recover(
     program: &AitiaProgram<'_>,
     cut: &WorkspaceCut,
     project: &str,
-    input: &str,
+    approval: &str,
 ) -> Result<Value> {
-    if let Ok(attempt) = serde_json::from_str::<DirectRecovery>(input) {
-        let outcome = reconcile_description(cut.workspace_root(), &attempt.attempt)?;
-        return Ok(json!({"attempt": attempt.attempt, "outcome": outcome}));
-    }
     let governance = Governance::load(cut, project)?;
-    let request: Recovery = serde_json::from_str(input)?;
     let row = governance.transition(
         program,
         json!({
-            "operation": "recover", "approval": request.approval
+            "operation": "recover", "approval": approval
         }),
     )?;
     let attempt = row
         .as_str()
         .ok_or_else(|| io::Error::other("No admitted attempt"))?;
-    let record = serde_json::from_str(attempt)?;
-    let outcome = reconcile_description(cut.workspace_root(), &record)?;
+    recover_attempt(cut.workspace_root(), &serde_json::from_str(attempt)?)
+}
+
+pub(super) fn recover_attempt(
+    directory: &std::path::Path,
+    record: &DescriptionRecovery,
+) -> Result<Value> {
+    let outcome = reconcile_description(directory, record)?;
     Ok(json!({ "attempt": record, "outcome": outcome }))
 }
 
-pub(super) fn push(
-    program: &AitiaProgram<'_>,
-    input: &str,
-    remote: &str,
-    bookmark: &str,
-) -> Result<Value> {
-    let mut input: Apply = serde_json::from_str(input)?;
-    let current = aitia_jj::observe_workspace(std::path::Path::new("."))?;
-    if current.operation_id() != input.attempt.resulting_operation
-        || current.commit_id() != input.attempt.resulting_commit
-        || reconcile_description(current.workspace_root(), &input.attempt)?
-            != aitia_jj::DescriptionOutcome::Applied
+pub(super) fn review_cut_value(cut: &WorkspaceCut) -> Value {
+    json!({
+        "workspace": cut.workspace_name(),
+        "change": cut.change_id(),
+        "operation": cut.operation_id(),
+        "commit": cut.commit_id(),
+        "tree": cut.tree_id(),
+        "parents": cut.parent_ids(),
+    })
+}
+
+pub(super) fn review_input_digest(
+    cut: &Value,
+    sources: &aitia_jj::RecordedProjectSources,
+    changes: &[aitia_jj::RecordedPathChange],
+) -> Result<String> {
+    Ok(crate::source_tree::sha256(&serde_json::to_vec(&json!([
+        cut, sources, changes
+    ]))?))
+}
+
+pub(super) fn check_execution_identity(
+    check: &Value,
+    input_digest: &str,
+    report_digest: &str,
+) -> Result<String> {
+    Ok(crate::source_tree::sha256(&serde_json::to_vec(&json!([
+        check,
+        input_digest,
+        report_digest
+    ]))?))
+}
+
+/// Verify archived raw reports against an applied local revision. This reads
+/// host observations and projects the original project configuration through
+/// the linked Scheme Contract to determine model check applicability.
+pub(super) fn evidence(revision: &str, input: &str, query: bool) -> Result<Value> {
+    let artifact: Value = serde_json::from_str(input)?;
+    let applied = artifact.get("receipt");
+    let record: DescriptionRecovery = if let Some(receipt) = applied {
+        let expected = &receipt["expected"];
+        serde_json::from_value(json!({
+            "workspace": expected["workspace_name"],
+            "expected_operation": expected["operation_id"],
+            "expected_commit": expected["commit_id"],
+            "resulting_operation": receipt["resulting_operation"],
+            "resulting_commit": receipt["resulting_commit"],
+            "description": receipt["description"],
+        }))?
+    } else {
+        let recovery = RecoveredDescription::deserialize(&artifact)?;
+        if recovery.outcome != "applied" {
+            return Err(io::Error::other("Description recovery remains unresolved").into());
+        }
+        recovery.attempt
+    };
+    let facts = aitia_jj::read_applied_description_evidence(
+        std::path::Path::new("."),
+        revision,
+        &record,
+        crate::MAX_REQUEST_BYTES as usize,
+    )?;
+    let expected_cut = review_cut_value(&facts.original);
+    if applied.is_some()
+        && (artifact["cut"] != expected_cut
+            || artifact["review"]["description"] != record.description)
     {
-        return Err(io::Error::other("Push requires the current applied review receipt").into());
+        return Err(io::Error::other("Archived review does not match the applied rewrite").into());
     }
-    let (_, context) = super::cli::nasa_commit_report(program, None)?;
-    if context["policy"]["governance"] != "default" || input.approval.is_some() {
+    with_linked_program(|program| {
+        Ok(verified_evidence(
+            &program,
+            revision,
+            artifact,
+            facts,
+            expected_cut,
+            record.description,
+            query,
+        ))
+    })?
+}
+
+fn verified_evidence(
+    program: &AitiaProgram<'_>,
+    revision: &str,
+    artifact: Value,
+    facts: aitia_jj::AppliedDescriptionEvidence,
+    expected_cut: Value,
+    description: String,
+    query: bool,
+) -> Result<Value> {
+    let applied = artifact.get("receipt");
+    let configuration = super::cli::validate_project_manifest(program, &facts.project_sources)?;
+    let checks = configuration
+        .commit
+        .as_ref()
+        .map(super::cli::commit_checks)
+        .transpose()?
+        .unwrap_or_default();
+    let source_paths = configuration
+        .commit
+        .as_ref()
+        .map(super::cli::review_source_paths)
+        .transpose()?
+        .unwrap_or_default();
+    let policy_sources = aitia_jj::recorded_revision_source_entries(
+        facts.original.workspace_root(),
+        revision,
+        &source_paths,
+    )?;
+    let model_paths = super::cli::affected_sysml_paths(&facts.changes);
+    let model_applies = !model_paths.is_empty() && configuration.model_check_enabled();
+    let checks = if facts.changes.is_empty() {
+        &[]
+    } else {
+        checks
+    };
+    let input_digest = review_input_digest(&expected_cut, &facts.project_sources, &facts.changes)?;
+    let changes = serde_json::to_value(facts.changes)?;
+    let mut graph = json!({
+        "revision": revision,
+        "changes": changes,
+        "projectInputs": facts.project_inputs,
+        "policySources": policy_sources.into_iter().map(|(path, entry)| json!({ "path": path, "entry": entry })).collect::<Vec<_>>(),
+        "parsedDocuments": [],
+        "query": query,
+    });
+    let expected_reports = [
+        ("jj.recorded-change", changes),
+        (
+            "jj.configuration-audit",
+            serde_json::to_value(facts.configuration)?,
+        ),
+    ];
+    let reports = if applied.is_some() {
+        artifact["executions"]
+            .as_array()
+            .ok_or_else(|| io::Error::other("Archived execution list is missing"))?
+            .as_slice()
+    } else {
+        &[]
+    };
+    let mut observations = Vec::new();
+    let mut missing = Vec::new();
+    for (method, actual) in expected_reports {
+        let Some(check) = checks.iter().find(|check| check["method"] == method) else {
+            continue;
+        };
+        let mut matching = reports.iter().filter(|row| row["method"] == method);
+        let Some(row) = matching.next() else {
+            missing.push(method);
+            continue;
+        };
+        let digest = crate::source_tree::sha256(&serde_json::to_vec(&actual)?);
+        let identity = check_execution_identity(check, &input_digest, &digest)?;
+        if matching.next().is_some()
+            || row["report"] != actual
+            || row["reportDigest"] != digest
+            || row["inputDigest"] != input_digest
+            || row["requirement"] != check["requirement"]
+            || row["identity"] != identity
+        {
+            return Err(io::Error::other(format!("Archived {method} report rejected")).into());
+        }
+        observations.push(json!({"method":method,"report":actual,"reportDigest":digest}));
+    }
+    if observations.len() != reports.len() {
+        return Err(
+            io::Error::other("Archived check method is outside the recorded policy").into(),
+        );
+    }
+    let archived_model = &artifact["modelCheck"];
+    if !archived_model.is_null() {
+        if applied.is_none()
+            || !model_applies
+            || archived_model["paths"] != json!(model_paths)
+            || archived_model["status"] != "passed"
+        {
+            return Err(io::Error::other("Archived SysML observation is out of scope").into());
+        }
+        let actual = reproduce_sysml_report(revision, &model_paths)?;
+        if actual["documents"] != json!(model_paths) || archived_model["report"] != actual {
+            return Err(io::Error::other("Archived SysML report rejected").into());
+        }
+        graph["parsedDocuments"] = actual["documents"].clone();
+        let digest = crate::source_tree::sha256(&serde_json::to_vec(&actual)?);
+        observations.push(json!({"method":"sysml.parse","report":actual,"reportDigest":digest}));
+    } else if model_applies {
+        missing.push("sysml.parse");
+    }
+    graph["reports"] = json!(
+        observations
+            .iter()
+            .map(|row| &row["method"])
+            .collect::<Vec<_>>()
+    );
+    graph["missingReports"] = json!(missing);
+    let lineage = program.evidence_lineage(&serde_json::to_string(&graph)?)?;
+    Ok(json!({
+        "revision": revision,
+        "original": expected_cut,
+        "description": description,
+        "observations": observations,
+        "missingReports": missing,
+        "lineage": serde_json::from_str::<Value>(&lineage)?,
+    }))
+}
+
+#[cfg(feature = "sysml")]
+fn reproduce_sysml_report(revision: &str, paths: &[String]) -> Result<Value> {
+    crate::sysml::parse_model_report(|| {
+        crate::sysml::revision_documents(std::path::Path::new("."), revision, paths)
+    })
+}
+
+#[cfg(not(feature = "sysml"))]
+fn reproduce_sysml_report(_revision: &str, _paths: &[String]) -> Result<Value> {
+    Err(io::Error::other("SysML evidence verification is unavailable in this build").into())
+}
+
+pub(super) fn recover_push(input: &str, remote: &str, bookmark: &str) -> Result<Value> {
+    let recovery: DirectRecovery = serde_json::from_str(input)?;
+    let receipt = aitia_jj::recover_reviewed_push(
+        std::path::Path::new("."),
+        &recovery.attempt,
+        remote,
+        bookmark,
+    )?;
+    let outcome = if receipt.is_some() {
+        "acknowledged"
+    } else {
+        "unresolved"
+    };
+    Ok(json!({"outcome": outcome, "receipt": receipt}))
+}
+
+pub(super) fn push(input: &str, remote: &str, bookmark: &str) -> Result<Value> {
+    let input: Apply = serde_json::from_str(input)?;
+    let current = aitia_jj::observe_workspace(std::path::Path::new("."))?;
+    let origin = aitia_jj::observe_description_origin(&current, &input.attempt)?;
+    // A verified description rewrite changes repository identity, not the
+    // original review. Current Scheme rules must still accept its exact context.
+    let (checked, report, reviewed_routes) = with_linked_program(|program| {
+        Ok(super::cli::nasa_commit_report(
+            &program,
+            Some(&input.draft),
+            Some(&origin),
+            false,
+        ))
+    })??;
+    if report["policy"]["governance"] != "default" || input.approval.is_some() {
         return Err(io::Error::other(
             "Signed description approval does not authorize a remote push",
         )
         .into());
     }
-    // Recheck the written candidate using current observations. The original
-    // narration and Org references must still render the reviewed description.
-    input.draft.context = context["review"]["context"]
-        .as_str()
-        .ok_or_else(|| io::Error::other("Missing current review context"))?
-        .to_owned();
-    let (checked, report) = super::cli::nasa_commit_report(program, Some(&input.draft))?;
     let actual = description(&report)?;
     if checked != current || actual != input.attempt.description {
         return Err(io::Error::other("Written commit differs from the reviewed candidate").into());
+    }
+    let reviewed_route = &report["review"]["pullRequest"];
+    if !reviewed_route.is_null()
+        && (reviewed_route["remote"].as_str() != Some(remote)
+            || reviewed_route["source"].as_str() != Some(bookmark))
+    {
+        return Err(
+            io::Error::other("Push destination differs from the reviewed PR source").into(),
+        );
     }
     Ok(serde_json::to_value(aitia_jj::push_reviewed_description(
         &checked,
         actual,
         remote,
         bookmark,
-        || true,
+        |destination, head, identity| {
+            if !reviewed_routes.iter().any(|route| {
+                route.remote == remote
+                    && route.bookmark == bookmark
+                    && route.commit.as_deref() == Some(head)
+                    && route.route_identity.as_deref() == Some(identity)
+            }) {
+                return false;
+            }
+            push_route_matches(
+                &report,
+                destination,
+                remote,
+                bookmark,
+                head,
+                checked.commit_id(),
+                |route, candidate| crate::review_provider::observe(&[route], candidate),
+            )
+        },
     )?)?)
+}
+
+fn push_route_matches(
+    report: &Value,
+    destination: aitia_jj::PushRemote,
+    remote: &str,
+    bookmark: &str,
+    head: &str,
+    candidate: &str,
+    observe: impl FnOnce(
+        aitia_jj::RecordedReviewBookmark,
+        &str,
+    ) -> crate::review_provider::ReviewObservation,
+) -> bool {
+    use aitia_jj::PushRemote;
+    let review = &report["review"];
+    let association = &review["pullRequest"];
+    let absence = &review["pullRequestAbsence"];
+    match destination {
+        PushRemote::Other => association.is_null() && absence.is_null(),
+        PushRemote::UnresolvedGitHub => false,
+        PushRemote::GitHub(repository) => {
+            let route = if association.is_null() {
+                absence
+            } else {
+                association
+            };
+            route["repository"].as_str() == Some(&repository)
+                && route["remote"].as_str() == Some(remote)
+                && route["source"].as_str() == Some(bookmark)
+                && route["headRevision"].as_str() == Some(head)
+                // JJ has checked the local operation and selected its remote lease.
+                // Re-read the provider before transport, without refreshing review.
+                && serde_json::to_value(observe(
+                    aitia_jj::RecordedReviewBookmark {
+                        remote: remote.to_owned(),
+                        bookmark: bookmark.to_owned(),
+                        commit: Some(head.to_owned()),
+                        github_repository: Some(repository),
+                        route_identity: None,
+                    },
+                    candidate,
+                ))
+                .is_ok_and(|current| current == report["providerReview"])
+        }
+    }
 }
 
 fn description(report: &Value) -> Result<&str> {
@@ -326,3 +637,7 @@ fn description(report: &Value) -> Result<&str> {
         .as_str()
         .ok_or_else(|| io::Error::other("Missing reviewed description").into())
 }
+
+#[cfg(test)]
+#[path = "../tests/unit/cli_commit.rs"]
+mod tests;

@@ -8,7 +8,7 @@
         (only-in :clan/poo/object .o .ref)
         (only-in "../../../init.ss" lambda-aitia.init.exports)
         (only-in :clan/poo/object .get)
-        (only-in :yuanxu/module-system/feature/source-lock-feature
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest))
 
 (export required-support-test)

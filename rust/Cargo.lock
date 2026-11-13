@@ -28,6 +28,7 @@ dependencies = [
  "jj-lib",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
 ]
 
@@ -57,6 +58,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
+ "ureq",
 ]
 
 [[package]]
@@ -148,7 +150,7 @@ checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 [[package]]
 name = "asp-rust"
 version = "0.1.2"
-source = "git+https://github.com/tao3k/asp-rust?rev=1ca41124b846dec947f3d05119cafa07eaa57924#1ca41124b846dec947f3d05119cafa07eaa57924"
+source = "git+https://github.com/tao3k/asp-rust?rev=dd9bf7188bb9900cdfc6540fee2bfd28f43496fd#dd9bf7188bb9900cdfc6540fee2bfd28f43496fd"
 dependencies = [
  "asp-rust-build-support",
  "blake3",
@@ -169,7 +171,7 @@ dependencies = [
 [[package]]
 name = "asp-rust-build-support"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/asp-rust?rev=1ca41124b846dec947f3d05119cafa07eaa57924#1ca41124b846dec947f3d05119cafa07eaa57924"
+source = "git+https://github.com/tao3k/asp-rust?rev=dd9bf7188bb9900cdfc6540fee2bfd28f43496fd#dd9bf7188bb9900cdfc6540fee2bfd28f43496fd"
 dependencies = [
  "blake3",
 ]

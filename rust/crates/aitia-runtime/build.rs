@@ -7,7 +7,8 @@ fn main() {
         ProgramArchiveContract, ProgramArchiveObservation, ProgramArchiveObserver,
         ProgramArchiveRequest, build_program_archive_with_contract, discover_gambit_gsc_from_env,
     };
-    use std::{env, path::PathBuf};
+    use sha2::{Digest, Sha256};
+    use std::{env, fs::File, path::PathBuf};
 
     struct CargoInputs;
     impl ProgramArchiveObserver for CargoInputs {
@@ -39,6 +40,9 @@ fn main() {
                 "lambda-aitia/init",
                 "lambda-aitia/bindings/operations",
                 "lambda-aitia/rust/scheme/program",
+                "lambda-aitia/modules/gitops/review-lineage",
+                "lambda-aitia/modules/gitops/review-query",
+                "agentic-ai-lab/modules/query/scheme-graph",
                 "orgize/languages/org/modules/org-elements/values",
                 "orgize/languages/org/modules/org-contract/values",
                 "orgize/languages/org/modules/org-contract/evaluation",
@@ -54,6 +58,13 @@ fn main() {
         &CargoInputs,
     )
     .expect("link the compiler-owned AITIA program archive");
+    let mut archive = File::open(&receipt.archive_file).expect("open the compiled Scheme program");
+    let mut context = Sha256::new();
+    std::io::copy(&mut archive, &mut context).expect("identify the compiled Scheme program");
+    println!(
+        "cargo:rustc-env=AITIA_PROGRAM_CONTEXT=sha256:{:x}",
+        context.finalize()
+    );
     for directive in receipt.cargo_directives {
         println!("{}", directive.line());
     }

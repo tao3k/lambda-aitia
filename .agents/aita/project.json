@@ -1,15 +1,70 @@
 {
   "schemaVersion": 1,
   "services": {
-    "commit": {
-      "project": "tao3k/lambda-aitia",
-      "profile": "nasa/sdlc/npr-7150.2",
-      "primary": "SWE-084",
-      "checks": [
-        { "requirement": "SWE-083", "method": "jj.recorded-change" },
-        { "requirement": "SWE-084", "method": "jj.configuration-audit" }
-      ]
-    },
-    "sysml": { "enable": true, "parse": true }
+    "sysml": {
+      "enable": true,
+      "parse": true
+    }
+  },
+  "programs": {
+    "jj": {
+      "enable": true,
+      "settings": {
+        "project": "tao3k/lambda-aitia",
+        "profile": "nasa/sdlc/npr-7150.2",
+        "primary": "SWE-084",
+        "checks": [
+          {
+            "requirement": "SWE-083",
+            "method": "jj.recorded-change"
+          },
+          {
+            "requirement": "SWE-084",
+            "method": "jj.configuration-audit"
+          }
+        ],
+        "naming": {
+          "projectKey": "AITIA",
+          "types": [
+            "build",
+            "chore",
+            "ci",
+            "docs",
+            "feat",
+            "fix",
+            "perf",
+            "refactor",
+            "style",
+            "test"
+          ],
+          "scopes": [
+            {
+              "name": "gitops",
+              "paths": [
+                "modules/gitops",
+                "modules/project-config",
+                "rust/crates/aitia-jj",
+                "rust/crates/aitia-runtime",
+                "bindings",
+                ".agents/aita",
+                "dev/sysml",
+                "docs/rfcs",
+                "justfile"
+              ]
+            }
+          ],
+          "references": [
+            {
+              "identity": "RFC-0007",
+              "source": "docs/rfcs/0007-source-bound-commit-engineering.org",
+              "element": "lambda-aitia-commit-engineering"
+            }
+          ],
+          "languageSources": [
+            "README.org"
+          ]
+        }
+      }
+    }
   }
 }

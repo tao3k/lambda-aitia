@@ -285,7 +285,7 @@ identity and, for approval, exact intent and validity window. The policy
 is scoped to the canonical workspace. Its adjacent persistent journal and
 the runtime configuration belong to the operator trust boundary.
 
-=commit-apply= reruns the NASA assessment, reopens the exact prepared
+=aitia jj commit apply= reruns the NASA assessment, reopens the exact prepared
 operation and publishes under the JJ operation-head lock. In signed
 mode it consumes an approval from the Scheme journal under that lock
 before publishing. Recovery compares the prepared attempt with JJ
@@ -529,7 +529,7 @@ The Rust CLI owns the current =jj.recorded-change= and
 parent-to-commit path changes. The second reads the Git object directly
 and compares its commit, tree and ordered parents with the JJ cut.
 Scheme binds the execution facts to their Org representations before
-ASCENT evaluates support. =aitia commit-description= accepts only the
+ASCENT evaluates support. =aitia jj commit preview= accepts only the
 draft title, body and Org references. The locked integration passed the
 two check methods, dynamic draft validation and the ADR 0008 cases.
 The linked test took 73.36 seconds under its existing 120-second guard.
@@ -558,13 +558,13 @@ same guard and completed. Five JJ tests and the Scheme commit evidence
 suite passed.
 
 An isolated copy of the Aitia changes produced a read-only
-=aitia commit-context= preview at commit =0e53465783a5131397aaacd870dcb898f940c21b=.
+Read-only commit context at commit =0e53465783a5131397aaacd870dcb898f940c21b=.
 It returned 60 recorded paths, the project's configured
 =SWE-084= prefix and edition D. The preview created no write admission.
 
 *** Preparation on the AITIA change
 
-=aitia commit-prepare= reruns the draft assessment and returns the
+=aitia jj commit prepare= reruns the draft assessment and returns the
 unpublished JJ operation with the reviewed cut and description. In a
 disposable copy of the AITIA worktree, the recorded candidate
 =8ceb6abb76bef2988e8f25df3cd01ef779542677= contained 62 changed paths.

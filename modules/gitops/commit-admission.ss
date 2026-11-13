@@ -8,7 +8,7 @@
         (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
                  journal-pack journal-get journal-put! journal-receive!
                  journal-begin! journal-commit! journal-abort!)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "types.ss" NonEmptyString))
 (export gitops-commit-intent gitops-record-commit-approval!
         gitops-revoke-commit-approval! gitops-consume-commit-admission!
@@ -18,12 +18,16 @@
   (Record identity: [NonEmptyString] project: [NonEmptyString] intent: [NonEmptyString]
           policy-revision: [NonEmptyString] not-before: [UInt] expires-at: [UInt]))
 
-(def (gitops-commit-intent project attempt)
+(def (gitops-commit-intent project attempt review-context)
   (source-lock-payload-digest
-   (string->utf8 (journal-pack (list "aitia.commit-intent.v1" project attempt)))))
+   (string->utf8 (journal-pack (list "aitia.commit-intent.v2" project attempt review-context)))))
 
+;; Keep the existing journal addresses so recorded revocations and spent
+;; approvals remain visible. Only the admitted intent gains review binding.
 (def (journal-key kind project value)
-  (string-append "aitia/commit/" kind "/" (gitops-commit-intent project value)))
+  (string-append "aitia/commit/" kind "/"
+                 (source-lock-payload-digest
+                  (string->utf8 (journal-pack (list "aitia.commit-intent.v1" project value))))))
 
 (def (commit-transition! journal project request transition)
   (let (event (journal-key "request" project request))
@@ -61,8 +65,8 @@
 
 ;; This result records an admission, with no effect outcome yet.
 (def (gitops-consume-commit-admission!
-      journal project-id attempt-bytes approval-id policy-version clock)
-  (let* ((intent-value (gitops-commit-intent project-id attempt-bytes))
+      journal project-id attempt-bytes review-context-value approval-id policy-version clock)
+  (let* ((intent-value (gitops-commit-intent project-id attempt-bytes review-context-value))
          (attempt-key (journal-key "intent" project-id intent-value))
          (spent-key (journal-key "spent" project-id approval-id))
          (grant-key (journal-key "approval" project-id approval-id))
@@ -80,13 +84,13 @@
                   (< now (.get approval expires-at))))))
     (and (current?)
          (commit-transition! journal project-id
-           (list 'consume project-id intent-value approval-id policy-version attempt-bytes)
+           (list 'consume project-id intent-value approval-id policy-version attempt-bytes review-context-value)
            (lambda ()
              (and (current?)
                   (let (admission
                         (.o phase: 'admitted project: project-id intent: intent-value
                             approval: approval-id policy-revision: policy-version
-                            attempt: attempt-bytes))
+                            attempt: attempt-bytes review-context: review-context-value))
                     (journal-put! journal attempt-key admission)
                     (journal-put! journal spent-key intent-value)
                     admission)))))))

@@ -7,6 +7,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 import sqlite3
 import subprocess
 import sys
@@ -16,6 +17,13 @@ from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
 import pytest
+
+
+class LoopbackEffectServer(ThreadingHTTPServer):
+    def server_bind(self) -> None:
+        # The fixture uses a numeric loopback endpoint. No DNS is required.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address
 
 
 @pytest.mark.parametrize("mode", ["fixed", "buggy"])
@@ -75,7 +83,7 @@ def exercise_provider(mode: str, *, competing_first: bool) -> None:
             def log_message(self, format: str, *args: object) -> None:
                 pass
 
-        server = ThreadingHTTPServer(("127.0.0.1", 0), EffectHandler)
+        server = LoopbackEffectServer(("127.0.0.1", 0), EffectHandler)
         thread = Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:

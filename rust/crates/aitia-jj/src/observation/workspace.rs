@@ -99,7 +99,7 @@ pub fn observe_workspace(directory: &Path) -> Result<WorkspaceCut, JjObservation
     })
 }
 
-fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
+pub(super) fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
     JjObservationError::Repository(error.to_string())
 }
 
@@ -129,9 +129,16 @@ pub(crate) async fn capture_workspace(
     workspace: &Workspace,
 ) -> Result<WorkspaceCut, JjObservationError> {
     let operation_id = current_operation(workspace).await?;
+    capture_operation(workspace, &operation_id).await
+}
+
+pub(crate) async fn capture_operation(
+    workspace: &Workspace,
+    operation_id: &OperationId,
+) -> Result<WorkspaceCut, JjObservationError> {
     let loader = workspace.repo_loader();
     let operation = loader
-        .load_operation(&operation_id)
+        .load_operation(operation_id)
         .await
         .map_err(repository_error)?;
     let view = operation.view().await.map_err(repository_error)?;
@@ -181,26 +188,98 @@ pub(super) async fn require_current(
     Ok(())
 }
 
-/// Read project configuration from the recorded commit of the nearest Git project.
+const PROJECT_DECLARATION: &str = ".agents/aita/project.ss";
+const PROJECT_MANIFEST: &str = ".agents/aita/project.json";
+
+pub(crate) async fn project_input_entries(
+    commit: &jj_lib::commit::Commit,
+) -> Result<Vec<RecordedProjectInput>, JjObservationError> {
+    let tree = commit.tree();
+    let mut inputs = Vec::new();
+    for path in [PROJECT_DECLARATION, PROJECT_MANIFEST] {
+        let repo_path = RepoPath::from_internal_string(path).map_err(repository_error)?;
+        let value = tree.path_value(repo_path).await.map_err(repository_error)?;
+        match recorded_tree_entry(&value)? {
+            Some(entry @ RecordedTreeEntry::File { .. }) => {
+                inputs.push(RecordedProjectInput { path, entry });
+            }
+            None => {}
+            _ => {
+                return Err(repository_error(
+                    "recorded project path must be a regular file",
+                ));
+            }
+        }
+    }
+    Ok(inputs)
+}
+
+#[derive(Serialize)]
+pub struct RecordedProjectInput {
+    pub path: &'static str,
+    pub entry: RecordedTreeEntry,
+}
+
+/// The optional project declaration and JSON data recorded at the same cut.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct RecordedProjectSources {
+    pub declaration: Option<String>,
+    pub manifest: Option<String>,
+}
+
+/// Observe both configuration inputs at one JJ operation under a total byte limit.
 ///
 /// # Errors
-/// Requires a JJ workspace rooted at that Git project and a recorded manifest.
-pub fn observe_project_manifest(
+/// Rejects non-regular inputs, oversized or non-UTF-8 inputs and stale operations.
+pub fn observe_project_sources(
     directory: &Path,
-) -> Result<(WorkspaceCut, String), JjObservationError> {
-    let root = git_project_root(directory)?;
-    let workspace = open_workspace(&root)?;
-    if workspace.workspace_root() != root {
-        return Err(JjObservationError::Output(
-            "nearest Git project has no matching JJ workspace".into(),
-        ));
-    }
+    byte_limit: usize,
+) -> Result<(WorkspaceCut, RecordedProjectSources), JjObservationError> {
+    let workspace = open_project_workspace(directory)?;
     block_on(async {
         let cut = capture_workspace(&workspace).await?;
-        let manifest = read_at_cut(&workspace, &cut, ".agents/aita/project.json").await?;
+        let commit = recorded_commit(&workspace, &cut)?;
+        let sources = project_sources_at_commit(&workspace, &commit, byte_limit).await?;
         require_current(&workspace, &cut).await?;
-        Ok((cut, manifest))
+        Ok((cut, sources))
     })
+}
+
+pub(crate) async fn project_sources_at_commit(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+    byte_limit: usize,
+) -> Result<RecordedProjectSources, JjObservationError> {
+    let mut remaining = byte_limit;
+    let declaration =
+        optional_text_at_commit(workspace, commit, PROJECT_DECLARATION, &mut remaining).await?;
+    let manifest =
+        optional_text_at_commit(workspace, commit, PROJECT_MANIFEST, &mut remaining).await?;
+    Ok(RecordedProjectSources {
+        declaration,
+        manifest,
+    })
+}
+
+async fn optional_text_at_commit(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+    path: &str,
+    remaining: &mut usize,
+) -> Result<Option<String>, JjObservationError> {
+    let Some(reader) = optional_file_at_commit(workspace, commit, path).await? else {
+        return Ok(None);
+    };
+    let mut content = String::new();
+    reader
+        .take((*remaining as u64).saturating_add(1))
+        .read_to_string(&mut content)
+        .await
+        .map_err(JjObservationError::Io)?;
+    *remaining = remaining.checked_sub(content.len()).ok_or_else(|| {
+        JjObservationError::Output("recorded inputs exceed the byte limit".into())
+    })?;
+    Ok(Some(content))
 }
 
 /// Discover recorded regular SysML documents in stable project-relative order.
@@ -252,42 +331,50 @@ pub fn audit_recorded_configuration(
         if capture_workspace(&workspace).await? != *cut {
             return Err(JjObservationError::ChangedOperation);
         }
-        let store = workspace.repo_loader().store();
-        let repository = jj_lib::git::get_git_backend(store)
-            .map_err(repository_error)?
-            .git_repo();
-        let expected = jj_lib::backend::CommitId::try_from_hex(cut.commit_id())
-            .ok_or_else(|| JjObservationError::Output("invalid recorded commit ID".into()))?;
-        let mut git_id = repository.object_hash().null();
-        if git_id.as_mut_slice().len() != expected.as_bytes().len() {
-            return Err(JjObservationError::Output(
-                "incompatible Git object ID".into(),
-            ));
-        }
-        git_id.as_mut_slice().copy_from_slice(expected.as_bytes());
-        let commit = repository.find_commit(git_id).map_err(repository_error)?;
-        let audit = RecordedConfigurationAudit {
-            git_commit: commit.id().to_string(),
-            git_tree: commit.tree_id().map_err(repository_error)?.to_string(),
-            git_parents: commit.parent_ids().map(|id| id.to_string()).collect(),
-        };
-        // The synthetic JJ root represents a Git commit with no parents.
-        let parents = if cut.parent_ids() == [store.root_commit_id().hex()] {
-            &[][..]
-        } else {
-            cut.parent_ids()
-        };
-        if audit.git_commit != cut.commit_id()
-            || audit.git_tree != cut.tree_id()
-            || audit.git_parents != parents
-        {
-            return Err(JjObservationError::Output(
-                "Git configuration differs from the recorded JJ cut".into(),
-            ));
-        }
+        let audit = read_git_configuration(&workspace, cut)?;
         require_current(&workspace, cut).await?;
         Ok(audit)
     })
+}
+
+pub(crate) fn read_git_configuration(
+    workspace: &Workspace,
+    cut: &WorkspaceCut,
+) -> Result<RecordedConfigurationAudit, JjObservationError> {
+    let store = workspace.repo_loader().store();
+    let repository = jj_lib::git::get_git_backend(store)
+        .map_err(repository_error)?
+        .git_repo();
+    let expected = jj_lib::backend::CommitId::try_from_hex(cut.commit_id())
+        .ok_or_else(|| JjObservationError::Output("invalid recorded commit ID".into()))?;
+    let mut git_id = repository.object_hash().null();
+    if git_id.as_mut_slice().len() != expected.as_bytes().len() {
+        return Err(JjObservationError::Output(
+            "incompatible Git object ID".into(),
+        ));
+    }
+    git_id.as_mut_slice().copy_from_slice(expected.as_bytes());
+    let commit = repository.find_commit(git_id).map_err(repository_error)?;
+    let audit = RecordedConfigurationAudit {
+        git_commit: commit.id().to_string(),
+        git_tree: commit.tree_id().map_err(repository_error)?.to_string(),
+        git_parents: commit.parent_ids().map(|id| id.to_string()).collect(),
+    };
+    // The synthetic JJ root represents a Git commit with no parents.
+    let parents = if cut.parent_ids() == [store.root_commit_id().hex()] {
+        &[][..]
+    } else {
+        cut.parent_ids()
+    };
+    if audit.git_commit != cut.commit_id()
+        || audit.git_tree != cut.tree_id()
+        || audit.git_parents != parents
+    {
+        return Err(JjObservationError::Output(
+            "Git configuration differs from the recorded JJ cut".into(),
+        ));
+    }
+    Ok(audit)
 }
 
 /// One difference between the recorded commit and its single parent.
@@ -337,32 +424,40 @@ pub fn recorded_changes(cut: &WorkspaceCut) -> Result<Vec<RecordedPathChange>, J
     block_on(async {
         require_current(&workspace, cut).await?;
         let commit = recorded_commit(&workspace, cut)?;
-        let [parent_id] = commit.parent_ids() else {
-            return Err(JjObservationError::Output(
-                "recorded inventory requires a single parent".into(),
-            ));
-        };
-        let parent = workspace
-            .repo_loader()
-            .store()
-            .get_commit(parent_id)
-            .map_err(repository_error)?;
-        let mut diff = parent
-            .tree()
-            .diff(&commit.tree(), &jj_lib::matchers::EverythingMatcher);
-        let mut changes = Vec::new();
-        while let Some(entry) = diff.next().await {
-            let values = entry.values.map_err(repository_error)?;
-            changes.push(RecordedPathChange {
-                path: entry.path.as_internal_file_string().to_owned(),
-                before: recorded_tree_entry(&values.before)?,
-                after: recorded_tree_entry(&values.after)?,
-            });
-        }
-        changes.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+        let changes = changes_at_commit(&workspace, &commit).await?;
         require_current(&workspace, cut).await?;
         Ok(changes)
     })
+}
+
+pub(crate) async fn changes_at_commit(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+) -> Result<Vec<RecordedPathChange>, JjObservationError> {
+    let [parent_id] = commit.parent_ids() else {
+        return Err(JjObservationError::Output(
+            "recorded inventory requires a single parent".into(),
+        ));
+    };
+    let parent = workspace
+        .repo_loader()
+        .store()
+        .get_commit(parent_id)
+        .map_err(repository_error)?;
+    let mut diff = parent
+        .tree()
+        .diff(&commit.tree(), &jj_lib::matchers::EverythingMatcher);
+    let mut changes = Vec::new();
+    while let Some(entry) = diff.next().await {
+        let values = entry.values.map_err(repository_error)?;
+        changes.push(RecordedPathChange {
+            path: entry.path.as_internal_file_string().to_owned(),
+            before: recorded_tree_entry(&values.before)?,
+            after: recorded_tree_entry(&values.after)?,
+        });
+    }
+    changes.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+    Ok(changes)
 }
 
 fn recorded_commit(
@@ -408,24 +503,149 @@ pub fn read_recorded_files(
     block_on(async {
         require_current(&workspace, cut).await?;
         let commit = recorded_commit(&workspace, cut)?;
-        let mut remaining = byte_limit;
-        let mut files = Vec::with_capacity(paths.len());
-        for path in paths {
-            let mut bytes = Vec::new();
-            file_at_commit(&workspace, &commit, path)
-                .await?
-                .take((remaining as u64).saturating_add(1))
-                .read_to_end(&mut bytes)
-                .await
-                .map_err(JjObservationError::Io)?;
-            remaining = remaining.checked_sub(bytes.len()).ok_or_else(|| {
-                JjObservationError::Output("recorded inputs exceed the byte limit".into())
-            })?;
-            files.push(bytes);
-        }
+        let files = files_at_commit(&workspace, &commit, paths, byte_limit).await?;
         require_current(&workspace, cut).await?;
         Ok(files)
     })
+}
+
+/// A requested path and the observed text or its read failure.
+pub type RecordedSource<'a> = (&'a str, Result<String, JjObservationError>);
+
+/// Observe policy sources at one cut, retaining per-path failures for review.
+/// Successful reads share one byte budget, including non-UTF-8 files.
+/// # Errors
+/// Refuses the entire observation if the workspace operation changed.
+pub fn observe_recorded_sources<'a>(
+    cut: &WorkspaceCut,
+    paths: &'a [&'a str],
+    byte_limit: usize,
+) -> Result<Vec<RecordedSource<'a>>, JjObservationError> {
+    let workspace = open_workspace(&cut.workspace_root)?;
+    block_on(async {
+        require_current(&workspace, cut).await?;
+        let commit = recorded_commit(&workspace, cut)?;
+        let mut remaining = byte_limit;
+        let mut sources = Vec::with_capacity(paths.len());
+        for &path in paths {
+            let text = read_bounded_file(&workspace, &commit, path, &mut remaining)
+                .await
+                .and_then(|bytes| {
+                    String::from_utf8(bytes)
+                        .map_err(|error| JjObservationError::Output(error.to_string()))
+                });
+            sources.push((path, text));
+        }
+        require_current(&workspace, cut).await?;
+        Ok(sources)
+    })
+}
+
+/// Read project files at a full commit ID in the nearest Git project's JJ store.
+///
+/// The selected tree is independent of the current operation and working copy.
+/// A readable object does not establish that the commit was applied or published.
+///
+/// # Errors
+/// Refuses a missing project store, a short or invalid commit ID, a missing
+/// commit, an invalid or non-file path, or inputs over the total byte limit.
+pub fn read_revision_files(
+    directory: &Path,
+    revision: &str,
+    paths: &[&str],
+    byte_limit: usize,
+) -> Result<Vec<Vec<u8>>, JjObservationError> {
+    let workspace = open_project_workspace(directory)?;
+    let commit = revision_commit(&workspace, revision)?;
+    block_on(files_at_commit(&workspace, &commit, paths, byte_limit))
+}
+
+/// Observe regular files declared by policy at an exact recorded revision.
+/// Missing, unresolved and non-file paths do not produce lineage edges.
+/// # Errors
+/// Rejects invalid paths or revisions and repository read failures.
+pub fn recorded_revision_source_entries<'a>(
+    directory: &Path,
+    revision: &str,
+    paths: &[&'a str],
+) -> Result<Vec<(&'a str, RecordedTreeEntry)>, JjObservationError> {
+    let workspace = open_project_workspace(directory)?;
+    let commit = revision_commit(&workspace, revision)?;
+    block_on(async {
+        let tree = commit.tree();
+        let mut sources = Vec::new();
+        for &path in paths {
+            let value = tree
+                .path_value(project_file_path(path)?)
+                .await
+                .map_err(repository_error)?;
+            if let Some(Some(TreeValue::File { id, executable, .. })) = value.as_resolved() {
+                sources.push((
+                    path,
+                    RecordedTreeEntry::File {
+                        id: id.hex(),
+                        executable: *executable,
+                    },
+                ));
+            }
+        }
+        Ok(sources)
+    })
+}
+
+fn revision_commit(
+    workspace: &Workspace,
+    revision: &str,
+) -> Result<jj_lib::commit::Commit, JjObservationError> {
+    let store = workspace.repo_loader().store();
+    let id = jj_lib::backend::CommitId::try_from_hex(revision)
+        .filter(|_| revision.len() == 2 * store.commit_id_length())
+        .ok_or_else(|| JjObservationError::Output("expected a full JJ commit ID".into()))?;
+    store.get_commit(&id).map_err(repository_error)
+}
+
+pub(crate) fn open_project_workspace(directory: &Path) -> Result<Workspace, JjObservationError> {
+    let root = git_project_root(directory)?;
+    let workspace = open_workspace(&root)?;
+    if workspace.workspace_root() != root {
+        return Err(JjObservationError::Output(
+            "nearest Git project has no matching JJ workspace".into(),
+        ));
+    }
+    Ok(workspace)
+}
+
+async fn files_at_commit(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+    paths: &[&str],
+    byte_limit: usize,
+) -> Result<Vec<Vec<u8>>, JjObservationError> {
+    let mut remaining = byte_limit;
+    let mut files = Vec::with_capacity(paths.len());
+    for path in paths {
+        files.push(read_bounded_file(workspace, commit, path, &mut remaining).await?);
+    }
+    Ok(files)
+}
+
+async fn read_bounded_file(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+    path: &str,
+    remaining: &mut usize,
+) -> Result<Vec<u8>, JjObservationError> {
+    let mut bytes = Vec::new();
+    file_at_commit(workspace, commit, path)
+        .await?
+        .take((*remaining as u64).saturating_add(1))
+        .read_to_end(&mut bytes)
+        .await
+        .map_err(JjObservationError::Io)?;
+    *remaining = remaining.checked_sub(bytes.len()).ok_or_else(|| {
+        JjObservationError::Output("recorded inputs exceed the byte limit".into())
+    })?;
+    Ok(bytes)
 }
 
 pub(super) async fn read_at_cut(
@@ -448,6 +668,14 @@ async fn file_at_commit(
     commit: &jj_lib::commit::Commit,
     relative_path: &str,
 ) -> Result<impl futures::io::AsyncRead + Unpin + use<>, JjObservationError> {
+    optional_file_at_commit(workspace, commit, relative_path)
+        .await?
+        .ok_or_else(|| {
+            JjObservationError::Output("recorded project path must be a regular file".into())
+        })
+}
+
+fn project_file_path(relative_path: &str) -> Result<&RepoPath, JjObservationError> {
     if relative_path.split('/').any(|part| {
         part.is_empty()
             || part == "."
@@ -459,19 +687,34 @@ async fn file_at_commit(
             "invalid project-relative file path".into(),
         ));
     }
-    let path = RepoPath::from_internal_string(relative_path).map_err(repository_error)?;
+    RepoPath::from_internal_string(relative_path).map_err(repository_error)
+}
+
+async fn optional_file_at_commit(
+    workspace: &Workspace,
+    commit: &jj_lib::commit::Commit,
+    relative_path: &str,
+) -> Result<Option<impl futures::io::AsyncRead + Unpin + use<>>, JjObservationError> {
+    let path = project_file_path(relative_path)?;
     let store = workspace.repo_loader().store();
     let value = commit
         .tree()
         .path_value(path)
         .await
         .map_err(repository_error)?;
+    if value.is_absent() {
+        return Ok(None);
+    }
     let Some(Some(TreeValue::File { id, .. })) = value.as_resolved() else {
         return Err(JjObservationError::Output(
             "recorded project path must be a regular file".into(),
         ));
     };
-    store.read_file(path, id).await.map_err(repository_error)
+    store
+        .read_file(path, id)
+        .await
+        .map(Some)
+        .map_err(repository_error)
 }
 
 /// Resolve the Git project for a directory.

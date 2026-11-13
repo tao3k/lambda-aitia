@@ -17,8 +17,12 @@ fn profile(pure: bool) -> String {
 
 pub(super) fn command(arguments: &[&str]) -> Command {
     let pure = matches!(
-        arguments.first().copied(),
-        Some("commit-context" | "commit-description" | "commit-prepare")
+        arguments,
+        ["project-manifest"]
+            | ["jj", "commit", "evidence", _]
+            | ["jj", "commit", "evidence", _, "--gql"]
+            | ["jj", "commit"]
+            | ["jj", "commit", "preview" | "prepare"]
     );
     let mut command = Command::new("/usr/bin/sandbox-exec");
     command.args(["-p", &profile(pure), env!("CARGO_BIN_EXE_aitia")]);

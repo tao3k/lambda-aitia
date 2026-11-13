@@ -3,6 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
+;; Initialize Config under the publication reader before recording scope support.
+(import "config.ss")
+
+(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
 (.def GitOps
   identity: 'gitops
   tags: '(software-engineering gitops)

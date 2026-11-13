@@ -4,7 +4,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .get)
-        (only-in :yuanxu/contribution/objects admit-contributions)
+        (only-in :tao3k/yuanxu/contribution/objects admit-contributions)
         (only-in "../../../init.ss" lambda-aitia.init.exports)
         "sdlc-selection-fixture.ss")
 (export sdlc-config-test)

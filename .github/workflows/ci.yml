@@ -190,37 +190,64 @@ jobs:
             gerbil env gerbil interactive packages/automation/runtime-dependencies.ss --fetch-only
           '
           bazelisk run @local_gerbil//:install_dependencies
+
+      - name: Verify Gerbil dependency install receipt
+        working-directory: agentic-ai-lab
+        run: |
           python3 - <<'PYCODE'
           import json
           from pathlib import Path
           receipt = json.loads(Path('.gerbil/pkg/install-resource-guard.receipt.json').read_text())
-          if receipt['outcome'] != 'completed' or receipt['exitCode'] != 0:
-              raise SystemExit(f"native dependency install did not complete: {receipt}")
+          expected = {
+              'schema': 'gerbil-bazel.resource-guard-receipt.v1',
+              'label': 'install-dependencies',
+              'outcome': 'completed',
+              'exitCode': 0,
+              'childExitCode': 0,
+              'timeoutMs': 600000,
+          }
+          if not isinstance(receipt, dict) or any(
+              key not in receipt
+              or type(receipt[key]) is not type(value)
+              or receipt[key] != value
+              for key, value in expected.items()
+          ):
+              raise SystemExit("invalid Gerbil dependency install receipt")
           PYCODE
-
-      - name: Build Lab and Core test prerequisites
-        working-directory: agentic-ai-lab
-        run: |
-          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
-            set -euo pipefail
-            cd "$BUILD_WORKSPACE_DIRECTORY"
-            # Match the producer: transitive packages may select an older POO.
-            # Core owns the direct revision; do not repeat that pin in CI.
-            (cd core && gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss)
-            just build-core
-            just deps-dev
-            just build-testing
-          '
-          # ASP belongs to Lab's development package, not its production store.
-          # Append its compiled outputs after the caller's existing input order.
-          printf 'GERBIL_LOADPATH=%s:%s/dev/.gerbil/lib\n' "$GERBIL_LOADPATH" "$PWD" >> "$GITHUB_ENV"
 
       - name: Save completed native dependency build inputs
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: agentic-ai-lab/.gerbil
-          key: lambda-aitia-gerbil-packages-v4-${{ runner.os }}-${{ runner.arch }}-${{ steps.lab.outputs.revision }}-${{ hashFiles('agentic-ai-lab/gerbil.pkg', 'agentic-ai-lab/core/gerbil.pkg', 'agentic-ai-lab/dev/gerbil.pkg', 'agentic-ai-lab/MODULE.bazel', 'agentic-ai-lab/MODULE.bazel.lock', 'agentic-ai-lab/gerbil-bazel.MODULE.bazel', 'agentic-ai-lab/gerbil-dependencies.MODULE.bazel', 'agentic-ai-lab/packages/lambda-aitia/gerbil.pkg') }}
+          key: ${{ steps.gerbil-package-cache.outputs.cache-primary-key }}
+
+      - name: Build Lab and Core test prerequisites
+        working-directory: agentic-ai-lab
+        env:
+          AITIA_LAB_REVISION: ${{ steps.lab.outputs.revision }}
+        run: |
+          bazelisk run @local_gerbil//:native_scheme_env -- bash -lc '
+            set -euo pipefail
+            cd "$BUILD_WORKSPACE_DIRECTORY"
+            test "$(git rev-parse HEAD)" = "$AITIA_LAB_REVISION"
+            test "$(git -C core rev-parse HEAD)" = "$(git rev-parse HEAD:core)"
+            test -z "$(git -C core status --porcelain --untracked-files=all)"
+            # Match the producer: transitive packages may select an older POO.
+            # Core owns the direct revision; do not repeat that pin in CI.
+            (cd core && gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss)
+            just build-core
+            # The root install resolves Lab's dependencies. Register the same
+            # checked-out Lab so AITIA's package build can consume its manifest.
+            gxpkg link github.com/tao3k/agentic-ai-lab "$PWD"
+            timeout --foreground --signal=TERM --kill-after=5s 600s gxpkg build github.com/tao3k/agentic-ai-lab
+            just build-library
+            just deps-dev
+            just build-testing
+          '
+          # ASP belongs to Lab's development package, not its production store.
+          # Append its compiled outputs after the caller's existing input order.
+          printf 'GERBIL_LOADPATH=%s:%s/dev/.gerbil/lib\n' "$GERBIL_LOADPATH" "$PWD" >> "$GITHUB_ENV"
 
       - name: Run Scheme semantic closure
         working-directory: agentic-ai-lab

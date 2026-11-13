@@ -5,4 +5,4 @@
 (export ProjectConfigDefaults)
 
 (def ProjectConfigDefaults
-  (.o services: (hash)))
+  (.o services: (hash) programs: (hash)))

@@ -19,6 +19,8 @@ gix = { version = "=0.90.0", default-features = false }
 futures = { version = "0.3", default-features = false, features = ["executor"] }
 serde = { version = "1", features = ["derive"] }
 
+sha2 = "0.10.9"
+
 [dev-dependencies]
 aitia-build-support.workspace = true
 serde_json = "1"

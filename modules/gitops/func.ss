@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .ref .slot?)
         (only-in :clan/poo/mop .new validate .defgeneric)
         :std/list/list
-        (only-in :yuanxu/utilities/algorithms
+        (only-in :tao3k/yuanxu/utilities/algorithms
                  yuanxu-make-value-index yuanxu-value-index-put!
                  yuanxu-value-index-ref)
         "types.ss")
@@ -27,12 +27,12 @@
     revision: revision-value source-ref: source-ref-value
     target-ref: target-ref-value pull-request: pull-request-value))
 (def (gitops-check name-value repository-value revision-value conclusion-value
-                   standard-edition: (standard-edition #f)
-                   source-lock-digest: (source-lock-digest #f))
+                   standard-edition: (standard-edition-value #f)
+                   source-lock-digest: (source-lock-digest-value #f))
   (.new GitOpsCheck name: name-value repository: repository-value
         revision: revision-value conclusion: conclusion-value
-        standard-edition: standard-edition
-        source-lock-digest: source-lock-digest))
+        standard-edition: standard-edition-value
+        source-lock-digest: source-lock-digest-value))
 
 (def (composition-gitops-profiles composition)
   (filter gitops-profile? (.ref composition 'profiles)))

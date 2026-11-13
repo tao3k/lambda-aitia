@@ -3,7 +3,7 @@
 
 (import :std/test
         (only-in :clan/poo/object .get .ref)
-        (only-in :yuanxu/graph/types yuanxu-graph-id)
+        (only-in :tao3k/yuanxu/graph/types yuanxu-graph-id)
         (only-in :agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-structural-impact-analyze
                  agentic-ai-lab-causal-cut agentic-ai-lab-temporal-causal-classify)

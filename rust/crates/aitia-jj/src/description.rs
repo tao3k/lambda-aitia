@@ -3,8 +3,12 @@
 
 //! Prepare a description-only rewrite, then conditionally publish its JJ operation.
 
-use crate::observation::workspace::{capture_workspace, open_workspace};
-use crate::{JjObservationError, WorkspaceCut};
+use crate::observation::workspace::{
+    RecordedProjectInput, RecordedProjectSources, capture_operation, capture_workspace,
+    changes_at_commit, open_project_workspace, open_workspace, project_input_entries,
+    project_sources_at_commit, read_git_configuration,
+};
+use crate::{JjObservationError, RecordedConfigurationAudit, RecordedPathChange, WorkspaceCut};
 use futures::{StreamExt, executor::block_on};
 use jj_lib::backend::CommitId;
 use jj_lib::object_id::ObjectId;
@@ -60,52 +64,183 @@ pub enum DescriptionOutcome {
     Unresolved,
 }
 
-/// Recover a prepared operation from the visible history of one JJ workspace.
+/// Recover a prepared operation from the visible JJ history of the nearest Git project.
 ///
 /// The caller must obtain the recovery input from its trusted attempt record.
 /// The result describes a repository effect. It confers no write or push authority.
 ///
 /// # Errors
-/// Refuses malformed identities, ambiguous heads, and inconsistent history.
+/// Refuses missing project workspaces, malformed identities, ambiguous heads,
+/// and inconsistent history.
 pub fn reconcile_description(
     directory: &Path,
     record: &DescriptionRecovery,
 ) -> Result<DescriptionOutcome, JjObservationError> {
-    let workspace = open_workspace(directory)?;
+    let workspace = open_project_workspace(directory)?;
+    Ok(if block_on(has_applied_description(&workspace, record))? {
+        DescriptionOutcome::Applied
+    } else {
+        DescriptionOutcome::Unresolved
+    })
+}
+
+/// Immutable host observations of a description rewrite found in local JJ history.
+pub struct AppliedDescriptionEvidence {
+    pub original: WorkspaceCut,
+    pub changes: Vec<RecordedPathChange>,
+    pub project_inputs: Vec<RecordedProjectInput>,
+    pub project_sources: RecordedProjectSources,
+    pub configuration: RecordedConfigurationAudit,
+}
+
+/// Read back the applied revision and reproduce its original JJ observations.
+///
+/// # Errors
+/// Refuses a mismatched revision, an invisible attempt, inconsistent history,
+/// or project sources that exceed the shared byte limit.
+pub fn read_applied_description_evidence(
+    directory: &Path,
+    revision: &str,
+    record: &DescriptionRecovery,
+    project_source_limit: usize,
+) -> Result<AppliedDescriptionEvidence, JjObservationError> {
+    if revision != record.resulting_commit {
+        return Err(JjObservationError::Output(
+            "selected revision differs from the applied receipt".into(),
+        ));
+    }
+    let workspace = open_project_workspace(directory)?;
+    block_on(async {
+        if !has_applied_description(&workspace, record).await? {
+            return Err(JjObservationError::Output(
+                "description operation is not visible in local JJ history".into(),
+            ));
+        }
+        let original_id = OperationId::try_from_hex(&record.expected_operation)
+            .ok_or_else(|| JjObservationError::Output("invalid review operation".into()))?;
+        let original = capture_operation(&workspace, &original_id).await?;
+        let original_commit = CommitId::try_from_hex(original.commit_id())
+            .ok_or_else(|| JjObservationError::Output("invalid review commit".into()))?;
+        let commit = workspace
+            .repo_loader()
+            .store()
+            .get_commit(&original_commit)
+            .map_err(repository_error)?;
+        Ok(AppliedDescriptionEvidence {
+            configuration: read_git_configuration(&workspace, &original)?,
+            changes: changes_at_commit(&workspace, &commit).await?,
+            project_inputs: project_input_entries(&commit).await?,
+            project_sources: project_sources_at_commit(&workspace, &commit, project_source_limit)
+                .await?,
+            original,
+        })
+    })
+}
+
+async fn has_applied_description(
+    workspace: &Workspace,
+    record: &DescriptionRecovery,
+) -> Result<bool, JjObservationError> {
     if record.workspace != workspace.workspace_name().as_str() {
         return Err(JjObservationError::Output("foreign JJ workspace".into()));
     }
     let resulting_operation = OperationId::try_from_hex(&record.resulting_operation)
         .ok_or_else(|| JjObservationError::Output("invalid resulting operation".into()))?;
-
-    block_on(async {
-        let loader = workspace.repo_loader();
-        let heads = loader.op_heads_store();
-        if heads.downcast_ref::<SimpleOpHeadsStore>().is_none() {
-            return Err(JjObservationError::Output(
-                "unsupported JJ operation-head store".into(),
-            ));
+    let loader = workspace.repo_loader();
+    let heads = loader.op_heads_store();
+    if heads.downcast_ref::<SimpleOpHeadsStore>().is_none() {
+        return Err(JjObservationError::Output(
+            "unsupported JJ operation-head store".into(),
+        ));
+    }
+    let _lock = heads.lock().await.map_err(repository_error)?;
+    let current = heads.get_op_heads().await.map_err(repository_error)?;
+    let [head] = current.as_slice() else {
+        return Ok(false);
+    };
+    let head = loader
+        .load_operation(head)
+        .await
+        .map_err(repository_error)?;
+    let mut history = Box::pin(walk_ancestors(&[head]));
+    while let Some(operation) = history.next().await {
+        let operation = operation.map_err(repository_error)?;
+        if operation.id() == &resulting_operation {
+            verify_description_operation(workspace, &operation, record).await?;
+            return Ok(true);
         }
-        let _lock = heads.lock().await.map_err(repository_error)?;
-        let current = heads.get_op_heads().await.map_err(repository_error)?;
-        let [head] = current.as_slice() else {
-            return Ok(DescriptionOutcome::Unresolved);
-        };
-        let head = loader
-            .load_operation(head)
+    }
+    // Absence in local history does not establish a previous write never happened.
+    Ok(false)
+}
+
+/// Immutable review inputs before a verified description-only transition.
+/// The anchor is the currently observed resulting operation, not caller facts.
+#[derive(Debug)]
+pub struct DescriptionOrigin {
+    current: WorkspaceCut,
+    original: WorkspaceCut,
+    configuration: RecordedConfigurationAudit,
+}
+
+impl DescriptionOrigin {
+    pub fn current(&self) -> &WorkspaceCut {
+        &self.current
+    }
+
+    pub fn original(&self) -> &WorkspaceCut {
+        &self.original
+    }
+
+    pub fn configuration(&self) -> &RecordedConfigurationAudit {
+        &self.configuration
+    }
+}
+
+/// Observe the original review cut of the current description-only rewrite.
+///
+/// This proves unchanged tree, parents and change identity through JJ history.
+/// It does not renew review context or grant effect authority.
+///
+/// # Errors
+/// Refuses foreign, stale, fabricated or non-description transitions.
+pub fn observe_description_origin(
+    current: &WorkspaceCut,
+    record: &DescriptionRecovery,
+) -> Result<DescriptionOrigin, JjObservationError> {
+    if record.workspace != current.workspace_name()
+        || record.resulting_operation != current.operation_id()
+        || record.resulting_commit != current.commit_id()
+    {
+        return Err(JjObservationError::Output(
+            "review origin is not the current description rewrite".into(),
+        ));
+    }
+    let workspace = open_workspace(current.workspace_root())?;
+    let operation_id = OperationId::try_from_hex(current.operation_id())
+        .ok_or_else(|| JjObservationError::Output("invalid current operation".into()))?;
+    let original_id = OperationId::try_from_hex(&record.expected_operation)
+        .ok_or_else(|| JjObservationError::Output("invalid review operation".into()))?;
+    block_on(async {
+        if capture_workspace(&workspace).await? != *current {
+            return Err(JjObservationError::ChangedOperation);
+        }
+        let operation = workspace
+            .repo_loader()
+            .load_operation(&operation_id)
             .await
             .map_err(repository_error)?;
-        let mut history = Box::pin(walk_ancestors(&[head]));
-        while let Some(operation) = history.next().await {
-            let operation = operation.map_err(repository_error)?;
-            if operation.id() != &resulting_operation {
-                continue;
-            }
-            verify_description_operation(&workspace, &operation, record).await?;
-            return Ok(DescriptionOutcome::Applied);
+        verify_description_operation(&workspace, &operation, record).await?;
+        let original = capture_operation(&workspace, &original_id).await?;
+        let configuration = read_git_configuration(&workspace, &original)?;
+        if capture_workspace(&workspace).await? != *current {
+            return Err(JjObservationError::ChangedOperation);
         }
-        // A missing operation is not evidence that a previous write never happened.
-        Ok(DescriptionOutcome::Unresolved)
+        Ok(DescriptionOrigin {
+            current: current.clone(),
+            original,
+            configuration,
+        })
     })
 }
 
@@ -156,7 +291,7 @@ pub fn reopen_description(
     })
 }
 
-async fn verify_description_operation(
+pub(crate) async fn verify_description_operation(
     workspace: &Workspace,
     operation: &Operation,
     record: &DescriptionRecovery,

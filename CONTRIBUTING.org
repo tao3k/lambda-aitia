@@ -36,6 +36,9 @@ just --working-directory packages/lambda-aitia --justfile packages/lambda-aitia/
 #+end_src
 
 The AITIA package's =just check= includes the real JJ evidence replay.
+From the AITIA package root, =gerbil test dev.ss= runs the Scheme
+development suites. =just test-dev= runs the same entry with the
+repository's heap limit and timeout.
 Set =AITIA_JJ_BIN= to the absolute path of the verified JJ executable
 described in [[file:dev/sysml/README.org][the commit evidence qualification]].
 The Rust delivery gate requires =AITIA_PYTEST_PYTHON= to name an

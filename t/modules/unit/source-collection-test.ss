@@ -3,10 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :std/test check-equal? test-case test-suite)
-        (only-in :yuanxu/module-system/source/objects
+        (only-in :tao3k/yuanxu/module-system/source/objects
                  yuanxu-module-source-ref-metadata
                  yuanxu-module-source-ref-value)
-        (only-in :yuanxu/module-system/source/collection make-yuanxu-contribution-module-source yuanxu-module-source-collection-interfaces))
+        (only-in :tao3k/yuanxu/module-system/source/collection make-yuanxu-contribution-module-source yuanxu-module-source-collection-interfaces))
 
 (export lambda-aitia-source-collection-test)
 

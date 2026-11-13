@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .o .ref)
-        (only-in :yuanxu/contribution/verification
+        (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-adapter yuanxu-verify
                  yuanxu-revoke-verification!)
         (only-in "../../../init.ss" lambda-aitia.init.exports)

@@ -8,7 +8,7 @@
         (only-in :gerbil/core list-sort string->utf8)
         :std/list/list
         (only-in :std/encoding/hex hex-encode)
-        (only-in :yuanxu/graph/algorithms
+        (only-in :tao3k/yuanxu/graph/algorithms
                  yuanxu-graph-cycle-path
                  yuanxu-graph-loop-analysis-receipt
                  yuanxu-graph-reachable-ids

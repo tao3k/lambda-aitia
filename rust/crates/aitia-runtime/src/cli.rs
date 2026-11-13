@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
+use crate::MAX_REQUEST_BYTES;
 use crate::cli_commit;
-use crate::linked::MAX_REQUEST_BYTES;
 use crate::{AitiaProgram, with_linked_program};
 use aitia_jj::{
-    WorkspaceCut, audit_recorded_configuration, git_project_root, observe_project_manifest,
-    observe_workspace, read_recorded_file, recorded_changes, recorded_sysml_paths,
+    DescriptionOrigin, WorkspaceCut, audit_recorded_configuration, git_project_root,
+    observe_project_sources, observe_recorded_sources, observe_workspace, recorded_changes,
+    recorded_review_bookmarks, recorded_sysml_paths,
 };
 use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
@@ -14,11 +15,17 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 #[derive(serde::Deserialize)]
-struct ProjectConfiguration {
+pub(super) struct ProjectConfiguration {
     manifest: serde_json::Value,
     checks: Vec<ProjectCheck>,
     replay: Option<ReplayPlan>,
-    commit: Option<serde_json::Value>,
+    pub(super) commit: Option<serde_json::Value>,
+}
+
+impl ProjectConfiguration {
+    pub(super) fn model_check_enabled(&self) -> bool {
+        self.checks.contains(&ProjectCheck::SysmlParse)
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -49,26 +56,41 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let command = args.next();
     let command = command.as_deref().and_then(std::ffi::OsStr::to_str);
-    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia commit-context\n       aitia commit-description < draft.json\n       aitia commit-prepare < draft.json\n       aitia commit-decision < signed.json\n       aitia commit-apply < approved.json\n       aitia commit-recover < approval.json\n       aitia jj git push [--remote origin] --bookmark name < approved.json";
+    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia jj commit\n       aitia jj commit preview < draft.json\n       aitia jj commit prepare < draft.json\n       aitia jj commit decision < signed.json\n       aitia jj commit apply < approved.json\n       aitia jj commit recover < approval.json\n       aitia jj commit evidence <revision> [--gql] < applied-or-recovered.json\n       aitia jj git push [--remote origin] --bookmark name < approved.json\n       aitia jj git push --recover [--remote origin] --bookmark name < attempt.json";
     if command == Some("jj") {
         let arguments: Vec<_> = args.collect();
         let words: Option<Vec<_>> = arguments.iter().map(|word| word.to_str()).collect();
         let words = words.ok_or_else(|| io::Error::other("JJ arguments must be UTF-8"))?;
-        let (remote, bookmark) = match words.as_slice() {
-            ["git", "push", "--bookmark", bookmark] => ("origin", *bookmark),
-            ["git", "push", "--remote", remote, "--bookmark", bookmark]
-            | ["git", "push", "--bookmark", bookmark, "--remote", remote] => (*remote, *bookmark),
+        if let ["commit", operation @ ..] = words.as_slice() {
+            return run_jj_commit(operation);
+        }
+        let (recover, route) = match words.as_slice() {
+            ["git", "push", "--recover", route @ ..] => (true, route),
+            ["git", "push", route @ ..] => (false, route),
             _ => {
                 return Err(io::Error::other(
-                    "usage: aitia jj git push [--remote origin] --bookmark name < approved.json",
+                    "usage: aitia jj <commit|git push>; see aitia --help",
+                )
+                .into());
+            }
+        };
+        let (remote, bookmark) = match route {
+            ["--bookmark", bookmark] => ("origin", *bookmark),
+            ["--remote", remote, "--bookmark", bookmark]
+            | ["--bookmark", bookmark, "--remote", remote] => (*remote, *bookmark),
+            _ => {
+                return Err(io::Error::other(
+                    "usage: aitia jj <commit|git push>; see aitia --help",
                 )
                 .into());
             }
         };
         let input = read_request()?;
-        let receipt = with_linked_program(|program| {
-            Ok(cli_commit::push(&program, &input, remote, bookmark))
-        })??;
+        let receipt = if recover {
+            cli_commit::recover_push(&input, remote, bookmark)?
+        } else {
+            cli_commit::push(&input, remote, bookmark)?
+        };
         writeln!(io::stdout().lock(), "{receipt}")?;
         return Ok(());
     }
@@ -84,80 +106,6 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
                 io::Error::other("Assurance replay differs from the declared cases").into(),
             );
         }
-        return Ok(());
-    }
-    if matches!(command, Some("commit-decision" | "commit-recover")) {
-        if args.next().is_some() {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
-        }
-        let input = read_request()?;
-        let result = with_linked_program(|program| {
-            Ok((|| {
-                let (cut, config) = resolve_recorded_project(&program, Path::new("."))?;
-                let project = config
-                    .commit
-                    .as_ref()
-                    .and_then(|policy| policy["project"].as_str())
-                    .ok_or_else(|| io::Error::other("No recorded commit project"))?;
-                if command == Some("commit-decision") {
-                    if config
-                        .commit
-                        .as_ref()
-                        .is_none_or(|policy| policy["governance"] != "signed")
-                    {
-                        return Err(io::Error::other(
-                            "This project does not use signed commit approvals",
-                        )
-                        .into());
-                    }
-                    cli_commit::record(&program, &cut, project, &input)
-                } else {
-                    cli_commit::recover(&program, &cut, project, &input)
-                }
-            })())
-        })??;
-        writeln!(io::stdout().lock(), "{result}")?;
-        return Ok(());
-    }
-    if matches!(
-        command,
-        Some("commit-context" | "commit-description" | "commit-prepare" | "commit-apply")
-    ) {
-        if args.next().is_some() {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
-        }
-        let mut apply = None;
-        let draft = match command {
-            Some("commit-context") => None,
-            Some("commit-apply") => {
-                apply = Some(serde_json::from_str::<cli_commit::Apply>(&read_request()?)?);
-                None
-            }
-            _ => Some(serde_json::from_str::<CommitNarration>(&read_request()?)?),
-        };
-        let draft = apply.as_ref().map(|input| &input.draft).or(draft.as_ref());
-        let result = with_linked_program(|program| {
-            Ok((|| {
-                let (cut, mut result) = nasa_commit_report(&program, draft)?;
-                if draft.is_some() && result["review"]["description"].is_null() {
-                    writeln!(io::stdout().lock(), "{result}")?;
-                    return Err(io::Error::other(
-                        "Commit draft lacks current admitted support or violates its Contract",
-                    )
-                    .into());
-                }
-                match command {
-                    Some("commit-prepare") => cli_commit::prepare(&program, &cut, &mut result)?,
-                    Some("commit-context") => cli_commit::attach_revision(&cut, &mut result)?,
-                    _ => {}
-                }
-                if let Some(input) = &apply {
-                    result["receipt"] = cli_commit::apply(&program, &cut, &result, input)?;
-                }
-                Ok::<_, Box<dyn std::error::Error>>(result)
-            })())
-        })??;
-        writeln!(io::stdout().lock(), "{result}")?;
         return Ok(());
     }
     if command == Some("project-manifest") {
@@ -230,6 +178,136 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn run_jj_commit(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
+    const USAGE: &str = "usage: aitia jj commit [preview|prepare|apply|decision|recover]\n       Without an operation, print the read-only commit context.\n       aitia jj commit preview --applied < reviewed-attempt.json\n       aitia jj commit evidence <revision> [--gql] < applied-or-recovered.json";
+    if let ["evidence", revision, options @ ..] = operation {
+        let query = match options {
+            [] => false,
+            ["--gql"] => true,
+            _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+        };
+        let input = read_request()?;
+        let result = cli_commit::evidence(revision, &input, query)?;
+        writeln!(io::stdout().lock(), "{result}")?;
+        return Ok(());
+    }
+    let command = match operation {
+        [] => None,
+        ["--help" | "-h"] => {
+            writeln!(io::stdout().lock(), "{USAGE}")?;
+            return Ok(());
+        }
+        [verb @ ("preview" | "prepare" | "apply" | "decision" | "recover")] => Some(*verb),
+        ["preview", "--applied"] => Some("preview"),
+        _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+    };
+    if matches!(command, Some("decision" | "recover")) {
+        let input = read_request()?;
+        let approval = if command == Some("recover") {
+            match serde_json::from_str(&input)? {
+                cli_commit::CommitRecovery::Attempt { attempt } => {
+                    let result = cli_commit::recover_attempt(Path::new("."), &attempt)?;
+                    writeln!(io::stdout().lock(), "{result}")?;
+                    return Ok(());
+                }
+                cli_commit::CommitRecovery::Approval { approval } => Some(approval),
+            }
+        } else {
+            None
+        };
+        let result = with_linked_program(|program| {
+            Ok((|| {
+                let (cut, config) = resolve_recorded_project(&program, Path::new("."))?;
+                let project = config
+                    .commit
+                    .as_ref()
+                    .and_then(|policy| policy["project"].as_str())
+                    .ok_or_else(|| io::Error::other("No recorded commit project"))?;
+                if let Some(approval) = approval.as_deref() {
+                    cli_commit::recover(&program, &cut, project, approval)
+                } else {
+                    if config
+                        .commit
+                        .as_ref()
+                        .is_none_or(|policy| policy["governance"] != "signed")
+                    {
+                        return Err(io::Error::other(
+                            "This project does not use signed commit approvals",
+                        )
+                        .into());
+                    }
+                    cli_commit::record(&program, &cut, project, &input)
+                }
+            })())
+        })??;
+        writeln!(io::stdout().lock(), "{result}")?;
+        return Ok(());
+    }
+    let preview_applied = operation == ["preview", "--applied"];
+    let (draft, attempt) = if command == Some("apply") || preview_applied {
+        (
+            None,
+            Some(serde_json::from_str::<cli_commit::Apply>(&read_request()?)?),
+        )
+    } else if command.is_some() {
+        (
+            Some(serde_json::from_str::<CommitNarration>(&read_request()?)?),
+            None,
+        )
+    } else {
+        (None, None)
+    };
+    let draft = attempt
+        .as_ref()
+        .map(|input| &input.draft)
+        .or(draft.as_ref());
+    let result = with_linked_program(|program| {
+        Ok((|| {
+            let reviewed = attempt.as_ref().filter(|_| preview_applied);
+            let origin = if let Some(input) = reviewed {
+                let current = aitia_jj::observe_workspace(Path::new("."))?;
+                Some(aitia_jj::observe_description_origin(
+                    &current,
+                    &input.attempt,
+                )?)
+            } else {
+                None
+            };
+            let (cut, mut result, _) =
+                nasa_commit_report(&program, draft, origin.as_ref(), command == Some("preview"))?;
+            if let Some(input) = reviewed {
+                result["review"]["matchesWrittenDescription"] = serde_json::json!(
+                    result["review"]["previewDescription"].as_str()
+                        == Some(input.attempt.description.as_str())
+                );
+            }
+            let required_text = if command == Some("preview") {
+                "previewDescription"
+            } else {
+                "description"
+            };
+            if draft.is_some() && result["review"][required_text].is_null() {
+                writeln!(io::stdout().lock(), "{result}")?;
+                return Err(io::Error::other(
+                    "Commit draft lacks current admitted support or violates its Contract",
+                )
+                .into());
+            }
+            match command {
+                Some("prepare") => cli_commit::prepare(&program, &cut, &mut result)?,
+                None => cli_commit::attach_revision(&cut, &mut result)?,
+                _ => {}
+            }
+            if let Some(input) = attempt.as_ref().filter(|_| command == Some("apply")) {
+                result["receipt"] = cli_commit::apply(&program, &cut, &result, input)?;
+            }
+            Ok::<_, Box<dyn std::error::Error>>(result)
+        })())
+    })??;
+    writeln!(io::stdout().lock(), "{result}")?;
+    Ok(())
+}
+
 fn read_request() -> Result<String, io::Error> {
     // The existing transport admits at most 4 MiB. Read one extra byte to
     // distinguish an oversized request from one that exactly fills the limit.
@@ -250,86 +328,217 @@ fn read_request() -> Result<String, io::Error> {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct CommitNarration {
-    title: String,
-    body: String,
+    proposal: CommitProposal,
+    narration: Narration,
     org: String,
     pub(super) context: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Narration {
+    change: String,
+    evidence: Vec<NarrationRow>,
+    open: Vec<NarrationRow>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct NarrationRow {
+    obligation: String,
+    text: String,
+}
+
+/// Agent intent is a proposal; source documents and changed paths are Host facts.
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct CommitProposal {
+    identity: String,
+    reference: String,
+    r#type: String,
+    scope: String,
+    summary: String,
+    rationale: String,
+    language: String,
+    #[serde(rename = "languageSource")]
+    language_source: String,
+}
+
+fn compiled_policy_context() -> &'static str {
+    // The bridge's archive is identified during the build. The manifest alone
+    // names paths and can stay unchanged when their Scheme contents change.
+    // Runtime reads neither build files nor a Scheme checkout.
+    env!("AITIA_PROGRAM_CONTEXT")
+}
+
+fn observe_commit_provider(
+    cut: &WorkspaceCut,
+) -> Result<
+    (
+        Vec<aitia_jj::RecordedReviewBookmark>,
+        crate::review_provider::ReviewObservation,
+    ),
+    aitia_jj::JjObservationError,
+> {
+    let bookmarks = recorded_review_bookmarks(cut)?;
+    let observation = crate::review_provider::observe(&bookmarks, cut.commit_id());
+    Ok((bookmarks, observation))
 }
 
 pub(super) fn nasa_commit_report(
     program: &AitiaProgram<'_>,
     draft: Option<&CommitNarration>,
-) -> Result<(WorkspaceCut, serde_json::Value), Box<dyn std::error::Error>> {
-    let (cut, configuration) = resolve_recorded_project(program, Path::new("."))?;
+    origin: Option<&DescriptionOrigin>,
+    preview: bool,
+) -> Result<
+    (
+        WorkspaceCut,
+        serde_json::Value,
+        Vec<aitia_jj::RecordedReviewBookmark>,
+    ),
+    Box<dyn std::error::Error>,
+> {
+    let (cut, project_sources) =
+        observe_project_sources(Path::new("."), MAX_REQUEST_BYTES as usize)?;
+    if origin.is_some_and(|observed| observed.current() != &cut) {
+        return Err(aitia_jj::JjObservationError::ChangedOperation.into());
+    }
+    let source = recorded_configuration_input(&project_sources)?;
+    let (review_configuration, projection) = program.resolve_project_config(&source)?;
+    let configuration = decode_configuration_projection(&projection)?;
+    // The JJ owner proves identical tree, parents and change identity. Read
+    // those immutable inputs at the current anchor, but assess the original
+    // review cut instead of silently replacing the user's reviewed context.
+    let review_cut = origin.map_or(&cut, DescriptionOrigin::original);
     let policy = configuration
         .commit
+        .as_ref()
         .ok_or_else(|| io::Error::other("No commit profile in the recorded project"))?;
-    let manifest = read_recorded_file(&cut, ".agents/aita/project.json")?;
     let changes = recorded_changes(&cut)?;
-    let cut_value = serde_json::json!({
-        "workspace": cut.workspace_name(),
-        "change": cut.change_id(),
-        "operation": cut.operation_id(),
-        "commit": cut.commit_id(),
-        "tree": cut.tree_id(),
-        "parents": cut.parent_ids(),
-    });
-    let input_digest = crate::source_tree::sha256(&serde_json::to_vec(&serde_json::json!([
-        cut_value, manifest, changes
-    ]))?);
-    let selected_checks = policy["checks"]
-        .as_array()
-        .ok_or_else(|| io::Error::other("Invalid Scheme commit policy projection"))?;
+    let model_paths = if configuration.model_check_enabled() {
+        affected_sysml_paths(&changes)
+    } else {
+        Vec::new()
+    };
+    let (model, (bookmarks, provider)) = if model_paths.is_empty() {
+        (None, observe_commit_provider(&cut)?)
+    } else {
+        // Both observations read the recorded cut. Scheme stays on its owner
+        // thread and receives the facts only after both host calls finish.
+        std::thread::scope(|scope| {
+            let provider = scope.spawn(|| observe_commit_provider(&cut));
+            let model = observe_commit_sysml(&cut, &model_paths);
+            let provider = provider
+                .join()
+                .map_err(|_| io::Error::other("PR observation worker panicked"))??;
+            Ok::<_, Box<dyn std::error::Error>>((Some(model), provider))
+        })?
+    };
+    let requested_paths = review_source_paths(policy)?;
+    let mut sources = Vec::new();
+    let mut source_errors = Vec::new();
+    for (path, result) in
+        observe_recorded_sources(&cut, &requested_paths, usize::try_from(MAX_REQUEST_BYTES)?)?
+    {
+        match result {
+            Ok(text) => sources.push(serde_json::json!({"path": path, "text": text})),
+            Err(error) => {
+                source_errors.push(serde_json::json!({"path":path,"error":error.to_string()}))
+            }
+        }
+    }
+    let cut_value = cli_commit::review_cut_value(review_cut);
+    let input_digest = cli_commit::review_input_digest(&cut_value, &project_sources, &changes)?;
+    let selected_checks = commit_checks(policy)?;
     let mut execution = Vec::new();
+    let mut reports = Vec::new();
     for check in selected_checks {
         if changes.is_empty() {
             break;
         }
-        let report_digest = match check["method"].as_str() {
-            Some("jj.recorded-change") => {
-                crate::source_tree::sha256(&serde_json::to_vec(&changes)?)
-            }
-            Some("jj.configuration-audit") => {
-                let observed = audit_recorded_configuration(&cut)?;
-                crate::source_tree::sha256(&serde_json::to_vec(&observed)?)
-            }
+        let report = match check["method"].as_str() {
+            Some("jj.recorded-change") => serde_json::to_value(&changes)?,
+            Some("jj.configuration-audit") => match origin {
+                Some(observed) => serde_json::to_value(observed.configuration())?,
+                None => serde_json::to_value(audit_recorded_configuration(&cut)?)?,
+            },
             _ => continue,
         };
-        let identity = crate::source_tree::sha256(&serde_json::to_vec(&serde_json::json!([
-            check,
-            input_digest,
-            report_digest,
-        ]))?);
-        execution.push(serde_json::json!({
+        let report_digest = crate::source_tree::sha256(&serde_json::to_vec(&report)?);
+        let identity = cli_commit::check_execution_identity(check, &input_digest, &report_digest)?;
+        let mut observation = serde_json::json!({
             "requirement": check["requirement"],
             "method": check["method"],
             "identity": identity,
             "inputDigest": input_digest,
             "reportDigest": report_digest,
-        }));
+        });
+        execution.push(observation.clone());
+        observation["report"] = report;
+        reports.push(observation);
+    }
+    // Git configuration can change without advancing the JJ operation.
+    if recorded_review_bookmarks(&cut)? != bookmarks {
+        return Err(io::Error::other("JJ review bookmark configuration changed").into());
     }
     let mut request = serde_json::json!({
-        "manifest": manifest,
         "cut": cut_value,
         "checks": execution,
+        "ruleContext": compiled_policy_context(),
+        "routeContext": crate::source_tree::sha256(&serde_json::to_vec(
+            &bookmarks.iter().map(|bookmark| (bookmark, &bookmark.route_identity)).collect::<Vec<_>>(),
+        )?),
+        "preview": preview,
+        "sources": sources,
+        "paths": changes.iter().map(|change| change.path.as_str()).collect::<Vec<_>>(),
+        "providerBookmarks": bookmarks,
+        "providerReview": provider,
+        "modelCheck": model,
     });
     if let Some(draft) = draft {
         request["draft"] = serde_json::to_value(draft)?;
     }
-    let review: serde_json::Value =
-        serde_json::from_str(&program.nasa_draft(&request.to_string())?)?;
+    let mut payload_size = RequestSize(0);
+    serde_json::to_writer(&mut payload_size, &request)?;
+    // The rooted configuration and the remaining request share the existing
+    // budget, including the former projectSources member's framing.
+    if payload_size.0 + source.len() + "\"projectSources\":,".len() > MAX_REQUEST_BYTES as usize {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "AITIA input exceeds 4 MiB").into());
+    }
+    let review = program.nasa_draft(&review_configuration, &request)?;
     if observe_workspace(cut.workspace_root())? != cut {
         return Err(aitia_jj::JjObservationError::ChangedOperation.into());
     }
-    Ok((
-        cut,
-        serde_json::json!({
+    let result = serde_json::json!({
             "cut": cut_value,
             "policy": policy,
             "changes": changes,
+            // Preserve the host-produced observations as well as their bindings.
+            // A receipt identity alone cannot recover the original check report.
+            "executions": reports,
+            "sourceErrors": source_errors,
+            "languageSources": sources,
+            "proposal": draft.map(|narration| &narration.proposal),
+            "recordedReviewBookmarks": request["providerBookmarks"],
+            "providerReview": request["providerReview"],
+            "modelCheck": request["modelCheck"],
             "review": review,
-        }),
-    ))
+    });
+    Ok((cut, result, bookmarks))
+}
+
+// Keep the request limit in serialized bytes without allocating a wire string.
+struct RequestSize(usize);
+
+impl Write for RequestSize {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0 += bytes.len();
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(feature = "sysml")]
@@ -340,13 +549,44 @@ fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::err
             io::Error::new(io::ErrorKind::InvalidInput, "no recorded SysML documents").into(),
         );
     }
-    let connection = opensysml::Connection::connect()?;
-    let model = crate::parse_recorded_sysml(&connection, cut, &sources)?;
-    Ok(serde_json::json!({"documents": model.documents(), "modelHash": model.hash()}))
+    parse_sysml_sources(cut, &sources)
+}
+
+fn observe_commit_sysml(cut: &WorkspaceCut, paths: &[String]) -> serde_json::Value {
+    match parse_sysml_sources(cut, paths) {
+        Ok(report) => serde_json::json!({"paths": paths, "status": "passed", "report": report}),
+        Err(error) => {
+            serde_json::json!({"paths": paths, "status": "open", "detail": error.to_string()})
+        }
+    }
+}
+
+pub(super) fn affected_sysml_paths(changes: &[aitia_jj::RecordedPathChange]) -> Vec<String> {
+    changes
+        .iter()
+        .filter(|change| change.path.ends_with(".sysml"))
+        .map(|change| change.path.clone())
+        .collect()
+}
+
+#[cfg(feature = "sysml")]
+fn parse_sysml_sources(
+    cut: &WorkspaceCut,
+    sources: &[String],
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    crate::sysml::parse_model_report(|| crate::sysml::recorded_documents(cut, sources))
 }
 
 #[cfg(not(feature = "sysml"))]
 fn check_sysml(_cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    parse_sysml_sources(_cut, &[])
+}
+
+#[cfg(not(feature = "sysml"))]
+fn parse_sysml_sources(
+    _cut: &WorkspaceCut,
+    _sources: &[String],
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     Err(io::Error::other(
         "SysML parsing is enabled in project configuration but unavailable in this build",
     )
@@ -445,13 +685,34 @@ fn resolve_recorded_project(
     program: &AitiaProgram<'_>,
     directory: &Path,
 ) -> Result<(WorkspaceCut, ProjectConfiguration), Box<dyn std::error::Error>> {
-    let (cut, source) = observe_project_manifest(directory)?;
+    let (cut, source) = observe_project_sources(directory, MAX_REQUEST_BYTES as usize)?;
+    Ok((cut, validate_project_manifest(program, &source)?))
+}
+
+pub(super) fn validate_project_manifest(
+    program: &AitiaProgram<'_>,
+    sources: &aitia_jj::RecordedProjectSources,
+) -> Result<ProjectConfiguration, Box<dyn std::error::Error>> {
+    decode_configuration_projection(
+        &program.project_config_validate(&recorded_configuration_input(sources)?)?,
+    )
+}
+
+fn recorded_configuration_input(
+    sources: &aitia_jj::RecordedProjectSources,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let source = serde_json::to_string(sources)?;
     if source.len() > MAX_REQUEST_BYTES as usize {
         return Err(
             io::Error::new(io::ErrorKind::InvalidData, "AITIA request exceeds 4 MiB").into(),
         );
     }
-    let effective = program.project_config_validate(&source)?;
+    Ok(source)
+}
+
+fn decode_configuration_projection(
+    effective: &str,
+) -> Result<ProjectConfiguration, Box<dyn std::error::Error>> {
     if effective == "false" {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -459,8 +720,40 @@ fn resolve_recorded_project(
         )
         .into());
     }
-    let configuration = serde_json::from_str(&effective)?;
-    Ok((cut, configuration))
+    Ok(serde_json::from_str(effective)?)
+}
+
+pub(super) fn review_source_paths(policy: &serde_json::Value) -> Result<Vec<&str>, io::Error> {
+    let references = policy["naming"]["references"]
+        .as_array()
+        .ok_or_else(|| io::Error::other("Invalid Scheme engineering reference projection"))?;
+    let mut observed_paths = std::collections::BTreeSet::new();
+    let language_sources = policy["naming"]["languageSources"]
+        .as_array()
+        .ok_or_else(|| io::Error::other("Invalid Scheme project language sources"))?;
+    let paths = references
+        .iter()
+        .map(|reference| &reference["source"])
+        .chain(language_sources.iter());
+    let mut requested_paths = Vec::new();
+    for source_path in paths {
+        let path = source_path
+            .as_str()
+            .ok_or_else(|| io::Error::other("Invalid Scheme source path"))?;
+        // JJ admits only regular files in this recorded tree. No workspace or
+        // Agent-supplied document can replace a missing reference observation.
+        if observed_paths.insert(path) {
+            requested_paths.push(path);
+        }
+    }
+    Ok(requested_paths)
+}
+
+pub(super) fn commit_checks(policy: &serde_json::Value) -> Result<&[serde_json::Value], io::Error> {
+    policy["checks"]
+        .as_array()
+        .map(Vec::as_slice)
+        .ok_or_else(|| io::Error::other("Invalid Scheme commit policy projection"))
 }
 
 fn init_project(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {

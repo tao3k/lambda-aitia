@@ -9,43 +9,55 @@
 (def ProjectConfigScopeContract
   (.cc (Record resolve: [(Function (list Any) (list Any))]
                decode: [(Function (list Any) (list String))]
-               checks: [(Function (list Any) (list Any))])
+               extend: [(Function (list Any) (list Any String))]
+               checks: [(Function (list Any) (list Any))]
+               commit: [(Function (list Any) (list Any))])
        identity: 'project-config/scope))
 
+(def config-string '((type . "string") (minLength . 1)))
+(def (config-array item)
+  `((type . "array") (minItems . 1) (items . ,item)))
+(def (config-object required properties)
+  `((type . "object") (additionalProperties . #f)
+    (required . ,required) (properties . ,properties)))
+
+(def commit-naming-schema
+  (config-object '("projectKey" "types" "scopes" "references" "languageSources")
+   `((projectKey . ,config-string)
+     (primaryLanguage . ,config-string)
+     (languageSources . ,(config-array config-string))
+     (types . ,(config-array config-string))
+     (scopes . ,(config-array
+                 (config-object '("name" "paths")
+                  `((name . ,config-string) (paths . ,(config-array config-string))))))
+     (references . ,(config-array
+                     (config-object '("identity" "source" "element")
+                      `((identity . ,config-string) (source . ,config-string)
+                        (element . ,config-string))))))))
+
+(def commit-settings-schema
+  (config-object '("project" "profile" "primary" "checks" "naming")
+   `((project . ,config-string)
+     (profile . ((enum . ("nasa/sdlc/npr-7150.2"))))
+     (primary . ,config-string)
+     (governance . ((enum . ("signed"))))
+     (naming . ,commit-naming-schema)
+     (checks . ,(config-array
+                 (config-object '("requirement" "method")
+                  `((requirement . ,config-string) (method . ,config-string))))))))
+
 (def project-config-schema
-  '((type . "object")
-    (additionalProperties . #f)
-    (required . ("schemaVersion"))
-    (properties .
-     ((schemaVersion . ((enum . (1))))
-      (services .
-       ((type . "object")
-        (additionalProperties . #f)
-        (properties .
-         ((assurance .
-           ((type . "object")
-            (additionalProperties . #f)
-            (required . ("enable" "project" "profile"))
-            (properties . ((enable . ((type . "boolean")))
-                           (project . ((type . "string") (minLength . 1)))
-                           (profile . ((enum . ("adr-0008"))))))))
-          (commit .
-           ((type . "object")
-            (additionalProperties . #f)
-            (required . ("project" "profile" "primary" "checks"))
-            (properties . ((project . ((type . "string") (minLength . 1)))
-                           (profile . ((enum . ("nasa/sdlc/npr-7150.2"))))
-                           (primary . ((type . "string") (minLength . 1)))
-                           (governance . ((enum . ("signed"))))
-                           (checks . ((type . "array") (minItems . 1)
-                                      (items . ((type . "object")
-                                                (additionalProperties . #f)
-                                                (required . ("requirement" "method"))
-                                                (properties . ((requirement . ((type . "string") (minLength . 1)))
-                                                               (method . ((type . "string") (minLength . 1)))))))))))))
-          (sysml .
-           ((type . "object")
-            (additionalProperties . #f)
-            (required . ("enable" "parse"))
-            (properties . ((enable . ((type . "boolean")))
-                           (parse . ((type . "boolean")))))))))))))))
+  (config-object '("schemaVersion")
+   `((schemaVersion . ((enum . (1))))
+     (programs . ,(config-object '()
+                   `((jj . ,(config-object '("enable" "settings")
+                             `((enable . ((type . "boolean")))
+                               (settings . ,commit-settings-schema)))))))
+     (services . ,(config-object '()
+                   `((assurance . ,(config-object '("enable" "project" "profile")
+                                    `((enable . ((type . "boolean")))
+                                      (project . ,config-string)
+                                      (profile . ((enum . ("adr-0008")))))))
+                     (sysml . ,(config-object '("enable" "parse")
+                                '((enable . ((type . "boolean")))
+                                  (parse . ((type . "boolean"))))))))))))

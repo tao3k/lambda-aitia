@@ -3,9 +3,14 @@
 
 //! Publish one reviewed commit through JJ's Git backend.
 
+use crate::description::{DescriptionRecovery, verify_description_operation};
+use crate::observation::review_bookmarks::{
+    configured_push_remote, resolved_remote_commit, route_identity,
+};
 use crate::observation::workspace::{capture_workspace, open_workspace};
-use crate::{JjObservationError, WorkspaceCut};
-use futures::executor::block_on;
+use crate::{JjObservationError, PushRemote, WorkspaceCut};
+use futures::{StreamExt, executor::block_on};
+use gix::remote::Direction::{Fetch, Push};
 use jj_lib::backend::CommitId;
 use jj_lib::git::{
     GitProgress, GitPushOptions, GitPushRefTargets, GitSidebandLineTerminator,
@@ -14,12 +19,19 @@ use jj_lib::git::{
 use jj_lib::merge::Diff;
 use jj_lib::object_id::ObjectId;
 use jj_lib::op_store::{OperationId, RefTarget};
+use jj_lib::op_walk::walk_ancestors;
 use jj_lib::ref_name::{RefName, RemoteName};
 use jj_lib::repo::Repo;
 use jj_lib::simple_op_heads_store::SimpleOpHeadsStore;
 use serde::Serialize;
 use std::io::{self, Write};
+use std::path::Path;
 
+const PUSH_OPERATION: &str = "AITIA: push reviewed commit";
+const PUSH_REMOTE: &str = "aitia.push.remote";
+const PUSH_BOOKMARK: &str = "aitia.push.bookmark";
+
+/// A remote update acknowledged and recorded in JJ history.
 #[derive(Debug, Serialize)]
 pub struct PushReceipt {
     pub remote: String,
@@ -65,6 +77,77 @@ fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
     JjObservationError::Repository(error.to_string())
 }
 
+/// Recover an acknowledged push from visible JJ history without transport.
+///
+/// A missing record leaves the remote outcome unresolved. An existing record
+/// describes the past update, regardless of subsequent remote changes.
+///
+/// # Errors
+/// Rejects inconsistent descriptions, foreign workspaces and unreadable history.
+pub fn recover_reviewed_push(
+    directory: &Path,
+    attempt: &DescriptionRecovery,
+    remote: &str,
+    bookmark: &str,
+) -> Result<Option<PushReceipt>, JjObservationError> {
+    let workspace = open_workspace(directory)?;
+    if attempt.workspace != workspace.workspace_name().as_str() {
+        return Err(JjObservationError::Output("foreign JJ workspace".into()));
+    }
+    let applied = OperationId::try_from_hex(&attempt.resulting_operation)
+        .ok_or_else(|| repository_error("invalid applied operation"))?;
+    let commit = CommitId::try_from_hex(&attempt.resulting_commit)
+        .ok_or_else(|| repository_error("invalid applied commit"))?;
+    block_on(async {
+        let loader = workspace.repo_loader();
+        let heads = loader.op_heads_store();
+        if heads.downcast_ref::<SimpleOpHeadsStore>().is_none() {
+            return Err(repository_error("unsupported JJ operation-head store"));
+        }
+        let _lock = heads.lock().await.map_err(repository_error)?;
+        let current = heads.get_op_heads().await.map_err(repository_error)?;
+        let [head] = current.as_slice() else {
+            return Ok(None);
+        };
+        let head = loader
+            .load_operation(head)
+            .await
+            .map_err(repository_error)?;
+        let mut history = Box::pin(walk_ancestors(&[head]));
+        while let Some(operation) = history.next().await {
+            let operation = operation.map_err(repository_error)?;
+            let metadata = operation.metadata();
+            if metadata.description != PUSH_OPERATION
+                || metadata.workspace_name.as_deref() != Some(workspace.workspace_name())
+                || metadata.attributes.get(PUSH_REMOTE).map(String::as_str) != Some(remote)
+                || metadata.attributes.get(PUSH_BOOKMARK).map(String::as_str) != Some(bookmark)
+                || operation.parent_ids() != std::slice::from_ref(&applied)
+            {
+                continue;
+            }
+            let before = loader
+                .load_operation(&applied)
+                .await
+                .map_err(repository_error)?;
+            verify_description_operation(&workspace, &before, attempt).await?;
+            let view = operation.view().await.map_err(repository_error)?;
+            let route = RefName::new(bookmark).to_remote_symbol(RemoteName::new(remote));
+            if resolved_remote_commit(&view, route) != Some(&commit) {
+                return Err(repository_error(
+                    "recorded push target differs from the applied commit",
+                ));
+            }
+            return Ok(Some(PushReceipt {
+                remote: remote.to_owned(),
+                bookmark: bookmark.to_owned(),
+                commit: commit.hex(),
+                operation: operation.id().hex(),
+            }));
+        }
+        Ok(None)
+    })
+}
+
 /// Push an existing remote bookmark after rechecking its reviewed cut and description.
 /// The caller owns effect admission. JJ owns remote leases and transport.
 ///
@@ -78,7 +161,7 @@ pub fn push_reviewed_description(
     description: &str,
     remote: &str,
     bookmark: &str,
-    consume_admission: impl FnOnce() -> bool,
+    consume_admission: impl FnOnce(PushRemote, &str, &str) -> bool,
 ) -> Result<PushReceipt, JjObservationError> {
     let workspace = open_workspace(expected.workspace_root())?;
     block_on(async {
@@ -114,11 +197,7 @@ pub fn push_reviewed_description(
         let name = RefName::new(bookmark);
         let remote = RemoteName::new(remote);
         let local = repo.view().get_local_bookmark(name).as_normal();
-        let previous = repo
-            .view()
-            .get_remote_bookmark(name.to_remote_symbol(remote))
-            .target
-            .as_normal()
+        let previous = resolved_remote_commit(repo.view(), name.to_remote_symbol(remote))
             .ok_or_else(|| {
                 repository_error("push requires an existing resolved remote bookmark")
             })?;
@@ -143,8 +222,35 @@ pub fn push_reviewed_description(
                 .map_err(repository_error)?,
             None => false,
         };
-        if !consume_admission() {
+        let git = jj_lib::git::get_git_backend(repo.store())
+            .map_err(repository_error)?
+            .git_repo();
+        let (reviewed_route, destination) = configured_push_remote(&git, remote)?;
+        if !consume_admission(
+            destination,
+            &previous.hex(),
+            &route_identity(&reviewed_route),
+        ) {
             return Err(repository_error("push admission refused"));
+        }
+        // The admission callback can perform I/O. The backend's existing
+        // repository handle retains its configuration snapshot, whereas Git's
+        // subprocess will read the live configuration when it starts.
+        let reopened = gix::open_opts(
+            git.git_dir(),
+            git.open_options().clone().open_path_as_is(true),
+        )
+        .map_err(|_| repository_error("could not re-read Git push configuration"))?;
+        let (current_route, _) = configured_push_remote(&reopened, remote)
+            .map_err(|_| repository_error("could not re-read Git push destination"))?;
+        if [Fetch, Push].into_iter().any(|direction| {
+            reviewed_route
+                .urls(direction)
+                .ne(current_route.urls(direction))
+        }) {
+            return Err(repository_error(
+                "Git push destination changed during admission",
+            ));
         }
         let mut transaction = repo.start_transaction();
         let subprocess =
@@ -173,14 +279,27 @@ pub fn push_reviewed_description(
                 "JJ rejected the remote update: {stats:?}"
             )));
         }
+        // JJ's all_ok checks for rejections. Publication also needs the
+        // positive acknowledgement and corresponding update to its view.
+        let expected_ref = format!("refs/heads/{bookmark}");
+        if !matches!(stats.pushed.as_slice(), [reference] if reference.as_str() == expected_ref)
+            || resolved_remote_commit(transaction.repo().view(), name.to_remote_symbol(remote))
+                != Some(&commit_id)
+        {
+            return Err(repository_error(
+                "JJ did not acknowledge the selected bookmark; push outcome is unresolved",
+            ));
+        }
         if advance_local {
             transaction
                 .repo_mut()
                 .set_local_bookmark_target(name, RefTarget::normal(commit_id.clone()));
         }
         transaction.set_workspace_name(workspace.workspace_name());
+        transaction.set_attribute(PUSH_REMOTE.into(), remote.as_str().to_owned());
+        transaction.set_attribute(PUSH_BOOKMARK.into(), bookmark.to_owned());
         let written = transaction
-            .write("AITIA: push reviewed commit")
+            .write(PUSH_OPERATION)
             .await
             .map_err(repository_error)?;
         heads

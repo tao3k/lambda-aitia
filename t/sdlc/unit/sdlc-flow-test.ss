@@ -5,7 +5,7 @@
 (import (only-in "../../../init.ss" lambda-aitia.init.exports)
         :std/test
         (only-in :clan/poo/object .get)
-        (only-in :yuanxu/graph/algorithms yuanxu-graph-topological-order))
+        (only-in :tao3k/yuanxu/graph/algorithms yuanxu-graph-topological-order))
 
 (def sdlc (.get lambda-aitia.init.exports modules sdlc))
 (def sdlc-flow-graph (.get sdlc flow-graph))

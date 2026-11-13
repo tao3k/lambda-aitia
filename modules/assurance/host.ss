@@ -11,11 +11,11 @@
         (only-in :std/list/list find every filter filter-map delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
         (only-in :clan/poo/mop validate)
-        (only-in :yuanxu/contribution/verification
+        (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-adapter yuanxu-verify
                  yuanxu-verification-valid?
                  yuanxu-revoke-verification!)
-        (only-in :yuanxu/module-system/feature/source-lock-feature
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest)
         (only-in "types.ss"
                  assurance-snapshot? assurance-artifact? assurance-claim?

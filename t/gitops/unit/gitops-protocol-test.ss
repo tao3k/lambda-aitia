@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :clan/poo/object .cc .ref .get .o)
         (only-in :clan/poo/mop element?)
-        :yuanxu/poo-clos/interface
+        :tao3k/yuanxu/poo-clos/interface
         "../../../user-interface/adapters/gitops-evaluation.ss"
         (only-in "../../../init.ss" lambda-aitia.init.exports))
 (export gitops-protocol-test)

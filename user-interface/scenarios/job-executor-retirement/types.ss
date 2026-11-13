@@ -4,7 +4,7 @@
 (import (only-in :clan/poo/object .cc)
         (only-in :clan/poo/mop Object)
         (only-in :clan/poo/type Record List Symbol)
-        (only-in :yuanxu/graph/types YuanxuGraphContract))
+        (only-in :tao3k/yuanxu/graph/types YuanxuGraphContract))
 (export ScopeContract)
 
 (def ScopeContract

@@ -11,7 +11,7 @@
         (only-in "../../../modules/assurance/cedar-preflight.ss"
                  assurance-host-cedar-request-current?)
         :std/test :std/error (only-in :clan/poo/object .o .ref .get)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :clan/poo/type Enum Tuple)
         (only-in :clan/poo/testing/type check-property report-diagnostics)
         (prefix-in :clan/poo/testing/property/test pbt.)

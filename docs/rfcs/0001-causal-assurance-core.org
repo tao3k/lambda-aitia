@@ -911,6 +911,148 @@ stage. Without that scheduling assumption, a stuttering behavior after a grant
 is a valid counterexample. Neither result substitutes for a trusted Host clock,
 adapter identity, or Runtime effect gate.
 
+* Support Assessment research
+:PROPERTIES:
+:CUSTOM_ID: support-assessment
+:END:
+
+This section proposes a read-only assessment over the existing Assurance
+graph. The Host currently checks exact admission and required-support
+witnesses. It conservatively blocks unresolved assumptions, defeaters
+and challenges. The assessment below needs qualification before any
+change to that gate.
+
+** Three judgments at the same cut
+
+| Judgment | Inputs and meaning |
+|----------+--------------------|
+| Admission | The Host verifies evidence custody, input and verifier bindings, obligation identity and currentness at the captured cut. |
+| Support | A method with an explicit coverage claim supports a specified fragment of a Claim under stated assumptions and within a stated scope. An admitted result can still leave the fragment unsupported. |
+| Authorization | Governance and the Runtime evaluate the proposed effect under current policy and enforce the resulting authority at execution. A supported Claim can inform that decision. |
+
+A Support Assessment projects the existing Claim, Obligation, Evidence,
+Assumption, Finding and assurance relations. It keeps the Claim and cut
+identities, the fragment, the evidence and method identities, the applicable
+scope and the justification for the mapping. It reports uncovered fragments
+and residual risks with their reasons. The graph remains the source of
+these identities. The assessment grants neither authority nor a new
+evidence lifecycle state.
+
+** Conditional support and closure
+
+A conditional finding has the form =C under Gamma in S=, where =C= is
+the Claim, =Gamma= is the set of explicit premises and =S= bounds the
+system, versions, environment and observations to which it applies.
+A sufficient argument for =Gamma => C= establishes conditional support.
+Support in the current operating envelope also requires current evidence
+or an enforced gate for each premise at that envelope. An assumption
+accepted as a risk retains its status and requires an accountable decision
+with scope and expiry. Risk acceptance supplies no evidence that the
+premise holds.
+
+Assess method coverage per fragment. A Lean result supports its stated
+theorem and premises. A Quint result supports the explored model scope
+and requires a separate correspondence argument to apply to execution.
+A replay supports its exercised trace and environment. Provider Contracts
+or runtime observations can support operational premises when their
+version, applicability and observation window match. Combining results
+across scopes requires a composition obligation that justifies their
+connection. Keep these distinct forms of support without assigning them
+a common numeric score.
+
+Derive assessment results from the current graph.
+
+- =unaddressed= marks a required fragment without qualifying evidence.
+- =addressed-but-not-established= marks an attempted argument with
+  insufficient coverage, an open premise or another residual.
+- =established-under-assumptions= retains the exact premises and scope.
+- =established-in-operating-envelope= additionally binds each premise to
+  current evidence or an enforced control.
+- =refuted= retains an applicable counterexample. A counterexample outside
+  the declared premises can challenge the operating envelope without
+  refuting the conditional theorem.
+- =stale= and =conflicted= retain prior assessments and their witnesses
+  while reopening affected obligations. A live conflict stays visible
+  even when a separate argument supports the same fragment.
+
+An assumption or defeater disposition records its owner, scope, effective
+interval, supporting or rebutting evidence and the relation it affects.
+Expiry, source or environment change, counterevidence and withdrawal of
+a supporting relation reopen the dependent obligations. The initial
+research preserves whole-snapshot invalidation. A smaller impact closure
+requires an argument that its dependencies are complete and a fallback
+to whole-snapshot invalidation when completeness is unknown.
+
+** Trajectory evidence through Temporal Causality and ASCENT
+
+Lab already exposes =agentic-ai-lab-causal-trajectory-assess= and the
+=agentic-ai-lab-ascent-exchange= solve/verify boundary. This gives the
+trajectory assessment a concrete implementation path. The following
+AITIA composition is a qualification target.
+
+1. Temporal Causality assesses a declared trajectory against a causal
+   event graph. It preserves event identity, parent relations, modality,
+   the causal cut and the observation frontier. A temporal ordering
+   alone cannot fill in a missing causal edge.
+2. The existing ASCENT exchange recomputes the cut, requires one binding
+   per event and keeps valid time and knowledge time in explicit domains.
+   The lens carries the observation window, knowledge cut, horizon and
+   closure status. Solve and verify bind the answer to that exchange and
+   its root. The exchange digest supplies content integrity. Evidence
+   custody and admission remain Host checks.
+3. AITIA assesses which Claim fragment that verified answer supports.
+   ASCENT rules can derive a scoped witness or explain a missing parent,
+   open horizon, conflicting observation or uncovered premise. Keep
+   the witness path, rule, exchange identity and scope with the answer.
+   Absence in an open observation window stays unknown. A late event
+   changes what is known at a later cut and triggers reassessment while
+   preserving the earlier answer with its original cut.
+
+For ADR 0008, the observed trajectory ties a submission, a lost
+acknowledgement, a restart and a retry to the same logical operation.
+A provider-side deduplication observation can support one-commit behavior
+for that trace. Replaying with a different key exercises the duplicate
+commit branch. Removing the provider observation, leaving the window
+open or crossing the deduplication retention boundary leaves the broader
+Claim open. A counterfactual branch keeps its modality and cannot supply
+the missing provider observation. Lean and Quint can establish separate
+properties over their declared premises and model scope. AITIA must
+justify the correspondence before using those results to assess the
+observed trajectory or current operating envelope.
+
+MRR is a candidate provider for cross-source lineage and impact queries.
+Orgize supplies document and Contract observations. GitOps supplies
+change and revision identity. Governance retains effect authorization.
+
+** Source authority and verification cases
+
+The standards module should retain edition, authority status and scope.
+NASA's standards catalog lists revision B of NASA-STD-8739.8 as active.
+OSMA announced revision C as a draft on 2026-11-05 and describes its
+objective-based structure. Treat C as research input until an authoritative
+status change. Instantiate applicable objectives as existing Claims and
+Obligations. Track AI-assisted development, AI delivered as part of a
+system, and Agents operating tools as separately scoped roles. Evidence
+for one role can be considered for another only through an explicit
+applicability argument.
+[[https://standards.nasa.gov/standard/nasa/nasa-std-87398][NASA standards catalog]]
+[[https://sma.nasa.gov/news/articles/newsitem/2026/11/05/nasa-modernizes-software-assurance-guidance-with-updates-to-nasa-std-8739-8c-and-the-software-engineering-and-assurance-handbook][NASA OSMA draft announcement]]
+
+| Case | Positive control | Refusal or reopening controls |
+|------+------------------+-------------------------------|
+| [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 lost acknowledgement]] | The recorded bounded replay supports the exercised lost-ACK fragment. A broader at-most-once argument declares stable operation identity, atomic commit and deduplication, and retention covering the retry window. | A passing replay leaves concurrent attempts, restart durability, retention and same-key/different-payload behavior open until independently covered. Expired retention reopens the envelope obligation. Retry authority remains a separate runtime check. |
+| Agent input assurance | Required tool calls, results and safety premises survive projection. The consumer receives the same verified bytes. | Drop a call or premise, inject an unmatched result, allow consumption after failed validation, and replace verified bytes before consumption. Require a specific reason for each failure at the boundary it exercises. |
+| Change and environment invalidation | Reassess against the recorded Commit and Tree, effective environment and provider version. Keep JJ Change ID for lineage. | Rewrite the same Change, replace a PR head with a merge-queue cut, or change the environment, provider or Context projection. Historical observations remain available with their original scope. |
+
+The input-assurance case uses the paper's distinction between structural
+preservation, validator coverage, enforcement and actual consumption.
+The trajectory-evidence paper motivates recording fragments and residuals
+per method. Both are research inputs to this design. The acceptance
+experiment must measure false support, missed faults and unnecessary
+revalidation on Aitia's own fixtures.
+[[https://arxiv.org/abs/2611.02676][Does the Judge See What the Evaluation Requires?]]
+[[https://arxiv.org/abs/2610.04710][Organising Trajectory Evidence for Language-Model Agent Assurance]]
+
 * Public API direction
 
 The intended module family is =modules/assurance/=.  It follows the established

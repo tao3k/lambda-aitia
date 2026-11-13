@@ -7,7 +7,7 @@
 ;;; from the checked-in bytes into source.lock.ss.
 
 (import (only-in :clan/poo/object .o)
-        (only-in :yuanxu/module-system/feature/source-lock-feature
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  SourceReference. SourceLockEntry. SourcesLock.
                  sources-lock-value))
 

@@ -2,11 +2,11 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
+(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
 (.def Sdlc
   identity: 'sdlc
   tags: '(software-engineering sdlc)
   core: (.o requires: (.o Assurance: (.o module-id: 'assurance))
             scope-contract: SdlcScopeContract
-            exports: (make-sdlc-scope Assurance)
-            projections: (list Build))
+            exports: (make-sdlc-scope Assurance))
   features: (.o))

@@ -6,10 +6,17 @@
 //! This boundary initializes a build-owned program; it issues no admission,
 //! Human approval or effect authority and implements no replacement DSL.
 
+#[cfg(any(feature = "linked-program", feature = "sysml"))]
+mod limits;
+#[cfg(any(feature = "linked-program", feature = "sysml"))]
+use limits::MAX_REQUEST_BYTES;
+
 #[cfg(feature = "linked-program")]
 mod cli;
 #[cfg(feature = "linked-program")]
 mod cli_commit;
+#[cfg(feature = "linked-program")]
+mod review_provider;
 #[cfg(feature = "linked-program")]
 #[doc(hidden)]
 pub use cli::run_cli;

@@ -5,7 +5,7 @@
 (import (only-in "../../../init.ss" lambda-aitia.init.exports)
         :std/test :std/error
         (only-in :clan/poo/object .get .o .ref)
-        (only-in :yuanxu/contribution/objects admit-contributions)
+        (only-in :tao3k/yuanxu/contribution/objects admit-contributions)
         "../../../modules/sdlc/standards/nasa-7150-2d.ss")
 
 (def sdlc (.get lambda-aitia.init.exports modules sdlc))

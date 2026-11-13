@@ -4,7 +4,8 @@
 
 ;;; -*- Gerbil -*-
 (import (only-in :clan/poo/object .o)
-        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "commit-admission.ss")
+        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "commit-admission.ss"
+        "commit-semantics.ss" "review-association.ss" "review-lineage.ss" "review-query.ss")
 (export Config)
 
 (def Config
@@ -23,7 +24,12 @@
       consume-commit-admission!: gitops-consume-commit-admission!
       commit-admission: gitops-commit-admission
       commit-check-receipt: gitops-commit-check-receipt
+      commit-review-association: gitops-commit-review-association
+      commit-model-assessment: gitops-commit-model-assessment
+      commit-semantics: gitops-commit-semantics
       nasa-draft-requirements: gitops-nasa-draft-requirements
       nasa-commit-description: gitops-nasa-commit-description
       commit-evidence: gitops-commit-evidence
+      review-lineage: gitops-review-lineage
+      review-query: gitops-review-query
       model-gaps: gitops-model-gaps))

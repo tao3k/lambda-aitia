@@ -3,7 +3,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; JSON projection for the Scheme/Rust transport.
-(import (only-in :std/list/list filter-map)
+(import (for-syntax
+          (only-in :tao3k/yuanxu/module-system/source/admission module-source-read
+                   module-source-admit-current!))
         (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider
                  context-query-host context-org-source context-org-query
                  context-query-current-source context-query-source!
@@ -13,7 +15,7 @@
                  journal-pack journal-unpack journal-open journal-close!)
         (only-in :std/encoding/hex hex-decode)
         (only-in :std/encoding/json JSONReadOptions json->string string->json)
-        (only-in :clan/poo/object .get .ref .o)
+        (only-in :clan/poo/object .get .ref .o .cc .all-slots)
         (only-in :orgize/languages/org/modules/org-elements/values
                  make-org-element-graph-view make-org-element-query)
         (only-in :orgize/languages/org/modules/org-contract/values
@@ -21,7 +23,7 @@
                  org-contract-result-matched-count org-contract-result-passed?)
         (only-in :orgize/languages/org/modules/org-contract/evaluation
                  org-contract-evaluate-assertion)
-        (only-in :yuanxu/graph/types
+        (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph-nodes yuanxu-graph-edges
                  yuanxu-graph-node-id yuanxu-graph-node-payload
                  yuanxu-graph-edge-from yuanxu-graph-edge-to yuanxu-graph-edge-kind)
@@ -31,7 +33,7 @@
         aitia-sdlc-flow-graph-payload
         aitia-gitops-evaluate-payload
         aitia-org-contract-evaluate-payload
-        aitia-project-config-validate-payload
+        aitia-project-config-validate-payload aitia-evidence-lineage-payload
         aitia-agent-input-check-payload aitia-agent-input-assess-payload
         aitia-pytest-assess-payload aitia-context-operation aitia-nasa-draft-payload
         aitia-commit-journal-payload)
@@ -91,6 +93,57 @@
                         (yuanxu-graph-edges graph))))
            (releaseAuthorized #f)
            (runtimeExecuted #f)))))
+
+(def (aitia-evidence-lineage-payload payload)
+  (when (> (u8vector-length (string->utf8 payload)) +aitia-max-input-bytes+)
+    (error "AITIA input exceeds 4 MiB"))
+  (let* ((request (string->json payload +aitia-json-read-options+))
+         (revision (json-required request "revision"))
+         (graph ((.get lambda-aitia.init.exports modules gitops review-lineage)
+                 revision (json-list request "changes") (json-list request "projectInputs")
+                 (json-list request "reports") (json-list request "missingReports")
+                 (json-list request "parsedDocuments")
+                 (if (hash-key? request "policySources") (json-list request "policySources") '())))
+         (result
+          (hash (revision revision)
+           (dependencyCoverage "unknown")
+           (nodes (list->vector
+                   (map (lambda (node)
+                          (let (data (yuanxu-graph-node-payload node))
+                            (list->hash-table
+                             (map (lambda (key)
+                                    (let (value (.ref data key))
+                                      (cons (if (eq? key 'identity) 'id key)
+                                            (if (symbol? value) (symbol->string value) value))))
+                                  (.all-slots data)))))
+                        (yuanxu-graph-nodes graph))))
+           (edges (list->vector
+                   (map (lambda (edge)
+                          (hash (from (symbol->string (yuanxu-graph-edge-from edge)))
+                                (to (symbol->string (yuanxu-graph-edge-to edge)))
+                                (relation (symbol->string (yuanxu-graph-edge-kind edge)))))
+                        (yuanxu-graph-edges graph)))))))
+    (when (eq? (hash-get request "query") #t)
+      (hash-put! result 'query
+                 (review-query->json
+                  ((.get lambda-aitia.init.exports modules gitops review-query) graph revision))))
+    (json->string result)))
+
+(def (review-query->json result)
+  (let (inventory (review-selection->json (.ref result 'inventory)))
+    (hash-put! inventory 'verifiedReports (review-selection->json (.ref result 'verified-reports)))
+    (hash-put! inventory 'projectInputs (review-selection->json (.ref result 'project-inputs)))
+    (hash-put! inventory 'policySources (review-selection->json (.ref result 'policy-sources)))
+    (hash-put! inventory 'modelEvidence (review-selection->json (.ref result 'model-evidence)))
+    inventory))
+
+(def (review-selection->json selection)
+  (hash (status "executed") (gql (.ref selection 'gql)) (revision (.ref selection 'revision))
+        (complete (.ref selection 'complete?)) (actionAuthority (.ref selection 'action-authority?))
+        (rows (list->vector
+               (map (lambda (row)
+                      (list->hash-table (map cons (.ref selection 'columns) row)))
+                    (.ref selection 'rows))))))
 
 (def (decision->json decision)
   (json->string
@@ -208,24 +261,63 @@
    (map (lambda (row) (list (hash-ref row 'requirement) (hash-ref row 'method)))
         (vector->list (hash-ref selection 'checks)))))
 
-(def (project-commit-policy effective)
-  (let (selection (hash-get (hash-get effective 'services) 'commit))
-    (and selection
-         (let* ((policy (select-project-commit-policy selection))
-                (standard (.get policy standard)))
-           (hash (project (hash-ref selection 'project))
-                 (profile (hash-ref selection 'profile))
-                 (edition (.get standard edition))
-                 (sourceLockDigest (.get standard source-lock-digest))
-                 (primary (.get policy primary))
-                 (governance (or (hash-get selection 'governance) "default"))
-                 (checks (hash-ref selection 'checks)))))))
+(def (project-commit-policy-projection selection policy)
+  (let (standard (.get policy standard))
+    (hash (project (hash-ref selection 'project))
+          (profile (hash-ref selection 'profile))
+          (edition (.get standard edition))
+          (sourceLockDigest (.get standard source-lock-digest))
+          (primary (.get policy primary))
+          (governance (or (hash-get selection 'governance) "default"))
+          (checks (hash-ref selection 'checks))
+          (naming (hash-ref selection 'naming)))))
+
+;; A build may explicitly package one trusted project declaration expression.
+;; Parse and embed the same source bytes used for the runtime comparison.
+(defsyntax (compiled-project-declaration stx)
+  (syntax-case stx ()
+    ((_ context)
+     (let (input (getenv "AITIA_PROJECT_DECLARATION" #f))
+       (if (not input) #'#f
+           (let* ((text (module-source-read input))
+                  (value
+                   (call-with-input-string text
+                     (lambda (port)
+                       (let (expression (read port))
+                         (when (or (eof-object? expression) (not (eof-object? (read port))))
+                           (error "expected one project declaration expression"))
+                         expression)))))
+             (module-source-admit-current! (list (cons input text)) "project declaration changed")
+             (with-syntax ((source (datum->syntax #'context text))
+                           (expression (datum->syntax #'context value)))
+               #'(cons source (lambda () expression)))))))))
+
+(def +compiled-project-declaration+ (compiled-project-declaration .o))
+
+(def (resolve-recorded-project-config scope sources)
+  (let ((declaration (hash-get sources "declaration"))
+        (manifest (hash-get sources "manifest"))
+        (compiled +compiled-project-declaration+))
+    (cond
+     (compiled
+      (unless (and (string? declaration) (string=? declaration (car compiled)))
+        (error "recorded project.ss differs from the compiled declaration"))
+      ((.get scope extend) ((cdr compiled)) (if (string? manifest) manifest "{}")))
+     ((string? declaration) (error "recorded project.ss requires a compiled declaration"))
+     ((string? manifest) ((.get scope decode) manifest))
+     (else (error "no recorded project configuration")))))
 
 (def (aitia-project-config-validate-payload payload)
   (let* ((scope (.get lambda-aitia.init.exports modules project-config))
-         (effective ((.get scope decode) payload)))
+         (effective (resolve-recorded-project-config scope
+                       (string->json payload +aitia-json-read-options+))))
     (if effective
         (let* ((checks-value ((.get scope checks) effective))
+               (selection-value ((.get scope commit) effective))
+               (policy-value (and selection-value (select-project-commit-policy selection-value)))
+               (review (and policy-value
+                            (.o selection: selection-value policy: policy-value
+                                model-check?: (and (member "sysml.parse" (vector->list checks-value)) #t))))
                (replay
                 (and (member "assurance.replay" (vector->list checks-value))
                      (let* ((service (hash-ref (hash-ref effective 'services) 'assurance))
@@ -241,10 +333,11 @@
                                                   (selector (string-append "dev/qualification/job-executor/" (cadr row)))
                                                   (expected (caddr row))))
                                           cases))))))))
-          (json->string (hash (manifest effective) (checks checks-value)
-                              (replay (or replay (void)))
-                              (commit (or (project-commit-policy effective) (void))))))
-        "false")))
+          (cons review (json->string (hash (manifest effective) (checks checks-value)
+                            (replay (or replay (void)))
+                            (commit (if policy-value (project-commit-policy-projection selection-value policy-value)
+                                        (void)))))))
+        (cons #f "false"))))
 
 (def (read-agent-input text)
   (string->json text +aitia-json-read-options+))
@@ -374,7 +467,8 @@
          (operation (json-required input "operation"))
          (project-id (json-required input "project")))
     (if (equal? operation "intent")
-        (json->string ((.get gitops commit-intent) project-id (json-required input "attempt")))
+        (json->string ((.get gitops commit-intent) project-id (json-required input "attempt")
+                       (json-required input "reviewContext")))
         (let ((journal (journal-open (json-required input "journal")))
               (review-id (json-required input "approval")))
           (dynamic-wind
@@ -393,7 +487,7 @@
                  ((.get gitops revoke-commit-approval!) journal project-id review-id))
                 ((equal? operation "consume")
                  (and ((.get gitops consume-commit-admission!) journal project-id
-                       (json-required input "attempt") review-id
+                       (json-required input "attempt") (json-required input "reviewContext") review-id
                        (json-required input "revision")
                        (lambda () (inexact->exact (floor (time->seconds (current-time))))))
                       #t))
@@ -403,15 +497,91 @@
                 (else (error "unknown internal commit journal operation")))))
             (lambda () (journal-close! journal)))))))
 
-(def (aitia-nasa-draft-payload payload)
-  (when (> (u8vector-length (string->utf8 payload)) +aitia-max-input-bytes+)
-    (error "AITIA input exceeds 4 MiB"))
-  (let* ((input (string->json payload +aitia-json-read-options+))
-         (config (.get lambda-aitia.init.exports modules project-config))
-         (effective ((.get config decode) (json-required input "manifest")))
-         (selection (and effective (hash-get (hash-get effective 'services) 'commit))))
-    (unless selection (error "No commit policy in the recorded project"))
-    (let* ((policy (select-project-commit-policy selection))
+(def (json-commit-naming input)
+  (.o project-key: (hash-ref input 'projectKey)
+      primary-language: (hash-get input 'primaryLanguage)
+      language-sources: (vector->list (hash-ref input 'languageSources))
+      types: (vector->list (hash-ref input 'types))
+      scopes: (map (lambda (row)
+                     (.o name: (hash-ref row 'name) paths: (vector->list (hash-ref row 'paths))))
+                   (vector->list (hash-ref input 'scopes)))
+      references: (map (lambda (row)
+                         (.o identity: (hash-ref row 'identity) source: (hash-ref row 'source)
+                             element: (hash-ref row 'element)))
+                       (vector->list (hash-ref input 'references)))))
+
+(def (json-commit-proposal input)
+  (.o identity: (json-required input "identity") reference: (json-required input "reference")
+      language: (json-required input "language") language-source: (json-required input "languageSource")
+      type: (json-required input "type") scope: (json-required input "scope")
+      summary: (json-required input "summary") rationale: (json-required input "rationale")))
+
+(def (provider-review-row observation)
+  (and (hash-table? observation) (equal? (hash-get observation "status") "observed")
+       (let ((number (hash-get observation "number"))
+             (fields (map (lambda (key) (hash-get observation key))
+                          '("repository" "remote" "source" "target" "targetRevision" "headRevision" "updatedAt"))))
+         (and (exact-integer? number) (> number 0)
+              (andmap (lambda (value) (and (string? value) (> (string-length value) 0))) fields)
+              (append (list (car fields) (cadr fields) number) (cddr fields))))))
+
+(def (provider-absence-row observation)
+  (and (hash-table? observation) (equal? (hash-get observation "status") "no-open-pull-request")
+       (let (fields (map (lambda (key) (hash-get observation key))
+                         '("repository" "remote" "source" "headRevision")))
+         (and (andmap (lambda (value) (and (string? value) (> (string-length value) 0))) fields)
+              fields))))
+
+(def (provider-check-rows observation review-row)
+  (and review-row
+       (let (checks (hash-get observation "checks"))
+         (and (list? checks)
+              (let (rows
+                    (filter-map
+                     (lambda (check)
+                       (and (hash-table? check)
+                            (let ((head (hash-get check "headRevision"))
+                                  (id (hash-get check "id"))
+                                  (state (hash-get check "status"))
+                                  (conclusion (hash-get check "conclusion")))
+                              (and (equal? head (list-ref review-row 6))
+                                   (exact-integer? id) (> id 0) (string? state)
+                                   (list head id state
+                                         (if (string? conclusion) conclusion ""))))))
+                     checks))
+                (and (= (length rows) (length checks)) rows))))))
+
+(def (review-absence->json association)
+  (if (not association) (void)
+      (match (.get association absent)
+        ([repository remote source head]
+         (hash (repository repository) (remote remote) (source source) (headRevision head)))
+        (else (void)))))
+
+(def (review-association->json association)
+  (if (not association) (void)
+      (match (.get association associated)
+        ([repository remote number source target target-revision head updated-at]
+         (hash (repository repository) (remote remote) (number number)
+               (source source) (target target) (targetRevision target-revision)
+               (headRevision head) (updatedAt updated-at)))
+        (else (void)))))
+
+(def (github-bookmark? bookmark)
+  (string? (hash-get bookmark "githubRepository")))
+
+(def (provider-bookmark-row bookmark)
+  (let ((route (map (lambda (key) (hash-get bookmark key))
+                    '("githubRepository" "remote" "bookmark")))
+        (head (hash-get bookmark "commit")))
+    (and (andmap (lambda (value) (and (string? value) (> (string-length value) 0))) route)
+         (append route (list (and (string? head) (> (string-length head) 0) head))))))
+
+(def (aitia-nasa-draft-payload request)
+  (let ((configuration (car request)) (input (cdr request)))
+    (unless configuration (error "No commit policy in the recorded project"))
+    (let* ((selection (.get configuration selection))
+           (selected-policy (.get configuration policy))
            (cut-value (replay-cut (hash-ref selection 'project) (json-required input "cut")))
            (gitops (.get lambda-aitia.init.exports modules gitops))
            (to-receipt (.get gitops commit-check-receipt))
@@ -427,26 +597,83 @@
                      (.o execution: execution-value source: (to-receipt execution-value))))
                  (json-list input "checks")))
            (draft (hash-get input "draft"))
-           (review (if draft
-                       ((.get gitops nasa-commit-description)
-                        policy cut-value candidates (json-required draft "title")
-                        (json-required draft "body") (json-required draft "org")
-                        (json-required draft "context"))
-                       ((.get gitops nasa-draft-requirements) policy cut-value candidates)))
+           (naming (json-commit-naming (hash-ref selection 'naming)))
+           (proposals (if draft (list (json-commit-proposal (json-required draft "proposal"))) '()))
+           (sources (map (lambda (row)
+                           (.o path: (json-required row "path") text: (json-required row "text")
+                               cut: cut-value))
+                         (json-list input "sources")))
+           (semantics-value ((.get gitops commit-semantics) naming cut-value sources
+                             (json-list input "paths") proposals))
+           (provider-review (hash-get input "providerReview"))
+           (provider-row (provider-review-row provider-review))
+           (bookmarks (if (hash-get input "providerBookmarks")
+                        (filter github-bookmark? (json-list input "providerBookmarks"))
+                        '()))
+           (association
+            (and (pair? bookmarks)
+                 ((.get gitops commit-review-association)
+                  (and (hash-table? provider-review) (hash-get provider-review "status"))
+                  provider-row
+                  (provider-absence-row provider-review)
+                  (filter-map provider-bookmark-row bookmarks)
+                  (provider-check-rows provider-review provider-row))))
+           (model ((.get gitops commit-model-assessment)
+                   (.get configuration model-check?)
+                   (json-list input "paths") (hash-get input "modelCheck")))
+           (policy (.cc selected-policy semantics: semantics-value
+                        review-association: association
+                        model-assessment: model
+                        rule-context: (vector (json-required input "ruleContext")
+                                              (json-required input "routeContext"))))
+           (title-row (and (pair? (.get semantics-value titles)) (car (.get semantics-value titles))))
+           (narration (and draft (json-required draft "narration")))
+           (review (cond
+                    ((and draft title-row)
+                     ((.get gitops nasa-commit-description)
+                      policy cut-value candidates (cadr title-row)
+                      (.o change: (json-required narration "change")
+                          evidence: (map json-narration-row (json-list narration "evidence"))
+                          open: (map json-narration-row (json-list narration "open")))
+                      (json-required draft "org")
+                      (json-required draft "context")
+                      preview?: (eq? (hash-get input "preview") #t)))
+                    (draft
+                     (.cc ((.get gitops nasa-draft-requirements) policy cut-value candidates)
+                          draft-valid?: #f preview-description: #f description: #f description-digest: #f))
+                    (else ((.get gitops nasa-draft-requirements) policy cut-value candidates))))
            (assessment-value (.get review assessment)))
       (def (rows key)
         (list->vector (map list->vector (.ref assessment-value key))))
-      (json->string
-       (hash (supported (rows 'supported)) (contradicted (rows 'contradicted))
+      (hash (supported (rows 'supported)) (contradicted (rows 'contradicted))
              (open (rows 'open)) (reopened (rows 'reopened))
+             (blockingOpen (rows 'blocking-open))
              (context (.get review context))
+             (pullRequest (review-association->json association))
+             (pullRequestAbsence (review-absence->json association))
+             (auditChecklist (if model
+                               (vector (hash (check "sysml.parse")
+                                             (status (if (pair? (.get model supported)) "passed" "open"))))
+                               (vector)))
+             (semantics (hash (eligible (list->vector (map list->vector (.get semantics-value eligible))))
+                              (languages (list->vector (map list->vector (.get semantics-value languages))))
+                              (open (list->vector (map list->vector (.get semantics-value open))))
+                              (references (list->vector (map list->vector (.get semantics-value references))))
+                              (affectedScopes (list->vector (map list->vector (.get semantics-value affected-scopes))))
+                              (conflictingScopes (list->vector (map list->vector (.get semantics-value conflicting-scopes))))
+                              (unresolvedReferences (list->vector (map list->vector (.get semantics-value unresolved-references))))
+                              (conflictingReferences (list->vector (map list->vector (.get semantics-value conflicting-references))))))
              (clauses (if draft (void)
                           (list->vector
                            (map (lambda (row) (hash (property (car row)) (value (cdr row))))
                                 (.get review clauses)))))
              (draftValid (if draft (.get review draft-valid?) (void)))
+             (previewDescription (if draft (or (.get review preview-description) (void)) (void)))
              (description (if draft (or (.get review description) (void)) (void)))
-             (descriptionDigest (if draft (or (.get review description-digest) (void)) (void))))))))
+             (descriptionDigest (if draft (or (.get review description-digest) (void)) (void)))))))
+
+(def (json-narration-row row)
+  (list (json-required row "obligation") (json-required row "text")))
 
 (def (aitia-pytest-assess-payload payload)
   (when (> (u8vector-length (string->utf8 payload)) +aitia-max-input-bytes+)

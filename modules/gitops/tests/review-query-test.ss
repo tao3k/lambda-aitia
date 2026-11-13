@@ -1,0 +1,50 @@
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+(import :std/test :std/error
+        (only-in :clan/poo/object .get .ref)
+        (only-in :clan/poo/mop validate)
+        (only-in :gerbil/core string-contains)
+        (only-in "../review-lineage.ss" gitops-review-lineage)
+        (only-in "../review-query.ss" gitops-review-query)
+        (only-in "../types.ss" GitOpsScopeContract)
+        (only-in "../config.ss" Config))
+(export review-query-test)
+
+(def review-query-test
+  (test-suite "Revision queries over verified commit observations"
+    (test-case "selects changed files, readback reports and unchanged policy sources"
+      (let* ((entry (hash ("kind" "file") ("id" "recorded") ("executable" #f)))
+             (changed (hash ("path" "architecture.sysml") ("before" #f) ("after" entry)))
+             (config (hash ("path" "project.ss") ("entry" entry)))
+             (source (hash ("path" "work.org") ("entry" entry)))
+             (scope (validate GitOpsScopeContract Config))
+             (graph ((.get scope review-lineage) "revision" (list changed) (list config)
+                      '("jj.recorded-change" "jj.configuration-audit" "sysml.parse")
+                      '() '("architecture.sysml") (list source)))
+             (result ((.get scope review-query) graph "revision")))
+        (check-equal? (.ref (.ref result 'inventory) 'rows)
+                      '(("architecture.sysml" "jj.recorded-change")))
+        (let (reports (.ref (.ref result 'verified-reports) 'rows))
+          (check-equal? (length reports) 3)
+          (for-each (lambda (method) (check (and (member (list method) reports) #t) => #t))
+                    '("jj.recorded-change" "jj.configuration-audit" "sysml.parse")))
+        (check-equal? (.ref (.ref result 'model-evidence) 'rows)
+                      '(("architecture.sysml" "sysml.parse")))
+        (check-equal? (.ref (.ref result 'project-inputs) 'rows) '(("project.ss" #f)))
+        (check-equal? (.ref (.ref result 'policy-sources) 'rows) '(("work.org" #f)))
+        (check-equal? (.ref (.ref result 'inventory) 'complete?) #f)
+        (check-equal? (.ref (.ref result 'inventory) 'action-authority?) #f)
+        (check (number? (string-contains (.ref (.ref result 'inventory) 'gql) "enumerated_by")) => #t)
+        (check (number? (string-contains (.ref (.ref result 'inventory) 'gql) "revision")) => #t)
+        (check-exception (gitops-review-query graph "other-revision") Error?)))
+    (test-case "missing reports yield empty partial results"
+      (let* ((entry (hash ("kind" "file")))
+             (changed (hash ("path" "architecture.sysml") ("before" #f) ("after" entry)))
+             (graph (gitops-review-lineage "revision" (list changed) '() '()
+                      '("jj.recorded-change" "jj.configuration-audit" "sysml.parse") '()))
+             (result (gitops-review-query graph "revision")))
+        (check-equal? (.ref (.ref result 'inventory) 'rows) '())
+        (check-equal? (.ref (.ref result 'verified-reports) 'rows) '())
+        (check-equal? (.ref (.ref result 'model-evidence) 'rows) '())
+        (check-equal? (.ref (.ref result 'model-evidence) 'complete?) #f)))))

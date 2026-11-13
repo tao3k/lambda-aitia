@@ -3,8 +3,8 @@
 
 //! Parse SysML documents captured at a recorded JJ workspace cut.
 
-use aitia_jj::{JjObservationError, WorkspaceCut, read_recorded_file};
-use std::fmt;
+use aitia_jj::{JjObservationError, WorkspaceCut, read_recorded_files};
+use std::{fmt, io};
 
 use opensysml::{Connection, Error, Model, SourceDocument, SourcesOptions};
 
@@ -55,7 +55,8 @@ impl std::error::Error for RecordedSysmlError {
     }
 }
 
-/// Resolve all declared SysML documents from one recorded JJ workspace cut.
+/// Resolve all declared SysML documents from one recorded JJ workspace cut,
+/// within the total source byte budget.
 ///
 /// # Errors
 /// Fails if a source cannot be read at the cut, or if OpenSysML rejects the documents.
@@ -64,10 +65,76 @@ pub fn parse_recorded_sysml(
     cut: &WorkspaceCut,
     sources: &[String],
 ) -> Result<Model, RecordedSysmlError> {
-    let documents = sources
+    parse_sysml(connection, recorded_documents(cut, sources)?).map_err(RecordedSysmlError::Model)
+}
+
+pub(crate) fn recorded_documents(
+    cut: &WorkspaceCut,
+    sources: &[String],
+) -> Result<Vec<(String, String)>, RecordedSysmlError> {
+    load_documents(sources, |paths| {
+        read_recorded_files(cut, paths, crate::MAX_REQUEST_BYTES as usize)
+    })
+}
+
+#[cfg(feature = "linked-program")]
+pub(crate) fn revision_documents(
+    directory: &std::path::Path,
+    revision: &str,
+    sources: &[String],
+) -> Result<Vec<(String, String)>, RecordedSysmlError> {
+    load_documents(sources, |paths| {
+        aitia_jj::read_revision_files(
+            directory,
+            revision,
+            paths,
+            crate::MAX_REQUEST_BYTES as usize,
+        )
+    })
+}
+
+#[cfg(feature = "linked-program")]
+pub(crate) fn parse_model_report(
+    load: impl FnOnce() -> Result<Vec<(String, String)>, RecordedSysmlError> + Send,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    // The host worker owns JJ reads and the SDK connection. Join it before
+    // returning the report to the Scheme owner.
+    let report = std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                let documents = load()?;
+                let connection = Connection::connect().map_err(RecordedSysmlError::Model)?;
+                let model =
+                    parse_sysml(&connection, documents).map_err(RecordedSysmlError::Model)?;
+                Ok::<_, RecordedSysmlError>(serde_json::json!({
+                    "documents": model.documents(), "modelHash": model.hash()
+                }))
+            })
+            .join()
+    })
+    .map_err(|_| io::Error::other("SysML host worker panicked"))?;
+    Ok(report?)
+}
+
+fn load_documents(
+    sources: &[String],
+    read: impl FnOnce(&[&str]) -> Result<Vec<Vec<u8>>, JjObservationError>,
+) -> Result<Vec<(String, String)>, RecordedSysmlError> {
+    let paths: Vec<_> = sources.iter().map(String::as_str).collect();
+    let contents = read(&paths).map_err(RecordedSysmlError::Source)?;
+    sources
         .iter()
-        .map(|path| read_recorded_file(cut, path).map(|content| (path.clone(), content)))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(RecordedSysmlError::Source)?;
-    parse_sysml(connection, documents).map_err(RecordedSysmlError::Model)
+        .cloned()
+        .zip(contents)
+        .map(|(name, bytes)| {
+            String::from_utf8(bytes)
+                .map(|text| (name, text))
+                .map_err(|error| {
+                    RecordedSysmlError::Source(JjObservationError::Io(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        error.utf8_error(),
+                    )))
+                })
+        })
+        .collect()
 }

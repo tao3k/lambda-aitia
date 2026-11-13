@@ -229,7 +229,9 @@ pub fn run_frozen_pytest(
     let files = decode_source_tree(payload)?;
     if selectors.is_empty()
         || selectors.iter().any(|selector| {
-            let path = selector.split("::").next().unwrap_or_default();
+            let path = selector
+                .split_once("::")
+                .map_or(*selector, |(path, _)| path);
             selector.starts_with('-')
                 || selector.contains('\0')
                 || files.binary_search_by_key(&path, |file| file.path).is_err()

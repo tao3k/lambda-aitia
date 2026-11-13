@@ -6,7 +6,7 @@
 ;;; This module never impersonates NASA, authenticates a signer, or authorizes release.
 (import (only-in :clan/poo/mop validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
-        :yuanxu/contribution/verification
+        :tao3k/yuanxu/contribution/verification
         "../types.ss"
         (only-in "nasa-7150-2d-profile.ss" Nasa7150_2D)
         :std/list/list

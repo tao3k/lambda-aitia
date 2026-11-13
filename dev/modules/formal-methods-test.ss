@@ -2,6 +2,8 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 (import :std/test :std/error
         (only-in :clan/poo/object .o .get .ref)
+        (only-in :tao3k/yuanxu/module-system/source/admission
+                 call-with-module-source-operation-measurement)
         (only-in :agentic-ai-lab/modules/proof/interface agentic-ai-lab-proof-module?)
         (only-in "../../init.ss" lambda-aitia.init.exports))
 (export formal-methods-test)
@@ -9,8 +11,15 @@
 (def formal-methods-test
   (test-suite "Formal methods consume the admitted Module scope"
     (test-case "declared engines reuse Lab Proof without execution or authority"
-      (let* ((scope (.get (.get lambda-aitia.init.exports modules) formal-methods))
-             (providers (.get scope providers)))
+      (let-values (((scope counters)
+                    (call-with-module-source-operation-measurement
+                     (lambda ()
+                       (.get (.get lambda-aitia.init.exports modules) formal-methods))
+                     accounting?: #f)))
+        (def providers (.get scope providers))
+        (check-equal? (hash-ref counters '(calls scope-factory) 0) 1)
+        (check-equal? (hash-ref counters
+                        '(calls (scope-factory lambda-aitia/modules/formal-methods/interface)) 0) 1)
         (check-equal? (agentic-ai-lab-proof-module? (.get scope module)) #t)
         (check-equal? ((.get scope engines)
                        (list (.get providers quint) (.get providers lean) (.get providers cedar)))

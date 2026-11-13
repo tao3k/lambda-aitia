@@ -6,7 +6,7 @@
         (only-in :gerbil/core string-contains)
         (only-in :std/io/tempfile make-temporary-file-name clear-temporary-file!)
         (only-in :clan/poo/object .get)
-        (only-in :yuanxu/module-system/interface yuanxu-load-modules))
+        (only-in :tao3k/yuanxu/module-system/interface yuanxu-load-modules))
 (export check-unknown-sdlc-feature!)
 
 (def modules-directory

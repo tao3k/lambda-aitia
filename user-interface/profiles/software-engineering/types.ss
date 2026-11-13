@@ -5,7 +5,7 @@
 
 (import (only-in :clan/poo/object .cc)
         (only-in :clan/poo/type Record)
-        (only-in :yuanxu/module-system/authoring/roles SemanticModuleContract))
+        (only-in :tao3k/yuanxu/module-system/authoring/roles SemanticModuleContract))
 (export ScopeContract)
 
 (def ScopeContract

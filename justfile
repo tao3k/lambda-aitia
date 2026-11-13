@@ -52,11 +52,61 @@ test-jj-commit-evidence:
 build-scheme:
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} gerbil build
 
-# Stage the bridge-owned AOT inputs using the installed Scheme/Rust bridge.
+# Compile through the standard package entry, then stage admitted program products.
 [group('rust')]
-stage-rust-program: build-scheme
-    mkdir -p '{{ build_root }}/aitia-program'
-    GERBIL_LOADPATH='{{ GERBIL_PATH }}/lib' AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program' {{ gerbil_env }} gxi -e '(import (only-in :gerbil/expander core-resolve-library-module-path) :gerbil-scheme-rust/scheme/program-build) (gerbil-rs-stage-program (core-resolve-library-module-path (quote :lambda-aitia/rust/scheme/program)) (getenv "AITIA_PROGRAM_OUTPUT"))'
+stage-rust-program:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program'
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 600s gxi -e '
+      (import (only-in "./build.ss" aitia-build-projection aitia-make)
+              (only-in :clan/poo/object .get .call)
+              (only-in :std/misc/process run-process/batch)
+              (only-in :tao3k/yuanxu/module-system/source/admission
+                       module-source-read module-source-admit-current!)
+              (only-in :tao3k/yuanxu/module-system/building/products call-with-selected-output-lock)
+              (only-in :tao3k/yuanxu/module-system/building/artifacts admit-build-artifact-publication!))
+      (def output (getenv "AITIA_PROGRAM_OUTPUT"))
+      (def products (path-expand "lib" output))
+      (def stage (path-expand "link" output))
+      (def manifest (path-expand "program.json" output))
+      (def staged-manifest (path-expand "program.json" stage))
+      (def dependency-path (getenv "GERBIL_LOADPATH"))
+      (def (stage-program!)
+        (when (file-exists? manifest) (delete-file manifest))
+        (def declaration (getenv "AITIA_PROJECT_DECLARATION" #f))
+        (def declaration-inputs
+          (if declaration
+              (let (path (path-normalize (path-expand declaration)))
+                (setenv "AITIA_PROJECT_DECLARATION" path)
+                (list (cons path (module-source-read path))))
+              (quote ())))
+        (def (admit-declaration!)
+          (module-source-admit-current! declaration-inputs "project declaration changed during staging"))
+        (def projection (aitia-build-projection))
+        (.call projection .compile products
+          (lambda ()
+            (dynamic-wind admit-declaration!
+              (lambda () (aitia-make (.get projection spec) "compile"))
+              admit-declaration!)))
+        (def graph (.get projection build-graph))
+        (def (admit-stage-inputs!)
+          (admit-declaration!)
+          (admit-build-artifact-publication! graph))
+        (create-directory* stage)
+        (when (file-exists? staged-manifest) (delete-file staged-manifest))
+        (dynamic-wind
+          admit-stage-inputs!
+          (lambda ()
+            (run-process/batch
+              (list "env"
+                (string-append "AITIA_PROGRAM_OUTPUT=" stage)
+                (string-append "GERBIL_LOADPATH=" products ":" dependency-path)
+                (path-expand "bin/gxi" (gerbil-home)) "-e"
+                "(import (only-in :gerbil/expander core-resolve-library-module-path) :gerbil-scheme-rust/scheme/program-build) (gerbil-rs-stage-program (core-resolve-library-module-path (quote :lambda-aitia/rust/scheme/program)) (getenv \"AITIA_PROGRAM_OUTPUT\"))")))
+          admit-stage-inputs!)
+        (rename-file staged-manifest manifest))
+      (call-with-selected-output-lock output stage-program!)'
 
 [group('rust')]
 build-rust-cli features="linked-program,sysml": stage-rust-program
@@ -64,11 +114,12 @@ build-rust-cli features="linked-program,sysml": stage-rust-program
 
 [group('rust')]
 build-rust-linked-tests: stage-rust-program
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program --no-run
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program --no-run
 
 [group('rust')]
 test-rust-linked-program: build-rust-linked-tests
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program --test linked_program -- --nocapture
+    test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}" && test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program -- --nocapture
 
 [group('rust')]
 build-rust-wheel profile="release" out=(build_root + "/aitia-wheels"): stage-rust-program
@@ -90,6 +141,11 @@ check-installed-rust-wheel wheel:
     if [[ -n "${AITIA_PYTEST_PYTHON:-}" ]]; then args+=("$AITIA_PYTEST_PYTHON"); fi
     timeout --foreground --signal=TERM --kill-after=3s 60s venv/bin/python -I "{{ self_root }}/dev/qualification/wheel_smoke.py" "${args[@]}"
 
+# Run the development suites through Gerbil's standard test runner.
+[group('test')]
+test-dev:
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=1G test dev.ss
+
 # Run one Aitia-owned Scheme test module.
 [group('test')]
 test-scheme module="sdlc":
@@ -108,6 +164,11 @@ test-scheme module="sdlc":
 [group('test')]
 test-module module:
     GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gxi -:max-heap=1G ./run-module-test.ss {{ quote(module) }}
+
+# Exercise the complete affected test directories with Gerbil's standard runner.
+[group('test')]
+test-commit-semantics:
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gerbil {{ gerbil_test_runtime_options }} test modules/gitops/tests modules/project-config/tests
 
 # Run one exact Aitia-owned Scheme test.
 [group('test')]
@@ -270,6 +331,18 @@ test-rust-frozen-pytest:
     test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
     timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --lib -- pytest::tests::observes_real_pytest_and_detects_source_mutation --ignored --exact
 
+[group('check')]
+test-jj-recorded-evidence:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}"
+    test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
+    scratch="$(mktemp -d)"
+    trap 'rm -rf -- "$scratch"' EXIT
+    export AITIA_ADR_REPLAY_EVIDENCE="$scratch/evidence.json"
+    timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features gitops --lib -- pytest::tests::observes_adr_0008_at_a_recorded_cut --ignored --exact
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi {{ gerbil_test_runtime_options }} -e '(import (only-in :gerbil/tools/gxtest main)) (let (status (main "dev/proof/scheme/jj-recorded-evidence-test.ss")) (unless (zero? status) (error "Gerbil tests failed" status)))'
+
 # Qualify the linked program, Quint consumer and the exact wheel built here.
 [group('check')]
 check-rust-delivery:
@@ -278,7 +351,7 @@ check-rust-delivery:
     test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
-    just test-rust-frozen-pytest test-rust-linked-program check-rust-quint build-rust-wheel release "$scratch"
+    just test-rust-frozen-pytest test-jj-recorded-evidence test-rust-linked-program check-rust-quint build-rust-wheel release "$scratch"
     shopt -s nullglob
     wheels=("$scratch"/*.whl)
     test "${#wheels[@]}" -eq 1

@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .call .ref .get)
-        (only-in :yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :std/io/tempfile call-with-temporary-directory)
         (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
                  journal-open journal-close! journal-verify! journal-cut!)
