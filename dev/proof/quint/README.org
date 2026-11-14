@@ -85,10 +85,28 @@ manual correspondence diagnostic. The regular Scheme gate uses the
 Assurance boundary suite with POO-generated inputs. The Quint model gate
 checks its invariants and fairness independently.
 
-Both Scheme replay modes retain isolated batches with at most 160 steps,
-a 512 MiB worker heap, a 60-second worker deadline and the existing
-12-second silence watchdog. A missing receipt or unsuccessful exit fails
-the gate.
+Both Scheme replay modes build one executable with Gerbil's standard
+compiler and run it in a new process for each batch. The executable links
+the compiled Scheme suite and fixture. It uses the OpenSSL flags from
+=std/make pkg-config-libs= and selects the host SDK on Darwin.
+Each batch retains at most 160 steps, a 512 MiB worker heap, a 60-second
+worker deadline and the existing 12-second silence watchdog. A missing
+receipt or unsuccessful exit fails the gate.
+
+The earlier dynamic launcher stopped before the harness after 62 positive
+traces and all seven fault traces. With compiled modules selected, it
+still hit the silence guard in the first batch. Read-only sampling of
+the retained batch found that Gambit spent most sampled main-thread time
+in =dlopen=, including dyld image notifications and synchronous Mach
+messages. That batch completed naturally. The dynamic action-witness
+replay passed nine traces covering all sixteen actions and 26 projected
+states, plus all seven fault traces.
+
+The static-link diagnostic completed the retained batches with eleven
+and seven trace receipts, respectively, and rejected empty input with
+exit 42. The link initially selected a stale OpenSSL search path on this
+host. Supplying the host SDK and the OpenSSL search path reported by
+=pkg-config= corrected it.
 Fault traces run first and use the same step-budget packer as the action
 witnesses. Each trace constructs its own fixture and Host. A batch may
 contain both kinds of trace and must report completion for every trace
@@ -190,7 +208,15 @@ watchdog. The subsequent full serial run passed the seven fault controls
 and reported 2,052 of 3,084 positive traces before batch 279 reached the
 same 12-second pre-harness idle limit. Its input and error were retained.
 Batch 279 then passed all six traces in isolation with the original
-supervisor and limits. The complete run remains incomplete.
+supervisor and limits. Those earlier runs remain failed diagnostics.
+
+The complete run with the standalone linked Scheme worker exited
+naturally. It replayed all 3,084 traces across 19,042 reachable model
+states and all 16 actions, plus seven fault refusals. The receipt's 31
+declared inputs match the current checkout. The worker retained the
+512 MiB heap, 60-second worker limit, 65-second supervisor limit and
+12-second idle watchdog. A separate no-fixture control returned 42.
+The verified scope is the bounded local serial lifecycle.
 =dev/proof/scheme/retirement-execution-test.ss= checks selected positive and negative
 behaviors. This is an executable correspondence check, not a general refinement
 proof or a deployed authority integration. The lifecycle bounds are two source revisions, four clock values

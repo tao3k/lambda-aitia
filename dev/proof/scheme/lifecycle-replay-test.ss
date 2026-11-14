@@ -5,7 +5,7 @@
         (only-in :std/test/base TestConfig TestModule TestHarness VERBOSITY-MODULE
                  test-run! test-result-ok?)
         :lambda-aitia/dev/proof/scheme/lifecycle-fixture)
-(export lifecycle-replay-test run-lifecycle-replay)
+(export lifecycle-replay-test main)
 (def lifecycle-replay-test
   (test-suite "Full bounded Quint lifecycle / real Scheme API graph replay"
     (test-case "every supplied edge has the same projected Scheme state"
@@ -24,3 +24,6 @@
     (if (test-result-ok? result)
       (begin (displayln 'OK) (force-output) 0)
       42)))
+
+(def (main . _args)
+  (exit (run-lifecycle-replay)))

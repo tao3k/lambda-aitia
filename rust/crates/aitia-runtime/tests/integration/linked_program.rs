@@ -55,16 +55,16 @@ fn compiled_project_declaration_requires_its_recorded_source() {
             .unwrap();
         assert!(output.status.success(), "{output:?}");
     };
-    let run = || {
+    let run = |args: &[&str], input: Option<&Value>| {
         #[cfg(target_os = "macos")]
-        let mut command = compiled_program::command(&["project-manifest"]);
+        let mut command = compiled_program::command(args);
         #[cfg(not(target_os = "macos"))]
         let mut command = {
             let mut command = Command::new(env!("CARGO_BIN_EXE_aitia"));
-            command.arg("project-manifest");
+            command.args(args);
             command
         };
-        command
+        let mut child = command
             .current_dir(root)
             .env("PATH", "/usr/bin:/bin")
             .env_remove("GERBIL_HOME")
@@ -74,16 +74,26 @@ fn compiled_project_declaration_requires_its_recorded_source() {
                 "AITIA_PROJECT_DECLARATION",
                 "a runtime path must be ignored",
             )
-            .output()
-            .unwrap()
+            .stdin(if input.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        if let Some(input) = input {
+            serde_json::to_writer(child.stdin.take().unwrap(), input).unwrap();
+        }
+        child.wait_with_output().unwrap()
     };
     let read = || {
-        let output = run();
+        let output = run(&["project-manifest"], None);
         assert!(output.status.success(), "{output:?}");
         serde_json::from_slice::<Value>(&output.stdout).unwrap()
     };
-    let assert_source_refused = || {
-        let output = run();
+    let assert_source_refused = |output: std::process::Output| {
         assert!(!output.status.success(), "{output:?}");
         assert!(output.stdout.is_empty(), "{output:?}");
         let diagnostic = String::from_utf8_lossy(&output.stderr);
@@ -116,14 +126,14 @@ fn compiled_project_declaration_requires_its_recorded_source() {
     std::fs::write(&source, format!("{declaration}\n;; changed source\n")).unwrap();
     assert_eq!(read(), first);
     record(&["describe", "-m", "Record changed declaration"]);
-    assert_source_refused();
+    assert_source_refused(run(&["project-manifest"], None));
     std::fs::write(&source, "(error \"untrusted declaration evaluated\")\n").unwrap();
     record(&["describe", "-m", "Record an executable replacement"]);
-    assert_source_refused();
+    assert_source_refused(run(&["project-manifest"], None));
     std::fs::remove_file(&source).unwrap();
     std::fs::write(&data, r#"{"schemaVersion":1}"#).unwrap();
     record(&["describe", "-m", "Remove compiled declaration"]);
-    assert_source_refused();
+    assert_source_refused(run(&["project-manifest"], None));
 
     std::fs::write(&source, declaration).unwrap();
     std::fs::remove_file(&data).unwrap();
@@ -135,6 +145,75 @@ fn compiled_project_declaration_requires_its_recorded_source() {
     let restored = read();
     assert_eq!(restored["manifest"]["services"]["sysml"]["parse"], false);
     assert_eq!(restored["inputs"]["sysml"], json!([]));
+
+    let mut overlay: Value =
+        serde_json::from_str(include_str!("../../../../../.agents/aita/project.json")).unwrap();
+    overlay.as_object_mut().unwrap().remove("services");
+    let naming = &mut overlay["programs"]["jj"]["settings"]["naming"];
+    naming["references"] = json!([{
+        "identity":"WORK-1", "source":".agents/aita/work.org", "element":"work-1"
+    }]);
+    naming["languageSources"] = json!([".agents/aita/work.org"]);
+    std::fs::write(&data, serde_json::to_vec(&overlay).unwrap()).unwrap();
+    write_commit_work_item(root);
+    record(&["describe", "-m", "Record the commit policy overlay"]);
+    let context = commit::json_output(run(&["jj", "commit"], None));
+    let mut draft = json!({
+        "proposal":commit_proposal("Review the recorded declaration"),
+        "narration":narration(
+            "Bind the review to the compiled project declaration.",
+            "JJ read the recorded change inventory.",
+            "JJ audited the recorded configuration.",
+        ),
+        "org":commit::review_org(&context),
+        "context":context["review"]["context"],
+    });
+    let preview = commit::json_output(run(&["jj", "commit", "preview"], Some(&draft)));
+    assert!(
+        preview["review"]["description"]
+            .as_str()
+            .unwrap()
+            .starts_with("AITIA-WORK-1 fix(gitops): Review the recorded declaration\n")
+    );
+    draft["context"] = preview["review"]["context"].clone();
+    let prepared = commit::json_output(run(&["jj", "commit", "prepare"], Some(&draft)));
+    assert_eq!(
+        prepared["review"]["description"],
+        preview["review"]["description"]
+    );
+    assert!(prepared["attempt"].is_object());
+
+    let applied = commit::json_output(run(
+        &["jj", "commit", "apply"],
+        Some(&json!({"draft": draft, "attempt": prepared["attempt"]})),
+    ));
+    let revision = applied["receipt"]["resulting_commit"].as_str().unwrap();
+    let evidence_args = ["jj", "commit", "evidence", revision, "--gql"];
+    let evidence = commit::json_output(run(&evidence_args, Some(&applied)));
+    assert_eq!(evidence["description"], preview["review"]["description"]);
+    assert_eq!(evidence["missingReports"], json!([]));
+    assert_eq!(
+        evidence["lineage"]["query"]["engineeringReference"]["rows"],
+        json!([{"engineeringId":"WORK-1","element":"work-1","path":".agents/aita/work.org"}])
+    );
+
+    std::fs::write(
+        &source,
+        format!("{declaration}\n;; changed policy source\n"),
+    )
+    .unwrap();
+    record(&[
+        "describe",
+        "-m",
+        "Record a change to the project declaration",
+    ]);
+    let changed = aitia_jj::observe_workspace(root).unwrap();
+    assert_source_refused(run(&["jj", "commit", "prepare"], Some(&draft)));
+    assert_eq!(
+        commit::json_output(run(&evidence_args, Some(&applied))),
+        evidence
+    );
+    assert_eq!(aitia_jj::observe_workspace(root).unwrap(), changed);
 }
 
 fn write_commit_work_item(root: &std::path::Path) {

@@ -22,15 +22,28 @@ resolves POO declarations and project JSON through the same Contract. Its
 those operation identities and executes their adapters. The JSON
 declaration carries data. Scheme owns its interpretation and defaults.
 
+For a project-specific binary, stage the linked program with
+=AITIA_PROJECT_DECLARATION= pointing to the project's trusted
+=.agents/aita/project.ss=. The file contains one Scheme expression that
+returns a POO declaration. Record that source in JJ with any optional
+=project.json= overlay. At runtime AITIA verifies the recorded Scheme
+source against the compiled declaration before evaluating it. A recorded
+replacement or deletion requires a rebuilt program. The stock binary
+accepts standalone JSON configuration.
+
 * AITIA's own commit Case
 
 The =programs.jj.settings= declaration selects the project identity, NASA
 Profile and the primary NASA requirement. Enable the program with
 =programs.jj.enable=. The =naming= declaration binds the project key, type
 vocabulary, affected scopes and engineering records. The reviewed draft supplies
-a structured intent proposal. NASA clause identifiers remain evidence and obligation references. Its
-=checks= list maps catalog requirements to project methods. Scheme
-rejects identifiers outside the selected catalog and duplicate mappings.
+a structured intent proposal. The review response lists =scopePaths= as
+scope and changed-path pairs, and =unscopedPaths= as changed paths outside
+all admitted scopes. A title may name an affected scope in a change that
+also touches other paths. NASA clause identifiers remain evidence and
+obligation references. The =checks= list maps catalog requirements to project methods. Scheme
+rejects identifiers outside the selected catalog, duplicate requirements
+and reuse of one execution method for multiple requirements in a profile.
 =aitia jj commit= reads this declaration and the change inventory
 from one recorded JJ cut. The output contains relative paths, the
 standard edition and source-lock digest, and the exact tree, parents
@@ -98,12 +111,28 @@ for the selected revision. Use =method= to find each report under
 =observations=. The Git configuration audit covers the commit object,
 tree, and ordered parents. The project-input query lists the recorded
 configuration files and their changed state.
-Inspect =missingReports= before drawing a conclusion from empty rows.
+=lineage.query.engineeringReference= links the title's engineering ID to
+its ORG Element and recorded file when the apply result supplies a proposal
+that reproduces the actual title under Scheme policy.
+=lineage.query.changedFiles= lists the revision's changed paths from JJ,
+including when the inventory report is missing. =lineage.query.missingReports=
+selects missing check methods from the same revision. Inspect it before drawing a conclusion from empty rows.
+=lineage.dependencyCoverage= remains =unknown= for code relationships.
 A recovery record can locate the committed body and original inventory
 even when the apply response and its archived reports were lost.
 
 By default, =aitia jj commit apply= takes the original =draft= and prepared
-=attempt=. It reruns the checks and writes through JJ under its
+=attempt=. Start with an unsigned working-copy leaf. Keep the destination
+bookmark on its reviewed ancestor until push. Use
+=aitia jj commit preview --applied= to compare an existing commit with
+the current review. =matchesWrittenDescription= checks the rendered text,
+and =reviewContextCurrent= checks the supplied context. Push reports a
+stale context before transport. If =matchesWrittenDescription= is true,
+review the refreshed preview and use its context with the original
+attempt. If it is false, prepare and apply the revised description at
+the current cut before requesting push. Preparation rejects a
+description rewrite that would also move a bookmark or a descendant.
+Apply reruns the checks and writes through JJ under its
 operation-head lock. =aitia jj commit recover= accepts the same =attempt= and
 checks it against JJ history. After reading back the written commit, pass the same approved request to
 =aitia jj git push --remote origin --bookmark name=. The command rechecks

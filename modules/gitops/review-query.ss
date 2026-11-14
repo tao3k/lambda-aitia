@@ -28,18 +28,28 @@
               action-authority?: (.ref result 'action-authority?)
               columns: (map cadr projections) rows: (.ref result 'rows))))
       (.o status: 'executed
+          changed-files: (execute 'revision-changed-files
+                                  (revision-files 'changes)
+                                  '((f path)))
           inventory: (execute 'revision-change-evidence
                               (file-report-path 'enumerated_by)
                               '((f path) (e method)))
           verified-reports: (execute 'revision-verified-reports
                                      (revision-step 'verified_report 'e 'EvidenceReport)
                                      '((e method)))
+          missing-reports: (execute 'revision-missing-reports
+                                    (revision-step 'missing_report 'e 'EvidenceReport)
+                                    '((e method)))
           project-inputs: (execute 'revision-project-inputs
                                    (revision-files 'reads_config)
                                    '((f path) (f changed)))
           policy-sources: (execute 'revision-policy-sources
                                    (revision-files 'has_policy_source)
                                    '((f path) (f changed)))
+          engineering-reference: (execute 'revision-engineering-reference
+                                   (revision-step 'names_engineering_item 'e 'EngineeringReference
+                                     (revision-files 'declared_in))
+                                   '((e engineeringId) (e element) (f path)))
           model-evidence: (execute 'revision-model-evidence
                                    (file-report-path 'parsed_by)
                                    '((f path) (e method)))))))

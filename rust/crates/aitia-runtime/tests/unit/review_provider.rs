@@ -209,3 +209,83 @@ fn check_observations_have_stable_order() {
     assert_eq!(facts["checks"][0]["id"], 1);
     assert_eq!(facts["checks"][1]["id"], 2);
 }
+
+#[test]
+fn changed_pull_target_reopens_review_in_the_linked_scheme_program() {
+    let manifest = json!({
+        "schemaVersion": 1,
+        "programs": {"jj": {"enable": true, "settings": {
+            "project": "owner/project", "profile": "nasa/sdlc/npr-7150.2",
+            "primary": "SWE-084",
+            "checks": [{"requirement": "SWE-084", "method": "jj.configuration-audit"}],
+            "naming": {
+                "projectKey": "AITIA", "types": ["feat"],
+                "scopes": [{"name": "gitops", "paths": ["modules/gitops"]}],
+                "references": [{"identity": "WORK-1", "source": "work.org", "element": "work"}],
+                "languageSources": ["work.org"]
+            }
+        }}}
+    });
+    let sources = json!({"manifest": manifest.to_string()});
+    let mut request = json!({
+        "cut": {"workspace": "default", "change": "change", "operation": "operation",
+                "commit": HEAD, "tree": "tree", "parents": ["parent"]},
+        "checks": [{"requirement": "SWE-084", "method": "jj.configuration-audit",
+                    "identity": "audit", "inputDigest": "input", "reportDigest": "report"}],
+        "ruleContext": "compiled-policy", "routeContext": "recorded-route",
+        "preview": true, "paths": ["modules/gitops/config.ss"],
+        "sources": [{"path": "work.org",
+            "text": "* Work item\n:PROPERTIES:\n:ID: work\n:ENGINEERING_ID: WORK-1\n:END:\n"}],
+        "providerBookmarks": [bookmark()],
+        "draft": {
+            "proposal": {"identity": "proposal", "reference": "WORK-1", "type": "feat",
+                         "scope": "gitops", "summary": "Bind review to the target",
+                         "rationale": "Track the observed target revision.", "language": "en",
+                         "languageSource": "work.org"},
+            "narration": {"change": "Record the current review.", "open": [],
+                          "evidence": [{"obligation": "SWE-084", "text": "Audited the configuration."}]},
+            "org": "* Evidence\n:PROPERTIES:\n:AITIA_SUPPORT: SWE-084\n:END:\n",
+            "context": "unreviewed"
+        }
+    });
+    let observe = |target: &str| {
+        let mut response = pull();
+        response["base"]["sha"] = json!(target);
+        observe_with(&[bookmark()], HEAD, |path, _| match path {
+            "/repos/owner/project/pulls" => Some(json!([response])),
+            "/repos/owner/project/commits/published/check-runs" => Some(checks()),
+            _ => panic!("unexpected provider request: {path}"),
+        })
+    };
+    crate::with_linked_program(|program| {
+        let (configuration, _) = program.resolve_project_config(&sources.to_string())?;
+        request["providerReview"] = json!(observe("old-base"));
+        let old = program.nasa_draft(&configuration, &request)?;
+        assert_eq!(old["pullRequest"]["targetRevision"], "old-base");
+        assert_eq!(old["draftValid"], true);
+        let prose = old["previewDescription"].as_str().unwrap();
+        assert!(prose.starts_with("AITIA-WORK-1 feat(gitops): Bind review to the target\n"));
+
+        request["draft"]["context"] = old["context"].clone();
+        request["preview"] = json!(false);
+        let current = program.nasa_draft(&configuration, &request)?;
+        assert_eq!(current["description"], prose);
+        request["providerReview"] = json!(observe("new-base"));
+        let rejected = program.nasa_draft(&configuration, &request)?;
+        assert_eq!(rejected["pullRequest"]["targetRevision"], "new-base");
+        assert_eq!(rejected["draftValid"], false);
+        assert!(rejected["description"].is_null());
+        assert_ne!(rejected["context"], old["context"]);
+
+        request["preview"] = json!(true);
+        let refreshed = program.nasa_draft(&configuration, &request)?;
+        assert_eq!(refreshed["previewDescription"], prose);
+        request["draft"]["context"] = refreshed["context"].clone();
+        request["preview"] = json!(false);
+        let admitted = program.nasa_draft(&configuration, &request)?;
+        assert_eq!(admitted["draftValid"], true);
+        assert_eq!(admitted["description"], prose);
+        Ok(())
+    })
+    .unwrap();
+}

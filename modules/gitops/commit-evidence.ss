@@ -3,7 +3,7 @@
 
 (import (only-in :std/encoding/json write-json string->json JSONReadOptions)
         (only-in :gerbil/core list-sort string-contains string-suffix?)
-        (only-in :std/list/list append-map delete-duplicates/hash)
+        (only-in :std/list/list append-map delete-duplicates/hash find)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :clan/poo/object .get .o .cc .ref .slot?)
         (only-in :clan/poo/mop element?)
@@ -12,7 +12,8 @@
         (only-in :orgize/languages/org/modules/org-elements/source-interface
                  org-source-element-graph org-source-element-field)
         (only-in :orgize/languages/org/modules/org-elements/values
-                 org-element-graph-kind-of org-element-graph-records
+                 org-element-graph-id-of org-element-graph-kind-of org-element-graph-records
+                 make-org-element-graph-view
                  make-org-element-query-groups make-org-element-property-clause)
         (only-in :orgize/languages/org/modules/org-contract/values
                  make-org-contract-definition make-org-contract-assertion
@@ -238,7 +239,7 @@
                  (clause-obligations clauses "AITIA_OPEN_OBLIGATION")
                  (.get narration open)))
          (model-evidence
-          (if (and model (pair? (.get model supported)))
+          (if (and evidence model (pair? (.get model supported)))
             (let (paths (.get model paths))
               (string-append
                (if (equal? evidence "") "\n\nEvidence" "")
@@ -342,10 +343,17 @@
 
 (def (draft-org-matches? source clauses)
   (let* ((graph (org-source-element-graph source))
-         (fields (append '("AITIA_CONTEXT" "SOURCE_SHA256" "REPORT_SHA256"
-                           "NASA_SOURCE_LOCK" "NASA-SOURCE-LOCK" "JJ_CUT")
-                         (map car draft-relations)))
+         (reserved '("AITIA_CONTEXT" "SOURCE_SHA256" "REPORT_SHA256"
+                     "NASA_SOURCE_LOCK" "NASA-SOURCE-LOCK" "JJ_CUT"))
+         (fields (map car draft-relations))
+         (id-of (org-element-graph-id-of graph))
          (kind-of (org-element-graph-kind-of graph))
+         (records (org-element-graph-records graph))
+         (properties (filter (lambda (record) (equal? (kind-of record) "node-property"))
+                             records))
+         (clause-properties
+          (filter (lambda (record) (member (org-source-element-field record "key") fields))
+                  properties))
          (one (make-org-contract-expectation 'exactly 1))
          (definition
           (make-org-contract-definition
@@ -360,7 +368,6 @@
                     'any #f)
                    one))
                 clauses (iota (length clauses)))))
-         (results (org-contract-evaluate-definition definition graph 0))
          (references
           (append-map (lambda (record)
                         (if (equal? (kind-of record) "headline")
@@ -370,11 +377,23 @@
                                (and value (cons field value))))
                            fields)
                           '()))
-                      (org-element-graph-records graph))))
-    (and (= (length results) (length clauses))
-         (andmap org-contract-result-passed? results)
+                      records)))
+    (and (not (ormap (lambda (record) (member (org-source-element-field record "key") reserved))
+                     properties))
+         ;; Every clause property must be accounted for by a review headline.
+         (= (length clause-properties) (length references))
          (= (length references) (length clauses))
-         (andmap (lambda (ref) (member ref clauses)) references))))
+         (andmap (lambda (ref) (member ref clauses)) references)
+         ;; The assertions count properties over the whole document. Their
+         ;; query has no relationship to an intermediate ancestor.
+         (let* ((view (make-org-element-graph-view
+                       (cons (find (lambda (record) (= (id-of record) 0)) records)
+                             clause-properties)
+                       id-of (lambda (record) (and (not (= (id-of record) 0)) 0))
+                       kind-of org-source-element-field))
+                (results (org-contract-evaluate-definition definition view 0)))
+           (and (= (length results) (length clauses))
+                (andmap org-contract-result-passed? results))))))
 
 (def (gitops-nasa-commit-description policy cut candidates title narration draft-org context
                                     preview?: (preview? #f))
@@ -394,9 +413,10 @@
               (json-value
                (vector "aitia.commit-review.v2" (draft-context policy cut assessment-value)
                        rendered draft-org)))))
-           (valid? (and (or preview? (equal? context current-context))
+           (valid? (and rendered
+                        (or preview? (equal? context current-context))
                         (draft-org-matches? draft-org clauses)
-                        rendered #t))
+                        #t))
            (description-value
             (and valid? (zero? rejected) unique?
                  (null? (.get assessment-value blocking-open))

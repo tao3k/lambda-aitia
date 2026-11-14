@@ -7,7 +7,7 @@ use crate::description::{DescriptionRecovery, verify_description_operation};
 use crate::observation::review_bookmarks::{
     configured_push_remote, resolved_remote_commit, route_identity,
 };
-use crate::observation::workspace::{capture_workspace, open_workspace};
+use crate::observation::workspace::{capture_workspace, open_project_workspace, open_workspace};
 use crate::{JjObservationError, PushRemote, WorkspaceCut};
 use futures::{StreamExt, executor::block_on};
 use gix::remote::Direction::{Fetch, Push};
@@ -24,6 +24,7 @@ use jj_lib::ref_name::{RefName, RemoteName};
 use jj_lib::repo::Repo;
 use jj_lib::simple_op_heads_store::SimpleOpHeadsStore;
 use serde::Serialize;
+use std::fmt::Write as _;
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -77,6 +78,87 @@ fn repository_error(error: impl std::fmt::Display) -> JjObservationError {
     JjObservationError::Repository(error.to_string())
 }
 
+fn require_bookmark_only_push(
+    git: &gix::Repository,
+    remote: &RemoteName,
+) -> Result<(), JjObservationError> {
+    let config = git.config_snapshot();
+    for key in [
+        "push.followTags",
+        &format!("remote.{}.mirror", remote.as_str()),
+    ] {
+        if config.try_boolean(key).map_err(repository_error)? == Some(true) {
+            return Err(repository_error(format!("reviewed push cannot use {key}")));
+        }
+    }
+    if config
+        .string("push.recurseSubmodules")
+        .is_some_and(|mode| !matches!(mode.as_slice(), b"no" | b"check"))
+    {
+        return Err(repository_error(
+            "reviewed push requires push.recurseSubmodules to be no or check",
+        ));
+    }
+    Ok(())
+}
+
+fn pin_push_destination(
+    parameters: &mut std::ffi::OsString,
+    remote: &RemoteName,
+    url: &gix::Url,
+) -> Result<(), JjObservationError> {
+    let url = url.to_bstring();
+    let url = std::str::from_utf8(url.as_slice())
+        .map_err(|_| repository_error("reviewed push URL must be UTF-8"))?;
+    let mut random = [0; 16];
+    getrandom::fill(&mut random).map_err(repository_error)?;
+    let mut alias = String::from("aitia-reviewed-");
+    for byte in random {
+        write!(alias, "{byte:02x}").expect("formatting into String");
+    }
+    alias.push(':');
+    // An empty pushurl clears Git's ordered list. The one-use alias makes
+    // Git's single insteadOf substitution yield the already resolved URL.
+    let push_url_key = format!("remote.{}.pushurl", remote.as_str()).replace('\'', "'\\''");
+    let rewrite_key = format!("url.{url}.insteadOf").replace('\'', "'\\''");
+    parameters.push(format!(
+        " '{push_url_key}'='' '{push_url_key}'='{alias}' '{rewrite_key}'='{alias}'"
+    ));
+    Ok(())
+}
+
+fn require_push_url_reset(
+    subprocess: &GitSubprocessOptions,
+    git_dir: &Path,
+    remote: &RemoteName,
+) -> Result<(), JjObservationError> {
+    // Older Git appends even an empty pushurl. Check the actual executable
+    // before using reset semantics on a remote that might have changed.
+    let key = format!("remote.{}.pushurl", remote.as_str());
+    let output = std::process::Command::new(&subprocess.executable_path)
+        .arg("--git-dir")
+        .arg(git_dir)
+        .args(["-c", &format!("{key}=aitia-url-reset-old:")])
+        .args(["-c", &format!("{key}=")])
+        .args(["-c", &format!("{key}=aitia-url-reset-new:")])
+        .args([
+            "remote",
+            "get-url",
+            "--push",
+            "--all",
+            "--",
+            remote.as_str(),
+        ])
+        .output()
+        .map_err(repository_error)?;
+    if !output.status.success() || output.stdout != b"aitia-url-reset-new:\n" {
+        return Err(repository_error(
+            "reviewed push requires Git push URL reset support",
+        ));
+    }
+    Ok(())
+}
+
 /// Recover an acknowledged push from visible JJ history without transport.
 ///
 /// A missing record leaves the remote outcome unresolved. An existing record
@@ -90,7 +172,7 @@ pub fn recover_reviewed_push(
     remote: &str,
     bookmark: &str,
 ) -> Result<Option<PushReceipt>, JjObservationError> {
-    let workspace = open_workspace(directory)?;
+    let workspace = open_project_workspace(directory)?;
     if attempt.workspace != workspace.workspace_name().as_str() {
         return Err(JjObservationError::Output("foreign JJ workspace".into()));
     }
@@ -153,7 +235,8 @@ pub fn recover_reviewed_push(
 ///
 /// # Errors
 /// Refuses stale cuts, description mismatches, conflicting or absent bookmarks,
-/// non-fast-forward remote history, denied admission and rejected remote updates.
+/// non-fast-forward remote history, multiple push URLs, denied admission and
+/// rejected remote updates.
 /// Independent local bookmark work is preserved.
 /// A transport error retains an unknown remote outcome for reconciliation.
 pub fn push_reviewed_description(
@@ -226,6 +309,17 @@ pub fn push_reviewed_description(
             .map_err(repository_error)?
             .git_repo();
         let (reviewed_route, destination) = configured_push_remote(&git, remote)?;
+        require_bookmark_only_push(&git, remote)?;
+        // Git pushes to every configured push URL. A single JJ bookmark
+        // lease and acknowledgement can only qualify one destination.
+        if reviewed_route.urls(Push).count() != 1 {
+            return Err(repository_error(
+                "reviewed push requires exactly one destination URL",
+            ));
+        }
+        let mut subprocess =
+            GitSubprocessOptions::from_settings(repo.settings()).map_err(repository_error)?;
+        require_push_url_reset(&subprocess, git.git_dir(), remote)?;
         if !consume_admission(
             destination,
             &previous.hex(),
@@ -241,6 +335,7 @@ pub fn push_reviewed_description(
             git.open_options().clone().open_path_as_is(true),
         )
         .map_err(|_| repository_error("could not re-read Git push configuration"))?;
+        require_bookmark_only_push(&reopened, remote)?;
         let (current_route, _) = configured_push_remote(&reopened, remote)
             .map_err(|_| repository_error("could not re-read Git push destination"))?;
         if [Fetch, Push].into_iter().any(|direction| {
@@ -253,8 +348,33 @@ pub fn push_reviewed_description(
             ));
         }
         let mut transaction = repo.start_transaction();
-        let subprocess =
-            GitSubprocessOptions::from_settings(repo.settings()).map_err(repository_error)?;
+        // Command-scope settings keep a late config write from widening the
+        // refspec. Retain the caller's other command-scope Git settings.
+        let mut parameters = std::env::var_os("GIT_CONFIG_PARAMETERS").unwrap_or_default();
+        let mirror_key = format!("remote.{}.mirror", remote.as_str()).replace('\'', "'\\''");
+        if !parameters.is_empty() {
+            parameters.push(" ");
+        }
+        // Keep a check-only setting, but never let Git publish submodules.
+        let recurse = reopened.config_snapshot().string("push.recurseSubmodules");
+        let recurse = if recurse
+            .as_ref()
+            .is_some_and(|mode| mode.as_slice() == b"check")
+        {
+            "check"
+        } else {
+            "no"
+        };
+        parameters.push(format!(
+            "'push.followTags'='false' '{mirror_key}'='false' 'push.recurseSubmodules'='{recurse}'"
+        ));
+        let push_url = reviewed_route
+            .url(Push)
+            .ok_or_else(|| repository_error("reviewed push destination is missing"))?;
+        pin_push_destination(&mut parameters, remote, push_url)?;
+        subprocess
+            .environment
+            .insert("GIT_CONFIG_PARAMETERS".into(), parameters);
         let targets = GitPushRefTargets {
             bookmarks: vec![(
                 name.to_owned(),

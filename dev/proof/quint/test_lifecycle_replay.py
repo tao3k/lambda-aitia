@@ -103,9 +103,11 @@ class LifecycleReplayTests(unittest.TestCase):
     def test_replay_propagates_the_current_native_process_budget(self):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
+            worker = work / 'lifecycle-replay'
             trace = [('init', {'clock': 0})]
             with patch.object(checker, 'run', return_value=(0, 'LIFECYCLE-TRACE-COMPLETE steps=1\nMODULE-OK replay.ss\nHARNESS-OK replay.ss\nOK\n')) as native:
-                self.assertEqual(checker.replay(work, 'budget', [trace]), 1)
+                self.assertEqual(checker.replay(work, worker, 'budget', [trace]), 1)
+            self.assertEqual(native.call_args.args[0][-2:], ['test-lifecycle-batch', str(worker)])
             self.assertEqual(native.call_args.kwargs['timeout'], 65)
             self.assertEqual((work / 'traces-budget.scm').read_text(),
                              '(' + checker.sexpr_trace(trace) + ')\n')

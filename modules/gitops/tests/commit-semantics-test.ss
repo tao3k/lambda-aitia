@@ -23,6 +23,8 @@
   (.o identity: "candidate-a" reference: "RFC-7" type: "feat" scope: "gitops"
       language: "en" language-source: "docs/design.org"
       summary: "Validate commit intent" rationale: "Adds source-bound intent admission"))
+(def expected-title
+  '(("candidate-a" "AITIA-RFC-7 feat(gitops): Validate commit intent")))
 (def (assess (policy naming) (sources (list source)) (proposals (list proposal))
              (paths '("modules/gitops/config.ss")))
   (gitops-commit-semantics policy current-cut sources paths proposals))
@@ -31,9 +33,26 @@
   (test-suite "Engineering title proposals are relations, not authority"
     (test-case "a source-bound engineering reference yields a canonical readable title"
       (let (view (assess))
-        (check-equal? (.get view titles)
-                      '(("candidate-a" "AITIA-RFC-7 feat(gitops): Validate commit intent")))
+        (check-equal? (.get view titles) expected-title)
         (check-equal? (.get view open) '())))
+    (test-case "one recorded document can support distinct engineering references"
+      (let* ((second (.cc reference identity: "RFC-8" element: "review-lineage"))
+             (policy (.cc naming references: (list reference second)))
+             (document (.cc source text: (string-append (.get source text)
+                          "* Review lineage\n:PROPERTIES:\n:ID: review-lineage\n:ENGINEERING_ID: RFC-8\n:END:\n")))
+             (view (assess policy (list document)
+                          (list proposal (.cc proposal identity: "candidate-b" reference: "RFC-8")))))
+        (check-equal? (length (.get view references)) 2)
+        (check-equal? (length (.get view titles)) 2)
+        (check-equal? (.get view open) '())
+        (let* ((duplicate (.cc document text:
+                           (string-append ":PROPERTIES:\n:ID: review-lineage\n:END:\n"
+                                          (.get document text))))
+               (partial (assess policy (list duplicate)
+                               (list proposal
+                                     (.cc proposal identity: "candidate-b" reference: "RFC-8")))))
+          (check-equal? (.get partial titles) expected-title)
+          (check-equal? (.get partial open) '(("candidate-b" "missing-reference"))))))
     (test-case "missing, forged, revised and duplicate source elements cannot support a reference"
       (for-each
        (lambda (sources)
@@ -46,57 +65,91 @@
              (list (.cc source text: "* Forged\n:PROPERTIES:\n:ID: commit-engineering\n:ENGINEERING_ID: PR-2\n:END:\n"))
              (list (.cc source text: "* Ambiguous\n:PROPERTIES:\n:ID: commit-engineering\n:ENGINEERING_ID: RFC-7\n:ENGINEERING_ID: RFC-8\n:END:\n"))
              (list (.cc source text: (string-append (.get source text) (.get source text))))
+             (list (.cc source text:
+                        (string-append ":PROPERTIES:\n:ID: commit-engineering\n:END:\n"
+                                       (.get source text))))
              (list source source))))
     (test-case "every part of the source cut participates in admission"
-      (for-each
-       (lambda (stale-cut)
-         (check-equal? (.get (assess naming (list (.cc source cut: stale-cut))) titles) '()))
-       (list (.cc current-cut project: "other") (.cc current-cut workspace: "other")
-             (.cc current-cut change: "other") (.cc current-cut operation: "other")
-             (.cc current-cut commit: "other") (.cc current-cut tree: "other")
-             (.cc current-cut parents: '("different")))))
+      (let* ((paths '("project.org" "workspace.org" "change.org" "operation.org"
+                       "commit.org" "tree.org" "parents.org"))
+             (cuts (list (.cc current-cut project: "other") (.cc current-cut workspace: "other")
+                         (.cc current-cut change: "other") (.cc current-cut operation: "other")
+                         (.cc current-cut commit: "other") (.cc current-cut tree: "other")
+                         (.cc current-cut parents: '("different"))))
+             (references (map (lambda (path) (.cc reference source: path)) paths))
+             (observations (map (lambda (path cut) (.cc source path: path cut: cut)) paths cuts))
+             (result (assess (.cc naming references: references) observations)))
+        ;; A conflicting declaration also suppresses the title. Inspect each
+        ;; source binding directly so it cannot mask a stale cut admission.
+        (check-equal? (.get result references) '())
+        (check-equal? (.get result titles) '())))
     (test-case "equal cut values do not require the same object instance"
       (check-equal? (.get (assess naming (list (.cc source cut: (.cc current-cut)))) titles)
-                    (.get (assess) titles)))
+                    expected-title))
     (test-case "PR and NASA identifiers do not silently replace the engineering reference"
-      (for-each
-       (lambda (identity)
-         (check-equal? (.get (assess naming (list source)
-                                    (list (.cc proposal reference: identity))) titles) '()))
-       '("2" "PR-2" "SWE-084")))
+      (let* ((identities '("2" "PR-2" "SWE-084"))
+             (candidates (map (lambda (id) (.cc proposal identity: id reference: id)) identities))
+             (view (assess naming (list source) candidates)))
+        (check-equal? (.get view titles) '())
+        (check-equal? (length (.get view open)) (length identities))
+        (for-each
+         (lambda (id)
+           (check (and (member (list id "missing-reference") (.get view open)) #t) => #t))
+         identities)))
     (test-case "the affected scope has a directory boundary"
-      (check-equal? (.get (assess naming (list source) (list proposal)
-                                  '("modules/gitops-other/config.ss")) titles) '())
-      (check-equal? (.get (assess naming (list source) (list (.cc proposal scope: "runtime"))) titles) '()))
+      (let ((outside (assess naming (list source) (list proposal)
+                             '("modules/gitops-other/config.ss")))
+            (unknown (assess naming (list source) (list (.cc proposal scope: "runtime")))))
+        (for-each
+         (lambda (view)
+           (check-equal? (.get view titles) '())
+           (check-equal? (.get view open) '(("candidate-a" "unaffected-scope"))))
+         (list outside unknown))))
+    (test-case "scope coverage exposes paths that the title does not account for"
+      (let* ((paths '("modules/gitops/config.ss" "modules/gitops-other/config.ss"))
+             (view (assess naming (list source) (list proposal) paths)))
+        (check-equal? (.get view titles) expected-title)
+        (check-equal? (.get view scope-paths) '(("gitops" "modules/gitops/config.ss")))
+        (check-equal? (.get view unscoped-paths) '("modules/gitops-other/config.ss"))))
     (test-case "conflicting declarations cannot widen a scope"
       (let* ((scope (.o name: "gitops" paths: '("modules/gitops" "docs")))
              (same (.cc scope paths: '("docs" "modules/gitops" "docs")))
              (conflict (.cc scope paths: '("modules/runtime")))
              (accepted (assess (.cc naming scopes: (list scope same))))
              (rejected (assess (.cc naming scopes: (list scope conflict)))))
-        (check-equal? (.get accepted titles) (.get (assess) titles))
+        (check-equal? (.get accepted titles) expected-title)
         (check-equal? (.get accepted affected-scopes) '(("gitops")))
         (check-equal? (.get rejected titles) '())
         (check-equal? (.get rejected affected-scopes) '())
+        (check-equal? (.get rejected scope-paths) '())
+        (check-equal? (.get rejected unscoped-paths) '("modules/gitops/config.ss"))
         (check-equal? (.get rejected open) '(("candidate-a" "conflicting-scope")))))
     (test-case "unsupported types and malformed narration are not repaired by guessing"
-      (for-each
-       (lambda (candidate)
-         (check-equal? (.get (assess naming (list source) (list candidate)) titles) '()))
-       (list (.cc proposal type: "invented") (.cc proposal summary: "Line\nbreak")
-             (.cc proposal summary: "123") (.cc proposal rationale: "")
-             (.cc proposal summary: (make-string 72 #\a)))))
+      (let* ((candidates
+              (list (.cc proposal identity: "unknown-type" type: "invented")
+                    (.cc proposal identity: "newline" summary: "Line\nbreak")
+                    (.cc proposal identity: "digits" summary: "123")
+                    (.cc proposal identity: "missing-rationale" rationale: "")
+                    (.cc proposal identity: "long-title" summary: (make-string 72 #\a))))
+             (view (assess naming (list source) candidates)))
+        (check-equal? (.get view titles) '())
+        (check-equal? (length (.get view open)) (length candidates))
+        (check (and (member '("unknown-type" "unsupported-type") (.get view open)) #t) => #t)
+        (for-each
+         (lambda (candidate)
+           (check (and (member (list (.get candidate identity) "invalid-narration")
+                               (.get view open)) #t) => #t))
+         (cdr candidates))))
     (test-case "the rendered title accepts 72 characters and rejects 73"
       (let* ((prefix "AITIA-RFC-7 feat(gitops): ")
              (summary-value (make-string (- 72 (string-length prefix)) #\a))
-             (accepted (assess naming (list source) (list (.cc proposal summary: summary-value))))
-             (rejected (assess naming (list source)
-                               (list (.cc proposal summary: (string-append summary-value "a"))))))
-        (check-equal? (.get accepted titles)
+             (result (assess naming (list source)
+                       (list (.cc proposal summary: summary-value)
+                             (.cc proposal identity: "too-long"
+                                  summary: (string-append summary-value "a"))))))
+        (check-equal? (.get result titles)
                       (list (list "candidate-a" (string-append prefix summary-value))))
-        (check-equal? (.get accepted open) '())
-        (check-equal? (.get rejected titles) '())
-        (check-equal? (.get rejected open) '(("candidate-a" "invalid-narration")))))
+        (check-equal? (.get result open) '(("too-long" "invalid-narration")))))
     (test-case "competing candidates remain available without granting an effect"
       (let* ((second (.cc proposal identity: "candidate-b" type: "fix"
                                      rationale: "Repairs the previous admission gap"))
@@ -107,7 +160,7 @@
       (let* ((extended (.cc proposal rationale:
                        "The change introduces source-bound admission rather than changing only presentation.\nThe affected GitOps module owns that admission and the project document supplies its engineering reference."))
              (view (assess naming (list source) (list extended))))
-        (check-equal? (.get view titles) (.get (assess) titles))
+        (check-equal? (.get view titles) expected-title)
         (check-equal? (.get view open) '())))
     (test-case "ASCENT admits language from the recorded project"
       (let* ((project-language (.cc naming primary-language: "en"))
@@ -172,7 +225,7 @@
           (check-equal? (.get view titles) '())
           (check-equal? (.get view open) '(("candidate-a" "conflicting-reference"))))
         (check-equal? (.get (assess (.cc naming references: (list reference reference))) titles)
-                      (.get (assess) titles))))
+                      expected-title)))
     (test-case "duplicate observations of a source path cannot hide invalid evidence"
       (for-each
        (lambda (duplicate)
@@ -217,7 +270,8 @@
              (preview (lambda (selected text (assessment-org org))
                         (gitops-nasa-commit-description selected current-cut candidates
                           canonical text assessment-org "unreviewed context" preview?: #t)))
-             (context-value (.get (preview policy body) context)))
+             (review (preview policy body))
+             (context-value (.get review context)))
         (check-equal? (.get (describe policy canonical body context-value) description)
                       (string-append canonical "\n\nReview the current change.\n\nEvidence\n"
                                      "- SWE-084: The configured audit passed.\n"))
@@ -232,7 +286,7 @@
           (check (string? (.get (describe policy canonical revised-body
                                            (.get (preview policy revised-body) context)) description)) => #t)
           (check-equal? (.get (preview policy body revised-org) description)
-                        (.get (preview policy body) description)))
+                        (.get review description)))
         (let* ((changed (.cc policy rule-context: "build-b"))
                (new-context (.get (preview changed body) context)))
           (check (equal? context-value new-context) => #f)

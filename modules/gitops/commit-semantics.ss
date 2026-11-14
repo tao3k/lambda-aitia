@@ -4,7 +4,7 @@
 (import (only-in :clan/poo/object .o .get .ref)
         (only-in :clan/poo/mop element?)
         (only-in :gerbil/core string-prefix?)
-        (only-in :std/list/list delete-duplicates/hash)
+        (only-in :std/list/list append-map delete-duplicates/hash)
         (only-in :std/error Error? Error-message)
         (only-in :std/encoding/json json->string)
         (only-in :gerbil-ascent/program/syntax ascent)
@@ -13,7 +13,8 @@
         (only-in :orgize/languages/org/modules/org-elements/source-interface
                  org-source-element-graph org-source-element-field)
         (only-in :orgize/languages/org/modules/org-elements/values
-                 org-element-graph-kind-of org-element-graph-records
+                 org-element-graph-kind-of org-element-graph-records org-element-graph-id-of
+                 make-org-element-graph-view
                  make-org-element-query-groups make-org-element-property-clause)
         (only-in :orgize/languages/org/modules/org-contract/values
                  make-org-contract-definition make-org-contract-assertion
@@ -25,38 +26,64 @@
 
 ;; Host observations and Agent proposals enter through different arguments.
 ;; A proposal cannot supply a source document, source cut, or affected path.
-(def (source-has-element? text identity engineering-id)
+(def (engineering-source-graph text)
   ;; Orgize rejects duplicate properties before constructing a graph. This
   ;; source cannot support a reference; unrelated evaluator errors propagate.
-  (let* ((graph (with-catch
-                  (lambda (failure)
-                    (if (and (Error? failure)
-                             (equal? (Error-message failure) "duplicate Org property"))
-                        #f
-                        (raise failure)))
-                  (lambda () (org-source-element-graph text))))
-         (contract
-          (make-org-contract-definition
-           "aitia.engineering-reference" 'document
-           (list (make-org-contract-assertion
-                  "unique-element" 'error
+  (with-catch
+    (lambda (failure)
+      (if (and (Error? failure)
+               (equal? (Error-message failure) "duplicate Org property"))
+          #f
+          (raise failure)))
+    (lambda () (org-source-element-graph text))))
+
+;; This document-wide Contract counts ID properties anywhere in the
+;; parsed source. Preserve every ID and its record identity; only the
+;; document root is needed for the query's ancestry. The original graph
+;; still supplies the headline and its ENGINEERING_ID.
+(def (document-id-view graph)
+  (let* ((id-of (org-element-graph-id-of graph))
+         (kind-of (org-element-graph-kind-of graph))
+         (records (filter (lambda (record)
+                            (or (= (id-of record) 0)
+                                (and (equal? (kind-of record) "node-property")
+                                     (equal? (org-source-element-field record "key") "ID"))))
+                          (org-element-graph-records graph))))
+    (make-org-element-graph-view records id-of
+      (lambda (record) (and (not (= (id-of record) 0)) 0))
+      kind-of org-source-element-field)))
+
+(def (admitted-source-elements graph references)
+  (let* ((elements (delete-duplicates/hash (map caddr references)))
+         (one (make-org-contract-expectation 'exactly 1))
+         (assertions
+          (map (lambda (identity index)
+                 (make-org-contract-assertion
+                  (string-append "unique-element-" (number->string index)) 'error
                   (make-org-element-query-groups
                    "node-property"
                    (list (list (make-org-element-property-clause "key" "ID" 'exact)
                                (make-org-element-property-clause "value" identity 'exact)))
                    'any #f)
-                  (make-org-contract-expectation 'exactly 1)))))
-         (results (and graph (org-contract-evaluate-definition contract graph 0))))
-    ;; The Contract already established that only one ID property matches.
-    ;; Inspect its owning headline without constructing a second graph index.
-    (and results (= 1 (length results)) (andmap org-contract-result-passed? results)
-         (let (kind-of (org-element-graph-kind-of graph))
-           (ormap (lambda (row)
-                    (and (equal? (kind-of row) "headline")
-                         (equal? identity (org-source-element-field row "property:ID"))
-                         (equal? engineering-id
-                                 (org-source-element-field row "property:ENGINEERING_ID"))))
-                  (org-element-graph-records graph))))))
+                  one))
+               elements (iota (length elements))))
+         (contract (make-org-contract-definition "aitia.engineering-reference" 'document assertions))
+         (results (org-contract-evaluate-definition contract (document-id-view graph) 0))
+         (owners (make-hash-table))
+         (kind-of (org-element-graph-kind-of graph)))
+    ;; Orgize evaluates the assertions in declaration order with one query context.
+    (for-each (lambda (identity result)
+                (when (org-contract-result-passed? result)
+                  (hash-put! owners identity #f)))
+              elements results)
+    (for-each (lambda (record)
+                (when (equal? (kind-of record) "headline")
+                  (let (identity (org-source-element-field record "property:ID"))
+                    (when (hash-key? owners identity)
+                      (hash-put! owners identity
+                        (org-source-element-field record "property:ENGINEERING_ID"))))))
+              (org-element-graph-records graph))
+    owners))
 
 (def (identifier? value)
   (and (string? value) (<= 1 (string-length value) 48)
@@ -122,18 +149,34 @@
                       sources)
             index))
          (reference-rows
-          (filter-map
-           (lambda (reference)
-             (match reference
-               ([identity path element]
-                (and (identifier? identity) (not (string-prefix? "SWE-" identity))
-                     (match (hash-ref observations-by-path path '())
-                       ([source]
-                        (and (same-cut? cut (.get source cut))
-                             (source-has-element? (.get source text) element identity)
-                             reference))
-                       (else #f))))))
-           (delete-duplicates/hash declared-rows)))
+          (let ((by-path (make-hash-table))
+                (admitted (make-hash-table))
+                (references (filter (lambda (row)
+                                      (let (identity (car row))
+                                        (and (identifier? identity)
+                                             (not (string-prefix? "SWE-" identity)))))
+                                    (delete-duplicates/hash declared-rows))))
+            (for-each (lambda (row)
+                        (let (path (cadr row))
+                          (hash-put! by-path path (cons row (hash-ref by-path path '())))))
+                      references)
+            (def (owners path)
+              (unless (hash-key? admitted path)
+                (hash-put! admitted path
+                  (match (hash-ref observations-by-path path '())
+                    ([source]
+                     (and (same-cut? cut (.get source cut))
+                          (let (graph (engineering-source-graph (.get source text)))
+                            (and graph
+                                 (admitted-source-elements graph (hash-ref by-path path))))))
+                    (else #f))))
+              (hash-ref admitted path))
+            (filter (lambda (row)
+                      (match row
+                        ([identity path element]
+                         (let (index (owners path))
+                           (and index (equal? identity (hash-get index element)))))))
+                    references)))
          (declared-scopes
           (delete-duplicates/hash
            (map (lambda (scope)
@@ -141,12 +184,14 @@
                         (list-sort string<? (delete-duplicates/hash (.get scope paths)))))
                 (.get naming scopes))))
          (scope-rows
-          (filter-map
+          (append-map
            (lambda (scope)
-             (and (identifier? (car scope))
-                  (ormap (lambda (path)
-                           (ormap (lambda (prefix) (within? prefix path)) (cadr scope))) paths)
-                  (list (car scope))))
+             (let ((name (car scope)) (prefixes (cadr scope)))
+               (if (identifier? name)
+                   (filter-map (lambda (path)
+                                 (and (ormap (lambda (prefix) (within? prefix path)) prefixes)
+                                      (list name path))) paths)
+                   '())))
            declared-scopes))
          (proposal-rows
           (map (lambda (proposal)
@@ -191,7 +236,11 @@
            (relation reference (identity source element) reference-rows)
            (relation allowed_type (kind) (map list (.get naming types)))
            (relation declared_scope (scope prefixes) declared-scopes)
-           (relation scope_match (scope) scope-rows)
+           (relation changed_path (path) (map list paths))
+           (relation scope_match (scope path) scope-rows)
+           (relation scope_path (scope path))
+           (relation covered_path (path))
+           (relation unscoped_path (path))
            (relation affected_scope (scope))
            (relation conflicting_scope (scope))
            (relation well_formed (id) well-formed)
@@ -203,7 +252,10 @@
            ((reference_found R) <-- (reference R _ _))
            ((conflicting_scope S) <-- (declared_scope S P) (declared_scope S Q)
             (guard (P Q) (lambda (p q) (not (equal? p q)))))
-           ((affected_scope S) <-- (scope_match S) (not (conflicting_scope S)))
+           ((scope_path S P) <-- (scope_match S P) (not (conflicting_scope S)))
+           ((affected_scope S) <-- (scope_path S _))
+           ((covered_path P) <-- (scope_path _ P))
+           ((unscoped_path P) <-- (changed_path P) (not (covered_path P)))
            ((grounded_language I L S) <-- (proposed_language I L S) (language_source S))
            ((open I (lit "missing-language-source")) <-- (proposed_language I L S)
             (not (language_source S)) (not (conflicting_language_source S)))
@@ -244,6 +296,8 @@
       (.o eligible: (if duplicate-ids? '() (rows 'eligible))
           open: (if duplicate-ids? '(("*" "duplicate-proposal")) (rows 'open))
           references: reference-rows affected-scopes: (rows 'affected_scope)
+          scope-paths: (rows 'scope_path)
+          unscoped-paths: (map car (rows 'unscoped_path))
           conflicting-scopes: (rows 'conflicting_scope)
           unresolved-references: (rows 'unresolved_reference)
           conflicting-references: (rows 'reference_conflict)

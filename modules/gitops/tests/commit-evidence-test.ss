@@ -67,7 +67,8 @@
              (row '("owner/project" "origin" 2 "feature" "main" "base-a" "parent-a" "observed-a"))
              (bookmarks '(("owner/project" "origin" "feature" "parent-a")))
              (bind (lambda (observation (status "observed"))
-                     (associate status observation #f bookmarks)))
+                     (associate status observation #f bookmarks "parent-a"
+                                '(("parent-a" 10 "completed" "success")))))
              (review (lambda (observation)
                        (guidance (.cc policy review-association: (bind observation)) before '())))
              (current (review row)))
@@ -85,9 +86,9 @@
               ("owner/project" "origin" 2 "feature" "main" "base-a" "retired-head" "observed-a")
               ("impostor/project" "origin" 2 "feature" "main" "base-a" "parent-a" "observed-a")))
         (let* ((route (car bookmarks))
-               (absence (associate "no-open-pull-request" #f route bookmarks))
+               (absence (associate "no-open-pull-request" #f route bookmarks "parent-a"))
                (stale (associate "no-open-pull-request" #f
-                                 '("owner/project" "origin" "feature" "retired-head") bookmarks)))
+                                 '("owner/project" "origin" "feature" "retired-head") bookmarks "parent-a")))
           (check-equal? (.get absence open) '())
           (check-equal? (.get absence absent) route)
           (check-equal? (.get stale open) '(("gitops.pull-request")))
@@ -96,11 +97,17 @@
         (let ((older '("owner/project" "origin" 2 "feature" "main" "base-a" "earlier-head" "observed-a"))
               (reachable '(("owner/project" "origin" "feature" "earlier-head")))
               (conflicted '(("owner/project" "origin" "other" #f))))
-          (check-equal? (.get (associate "observed" older #f reachable) associated) older)
-          (check-equal? (.get (associate "observed" row #f reachable) open) '(("gitops.pull-request")))
-          (check-equal? (.get (associate "observed" older #f (append reachable conflicted)) open)
+          (let* ((checks '(("earlier-head" 10 "completed" "success")))
+                 (ancestor (associate "observed" older #f reachable "commit-a" checks))
+                 (exact (associate "observed" older #f reachable "earlier-head" checks)))
+            (check-equal? (.get ancestor associated) older)
+            (check-equal? (.get ancestor open) '())
+            (check-equal? (.get ancestor disclosed-open) '(("gitops.pull-request-checks")))
+            (check-equal? (.get exact disclosed-open) '()))
+          (check-equal? (.get (associate "observed" row #f reachable "commit-a") open) '(("gitops.pull-request")))
+          (check-equal? (.get (associate "observed" older #f (append reachable conflicted) "commit-a") open)
                         '(("gitops.pull-request")))
-          (check-equal? (.get (associate "no-open-pull-request" #f (car reachable) conflicted) open)
+          (check-equal? (.get (associate "no-open-pull-request" #f (car reachable) conflicted "commit-a") open)
                         '(("gitops.pull-request"))))
         (for-each
          (lambda (updated)
@@ -239,18 +246,14 @@
                     open: (filter-map (lambda (row)
                             (and (equal? (car row) "AITIA_OPEN_OBLIGATION")
                                  (list (cdr row) "Run the missing check on the current cut."))) clauses))))
-             (render (lambda (cut rows (source #f)
-                             (context #f))
-                       (let* ((title "AITIA-RFC-7 test(gitops): Verify the recorded jj cut")
-                              (clauses (.get (guidance policy cut rows) clauses))
-                              (body (narrate clauses))
-                              (org-source (or source (draft clauses))))
-                         (describe policy cut rows title body org-source
-                                   (or context (.get (describe policy cut rows title body
-                                                               org-source "" preview?: #t) context))))))
+             (render (lambda (cut rows clauses (source #f) (context #f))
+                       (describe policy cut rows
+                         "AITIA-RFC-7 test(gitops): Verify the recorded jj cut"
+                         (narrate clauses) (or source (draft clauses)) (or context "")
+                         preview?: (not context))))
              (current-clauses (.get (guidance policy before candidates) clauses))
              (current-draft (draft current-clauses))
-             (result (render before candidates))
+             (result (render before candidates current-clauses))
              (message (.get result description)))
         (check (string-prefix? "AITIA-RFC-7 test(gitops): Verify the recorded jj cut\n" message) => #t)
         (check-equal? message
@@ -263,7 +266,19 @@
            (check-equal? (string-contains message metadata) #f))
          '("NASA-Source-Lock:" "NASA-Edition:" "NASA-Requirements:" "JJ-Cut:"
            "AITIA-Draft:" "AITIA-Evidence:" "sha256:" "parent-a"))
-        (check-equal? (.get (render before (reverse candidates)) description) message)
+        (check-equal? (.get (render before (reverse candidates) current-clauses) description) message)
+        (let (annotated-draft
+              (string-append ":PROPERTIES:\n:OWNER: reviewers\n:END:\n\n"
+                             "* Notes\nBackground for the reviewer.\n" current-draft))
+          (check-equal? (.get (render before candidates current-clauses annotated-draft) description) message))
+        (let* ((edited-org (string-append current-draft "\nMaterial that was not reviewed.\n"))
+               (old-context (.get result context))
+               (refused (render before candidates current-clauses edited-org old-context))
+               (preview (render before candidates current-clauses edited-org))
+               (refreshed (render before candidates current-clauses edited-org (.get preview context))))
+          (check-equal? (.get refused draft-valid?) #f)
+          (check-equal? (.get refused description) #f)
+          (check-equal? (.get refreshed description) message))
         (let* ((assess gitops-commit-model-assessment)
                (paths '("design/model.sysml"))
                (report (hash ("documents" paths) ("modelHash" "parsed-model")))
@@ -275,6 +290,13 @@
           (check (and (string-contains (.get preview preview-description)
                                        "\n- OpenSysML: Parsed \"design/model.sysml\" at the recorded revision.") #t) => #t)
           (check-equal? (string-contains (.get preview preview-description) "Audit checklist") #f)
+          (let (refused (describe model-policy before candidates
+                          "AITIA-RFC-7 test(gitops): Verify the recorded jj cut"
+                          (.cc (narrate current-clauses) evidence: '())
+                          current-draft "" preview?: #t))
+            (check-equal? (.get refused draft-valid?) #f)
+            (check-equal? (.get refused preview-description) #f)
+            (check-equal? (.get refused description) #f))
           (check-equal? (.get (describe model-policy before candidates
                               "AITIA-RFC-7 test(gitops): Verify the recorded jj cut"
                               (narrate current-clauses) current-draft (.get result context))
@@ -282,12 +304,12 @@
         (let* ((associate gitops-commit-review-association)
                (bookmarks '(("owner/project" "origin" "feature" "parent-a")))
                (reviewed-policy
-                (lambda (target-revision-value (check-rows '()))
+                (lambda (target-revision-value (check-rows '(("parent-a" 10 "completed" "success"))))
                   (.cc policy review-association:
                     (associate "observed"
                       (list "owner/project" "origin" 2 "feature" "main"
                             target-revision-value "parent-a" "observed-a")
-                      #f bookmarks check-rows))))
+                      #f bookmarks "parent-a" check-rows))))
                (assess-draft
                 (lambda (policy-value context-value preview-value)
                   (describe policy-value before candidates
@@ -321,61 +343,95 @@
             (check-equal? (.get (describe passed before candidates title (narrate current-clauses) current-draft
                                           (.get preview context)) draft-valid?) #f)
             (check-equal? (.get unavailable review-association disclosed-open)
-                          '(("gitops.pull-request-checks")))))
+                          '(("gitops.pull-request-checks")))
+            (check-equal? (.get passed review-association disclosed-open) '())
+            (let* ((empty (reviewed-policy "base-a" '()))
+                   (empty-clauses (.get (guidance empty before candidates) clauses))
+                   (empty-preview (describe empty before candidates title
+                                    (narrate empty-clauses) (draft empty-clauses) "" preview?: #t)))
+              (check-equal? (.get empty-preview assessment open) '(("gitops.pull-request-checks")))
+              (check-equal? (.get empty-preview assessment blocking-open) '())
+              (check-equal? (.get (assess-draft empty "" #t) draft-valid?) #f)
+              (check-equal? (.get (assess-draft passed (.get empty-preview context) #f)
+                                  draft-valid?) #f))
+            (for-each
+             (lambda (untrusted)
+               (let (review (.get (reviewed-policy "base-a" untrusted) review-association))
+                 (check-equal? (.get review disclosed-open) '(("gitops.pull-request-checks")))
+                 (check-equal? (.get review context) (.get unavailable review-association context))))
+             '((("retired-head" 10 "completed" "success"))
+               (("parent-a" 10 "completed" "success") ("parent-a" 10 "completed" "failure"))
+               (("parent-a" 10 "completed" "success") ("parent-a" 10 "completed" "success"))
+               (("parent-a" 10 "completed"))))))
         (check (string? (.get result description-digest)) => #t)
         (check-equal? (string-contains current-draft "sha256:") #f)
         (check-equal? (string-contains current-draft "AITIA_CONTEXT") #f)
         (let (forged-draft (string-append current-draft
                              (draft '(("SOURCE_SHA256" . "sha256:forged")))))
-          (check-equal? (.get (render before candidates forged-draft) draft-valid?) #f))
+          (check-equal? (.get (render before candidates current-clauses forged-draft) draft-valid?) #f))
+        (let (forged-draft
+              (string-append ":PROPERTIES:\n:SOURCE_SHA256: sha256:forged\n:END:\n\n"
+                             current-draft))
+          (check-equal? (.get (render before candidates current-clauses forged-draft) draft-valid?) #f))
+        (let (extra-clause
+              (string-append ":PROPERTIES:\n:AITIA_SUPPORT: SWE-999\n:END:\n\n"
+                             current-draft))
+          (check-equal? (.get (render before candidates current-clauses extra-clause) draft-valid?) #f))
         (let* ((receipt (.get (car candidates) source))
                (duplicate (string-append (substring receipt 0 (- (string-length receipt) 1))
                                          ",\"OUTCOME\":\"failed\"}")))
-          (check-equal? (.get (render before
-                                (list (.cc (car candidates) source: duplicate) (cadr candidates)))
-                             description) #f))
+          (let* ((rows (list (.cc (car candidates) source: duplicate) (cadr candidates)))
+                 (clauses (.get (guidance policy before rows) clauses)))
+            (check-equal? (.get (render before rows clauses) description) #f)))
         (let* ((fresh (map (lambda (candidate-value)
                             (let (execution-value (.get candidate-value execution))
                               (candidate (.cc execution-value
                                            observation: (.cc (.get execution-value observation)
                                                              cut: rewritten)))))
                           candidates))
-               (fresh-draft (draft (.get (guidance policy rewritten fresh) clauses))))
+               (fresh-clauses (.get (guidance policy rewritten fresh) clauses))
+               (fresh-draft (draft fresh-clauses)))
           (check-equal? fresh-draft current-draft)
-          (check-equal? (.get (render rewritten fresh fresh-draft
+          (check-equal? (.get (render rewritten fresh fresh-clauses fresh-draft
                                     (.get result context)) draft-valid?) #f)
-          (check-equal? (.get (render rewritten fresh fresh-draft) draft-valid?) #t))
+          (check-equal? (.get (render rewritten fresh fresh-clauses fresh-draft) draft-valid?) #t))
         (let* ((alternate (with-commit-semantics
                            (select-policy "nasa/sdlc/npr-7150.2" "SWE-083" checks) "Record configuration"))
                (result (describe alternate before candidates "AITIA-RFC-7 test(gitops): Record configuration" (narrate current-clauses)
-                                 (draft (.get (guidance alternate before candidates) clauses))
+                                 current-draft
                                  "" preview?: #t)))
           (check (string-prefix? "AITIA-RFC-7 test(gitops): Record configuration\n" (.get result description)) => #t))
         (check-exception
          (select-policy "nasa/sdlc/npr-7150.2" "SWE-999" '(("SWE-999" "forged"))) Error?)
         (check-exception
          (select-policy "nasa/sdlc/npr-7150.2" "SWE-083" (cons (car checks) checks)) Error?)
-        (check-equal? (.get (render before (list (car candidates))) description) #f)
-        (let (stale (render rewritten candidates))
+        (check-exception
+         (select-policy "nasa/sdlc/npr-7150.2" "SWE-083"
+           '(("SWE-083" "jj.recorded-change") ("SWE-084" "jj.recorded-change"))) Error?)
+        (let* ((partial (list (car candidates)))
+               (clauses (.get (guidance policy before partial) clauses)))
+          (check-equal? (.get (render before partial clauses) description) #f))
+        (let* ((clauses (.get (guidance policy rewritten candidates) clauses))
+               (stale (render rewritten candidates clauses)))
           (check-equal? (.get stale description) #f)
           (check-equal? (.get stale draft-valid?) #t)
-          (check-equal? (.get (.get stale assessment) reopened) '(("SWE-083") ("SWE-084"))))
-        (check-equal? (.get (render rewritten candidates current-draft) draft-valid?) #f)
-        (check-equal? (.get (render before candidates (draft (cdr current-clauses))) draft-valid?) #f)
+          (check-equal? (.get (.get stale assessment) reopened) '(("SWE-083") ("SWE-084")))
+          (check-equal? (.get (render rewritten candidates clauses current-draft) draft-valid?) #f))
+        (check-equal? (.get (render before candidates current-clauses (draft (cdr current-clauses))) draft-valid?) #f)
         (check-equal?
-         (.get (render before candidates
+         (.get (render before candidates current-clauses
                  (string-append current-draft (draft '(("AITIA_SUPPORT" . "fabricated")))))
                draft-valid?)
          #f)
         (check-equal?
-         (.get (render before candidates
+         (.get (render before candidates current-clauses
                  (string-append current-draft (draft (list (cadr current-clauses)))))
                draft-valid?)
          #f)
         (let* ((failing (candidate (.cc audit observation: (.cc (.get audit observation) outcome: 'failed))))
                (rows (list (car candidates) failing))
                (clauses (.get (guidance policy before rows) clauses))
-               (report (render before rows (draft clauses)))
+               (report (render before rows clauses))
                (preview (.get report preview-description)))
           (check (assoc "AITIA_COUNTEREXAMPLE" clauses) ? pair?)
           (check (assoc "AITIA_OPEN_OBLIGATION" clauses) ? pair?)
@@ -389,15 +445,36 @@
             (check-equal? (.get (describe policy before rows
                                   "AITIA-RFC-7 test(gitops): Verify the recorded jj cut" missing
                                   (draft clauses) "" preview?: #t) preview-description) #f)))
+        (let* ((failure (candidate (.cc audit observation:
+                                      (.cc (.get audit observation) identity: "counter-audit"
+                                           outcome: 'failed))))
+               (rows (append candidates (list failure)))
+               (clauses (.get (guidance policy before rows) clauses))
+               (body (.cc (narrate clauses)
+                        evidence: '(("SWE-083" "The inventory passed.")
+                                    ("SWE-084" "The configuration reports disagree."))))
+               (report (describe policy before rows
+                         "AITIA-RFC-7 test(gitops): Verify the recorded jj cut"
+                         body (draft clauses) "" preview?: #t))
+               (preview (.get report preview-description)))
+          (check-equal? (.get report rejected-count) 0)
+          (check-equal? (.get report draft-valid?) #t)
+          (check-equal? (.get report description) #f)
+          (check (and (string-contains preview "- SWE-084 (conflicting):") #t) => #t)
+          (check (and (string-contains preview "\n\nOpen\n- SWE-084:") #t) => #t))
         (let* ((forged (.cc (cadr candidates) execution: (.cc audit report-digest: "forged")))
-               (rejected (render before (list (car candidates) forged))))
+               (rows (list (car candidates) forged))
+               (clauses (.get (guidance policy before rows) clauses))
+               (rejected (render before rows clauses)))
           (check-equal? (.get rejected description) #f)
           (check-equal? (.get rejected rejected-count) 1))
-        (let (wrong (candidate (.cc audit method: "unexpected-method")))
-          (check-equal? (.get (render before (list (car candidates) wrong)) description) #f))
+        (let* ((wrong (candidate (.cc audit method: "unexpected-method")))
+               (rows (list (car candidates) wrong))
+               (clauses (.get (guidance policy before rows) clauses)))
+          (check-equal? (.get (render before rows clauses) description) #f))
         (check-exception
          (describe policy before candidates "SWE-999: Invent a prefix" (narrate current-clauses) current-draft
-                   (.get (guidance policy before candidates) context)) Error?)
+                   "" preview?: #t) Error?)
         (let (narration (narrate current-clauses))
           (for-each
            (lambda (invalid)

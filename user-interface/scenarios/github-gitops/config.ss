@@ -9,6 +9,7 @@
 
 (def (github-gitops-commit-policy standard-value profile-name primary-id checks-value)
   (let ((ids (map car checks-value))
+        (methods (map cadr checks-value))
         (catalog (map (lambda (requirement) (.get requirement identity))
                       (.get standard-value requirements))))
     (unless (and (equal? profile-name (.get standard-value identity))
@@ -16,6 +17,8 @@
                  (= (length ids) (length (delete-duplicates/hash ids)))
                  (every (lambda (id) (member id catalog)) ids))
       (error "Project commit requirements do not match the selected NASA catalog"))
+    (unless (= (length methods) (length (delete-duplicates/hash methods)))
+      (error "Project commit checks must use distinct methods"))
     (.o standard: standard-value primary: primary-id checks: checks-value)))
 
 (def (make-github-gitops-scope delivery nasa)

@@ -22,6 +22,8 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 const DESCRIPTION_OPERATION: &str = "AITIA: finalize commit description";
+const REVIEW_PROPOSAL_ATTRIBUTE: &str = "aitia.review-proposal";
+const REVIEW_CONTEXT_ATTRIBUTE: &str = "aitia.review-context";
 
 /// Exact identity of the prepared write. It becomes a receipt only after readback.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -42,6 +44,24 @@ pub struct DescriptionRecovery {
     pub resulting_operation: String,
     pub resulting_commit: String,
     pub description: String,
+}
+
+impl DescriptionRecovery {
+    /// Check the recorded input of an unpublished rewrite before policy evaluation.
+    ///
+    /// # Errors
+    /// Rejects a different workspace, operation or commit.
+    pub fn require_expected_cut(&self, expected: &WorkspaceCut) -> Result<(), JjObservationError> {
+        if self.workspace != expected.workspace_name()
+            || self.expected_operation != expected.operation_id()
+            || self.expected_commit != expected.commit_id()
+        {
+            return Err(JjObservationError::Output(
+                "prepared rewrite does not match the reviewed cut and description".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 impl DescriptionReceipt {
@@ -77,15 +97,19 @@ pub fn reconcile_description(
     record: &DescriptionRecovery,
 ) -> Result<DescriptionOutcome, JjObservationError> {
     let workspace = open_project_workspace(directory)?;
-    Ok(if block_on(has_applied_description(&workspace, record))? {
-        DescriptionOutcome::Applied
-    } else {
-        DescriptionOutcome::Unresolved
-    })
+    Ok(
+        if block_on(find_applied_description(&workspace, record))?.is_some() {
+            DescriptionOutcome::Applied
+        } else {
+            DescriptionOutcome::Unresolved
+        },
+    )
 }
 
 /// Immutable host observations of a description rewrite found in local JJ history.
 pub struct AppliedDescriptionEvidence {
+    pub review_context: Option<String>,
+    pub review_proposal: Option<String>,
     pub original: WorkspaceCut,
     pub changes: Vec<RecordedPathChange>,
     pub project_inputs: Vec<RecordedProjectInput>,
@@ -111,11 +135,11 @@ pub fn read_applied_description_evidence(
     }
     let workspace = open_project_workspace(directory)?;
     block_on(async {
-        if !has_applied_description(&workspace, record).await? {
+        let Some(applied) = find_applied_description(&workspace, record).await? else {
             return Err(JjObservationError::Output(
                 "description operation is not visible in local JJ history".into(),
             ));
-        }
+        };
         let original_id = OperationId::try_from_hex(&record.expected_operation)
             .ok_or_else(|| JjObservationError::Output("invalid review operation".into()))?;
         let original = capture_operation(&workspace, &original_id).await?;
@@ -126,7 +150,10 @@ pub fn read_applied_description_evidence(
             .store()
             .get_commit(&original_commit)
             .map_err(repository_error)?;
+        let attributes = &applied.metadata().attributes;
         Ok(AppliedDescriptionEvidence {
+            review_context: attributes.get(REVIEW_CONTEXT_ATTRIBUTE).cloned(),
+            review_proposal: attributes.get(REVIEW_PROPOSAL_ATTRIBUTE).cloned(),
             configuration: read_git_configuration(&workspace, &original)?,
             changes: changes_at_commit(&workspace, &commit).await?,
             project_inputs: project_input_entries(&commit).await?,
@@ -137,10 +164,10 @@ pub fn read_applied_description_evidence(
     })
 }
 
-async fn has_applied_description(
+async fn find_applied_description(
     workspace: &Workspace,
     record: &DescriptionRecovery,
-) -> Result<bool, JjObservationError> {
+) -> Result<Option<Operation>, JjObservationError> {
     if record.workspace != workspace.workspace_name().as_str() {
         return Err(JjObservationError::Output("foreign JJ workspace".into()));
     }
@@ -156,7 +183,7 @@ async fn has_applied_description(
     let _lock = heads.lock().await.map_err(repository_error)?;
     let current = heads.get_op_heads().await.map_err(repository_error)?;
     let [head] = current.as_slice() else {
-        return Ok(false);
+        return Ok(None);
     };
     let head = loader
         .load_operation(head)
@@ -167,11 +194,11 @@ async fn has_applied_description(
         let operation = operation.map_err(repository_error)?;
         if operation.id() == &resulting_operation {
             verify_description_operation(workspace, &operation, record).await?;
-            return Ok(true);
+            return Ok(Some(operation));
         }
     }
     // Absence in local history does not establish a previous write never happened.
-    Ok(false)
+    Ok(None)
 }
 
 /// Immutable review inputs before a verified description-only transition.
@@ -256,11 +283,36 @@ pub fn reopen_description(
     description: &str,
     record: &DescriptionRecovery,
 ) -> Result<PreparedDescription, JjObservationError> {
-    if record.workspace != expected.workspace_name()
-        || record.expected_operation != expected.operation_id()
-        || record.expected_commit != expected.commit_id()
-        || record.description != description
-    {
+    reopen_description_with_context(expected, description, record, None)
+}
+
+/// Reopen a prepared rewrite bound to the current Scheme review context.
+///
+/// # Errors
+/// Refuses a missing or different stored review context or an invalid rewrite.
+pub fn reopen_reviewed_description(
+    expected: &WorkspaceCut,
+    description: &str,
+    record: &DescriptionRecovery,
+    review_context: &str,
+    review_proposal: &str,
+) -> Result<PreparedDescription, JjObservationError> {
+    reopen_description_with_context(
+        expected,
+        description,
+        record,
+        Some((review_context, review_proposal)),
+    )
+}
+
+fn reopen_description_with_context(
+    expected: &WorkspaceCut,
+    description: &str,
+    record: &DescriptionRecovery,
+    review: Option<(&str, &str)>,
+) -> Result<PreparedDescription, JjObservationError> {
+    record.require_expected_cut(expected)?;
+    if record.description != description {
         return Err(JjObservationError::Output(
             "prepared rewrite does not match the reviewed cut and description".into(),
         ));
@@ -277,7 +329,21 @@ pub fn reopen_description(
             .load_operation(&operation)
             .await
             .map_err(repository_error)?;
-        verify_description_operation(&workspace, &loaded, record).await
+        verify_description_operation(&workspace, &loaded, record).await?;
+        if let Some((context, proposal)) = review {
+            let attributes = &loaded.metadata().attributes;
+            if attributes.get(REVIEW_CONTEXT_ATTRIBUTE).map(String::as_str) != Some(context)
+                || attributes
+                    .get(REVIEW_PROPOSAL_ATTRIBUTE)
+                    .map(String::as_str)
+                    != Some(proposal)
+            {
+                return Err(JjObservationError::Output(
+                    "prepared rewrite does not match the current review context".into(),
+                ));
+            }
+        }
+        Ok(())
     })?;
     Ok(PreparedDescription {
         workspace,
@@ -383,6 +449,36 @@ pub fn prepare_description(
     expected: &WorkspaceCut,
     description: &str,
 ) -> Result<PreparedDescription, JjObservationError> {
+    prepare_description_with_context(expected, description, None)
+}
+
+/// Prepare a description rewrite with the Scheme review context and proposal binding in JJ operation metadata.
+///
+/// # Errors
+/// Rejects a missing review binding or a rewrite outside the recorded leaf.
+pub fn prepare_reviewed_description(
+    expected: &WorkspaceCut,
+    description: &str,
+    review_context: &str,
+    review_proposal: &str,
+) -> Result<PreparedDescription, JjObservationError> {
+    if review_context.is_empty() || review_proposal.is_empty() {
+        return Err(JjObservationError::Output(
+            "commit review context or proposal binding is empty".into(),
+        ));
+    }
+    prepare_description_with_context(
+        expected,
+        description,
+        Some((review_context, review_proposal)),
+    )
+}
+
+fn prepare_description_with_context(
+    expected: &WorkspaceCut,
+    description: &str,
+    review: Option<(&str, &str)>,
+) -> Result<PreparedDescription, JjObservationError> {
     if description.trim().is_empty() {
         return Err(JjObservationError::Output(
             "commit description is empty".into(),
@@ -461,6 +557,10 @@ pub fn prepare_description(
         }
 
         transaction.set_workspace_name(workspace.workspace_name());
+        if let Some((context, proposal)) = review {
+            transaction.set_attribute(REVIEW_CONTEXT_ATTRIBUTE.to_owned(), context.to_owned());
+            transaction.set_attribute(REVIEW_PROPOSAL_ATTRIBUTE.to_owned(), proposal.to_owned());
+        }
         let prepared = transaction
             .write(DESCRIPTION_OPERATION)
             .await

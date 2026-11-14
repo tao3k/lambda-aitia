@@ -295,12 +295,12 @@ def replay_complete(status, output, traces):
     return list(map(int, completed_steps)) == list(map(len, traces))
 
 
-def replay(work, chunk, traces):
+def replay(work, worker, chunk, traces):
     fixture = work / f"traces-{chunk}.scm"
     fixture.write_text("(" + "\n".join(map(sexpr_trace, traces)) + ")\n")
     try:
         status, output = run(["env", f"AITIA_LIFECYCLE_REPLAY={fixture}", "just",
-                              "test-lifecycle-batch"],
+                              "test-lifecycle-batch", str(worker)],
                              REPO, f"native-lifecycle-{chunk}", timeout=65)
         if not replay_complete(status, output, traces):
             raise RuntimeError(f"Scheme replay failed: chunk={chunk} exit={status}\n{output[-8000:]}")
@@ -318,7 +318,9 @@ def replay(work, chunk, traces):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stress", action="store_true", help="replay the full bounded state cover")
-    stress = parser.parse_args().stress
+    parser.add_argument("--worker", type=Path, required=True, help="compiled Scheme replay executable")
+    args = parser.parse_args()
+    stress = args.stress
     hashes = source_hashes()
     quint = os.environ.get("AITIA_QUINT_BIN", str(ROOT / "node_modules/.bin/quint"))
     if subprocess.check_output([quint, "--version"], text=True, timeout=5).strip() != "0.33.0":
@@ -340,7 +342,7 @@ def main():
         # Each isolated Scheme process gets the existing 512 MiB heap.
         # Run faults first and reuse any space left in their batch.
         for chunk, batch in enumerate(batches(faults + selected)):
-            completed += replay(work, chunk, batch)
+            completed += replay(work, args.worker, chunk, batch)
             witness_count = max(0, completed - len(faults))
             print(f"LIFECYCLE-REPLAY: traces={witness_count}/{len(selected)} "
                   f"faults={min(completed, len(faults))}/{len(faults)}", flush=True)

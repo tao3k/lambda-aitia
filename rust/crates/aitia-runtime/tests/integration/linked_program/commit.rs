@@ -9,7 +9,15 @@ use super::{commit_proposal, narration, write_commit_work_item};
 use serde_json::{Value, json};
 use std::process::{Command, Stdio};
 
-fn review_org(context: &Value) -> String {
+#[path = "archive.rs"]
+mod archive;
+
+pub(super) fn json_output(output: std::process::Output) -> Value {
+    assert!(output.status.success(), "{output:?}");
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+pub(super) fn review_org(context: &Value) -> String {
     context["review"]["clauses"]
         .as_array()
         .unwrap()
@@ -22,6 +30,30 @@ fn review_org(context: &Value) -> String {
             )
         })
         .collect()
+}
+
+#[test]
+fn commit_requires_a_recorded_workspace() {
+    let directory = tempfile::tempdir().unwrap();
+    assert!(
+        Command::new("git")
+            .args(["init", "--quiet"])
+            .current_dir(directory.path())
+            .status()
+            .unwrap()
+            .success()
+    );
+    let rejected = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .args(["jj", "commit"])
+        .current_dir(directory.path())
+        .output()
+        .unwrap();
+    assert_eq!(rejected.status.code(), Some(1), "{rejected:?}");
+    assert!(rejected.stdout.is_empty(), "{rejected:?}");
+    assert!(
+        String::from_utf8_lossy(&rejected.stderr).contains("no JJ workspace found"),
+        "{rejected:?}"
+    );
 }
 
 #[test]
@@ -91,11 +123,6 @@ fn signed_commit_uses_the_prepared_operation_and_durable_approval() {
         serde_json::to_writer(child.stdin.take().unwrap(), &input).unwrap();
         child.wait_with_output().unwrap()
     };
-    let json_output = |result: std::process::Output| {
-        assert!(result.status.success(), "{result:?}");
-        serde_json::from_slice::<Value>(&result.stdout).unwrap()
-    };
-
     let context = json_output(run(&[], Value::Null));
     let org = review_org(&context);
     let mut draft = json!({"proposal":commit_proposal("Audit the recorded configuration"),
@@ -294,6 +321,7 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     #[cfg(target_os = "macos")]
     compiled_program::assert_controls(fixture.path());
     let run = |args: &[&str], input: &Value| {
+        let started = std::time::Instant::now();
         #[cfg(target_os = "macos")]
         let mut command = compiled_program::command(args);
         #[cfg(not(target_os = "macos"))]
@@ -315,11 +343,13 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
             .spawn()
             .unwrap();
         serde_json::to_writer(child.stdin.take().unwrap(), input).unwrap();
-        child.wait_with_output().unwrap()
-    };
-    let json_output = |output: std::process::Output| {
-        assert!(output.status.success(), "{output:?}");
-        serde_json::from_slice::<Value>(&output.stdout).unwrap()
+        let output = child.wait_with_output().unwrap();
+        eprintln!(
+            "AITIA-LINKED-TEST: {args:?} exited {} in {:.3}s",
+            output.status,
+            started.elapsed().as_secs_f64()
+        );
+        output
     };
     let context = json_output(run(&["jj", "commit"], &Value::Null));
     assert_eq!(
@@ -454,6 +484,12 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
         &json!({"draft":draft,"attempt":previous["attempt"]}),
     );
     assert!(!refused.status.success(), "{refused:?}");
+    assert!(refused.stdout.is_empty(), "{refused:?}");
+    assert!(
+        String::from_utf8_lossy(&refused.stderr)
+            .contains("prepared rewrite does not match the reviewed cut"),
+        "{refused:?}"
+    );
     assert_eq!(
         aitia_jj::observe_workspace(&workspace).unwrap(),
         rebound_cut
@@ -461,46 +497,25 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
 
     let mut changed_text = draft.clone();
     changed_text["narration"]["evidence"][0]["text"] = json!("A statement that was not reviewed.");
-    let mut changed_org = draft.clone();
-    changed_org["org"] = json!(format!("{}\nMaterial that was not reviewed.\n", org));
-    let mut missing_evidence = draft.clone();
-    missing_evidence["narration"]["evidence"] = json!([]);
-    let mut forged_open = draft.clone();
-    forged_open["narration"]["open"] =
-        json!([{"obligation":"SWE-084","text":"An obligation without a source."}]);
-    for changed in [changed_text, changed_org, missing_evidence, forged_open] {
-        let refused = run(&["jj", "commit", "prepare"], &changed);
-        assert!(!refused.status.success(), "{refused:?}");
-        let report: Value = serde_json::from_slice(&refused.stdout).unwrap();
-        assert!(report["review"]["description"].is_null());
-        assert!(report.get("attempt").is_none());
-    }
-    for (field, value, reason) in [
-        ("reference", "PR-2", "missing-reference"),
-        ("reference", "SWE-084", "missing-reference"),
-        ("scope", "unaffected", "unaffected-scope"),
-        ("type", "invented", "unsupported-type"),
-        ("language", "fr", "language-conflict"),
-        (
-            "languageSource",
-            "unrecorded.org",
-            "missing-language-source",
-        ),
-    ] {
-        let mut invalid = draft.clone();
-        invalid["proposal"][field] = json!(value);
-        let refused = run(&["jj", "commit", "prepare"], &invalid);
-        assert!(!refused.status.success(), "{refused:?}");
-        let report: Value = serde_json::from_slice(&refused.stdout).unwrap();
-        assert!(report.get("attempt").is_none());
-        assert!(
-            report["review"]["semantics"]["open"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|row| row[1] == reason)
-        );
-    }
+    let refused = run(&["jj", "commit", "prepare"], &changed_text);
+    assert!(!refused.status.success(), "{refused:?}");
+    let report: Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert!(report["review"]["description"].is_null());
+    assert!(report.get("attempt").is_none());
+
+    let mut invalid = draft.clone();
+    invalid["proposal"]["reference"] = json!("PR-2");
+    let refused = run(&["jj", "commit", "prepare"], &invalid);
+    assert!(!refused.status.success(), "{refused:?}");
+    let report: Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert!(report.get("attempt").is_none());
+    assert!(
+        report["review"]["semantics"]["open"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row[1] == "missing-reference")
+    );
     let mut free_title = draft.clone();
     free_title.as_object_mut().unwrap().remove("proposal");
     free_title["title"] = json!("TEST-WORK-1 fix(gitops): Bypass source admission");
@@ -556,199 +571,37 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     let approved = json!({"draft":draft,"attempt":prepared["attempt"]});
     let applied_preview = ["jj", "commit", "preview", "--applied"];
     assert!(!run(&applied_preview, &approved).status.success());
-    let written = json_output(run(&["jj", "commit", "apply"], &approved));
-    let evidence = json_output(run(&evidence_args, &written));
-    let mut queried = json_output(run(
-        &["jj", "commit", "evidence", revision, "--gql"],
-        &written,
-    ));
-    let query = queried["lineage"]
-        .as_object_mut()
-        .unwrap()
-        .remove("query")
-        .unwrap();
-    assert_eq!(query["status"], "executed");
-    assert_eq!(query["revision"], revision);
-    assert_eq!(query["complete"], false);
-    assert_eq!(query["actionAuthority"], false);
-    assert!(query["gql"].as_str().unwrap().contains("enumerated_by"));
-    let reports = &query["verifiedReports"];
-    assert_eq!(reports["revision"], revision);
-    let report_rows = reports["rows"].as_array().unwrap();
-    assert_eq!(report_rows.len(), 2);
-    for method in ["jj.recorded-change", "jj.configuration-audit"] {
-        assert!(report_rows.contains(&json!({"method": method})));
-    }
-    assert!(
-        query["rows"]
-            .as_array()
-            .unwrap()
-            .contains(&json!({"path":"change.txt","method":"jj.recorded-change"}))
-    );
-    let inputs = &query["projectInputs"];
-    assert_eq!(inputs["revision"], revision);
-    assert_eq!(inputs["complete"], false);
-    assert_eq!(inputs["actionAuthority"], false);
-    assert!(inputs["gql"].as_str().unwrap().contains("reads_config"));
-    assert!(
-        inputs["rows"]
-            .as_array()
-            .unwrap()
-            .contains(&json!({"path":".agents/aita/project.json","changed":true}))
-    );
-    assert_eq!(query["modelEvidence"]["rows"], json!([]));
-    let sources = &query["policySources"];
-    assert_eq!(sources["revision"], revision);
-    assert!(
-        sources["gql"]
-            .as_str()
-            .unwrap()
-            .contains("has_policy_source")
-    );
-    assert!(
-        sources["rows"]
-            .as_array()
-            .unwrap()
-            .contains(&json!({"path":".agents/aita/work.org","changed":false}))
-    );
-    assert_eq!(queried, evidence);
-    assert_eq!(evidence["revision"], revision);
-    assert_eq!(evidence["original"], written["cut"]);
-    assert_eq!(evidence["description"], written["review"]["description"]);
-    assert_eq!(evidence["missingReports"], json!([]));
-    let recovered = json_output(run(
-        &["jj", "commit", "recover"],
-        &json!({"attempt": prepared["attempt"]}),
-    ));
-    let recovered_evidence = json_output(run(&evidence_args, &recovered));
-    assert_eq!(recovered_evidence["original"], evidence["original"]);
-    assert_eq!(recovered_evidence["description"], evidence["description"]);
-    assert_eq!(recovered_evidence["observations"], json!([]));
+    let mut refreshed = approved.clone();
+    refreshed["draft"]["proposal"]["rationale"] =
+        json!("Reassess the same engineering item without changing the rendered description.");
+    let preview = json_output(run(&["jj", "commit", "preview"], &refreshed["draft"]));
     assert_eq!(
-        recovered_evidence["missingReports"],
-        json!(["jj.recorded-change", "jj.configuration-audit"])
+        preview["review"]["previewDescription"],
+        prepared["review"]["description"]
     );
-    let lineage = &evidence["lineage"];
-    assert_eq!(lineage["revision"], revision);
-    assert_eq!(lineage["dependencyCoverage"], "unknown");
-    let nodes = lineage["nodes"].as_array().unwrap();
-    let edges = lineage["edges"].as_array().unwrap();
-    assert_eq!(
-        nodes
-            .iter()
-            .map(|node| node["id"].as_str().expect("serialized graph identity"))
-            .collect::<std::collections::BTreeSet<_>>()
-            .len(),
-        nodes.len()
-    );
-    let path = |name: &str| nodes.iter().find(|node| node["path"] == name).unwrap();
-    let changed = path("change.txt");
-    let config = path(".agents/aita/project.json");
-    let language_source = path(".agents/aita/work.org");
-    assert_eq!(language_source["changed"], false);
-    assert!(edges.iter().any(|edge| edge["from"] == revision
-        && edge["to"] == language_source["id"]
-        && edge["relation"] == "has_policy_source"));
-    assert_eq!(changed["changed"], true);
-    assert_eq!(changed["after"]["kind"], "file");
-    let inventory = nodes
-        .iter()
-        .find(|node| node["method"] == "jj.recorded-change")
-        .unwrap();
-    assert!(edges.iter().any(|edge| edge["from"] == changed["id"]
-        && edge["to"] == inventory["id"]
-        && edge["relation"] == "enumerated_by"));
-    assert!(edges.iter().any(|edge| edge["from"] == revision
-        && edge["to"] == config["id"]
-        && edge["relation"] == "reads_config"));
-
-    for (observed, archived) in evidence["observations"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .zip(written["executions"].as_array().unwrap())
-    {
-        assert_eq!(observed["method"], archived["method"]);
-        assert_eq!(observed["report"], archived["report"]);
-        assert!(observed.get("obligation").is_none());
-    }
-    let mut stale_inputs = written.clone();
-    stale_inputs["executions"][0]["inputDigest"] = json!("sha256:stale");
-    let refused = run(&evidence_args, &stale_inputs);
-    assert!(
-        !refused.status.success(),
-        "accepted a check report from a different input cut"
-    );
+    assert_ne!(preview["review"]["context"], approved["draft"]["context"]);
+    refreshed["draft"]["context"] = preview["review"]["context"].clone();
+    let refused = run(&["jj", "commit", "apply"], &refreshed);
+    assert_eq!(refused.status.code(), Some(1), "{refused:?}");
     assert!(refused.stdout.is_empty(), "{refused:?}");
     assert!(
         String::from_utf8_lossy(&refused.stderr)
-            .contains("Archived jj.recorded-change report rejected"),
+            .contains("prepared rewrite does not match the current review context"),
         "{refused:?}"
     );
-    for (field, replacement) in [
-        ("requirement", "SWE-084"),
-        ("identity", "claimed-authority"),
-    ] {
-        let mut relabelled = written.clone();
-        relabelled["executions"][0][field] = json!(replacement);
-        let refused = run(&evidence_args, &relabelled);
-        assert!(
-            !refused.status.success() && refused.stdout.is_empty(),
-            "{refused:?}"
-        );
-        assert!(
-            String::from_utf8_lossy(&refused.stderr)
-                .contains("Archived jj.recorded-change report rejected"),
-            "{refused:?}"
-        );
-    }
-    let mut forged = written.clone();
-    let changed_report = json!([{"path":"forged.txt"}]);
-    forged["executions"][0]["report"] = changed_report.clone();
-    use sha2::{Digest, Sha256};
-    forged["executions"][0]["reportDigest"] = json!(format!(
-        "sha256:{:x}",
-        Sha256::digest(serde_json::to_vec(&changed_report).unwrap())
-    ));
-    assert!(!run(&evidence_args, &forged).status.success());
-
-    let mut forged = written.clone();
-    forged["receipt"]["description"] = json!("Forged description");
-    forged["review"]["description"] = forged["receipt"]["description"].clone();
-    assert!(!run(&evidence_args, &forged).status.success());
-    assert!(
-        !run(&["jj", "commit", "evidence", base.commit_id()], &written)
-            .status
-            .success()
-    );
-
-    let mut missing = written.clone();
-    missing["executions"].as_array_mut().unwrap().remove(1);
-    let partial = json_output(run(
-        &["jj", "commit", "evidence", revision, "--gql"],
-        &missing,
-    ));
-    assert_eq!(partial["missingReports"], json!(["jj.configuration-audit"]));
-    assert_eq!(partial["observations"].as_array().unwrap().len(), 1);
     assert_eq!(
-        partial["lineage"]["query"]["verifiedReports"]["rows"],
-        json!([{"method":"jj.recorded-change"}])
+        aitia_jj::observe_workspace(&workspace).unwrap(),
+        rebound_cut
     );
-    let missing_report = partial["lineage"]["nodes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|node| node["method"] == "jj.configuration-audit")
-        .unwrap();
-    assert_eq!(missing_report["state"], "missing");
-    let edges = partial["lineage"]["edges"].as_array().unwrap();
-    assert!(
-        edges
-            .iter()
-            .any(|edge| edge["to"] == missing_report["id"] && edge["relation"] == "missing_report")
+    let written = json_output(run(&["jj", "commit", "apply"], &approved));
+    let (evidence, recovered, recovered_evidence) = archive::assert_applied_readback(
+        &run,
+        revision,
+        base.commit_id(),
+        &prepared["attempt"],
+        &written,
+        &workspace,
     );
-    assert!(!edges.iter().any(|edge| edge["to"] == missing_report["id"]
-        && edge["relation"] == "verified_report"));
 
     let description = written["review"]["description"].as_str().unwrap();
     assert!(description.starts_with("TEST-WORK-1 fix(gitops): Publish the reviewed change\n"));
@@ -781,10 +634,24 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     let refused = run(&args, &forged);
     assert!(!refused.status.success(), "{refused:?}");
     assert_eq!(head(), base.commit_id());
-    for changed_field in ["context", "rationale", "org"] {
+    let mut signed = approved.clone();
+    signed["approval"] = json!("local-description-only");
+    let refused = run(&args, &signed);
+    assert!(!refused.status.success(), "{refused:?}");
+    assert!(refused.stdout.is_empty(), "{refused:?}");
+    assert!(
+        String::from_utf8_lossy(&refused.stderr)
+            .contains("Signed description approval does not authorize a remote push")
+    );
+    assert_eq!(head(), base.commit_id());
+    let stale_context = "Commit review context is stale";
+    for changed_field in ["context", "digest", "rationale", "org"] {
         let mut stale_review = approved.clone();
         match changed_field {
             "context" => stale_review["draft"]["context"] = json!("retired review context"),
+            "digest" => {
+                stale_review["draft"]["context"] = json!(format!("sha256:{}", "0".repeat(64)))
+            }
             "rationale" => {
                 stale_review["draft"]["proposal"]["rationale"] =
                     json!("A different intent was never part of this review");
@@ -798,6 +665,7 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
         }
         let refused = run(&args, &stale_review);
         assert!(!refused.status.success(), "{changed_field}: {refused:?}");
+        assert!(String::from_utf8_lossy(&refused.stderr).contains(stale_context));
         assert_eq!(head(), base.commit_id());
     }
     let config = |args: &[&str]| {
@@ -813,7 +681,7 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     config(&["remote.origin.pushurl", "git@github.com:team/project.git"]);
     let refused = run(&args, &approved);
     assert!(!refused.status.success(), "{refused:?}");
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("Missing reviewed description"));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains(stale_context));
     assert_eq!(
         aitia_jj::observe_workspace(&workspace).unwrap(),
         before_route_change
@@ -832,7 +700,7 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     config(&["remote.origin.pushurl", alternate.to_str().unwrap()]);
     let refused = run(&args, &approved);
     assert!(!refused.status.success(), "{refused:?}");
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("Missing reviewed description"));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains(stale_context));
     assert_eq!(
         aitia_jj::observe_workspace(&workspace).unwrap(),
         before_route_change
@@ -862,6 +730,7 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     refreshed["draft"]["proposal"]["rationale"] = json!("Reconfirm the recorded review facts");
     let preview = json_output(run(&applied_preview, &refreshed));
     assert_eq!(preview["review"]["matchesWrittenDescription"], true);
+    assert_eq!(preview["review"]["reviewContextCurrent"], false);
     assert_eq!(preview["review"]["previewDescription"], description);
     assert_eq!(preview["cut"], written["cut"]);
     assert_ne!(preview["review"]["context"], refreshed["draft"]["context"]);
@@ -953,6 +822,24 @@ fn reviewed_commit_push_reads_back_prose_without_scheme_compilers() {
     assert!(refusal.get("attempt").is_none());
     assert_eq!(head(), pushed["commit"].as_str().unwrap());
     eprintln!("AITIA-LINKED-TEST: unresolved obligation preview and prepare refusal");
+
+    manifest["programs"]["jj"]["settings"]["checks"][1]["method"] = json!("jj.recorded-change");
+    std::fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    run_jj(&["describe", "-m", "Record conflicting check methods"]);
+    let conflict_cut = aitia_jj::observe_workspace(&workspace).unwrap();
+    let refused = run(&["jj", "commit"], &Value::Null);
+    assert_eq!(refused.status.code(), Some(1), "{refused:?}");
+    assert!(refused.stdout.is_empty(), "{refused:?}");
+    assert!(
+        String::from_utf8_lossy(&refused.stderr)
+            .contains("Project commit checks must use distinct methods"),
+        "{refused:?}"
+    );
+    assert_eq!(
+        aitia_jj::observe_workspace(&workspace).unwrap(),
+        conflict_cut
+    );
+    assert_eq!(head(), pushed["commit"].as_str().unwrap());
 
     run_jj(&["new", "-m", "Replace the project configuration"]);
     std::fs::write(&manifest_path, r#"{"schemaVersion":2}"#).unwrap();

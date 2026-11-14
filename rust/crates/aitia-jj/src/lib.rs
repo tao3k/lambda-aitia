@@ -15,7 +15,8 @@ mod description;
 pub use description::{
     AppliedDescriptionEvidence, DescriptionOrigin, DescriptionOutcome, DescriptionReceipt,
     DescriptionRecovery, PreparedDescription, observe_description_origin, prepare_description,
-    read_applied_description_evidence, reconcile_description, reopen_description,
+    prepare_reviewed_description, read_applied_description_evidence, reconcile_description,
+    reopen_description, reopen_reviewed_description,
 };
 
 pub use observation::PushRemote;

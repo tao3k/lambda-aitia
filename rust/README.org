@@ -439,6 +439,83 @@ its joint 120-second guard. Five CLI cases took 69.54 seconds and the
 OpenSysML case took 27.82 seconds. The compiled declaration case passed separately in 10.59 seconds using
 its trusted Scheme declaration and the existing macOS process restrictions.
 
+** Marlin Release and linked commit preview
+
+On the same Darwin host, a copied Marlin Release binary reached its first
+interactive PTY frame in 3,183 ms on first execution and in 232 and 488 ms
+on two repeats. Its in-process first-frame markers were 458, 218 and
+470 ms. Its cumulative Scheme VM-ready markers were 169, 82 and 215 ms.
+The PTY used a local fixture, with Gerbil runtime paths pointing to an
+absent directory. The first run included substantial time before the
+application's own markers.
+
+The rebuilt AITIA dev-profile AOT binary ran the recorded 31-path
+preview with a local OpenSysML service in 7,010, 3,480 and 4,180 ms.
+The accompanying revision evidence queries took 3,240, 3,480 and
+3,790 ms. All three previews returned byte-identical responses, and
+all three revision reads returned three verified observations and no
+missing reports. The preview description, Evidence, Open and model
+result also matched the preceding AOT build.
+
+The AITIA Release binary built from the same staged Scheme inputs ran
+preview in 3,270, 1,660 and 1,880 ms. Revision evidence queries took
+950, 1,410 and 1,330 ms. Release and dev previews matched apart from
+the review context bound to the linked archive. Revision query responses
+matched byte for byte. Both local builds used the classic macOS linker.
+Each command exited normally under the existing 120-second guard.
+
+A separate fresh copy of the same AITIA binary returned commit help
+in 2,132 ms on its first execution and in 24 and 35 ms on repeats.
+Help exits before entering Scheme. The same copy resolved the recorded
+project manifest in 5,791, 4,263 and 4,451 ms. That operation enters
+Scheme and validates project configuration, without running commit
+review. These observations include other build activity on the host.
+The Marlin comparison covers different commands. These sequential
+samples leave stable tail latency and attribution of the first-run
+penalty open.
+
+The inspected AITIA stage manifest contains 379 eager non-system rows and
+252 deferred rows. The inspected Marlin stage manifest contains 121
+eager non-system rows and 673 deferred rows. AITIA's eager closure still
+includes ASCENT, Parser and Orgize Fold. Marlin passes runtime imports
+from its Yuanxu Make projection to the bridge stager. AITIA's linked
+entry imports the shared operations module, which imports the application
+publication and the journal runtime. Its Context provider already uses
+a template import and initializes through Yuanxu on demand. These counts
+describe the staged graphs. Attribution requires measuring initialization
+of the linked modules and their first use. Preview qualification must
+include the first complete review, the same JJ cut, ORG Contract,
+applicable model checks, and parity of the rendered description,
+Evidence and Open.
+
+On a later sequential rerun of the existing AITIA Release executable,
+help took 80, 10 and 20 ms. Project manifest took 1,150, 1,020 and
+990 ms. Preview on the same 31-path recorded cut took 1,440, 1,410
+and 2,590 ms. All three previews matched byte for byte, and the
+local OpenSysML server reported 25, 0 and 0 ms for parsing. This
+fixture used a local push target. Live GitHub observation requires
+its own timing.
+
+A previously linked Marlin Release executable reached its first
+interactive frame in 413, 127 and 156 ms in fresh PTY processes
+with Gerbil package paths unavailable. Its Scheme VM markers were
+298, 50 and 87 ms from Marlin's Rust startup marker. Each process
+handled Ctrl-Q and exited normally. The current checkout's Release
+binary did not qualify for that comparison: it attempted a dynamic
+Gerbil module load and exited with code 1 when the package paths
+were unavailable.
+
+The AITIA manifest command already spends about a second before
+any preview evaluation. AITIA should apply Marlin's linked
+dependency selection at its own Module publication boundary.
+Keep project configuration in the initial dependency closure.
+Demand the linked GitOps review roles for preview and the durable
+journal roles for admission or recovery within the same VM. The
+GitOps publication currently imports review and commit admission
+together, so deferring an import at the Rust transport entry alone
+still leaves the journal eager. Qualify the first complete preview
+on the recorded cut, including the first demand of each role.
+
 ** Other runtime paths
 
 Measure cold process startup through the first Graph separately from steady

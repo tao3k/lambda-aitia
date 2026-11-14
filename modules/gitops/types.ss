@@ -91,6 +91,8 @@
                                      element: [NonEmptyString]))]))
 (def GitOpsCommitSources
   (List (Record path: [NonEmptyString] text: [String] cut: [GitOpsCommitCut])))
+(def GitOpsEngineeringReference
+  (Record engineering-id: [NonEmptyString] source: [NonEmptyString] element: [NonEmptyString]))
 (def GitOpsCommitProposals
   (List (Record identity: [NonEmptyString] reference: [NonEmptyString]
                 language: [NonEmptyString] language-source: [NonEmptyString]
@@ -146,7 +148,8 @@
                                                  GitOpsCommitObservations))]
                review-lineage: [(Function (list Object)
                  (list String (List Any) (List Any)
-                       (List String) (List String) (List String) (List Any)))]
+                       (List String) (List String) (List String) (List Any)
+                       (Or False GitOpsEngineeringReference)))]
                review-query: [(Function (list Object) (list Object String))]
                model-gaps: [(Function (list Object)
                                       (list GitOpsModelMappings (List NonEmptyString)

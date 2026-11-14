@@ -2,10 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 //! Process-level controls use the same compiled CLI and installed dependencies.
-use std::{path::Path, process::Command};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-fn profile(pure: bool) -> String {
-    let binary = serde_json::to_string(env!("CARGO_BIN_EXE_aitia")).unwrap();
+fn executable() -> PathBuf {
+    // Seatbelt matches the resolved executable path. Cargo may report /tmp,
+    // which resolves to /private/tmp on macOS.
+    Path::new(env!("CARGO_BIN_EXE_aitia"))
+        .canonicalize()
+        .expect("resolve linked AITIA executable")
+}
+
+fn profile(binary: &Path, pure: bool) -> String {
+    let binary = serde_json::to_string(binary).unwrap();
     let processes = if pure { "(deny process-exec)" } else { "" };
     format!(
         r##"(version 1)(allow default)
@@ -25,7 +36,9 @@ pub(super) fn command(arguments: &[&str]) -> Command {
             | ["jj", "commit", "preview" | "prepare"]
     );
     let mut command = Command::new("/usr/bin/sandbox-exec");
-    command.args(["-p", &profile(pure), env!("CARGO_BIN_EXE_aitia")]);
+    let binary = executable();
+    command.args(["-p", &profile(&binary, pure)]);
+    command.arg(binary);
     command.args(arguments);
     command
 }
@@ -33,8 +46,9 @@ pub(super) fn command(arguments: &[&str]) -> Command {
 pub(super) fn assert_controls(directory: &Path) {
     let source = directory.join("must-not-load.ssi");
     std::fs::write(&source, "Scheme interface access must be denied\n").unwrap();
+    let binary = executable();
     let read = Command::new("/usr/bin/sandbox-exec")
-        .args(["-p", &profile(false), "/bin/cat"])
+        .args(["-p", &profile(&binary, false), "/bin/cat"])
         .arg(source)
         .output()
         .unwrap();
@@ -47,7 +61,7 @@ pub(super) fn assert_controls(directory: &Path) {
         "{read:?}"
     );
     let execute = Command::new("/usr/bin/sandbox-exec")
-        .args(["-p", &profile(true), "/usr/bin/true"])
+        .args(["-p", &profile(&binary, true), "/usr/bin/true"])
         .output()
         .unwrap();
     assert!(

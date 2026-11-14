@@ -6,14 +6,11 @@
 (import (for-syntax
           (only-in :tao3k/yuanxu/module-system/source/admission module-source-read
                    module-source-admit-current!))
-        (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider
-                 context-query-host context-org-source context-org-query
-                 context-query-current-source context-query-source!
-                 context-query-withdraw! context-query-execute
-                 context-query-export context-query-restore)
-        (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
-                 journal-pack journal-unpack journal-open journal-close!)
+        (for-template :agentic-ai-lab/modules/ai-agentic-context/query-provider
+                      :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
+        (only-in :tao3k/yuanxu/module-system/source/compiled-role compiled-role-values)
         (only-in :std/encoding/hex hex-decode)
+        (only-in :std/list/list find)
         (only-in :std/encoding/json JSONReadOptions json->string string->json)
         (only-in :clan/poo/object .get .ref .o .cc .all-slots)
         (only-in :orgize/languages/org/modules/org-elements/values
@@ -99,11 +96,16 @@
     (error "AITIA input exceeds 4 MiB"))
   (let* ((request (string->json payload +aitia-json-read-options+))
          (revision (json-required request "revision"))
-         (graph ((.get lambda-aitia.init.exports modules gitops review-lineage)
+         (gitops (.get lambda-aitia.init.exports modules gitops))
+         (graph ((.get gitops review-lineage)
                  revision (json-list request "changes") (json-list request "projectInputs")
                  (json-list request "reports") (json-list request "missingReports")
                  (json-list request "parsedDocuments")
-                 (if (hash-key? request "policySources") (json-list request "policySources") '())))
+                 (if (hash-key? request "policySources") (json-list request "policySources") '())
+                 (let (review (hash-get request "engineeringReview"))
+                   (and review (archived-engineering-reference gitops review
+                                 (map (lambda (row) (json-required row "path"))
+                                      (json-list request "changes")))))))
          (result
           (hash (revision revision)
            (dependencyCoverage "unknown")
@@ -131,9 +133,13 @@
 
 (def (review-query->json result)
   (let (inventory (review-selection->json (.ref result 'inventory)))
+    (hash-put! inventory 'changedFiles (review-selection->json (.ref result 'changed-files)))
     (hash-put! inventory 'verifiedReports (review-selection->json (.ref result 'verified-reports)))
+    (hash-put! inventory 'missingReports (review-selection->json (.ref result 'missing-reports)))
     (hash-put! inventory 'projectInputs (review-selection->json (.ref result 'project-inputs)))
     (hash-put! inventory 'policySources (review-selection->json (.ref result 'policy-sources)))
+    (hash-put! inventory 'engineeringReference
+               (review-selection->json (.ref result 'engineering-reference)))
     (hash-put! inventory 'modelEvidence (review-selection->json (.ref result 'model-evidence)))
     inventory))
 
@@ -459,6 +465,10 @@
       commit: (json-required row "commit") tree: (json-required row "tree")
       parents: (json-list row "parents")))
 
+(def (linked-journal-operations)
+  (compiled-role-values 'agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+    '(journal-pack journal-unpack journal-open journal-close!)))
+
 ;; This export consumes facts produced by the Rust checker. The CLI never
 ;; accepts execution fields from the model's draft.
 (def (aitia-commit-journal-payload payload)
@@ -469,8 +479,9 @@
     (if (equal? operation "intent")
         (json->string ((.get gitops commit-intent) project-id (json-required input "attempt")
                        (json-required input "reviewContext")))
-        (let ((journal (journal-open (json-required input "journal")))
-              (review-id (json-required input "approval")))
+        (let* ((review-id (json-required input "approval"))
+               (operations (linked-journal-operations))
+               (journal ((.get operations journal-open) (json-required input "journal"))))
           (dynamic-wind
             void
             (lambda ()
@@ -495,20 +506,39 @@
                  (let (record ((.get gitops commit-admission) journal project-id review-id))
                    (and record (.get record attempt))))
                 (else (error "unknown internal commit journal operation")))))
-            (lambda () (journal-close! journal)))))))
+            (lambda () ((.get operations journal-close!) journal)))))))
 
-(def (json-commit-naming input)
-  (.o project-key: (hash-ref input 'projectKey)
-      primary-language: (hash-get input 'primaryLanguage)
-      language-sources: (vector->list (hash-ref input 'languageSources))
-      types: (vector->list (hash-ref input 'types))
+(def (json-commit-naming input (key values))
+  (.o project-key: (hash-ref input (key 'projectKey))
+      primary-language: (hash-get input (key 'primaryLanguage))
+      language-sources: (json-list input (key 'languageSources))
+      types: (json-list input (key 'types))
       scopes: (map (lambda (row)
-                     (.o name: (hash-ref row 'name) paths: (vector->list (hash-ref row 'paths))))
-                   (vector->list (hash-ref input 'scopes)))
+                     (.o name: (hash-ref row (key 'name)) paths: (json-list row (key 'paths))))
+                   (json-list input (key 'scopes)))
       references: (map (lambda (row)
-                         (.o identity: (hash-ref row 'identity) source: (hash-ref row 'source)
-                             element: (hash-ref row 'element)))
-                       (vector->list (hash-ref input 'references)))))
+                         (.o identity: (hash-ref row (key 'identity)) source: (hash-ref row (key 'source))
+                             element: (hash-ref row (key 'element))))
+                       (json-list input (key 'references)))))
+
+(def (recorded-commit-sources input cut-value)
+  (map (lambda (row)
+         (.o path: (json-required row "path") text: (json-required row "text") cut: cut-value))
+       (json-list input "sources")))
+
+(def (archived-engineering-reference gitops review paths)
+  (let* ((cut-value (replay-cut (json-required review "project") (json-required review "cut")))
+         (proposal (json-commit-proposal (json-required review "proposal")))
+         (naming (json-commit-naming (json-required review "naming") symbol->string))
+         (semantics-value ((.get gitops commit-semantics) naming cut-value
+                           (recorded-commit-sources review cut-value) paths (list proposal))))
+    (unless (equal? (.get semantics-value titles)
+                    (list (list (.get proposal identity) (json-required review "title"))))
+      (error "Archived commit proposal does not reproduce the recorded title"))
+    (let (reference (find (lambda (row) (equal? (car row) (.get proposal reference)))
+                          (.get semantics-value references)))
+      (unless reference (error "Recorded title lacks an admitted engineering reference"))
+      (.o engineering-id: (car reference) source: (cadr reference) element: (caddr reference)))))
 
 (def (json-commit-proposal input)
   (.o identity: (json-required input "identity") reference: (json-required input "reference")
@@ -599,10 +629,7 @@
            (draft (hash-get input "draft"))
            (naming (json-commit-naming (hash-ref selection 'naming)))
            (proposals (if draft (list (json-commit-proposal (json-required draft "proposal"))) '()))
-           (sources (map (lambda (row)
-                           (.o path: (json-required row "path") text: (json-required row "text")
-                               cut: cut-value))
-                         (json-list input "sources")))
+           (sources (recorded-commit-sources input cut-value))
            (semantics-value ((.get gitops commit-semantics) naming cut-value sources
                              (json-list input "paths") proposals))
            (provider-review (hash-get input "providerReview"))
@@ -617,6 +644,7 @@
                   provider-row
                   (provider-absence-row provider-review)
                   (filter-map provider-bookmark-row bookmarks)
+                  (.get cut-value commit)
                   (provider-check-rows provider-review provider-row))))
            (model ((.get gitops commit-model-assessment)
                    (.get configuration model-check?)
@@ -660,6 +688,8 @@
                               (open (list->vector (map list->vector (.get semantics-value open))))
                               (references (list->vector (map list->vector (.get semantics-value references))))
                               (affectedScopes (list->vector (map list->vector (.get semantics-value affected-scopes))))
+                              (scopePaths (list->vector (map list->vector (.get semantics-value scope-paths))))
+                              (unscopedPaths (list->vector (.get semantics-value unscoped-paths)))
                               (conflictingScopes (list->vector (map list->vector (.get semantics-value conflicting-scopes))))
                               (unresolvedReferences (list->vector (map list->vector (.get semantics-value unresolved-references))))
                               (conflictingReferences (list->vector (map list->vector (.get semantics-value conflicting-references))))))
@@ -757,8 +787,17 @@
   (set! linked-context-project project)
   "null")
 
-(def (linked-context-owner)
-  (unless linked-context (set! linked-context (context-query-host)))
+(def (linked-context-query-provider)
+  ;; The Context provider is part of the linked program. Yuanxu initializes
+  ;; its compiled dependency closure when a Context operation needs it.
+  (compiled-role-values 'agentic-ai-lab/modules/ai-agentic-context/query-provider
+    '(context-query-host context-org-source context-org-query
+      context-query-current-source context-query-source!
+      context-query-withdraw! context-query-execute
+      context-query-export context-query-restore)))
+
+(def (linked-context-owner provider)
+  (unless linked-context (set! linked-context ((.get provider context-query-host))))
   linked-context)
 
 (def (linked-context-restore! command)
@@ -767,7 +806,9 @@
     (unless (equal? (json-required checkpoint "project") linked-context-project)
       (error "Context checkpoint belongs to a different project"))
     (let-values (((owner observation)
-                  (context-query-restore (journal-unpack (json-required checkpoint "journal")))))
+                  ((.get (linked-context-query-provider) context-query-restore)
+                   ((.get (linked-journal-operations) journal-unpack)
+                    (json-required checkpoint "journal")))))
       (set! linked-context owner)
       "null")))
 
@@ -785,27 +826,29 @@
            ((equal? operation "project") linked-context-project)
            ((equal? operation "restore") (linked-context-restore! command))
            ((and (equal? operation "recover-delivery") (not linked-context)) #f)
-           (else (linked-context-command (linked-context-owner) operation command)))))
+           (else
+            (let (provider (linked-context-query-provider))
+              (linked-context-command provider (linked-context-owner provider) operation command))))))
       (let (assessment ((vector-ref input 1)))
         (if (eq? assessment 'reopened) "null" (json->string (support-fields assessment))))))
 
-(def (linked-context-command owner operation command)
+(def (linked-context-command provider owner operation command)
   (cond
    ((equal? operation "publish")
-    (context-query-source!
-     owner (context-org-source (json-required command "sourceId")
-                               (json-required command "generation")
-                               (json-required command "source")))
+    ((.get provider context-query-source!)
+     owner ((.get provider context-org-source) (json-required command "sourceId")
+                                               (json-required command "generation")
+                                               (json-required command "source")))
     "null")
    ((equal? operation "withdraw")
-    (context-query-withdraw! owner (json-required command "sourceId")
-                             (json-required command "generation"))
+    ((.get provider context-query-withdraw!)
+     owner (json-required command "sourceId") (json-required command "generation"))
     "null")
    ((equal? operation "observe")
     (let* ((source-id (json-required command "sourceId"))
-           (source (context-query-current-source owner source-id))
-           (query (context-org-query source (json-required command "elementId")))
-           (observed (context-query-execute owner source-id query)))
+           (source ((.get provider context-query-current-source) owner source-id))
+           (query ((.get provider context-org-query) source (json-required command "elementId")))
+           (observed ((.get provider context-query-execute) owner source-id query)))
       (.ref observed 'semantic-digest)))
    ((equal? operation "prepare")
     ((.get lambda-aitia.init.exports modules assurance prepare-context-input)
@@ -815,7 +858,8 @@
     ((.get lambda-aitia.init.exports modules assurance prepare-context-body)
      owner (json-required command "reference") (json-required command "body")))
    ((equal? operation "checkpoint")
-    (let* ((packed (journal-pack (context-query-export owner)))
+    (let* ((operations (linked-journal-operations))
+           (packed ((.get operations journal-pack) ((.get provider context-query-export) owner)))
            ;; The checkpoint is hashed as bytes. Keep its envelope stable
            ;; across hash-table iteration order and process restarts.
            (checkpoint (string-append "{\"project\":"
@@ -827,6 +871,6 @@
                +aitia-max-input-bytes+)
         (error "AITIA Context checkpoint exceeds the restore budget"))
       ;; The reader also enforces its lexical, depth and node bounds.
-      (journal-unpack packed)
+      ((.get operations journal-unpack) packed)
       checkpoint))
    (else (error "Unknown AITIA Context operation" operation))))

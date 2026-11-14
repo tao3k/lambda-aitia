@@ -22,6 +22,7 @@ fn resolves_the_commit_case_and_refuses_invalid_input() -> Result<(), Box<dyn st
         "ReviewRevision",
         "historicalReviewRead",
         "recoveredReviewRead",
+        "recordedReviewProject",
         "appliedReviewRefresh",
         "acknowledgedPushRecovery",
         "appliedEvidenceReadback",
@@ -284,6 +285,85 @@ fn check_recorded_documents(
 }
 
 #[cfg(feature = "linked-program")]
+#[test]
+fn archive_requires_a_recorded_commit_policy() -> Result<(), Box<dyn std::error::Error>> {
+    use serde_json::{Value, json};
+    use std::process::Stdio;
+
+    let workspace = tempfile::tempdir()?;
+    let root = workspace.path();
+    let jj = std::env::var_os("AITIA_JJ_BIN").expect("set AITIA_JJ_BIN");
+    let record = |args: &[&str]| -> std::io::Result<()> {
+        let output = Command::new(&jj)
+            .current_dir(root)
+            .args([
+                "--config",
+                "user.name='AITIA Test'",
+                "--config",
+                "user.email='test@example.invalid'",
+            ])
+            .args(args)
+            .output()?;
+        assert!(output.status.success(), "{output:?}");
+        Ok(())
+    };
+    record(&["git", "init", "--colocate"])?;
+    std::fs::create_dir_all(root.join(".agents/aita"))?;
+    std::fs::write(
+        root.join(".agents/aita/project.json"),
+        r#"{"schemaVersion":1}"#,
+    )?;
+    record(&["describe", "-m", "record project without commit policy"])?;
+    let cut = aitia_jj::observe_workspace(root)?;
+    let description = "Record work without a commit policy";
+    let receipt = aitia_jj::prepare_description(&cut, description)?.publish(|_| true)?;
+    let run = |archive: &Value| -> std::io::Result<_> {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+            .current_dir(root)
+            .args([
+                "jj",
+                "commit",
+                "evidence",
+                &receipt.resulting_commit,
+                "--gql",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+        serde_json::to_writer(child.stdin.take().unwrap(), archive)?;
+        child.wait_with_output()
+    };
+    let output = run(&json!({
+        "receipt": receipt,
+        "cut": {"workspace": cut.workspace_name(), "change": cut.change_id(),
+                "operation": cut.operation_id(), "commit": cut.commit_id(),
+                "tree": cut.tree_id(), "parents": cut.parent_ids()},
+        "review": {"description": description},
+        "executions": [],
+        "proposal": {"identity":"model-review","reference":"RFC-1","type":"docs","scope":"model",
+                     "summary":"Record model evidence","rationale":"Use the recorded engineering item",
+                     "language":"en","languageSource":"work.org"}
+    }))?;
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(output.stdout.is_empty(), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("Applied archive has no commit policy at the recorded revision"),
+        "{output:?}"
+    );
+    let output = run(&json!({"attempt": receipt.recovery_record(), "outcome": "applied"}))?;
+    assert!(output.status.success(), "{output:?}");
+    let evidence: Value = serde_json::from_slice(&output.stdout)?;
+    assert_eq!(evidence["description"], description);
+    assert_eq!(
+        evidence["lineage"]["query"]["engineeringReference"]["rows"],
+        json!([])
+    );
+    Ok(())
+}
+
+#[cfg(feature = "linked-program")]
 fn check_oversized_model_archive(
     root: &Path,
     cut: &aitia_jj::WorkspaceCut,
@@ -306,6 +386,9 @@ fn check_oversized_model_archive(
         child.stdin.take().unwrap(),
         &json!({
             "receipt":receipt, "cut":audit["cut"], "review":{"description":description},
+            "proposal": {"identity":"model-review","reference":"RFC-1","type":"docs","scope":"model",
+                "summary":"Record model evidence","rationale":"The recorded model is independently parsed",
+                "language":"en","languageSource":"work.org"},
             "executions":[],
             "modelCheck":{"paths":audit["modelCheck"]["paths"],"status":"passed","report":{}}
         }),
@@ -357,6 +440,14 @@ fn check_model_readback(
         "org":"* Model review\n:PROPERTIES:\n:AITIA_SUPPORT: SWE-084\n:END:\n","context":""
     });
     let preview = read(&["preview"], &draft);
+    let mut incomplete = draft.clone();
+    incomplete["narration"]["evidence"] = json!([]);
+    let refused = run(&["preview"], &incomplete);
+    assert_eq!(refused.status.code(), Some(1), "{refused:?}");
+    let refusal: Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(refusal["modelCheck"]["status"], "passed");
+    assert_eq!(refusal["review"]["draftValid"], false);
+    assert!(refusal["review"]["previewDescription"].is_null());
     draft["context"] = preview["review"]["context"].clone();
     let prepared = read(&["prepare"], &draft);
     let written = read(
@@ -366,6 +457,16 @@ fn check_model_readback(
     let revision = written["receipt"]["resulting_commit"].as_str().unwrap();
     let args = ["evidence", revision, "--gql"];
     let evidence = read(&args, &written);
+    assert_eq!(
+        evidence["description"],
+        preview["review"]["previewDescription"]
+    );
+    assert!(
+        evidence["description"]
+            .as_str()
+            .unwrap()
+            .contains("\n- OpenSysML: Parsed ")
+    );
     let report = evidence["observations"]
         .as_array()
         .unwrap()
@@ -430,25 +531,29 @@ fn check_model_readback(
     execute(&["describe", "-m", "record invalid later model"]);
     assert_eq!(read(&args, &written), evidence);
 
-    std::fs::write(
-        root.join(".agents/aita/project.json"),
-        r#"{"schemaVersion":1,"services":{"sysml":{"enable":true,"parse":false}}}"#,
-    )?;
+    let manifest_path = root.join(".agents/aita/project.json");
+    let mut manifest: Value = serde_json::from_slice(&std::fs::read(&manifest_path)?)?;
+    manifest["services"]["sysml"]["parse"] = json!(false);
+    std::fs::write(&manifest_path, serde_json::to_vec(&manifest)?)?;
     execute(&["describe", "-m", "record the model with parsing disabled"]);
-    let cut = aitia_jj::observe_workspace(root)?;
-    let description = "Model parsing disabled";
-    let receipt = aitia_jj::prepare_description(&cut, description)?.publish(|_| true)?;
-    let disabled_args = ["evidence", &receipt.resulting_commit, "--gql"];
-    let mut disabled = json!({
-        "receipt":receipt,
-        "cut":{"workspace":cut.workspace_name(),"change":cut.change_id(),
-               "operation":cut.operation_id(),"commit":cut.commit_id(),
-               "tree":cut.tree_id(),"parents":cut.parent_ids()},
-        "review":{"description":description},
-        "executions":[]
-    });
+    let preview = read(&["preview"], &draft);
+    draft["context"] = preview["review"]["context"].clone();
+    let prepared = read(&["prepare"], &draft);
+    let mut disabled = read(
+        &["apply"],
+        &json!({"draft":draft,"attempt":prepared["attempt"]}),
+    );
+    let disabled_revision = disabled["receipt"]["resulting_commit"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let disabled_args = ["evidence", &disabled_revision, "--gql"];
     let result = read(&disabled_args, &disabled);
-    assert_eq!(result["observations"], json!([]));
+    assert_eq!(result["observations"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        result["observations"][0]["method"],
+        "jj.configuration-audit"
+    );
     assert_eq!(result["missingReports"], json!([]));
     disabled["modelCheck"] = written["modelCheck"].clone();
     let rejected = run(&disabled_args, &disabled);

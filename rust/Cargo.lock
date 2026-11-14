@@ -24,6 +24,7 @@ version = "0.1.0"
 dependencies = [
  "aitia-build-support",
  "futures",
+ "getrandom 0.4.3",
  "gix",
  "jj-lib",
  "serde",

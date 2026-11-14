@@ -37,13 +37,26 @@ just --working-directory packages/lambda-aitia --justfile packages/lambda-aitia/
 
 The AITIA package's =just check= includes the real JJ evidence replay.
 From the AITIA package root, =gerbil test dev.ss= runs the Scheme
-development suites. =just test-dev= runs the same entry with the
-repository's heap limit and timeout.
+development suites. CI runs the same entry through =just check-scheme=,
+with the repository's heap limit and timeout. CI uses the Gerbil release
+and dependency entrypoints from the Lab revision declared in =gerbil.pkg=.
+The Scheme gate builds AITIA once and runs the semantic, development,
+commit engineering, bindings, and integration suites. Linked delivery
+runs the JJ evidence replay and the Rust, Quint, and installed wheel checks.
+CI also runs the Quint model checks and the Scheme Assurance property tests
+on pull requests. To replay the full bounded Scheme lifecycle state
+cover, run =just stress-lifecycle-scheme= locally or select
+=lifecycle-stress= when dispatching CI manually.
+
 Set =AITIA_JJ_BIN= to the absolute path of the verified JJ executable
 described in [[file:dev/sysml/README.org][the commit evidence qualification]].
 The Rust delivery gate requires =AITIA_PYTEST_PYTHON= to name an
 absolute interpreter path with the project-pinned pytest installed.
 It uses that interpreter for the installed wheel's frozen-source replay.
+Before staging the linked program, check that =pkg-config --libs openssl zlib
+sqlite3= resolves all three host libraries. On macOS, expose the installed
+formulae's pkg-config directories through =PKG_CONFIG_PATH=.
+Use a Rust toolchain that meets =rust-version= in =rust/Cargo.toml=.
 The Cargo workspace uses optimization level 1 in =dev= and level 3 in
 =release=, with incremental compilation enabled in both profiles.
 

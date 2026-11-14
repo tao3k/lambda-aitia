@@ -45,7 +45,7 @@ test-jj-commit-evidence:
     trap 'rm -rf -- "$scratch"' EXIT
     export AITIA_JJ_REPLAY_CUTS="$scratch/cuts.json"
     just test-jj-observation
-    just test-proof-scheme jj-commit-evidence-test.ss
+    just test-commit-semantics dev/proof/scheme/jj-commit-evidence-test.ss
 
 # Build this Gerbil package against the installed Agentic AI Lab mechanisms.
 [group('build')]
@@ -54,10 +54,10 @@ build-scheme:
 
 # Compile through the standard package entry, then stage admitted program products.
 [group('rust')]
-stage-rust-program:
+stage-rust-program program="aitia-program":
     #!/usr/bin/env bash
     set -euo pipefail
-    export AITIA_PROGRAM_OUTPUT='{{ build_root }}/aitia-program'
+    export AITIA_PROGRAM_OUTPUT={{ quote(build_root + "/" + program) }}
     {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 600s gxi -e '
       (import (only-in "./build.ss" aitia-build-projection aitia-make)
               (only-in :clan/poo/object .get .call)
@@ -113,13 +113,20 @@ build-rust-cli features="linked-program,sysml": stage-rust-program
     AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
 
 [group('rust')]
-build-rust-linked-tests: stage-rust-program
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program --no-run
+build-rust-linked-tests program="aitia-program": (stage-rust-program program)
+    AITIA_PROGRAM_MANIFEST={{ quote(build_root + "/" + program + "/program.json") }} cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program --no-run
 
 [group('rust')]
 test-rust-linked-program: build-rust-linked-tests
     test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}" && test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program -- --nocapture
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --no-run
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --test linked_program -- --nocapture
+
+[group('rust')]
+test-rust-project-declaration:
+    test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}"
+    AITIA_PROJECT_DECLARATION={{ quote(self_root + "/dev/qualification/project-declaration.ss") }} just build-rust-linked-tests aitia-project-declaration
+    AITIA_PROGRAM_MANIFEST={{ quote(build_root + "/aitia-project-declaration/program.json") }} timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program -- --ignored --exact compiled_project_declaration_requires_its_recorded_source --nocapture
 
 [group('rust')]
 build-rust-wheel profile="release" out=(build_root + "/aitia-wheels"): stage-rust-program
@@ -144,7 +151,15 @@ check-installed-rust-wheel wheel:
 # Run the development suites through Gerbil's standard test runner.
 [group('test')]
 test-dev:
-    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=1G test dev.ss
+    #!/usr/bin/env bash
+    set -euo pipefail
+    output="$(mktemp)"
+    trap 'rm -f -- "$output"' EXIT
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=1G test dev.ss 2>&1 | tee "$output"
+    grep -Fxq 'MODULE-OK dev.ss' "$output"
+    grep -Fxq 'HARNESS-OK ("dev.ss")' "$output"
+    grep -Fxq 'OK' "$output"
+    ! grep -Eq 'ERROR (CASE|CHECK|MODULE|HARNESS)|Heap overflow|Stack overflow' "$output"
 
 # Run one Aitia-owned Scheme test module.
 [group('test')]
@@ -167,8 +182,18 @@ test-module module:
 
 # Exercise the complete affected test directories with Gerbil's standard runner.
 [group('test')]
-test-commit-semantics:
-    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gerbil {{ gerbil_test_runtime_options }} test modules/gitops/tests modules/project-config/tests
+test-commit-semantics path="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    output="$(mktemp)"
+    trap 'rm -f -- "$output"' EXIT
+    paths=(modules/gitops/tests modules/project-config/tests)
+    if [[ -n {{ quote(path) }} ]]; then paths=({{ quote(path) }}); fi
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gerbil {{ gerbil_test_runtime_options }} test "${paths[@]}" 2>&1 | tee "$output"
+    grep -q '^MODULE-OK ' "$output"
+    grep -q '^HARNESS-OK ' "$output"
+    grep -Fxq 'OK' "$output"
+    ! grep -Eq 'ERROR (CASE|CHECK|MODULE|HARNESS)|Heap overflow|Stack overflow' "$output"
 
 # Run one exact Aitia-owned Scheme test.
 [group('test')]
@@ -185,8 +210,9 @@ _test-scheme-file path:
 
 # Build and execute Aitia's SDLC plus GitOps composition case.
 [group('check')]
-test-integration:
-    just build-scheme
+test-integration: build-scheme _test-integration
+
+_test-integration:
     just test-scheme bindings
     just test-scheme integration
 
@@ -206,6 +232,14 @@ check-semantic:
     just test-module project-config
     just test-scheme modules
 
+# Reuse the package built by check-semantic for development and integration tests.
+[group('check')]
+check-scheme: check-semantic test-dev test-commit-semantics _test-retirement _test-integration
+
+_test-retirement:
+    just test-proof-scheme retirement-binding-test.ss
+    just test-proof-scheme retirement-execution-test.ss
+
 # Build the Aitia-owned assurance laws independently of Agentic AI Lab's proof package.
 [group('check')]
 check-proof:
@@ -222,6 +256,7 @@ check-quint module='all':
 [group('check')]
 check-quint-commit:
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/CommitEvidence.qnt
+    quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/CommitReviewCurrentness.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/GitOpsWriteRecovery.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/GitOpsAttemptCompetition.qnt
 
@@ -264,7 +299,9 @@ check-quint-commit-js:
     trap 'rm -rf -- "$scratch"' EXIT
     quint_bin="${AITIA_QUINT_BIN:-$PWD/dev/proof/quint/node_modules/.bin/quint}"
     just stage-quint-js "$scratch/driver.js"
-    timeout --foreground --signal=TERM --kill-after=3s 60s node "$scratch/driver.js" "$quint_bin" "$PWD/dev/proof/quint/CommitEvidence.qnt"
+    for model in CommitEvidence CommitReviewCurrentness; do
+      timeout --foreground --signal=TERM --kill-after=3s 60s node "$scratch/driver.js" "$quint_bin" "$PWD/dev/proof/quint/$model.qnt"
+    done
     status=0
     timeout --foreground --signal=TERM --kill-after=3s 60s node "$scratch/driver.js" "$quint_bin" "$scratch/absent.qnt" >"$scratch/refusal" 2>&1 || status=$?
     if [[ "$status" != 1 ]] || ! grep -Fq 'absent.qnt' "$scratch/refusal"; then
@@ -280,7 +317,9 @@ check-rust-quint: build-rust-cli stage-quint-js
     quint_bin="${AITIA_QUINT_BIN:-$PWD/dev/proof/quint/node_modules/.bin/quint}"
     target="${CARGO_TARGET_DIR:-rust/target}"
     driver='{{ build_root }}/quint-driver.js'
-    "$target/debug/aitia" quint-check "$driver" "$quint_bin" dev/proof/quint/CommitEvidence.qnt
+    for model in CommitEvidence CommitReviewCurrentness; do
+      "$target/debug/aitia" quint-check "$driver" "$quint_bin" "dev/proof/quint/$model.qnt"
+    done
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
     printf 'module Refusal { run rejectedAssertionTest = assert(false) }\n' > "$scratch/Refusal.qnt"
@@ -300,26 +339,34 @@ check-quint-scheme:
 # Compare Scheme with reachable action witnesses and fault refusals.
 [group('check')]
 check-lifecycle-scheme mode="": build-scheme
-    {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' modules/assurance/cedar-preflight.ss modules/assurance/effect-host.ss dev/proof/scheme/lifecycle-fixture.ss dev/proof/scheme/lifecycle-replay-test.ss
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scratch="$(mktemp -d)"
+    trap 'rm -rf -- "$scratch"' EXIT
+    export GERBIL_LOADPATH='{{ GERBIL_PATH }}/lib:{{ GERBIL_LOADPATH }}'
+    {{ gerbil_env }} gxc -d '{{ GERBIL_PATH }}/lib' modules/assurance/cedar-preflight.ss modules/assurance/effect-host.ss dev/proof/scheme/lifecycle-fixture.ss
+    libraries="$(gxi -:max-heap=512M -e '(import (only-in :std/make pkg-config-libs)) (display (pkg-config-libs "openssl"))')"
+    if [[ "$(uname -s)" == Darwin ]]; then
+      export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+    fi
+    timeout --foreground --signal=TERM --kill-after=5s 600s gxc -exe -ld-options "$libraries" -o "$scratch/lifecycle-replay" dev/proof/scheme/lifecycle-replay-test.ss
     python3 dev/proof/quint/test_lifecycle_replay.py
-    python3 dev/proof/quint/check_lifecycle_replay.py {{ mode }}
+    python3 dev/proof/quint/check_lifecycle_replay.py --worker "$scratch/lifecycle-replay" {{ mode }}
 
 # Explicit robustness run over the full bounded state cover.
 [group('check')]
 stress-lifecycle-scheme:
     just check-lifecycle-scheme --stress
 
-# The replay supervisor already owns per-batch process isolation and watchdogs.
+# Keep the original heap and per-batch process guard.
 [group('test')]
-test-lifecycle-batch:
-    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi {{ gerbil_test_runtime_options }} -e '(import :lambda-aitia/dev/proof/scheme/lifecycle-replay-test) (exit (run-lifecycle-replay))'
+test-lifecycle-batch worker:
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s {{ quote(worker) }} {{ gerbil_test_runtime_options }}
 
 # Check model properties and focused implementation controls independently.
 [group('check')]
-check-formal:
+check-formal: _test-retirement
     python3 dev/proof/quint/test_scheme_replay.py
-    just test-proof-scheme retirement-binding-test.ss
-    just test-proof-scheme retirement-execution-test.ss
     just check-quint
     just check-quint-commit
     just check-quint-ai-assurance
@@ -351,7 +398,7 @@ check-rust-delivery:
     test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
-    just test-rust-frozen-pytest test-jj-recorded-evidence test-rust-linked-program check-rust-quint build-rust-wheel release "$scratch"
+    just test-rust-frozen-pytest test-jj-recorded-evidence test-rust-linked-program test-rust-project-declaration check-rust-quint build-rust-wheel release "$scratch"
     shopt -s nullglob
     wheels=("$scratch"/*.whl)
     test "${#wheels[@]}" -eq 1
@@ -359,7 +406,7 @@ check-rust-delivery:
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
-check: check-semantic check-formal test-integration test-jj-commit-evidence check-rust-format check-rust-lint test-rust-workspace check-rust-delivery
+check: check-scheme check-formal test-jj-commit-evidence check-rust-format check-rust-lint test-rust-workspace check-rust-delivery
 
 [group('check')]
 check-all: check

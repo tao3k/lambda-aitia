@@ -4,14 +4,16 @@
 (import :std/test
         (only-in :std/encoding/json read-json)
         (only-in :clan/poo/object .get .o .cc)
+        (only-in :clan/poo/mop validate)
         (only-in "./jj-evidence-fixture.ss" fixture-cut evidence-fields observation-source)
-        (only-in "../../../init.ss" lambda-aitia.init.exports))
+        (only-in "../../../modules/gitops/config.ss" Config)
+        (only-in "../../../modules/gitops/types.ss" GitOpsScopeContract))
 (export jj-commit-evidence-test)
 
 (def (check-commit-observation before rewritten)
   (let* ((producer "fixture-runner")
          (source (observation-source (evidence-fields before producer)))
-         (gitops (.get lambda-aitia.init.exports modules gitops))
+         (gitops (validate GitOpsScopeContract Config))
          (admit (.get gitops admit-commit-observation))
          (expected (.o cut: before identity: "fixture-pass"
                        obligation: "check" outcome: 'passed))

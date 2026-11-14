@@ -261,21 +261,27 @@ fn run_jj_commit(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
         .as_ref()
         .map(|input| &input.draft)
         .or(draft.as_ref());
+    let reviewed = attempt.as_ref().filter(|_| preview_applied);
+    let observed = observe_project_sources(Path::new("."), MAX_REQUEST_BYTES as usize)?;
+    let origin = reviewed
+        .map(|input| aitia_jj::observe_description_origin(&observed.0, &input.attempt))
+        .transpose()?;
+    if let Some(input) = attempt.as_ref().filter(|_| command == Some("apply")) {
+        input.attempt.require_expected_cut(&observed.0)?;
+    }
     let result = with_linked_program(|program| {
         Ok((|| {
-            let reviewed = attempt.as_ref().filter(|_| preview_applied);
-            let origin = if let Some(input) = reviewed {
-                let current = aitia_jj::observe_workspace(Path::new("."))?;
-                Some(aitia_jj::observe_description_origin(
-                    &current,
-                    &input.attempt,
-                )?)
-            } else {
-                None
-            };
-            let (cut, mut result, _) =
-                nasa_commit_report(&program, draft, origin.as_ref(), command == Some("preview"))?;
+            let (cut, mut result, _) = nasa_commit_report(
+                &program,
+                observed,
+                draft,
+                origin.as_ref(),
+                command == Some("preview"),
+            )?;
             if let Some(input) = reviewed {
+                result["review"]["reviewContextCurrent"] = serde_json::json!(
+                    result["review"]["context"].as_str() == Some(input.draft.context.as_str())
+                );
                 result["review"]["matchesWrittenDescription"] = serde_json::json!(
                     result["review"]["previewDescription"].as_str()
                         == Some(input.attempt.description.as_str())
@@ -352,7 +358,7 @@ struct NarrationRow {
 /// Agent intent is a proposal; source documents and changed paths are Host facts.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-struct CommitProposal {
+pub(super) struct CommitProposal {
     identity: String,
     reference: String,
     r#type: String,
@@ -387,6 +393,7 @@ fn observe_commit_provider(
 
 pub(super) fn nasa_commit_report(
     program: &AitiaProgram<'_>,
+    observed: (WorkspaceCut, aitia_jj::RecordedProjectSources),
     draft: Option<&CommitNarration>,
     origin: Option<&DescriptionOrigin>,
     preview: bool,
@@ -398,8 +405,7 @@ pub(super) fn nasa_commit_report(
     ),
     Box<dyn std::error::Error>,
 > {
-    let (cut, project_sources) =
-        observe_project_sources(Path::new("."), MAX_REQUEST_BYTES as usize)?;
+    let (cut, project_sources) = observed;
     if origin.is_some_and(|observed| observed.current() != &cut) {
         return Err(aitia_jj::JjObservationError::ChangedOperation.into());
     }
@@ -678,7 +684,12 @@ fn check_assurance_replay(
 fn recorded_project(
     directory: &Path,
 ) -> Result<(WorkspaceCut, ProjectConfiguration), Box<dyn std::error::Error>> {
-    with_linked_program(|program| Ok(resolve_recorded_project(&program, directory)))?
+    let (cut, sources) = observe_project_sources(directory, MAX_REQUEST_BYTES as usize)?;
+    let config = with_linked_program(|program| Ok(validate_project_manifest(&program, &sources)))??;
+    if observe_workspace(cut.workspace_root())? != cut {
+        return Err(aitia_jj::JjObservationError::ChangedOperation.into());
+    }
+    Ok((cut, config))
 }
 
 fn resolve_recorded_project(

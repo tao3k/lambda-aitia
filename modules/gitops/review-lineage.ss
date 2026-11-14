@@ -1,7 +1,7 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o .cc)
+(import (only-in :clan/poo/object .o .cc .get)
         (only-in :gerbil/core string-suffix?)
         (only-in :tao3k/yuanxu/graph/types yuanxu-graph yuanxu-graph-edge yuanxu-graph-node))
 (export gitops-review-lineage)
@@ -77,11 +77,13 @@
 
 ;; The JJ host has already verified the applied revision and reproduced the
 ;; archived reports. This projection records observed relations only.
-(def (gitops-review-lineage revision-value changes inputs reports missing parsed-documents (policy-sources '()))
+(def (gitops-review-lineage revision-value changes inputs reports missing parsed-documents
+                           (policy-sources '()) (engineering-reference #f))
   (validate-lineage-observations! changes inputs reports missing parsed-documents policy-sources)
   (let* ((root (string->symbol revision-value))
          (path-id (lambda (path) (string->symbol (string-append revision-value "#path:" path))))
          (report-id (lambda (method) (string->symbol (string-append revision-value "#report:" method))))
+         (reference-id (string->symbol (string-append revision-value "#engineering-reference")))
          (input-paths (map observed-path inputs))
          (policy-paths (map observed-path policy-sources))
          (changed (map observed-path changes))
@@ -108,16 +110,30 @@
           (lambda (method-value state-value)
             (lineage-node (report-id method-value)
                                (.o label: 'EvidenceReport method: method-value state: state-value)))))
+    (when (and engineering-reference
+               (not (member (.get engineering-reference source) policy-paths)))
+      (error "Engineering reference source is outside the recorded policy files"))
     (yuanxu-graph
      root
      (append (list (lineage-node root (.o label: 'Revision revision: revision-value)))
              changed-nodes unchanged-nodes
+             (if engineering-reference
+                 (list (lineage-node reference-id
+                         (.o label: 'EngineeringReference
+                             engineeringId: (.get engineering-reference engineering-id)
+                             element: (.get engineering-reference element))))
+                 '())
              (map (lambda (method) (report-node method 'verified)) reports)
              (map (lambda (method) (report-node method 'missing)) missing))
      (append
       (map (lambda (path) (yuanxu-graph-edge root (path-id path) 'changes)) changed)
       (map (lambda (path) (yuanxu-graph-edge root (path-id path) 'reads_config)) input-paths)
       (map (lambda (path) (yuanxu-graph-edge root (path-id path) 'has_policy_source)) policy-paths)
+      (if engineering-reference
+          (list (yuanxu-graph-edge root reference-id 'names_engineering_item)
+                (yuanxu-graph-edge reference-id
+                  (path-id (.get engineering-reference source)) 'declared_in))
+          '())
       (map (lambda (method) (yuanxu-graph-edge root (report-id method) 'verified_report)) reports)
       (map (lambda (method) (yuanxu-graph-edge root (report-id method) 'missing_report)) missing)
       (map (lambda (path)

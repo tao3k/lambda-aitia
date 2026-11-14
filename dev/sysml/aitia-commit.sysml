@@ -18,6 +18,27 @@ package AitiaCommit {
     part yuanxuGraph {
         doc /* Scheme POO owns the configured SDLC Graph and obligation semantics. */
     }
+    requirement linkedStartupBoundary {
+        doc /* Target design. One linked Scheme VM initializes the entry and
+             * the modules required by the selected command. A configuration
+             * read admits its project declaration without activating
+             * commit assessment or journal execution. First preview still
+             * evaluates the applicable ASCENT rules and ORG Contracts. */
+    }
+    requirement linkedStartupQualification {
+        doc /* Measure launch to VM readiness, first policy call, first
+             * command result, and ordinary exit. Use the same recorded
+             * candidate to compare description, Evidence and revision GQL.
+             * Measure first execution of a copied binary separately from
+             * later invocations of that file. */
+    }
+    requirement linkedJournalDemand {
+        doc /* Register the Lab durable journal with the linked Scheme image.
+             * Commit admission and Context checkpoints initialize its
+             * dependency closure when called. A read-only preview has no
+             * journal demand. Approval and recovery keep the existing
+             * journal encoding and keys. */
+    }
     part jjGitOps {
         doc /* JJ owns workspace snapshots, revisions, and the operation log. Git is the backing repository. */
     }
@@ -86,6 +107,11 @@ package AitiaCommit {
              * the workspace advances. Reproduce the archived JJ report's
              * input binding from the original cut, recorded Scheme and JSON
              * sources, and changed paths before projecting the observation.
+             * Compare raw JJ reports with the reproduced facts before entering
+             * Scheme. Scheme selects applicable checks and their obligations.
+             * A supplied proposal must satisfy the same request shape used
+             * in live review. Scheme reconstructs its title and checks the
+             * recorded engineering reference before projecting it.
              * Readability alone does not establish
              * apply, publication, current evidence support, or authority. */
     }
@@ -98,6 +124,12 @@ package AitiaCommit {
              * description are readable at the result revision. Missing
              * archived reports remain missing. Recovery grants no effect. */
     }
+    requirement recordedReviewProject {
+        doc /* Resolve the nearest Git project and its recorded JJ inputs before
+             * entering Scheme review. Scheme admits those sources and selects
+             * policy. Applied preview and push verify the original review cut
+             * from the same observed workspace, then recheck currentness. */
+    }
     requirement appliedReviewRefresh {
         doc /* Reopen review at the original cut of the verified current
              * description rewrite. Observe current provider facts and retain
@@ -109,17 +141,24 @@ package AitiaCommit {
         doc /* Record success only if JJ positively acknowledges the sole
              * requested bookmark and its transaction records the applied
              * commit as the remote target. Recover a visible acknowledgement
-             * for the exact applied operation, workspace, remote and bookmark. The
+             * for the exact applied operation, workspace, remote and bookmark.
+             * Resolve the nearest Git project before opening its JJ history.
+             * An independent nested Git project requires its own JJ workspace. The
              * historical acknowledgement carries no claim about the
              * current remote head. Missing history leaves the outcome
              * unresolved. Recovery performs no transport. */
     }
     item def EngineeringReference {
         doc /* An engineering record has a project-declared identity and a unique
-             * ORG Element in a JJ-recorded source. Its ENGINEERING_ID must match.
-         * A linked PR and a NASA SWE obligation are separate relations.
-         * Distinct declared document/Element pairs for the same identity
-         * conflict even if one cannot resolve on the current cut. */
+             * ORG Element in a JJ-recorded source. Its ENGINEERING_ID must match
+             * the owning headline in the full parsed graph. The document
+             * Contract counts every ID property, including document-level
+             * properties, using a view limited to those records and the root.
+             * Distinct referenced IDs in one recorded document share a
+             * Contract query context and each receives its own verdict.
+             * A linked PR and a NASA SWE obligation are separate relations.
+             * Distinct declared document/Element pairs for the same identity
+             * conflict even if one cannot resolve on the current cut. */
         attribute identity : String;
         attribute sourcePath : String;
         attribute elementId : String;
@@ -127,8 +166,10 @@ package AitiaCommit {
     item def NarrationProposal {
         doc /* LLM intent remains a proposal. Scheme renders a canonical title
              * only after ASCENT relates its reference, allowed type and affected
-             * module scope. Differing path sets under the same scope name
-             * leave the proposal open. The full rendered title may contain up to 72
+             * module scope. Each affected scope retains the recorded paths
+             * that support it. Paths outside all admitted scopes remain
+             * visible in review. Differing path sets under the same scope
+             * name leave the proposal open. The full rendered title may contain up to 72
              * characters. Rationale is review input, not execution authority. */
         item reference : EngineeringReference;
         attribute identity : String;
@@ -163,8 +204,12 @@ package AitiaCommit {
     item def ProviderReviewObservation {
         doc /* A GitHub response must agree with the recorded repository,
              * source bookmark and head revision. Check runs refer to that
-             * head. A published ancestor does not supply checks for the candidate.
-             * An observation is not an admitted check or a push grant. */
+             * head. Scheme requires each check identity to occur once and every
+             * check to refer to that head. Empty, malformed, duplicate or stale inventory
+             * leaves the check disclosure Open. A published ancestor can establish
+             * the PR association, but its checks leave the candidate's check
+             * disclosure Open even when all passed. An observation grants no
+             * push authority. */
         item bookmark : RecordedReviewBookmark;
         attribute pullRequestNumber : Integer;
         attribute targetBranch : String;
@@ -196,12 +241,22 @@ package AitiaCommit {
     requirement currentPushDestination {
         doc /* Bind the effective transport route to the review and compare it
              * against the selected route under the JJ lease.
+             * Require exactly one effective push URL before admission.
+             * One bookmark lease and acknowledgement cover one destination.
+             * Refuse automatic tag following and mirror mode before and
+             * after admission. The reviewed update covers one bookmark.
+             * Disable both settings in the transport subprocess so a later
+             * configuration write cannot widen the set of refs.
+             * Admit only no or check for submodule recursion and pass the
+             * admitted non-publishing mode to the Git subprocess.
              * After the admission callback, reopen Git configuration and compare
              * the ordered effective fetch and push URLs with the admitted
              * route. Refuse a missing or changed route before starting the
              * transaction, including when the bookmark lease is unchanged.
-             * JJ owns the lease and transport. External configuration can
-             * still change between the final read and transport resolution. */
+             * Verify that Git can reset the push URL list before admission.
+             * Give the transport the admitted URL through a one-use rewrite
+             * in command-scope configuration. JJ retains the original remote
+             * name for the bookmark lease and receipt. */
     }
     requirement projectDeclarationOverlay {
         doc /* Scheme composes JSON data with the project's POO declaration
@@ -247,6 +302,8 @@ package AitiaCommit {
         doc /* The selected NASA Scenario binds its edition and catalog digest
              * to a bounded project assessment. Current support, counterexamples
              * and remaining obligations are retained with their observations.
+             * Each selected execution method maps to one requirement.
+             * Historical readback uses that method to locate its report.
              * Runtime receipts retain exact identity and digest bindings.
              * The commit description contains the reviewed title and narrative.
              * Org review properties reference readable obligations; a separate
@@ -264,7 +321,10 @@ package AitiaCommit {
     }
     item def PreparedDescription {
         doc /* A stored JJ operation has an exact resulting revision and stays
-             * invisible at head until a guarded write makes it visible. */
+             * invisible at head until a guarded write makes it visible.
+             * Its operation metadata binds the preparation to the Scheme
+             * review context. Apply compares that stored value to the current
+             * assessment before publishing. */
         item expected : CommitCut;
         attribute preparedOperationId : String;
         attribute resultingCommitId : String;
@@ -280,8 +340,11 @@ package AitiaCommit {
     }
     requirement appliedEvidenceReadback {
         doc /* Resolve the exact result revision through visible JJ operation
-             * history. Resolve the check selection from the original project
-             * configuration through the Scheme Contract. Reproduce selected
+             * history. The host rejects archive methods it cannot produce
+             * and SysML observations inconsistent with the recorded changed
+             * paths or a successful status. Resolve the check selection
+             * from the original project configuration through the Scheme
+             * Contract. Reproduce selected
              * inventory and Git audit reports and compare them to the archive.
              * Verify each archived requirement and execution identity
              * against the selected check and reproduced inputs and report.
@@ -306,14 +369,25 @@ package AitiaCommit {
     }
     requirement revisionInventoryQuery {
         doc /* Verify the applied revision and its archived reports before
-             * selecting paths. Lab Query traverses observed changes to their
-             * inventory and model reports, and reads recorded configuration
+             * selecting paths. Lab Query can select changed files from JJ
+             * even when the archived inventory is missing. It traverses
+             * observed changes to verified inventory and model reports,
+             * and reads recorded configuration
              * and policy source paths with their changed state. Select
              * verified reports directly from the revision, including the
              * Git configuration audit of its tree and ordered parents.
-             * A policy source edge records availability. All selections
-             * remain partial and carry no action authority. Missing reports
-             * produce no verified report rows. */
+             * Select missing report methods directly from the revision
+             * through missing_report. Unknown dependency coverage is
+             * reported separately. A policy source edge records availability.
+             * An applied archive must supply the review context and proposal
+             * bound to the verified JJ rewrite. The recorded revision must
+             * select a commit policy. Scheme reruns title
+             * admission against the applied tree and compares the rendered
+             * title to JJ's readback.
+             * The revision then names an EngineeringReference declared in the
+             * recorded file. Recovery with only a rewrite receipt has no such
+             * relation.
+             * All selections remain partial and carry no action authority. */
     }
     requirement affectedModelAudit {
         doc /* A project-enabled model check applies to recorded SysML paths
@@ -339,9 +413,23 @@ package AitiaCommit {
              * it under current Scheme rules at the verified origin. A body-only
              * transition does not renew review. Equal rendered prose does not
              * excuse a stale context, changed rationale or changed ORG material.
+             * Applied preview reports text equality and context freshness
+             * independently. Push refuses a local description approval and
+             * malformed context before starting review. It verifies the
+             * current context before handing the commit to JJ transport.
              * The preview binds the title, body and ORG alongside the assessment.
+             * Reserved machine receipt fields are refused in document
+             * and headline property drawers.
+             * Evidence and Open clause properties must belong to review
+             * headlines and match the current assessment exactly. The
+             * document-wide cardinality check uses a view of the root and
+             * all clause properties. Headline ownership and reserved fields
+             * are checked against the full source graph. Conflicting admitted
+             * observations leave the obligation open.
              * Scheme renders structured narration against the current evidence
-             * and open obligation rows. A readable unresolved preview is not
+             * and open obligation rows. A passed model check contributes
+             * its own evidence and does not replace required narration for
+             * the other evidence rows. A readable unresolved preview is not
              * a prepared description when a prerequisite remains open.
              * Disclose unfinished, non-success or unavailable check
              * observations for the verified PR head. This disclosure binds
@@ -351,6 +439,9 @@ package AitiaCommit {
              * Replacing the recorded engineering source invalidates its
              * earlier preview and prepared attempt even if the title,
              * engineering identity and rendered prose are unchanged.
+             * Advancing the observed PR target revision invalidates the
+             * earlier review even when the cut, PR head, check inventory
+             * and rendered prose remain identical.
              * Signed admission binds the exact context as well as the rewrite;
              * a fresh preview cannot spend an old-context approval. */
     }
@@ -407,7 +498,10 @@ package AitiaCommit {
              * changed checked inputs invalidates affected evidence and grants.
              * Within the same project and workspace, losing prior support
              * reopens its obligation. Identical tree content leaves the exact
-             * cut comparison in force. Preserve historical observations. */
+             * cut comparison in force. Apply rejects a prepared attempt for
+             * another cut before Scheme evaluation. The JJ write still
+             * rechecks that cut under the operation-head lock. Preserve
+             * historical observations. */
     }
     requirement independentAuthority {
         doc /* ASCENT relations and successful checks cannot mint a local commit grant.

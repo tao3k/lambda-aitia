@@ -4,17 +4,32 @@
 
 (import :std/test
         (only-in :std/list/list find)
-        (only-in :clan/poo/object .get .ref)
-        (only-in "../../init.ss" lambda-aitia.init.exports))
+        (only-in :clan/poo/object .get .o .ref)
+        (only-in :clan/poo/mop validate)
+        (only-in "../../modules/gitops/config.ss" Config)
+        (only-in "../../modules/gitops/types.ss" GitOpsScopeContract)
+        (only-in "../../modules/gitops/features/github/objects.ss" enable-github)
+        (only-in "../../modules/gitops/features/github/types.ss" GitHubFeatureContract)
+        (only-in "../../modules/sdlc/objects.ss" SdlcProfile StandardProfile.)
+        (only-in "../../modules/sdlc/func.ss" sdlc-with-standards)
+        (rename-in (only-in "../../modules/nasa-7150-2d-catalog/config.ss" Config)
+                   (Config NasaCatalog))
+        (only-in "../../user-interface/profiles/gitops/config.ss" make-delivery-profile-scope)
+        (only-in "../../user-interface/profiles/nasa/config.ss" make-nasa-profile-scope)
+        (only-in "../../user-interface/scenarios/github-gitops/config.ss" make-github-gitops-scope))
 (export github-workflow-test)
 
-(def gitops (.get lambda-aitia.init.exports modules gitops))
-(def github-gitops-sdlc (.get lambda-aitia.init.exports scenarios github-gitops scenario))
+(def gitops (validate GitHubFeatureContract (enable-github (validate GitOpsScopeContract Config))))
+(def nasa
+  (make-nasa-profile-scope
+    (.o profile: SdlcProfile standard-profile: StandardProfile. with-standards: sdlc-with-standards)
+    NasaCatalog))
+(def github-gitops-sdlc
+  (.get (make-github-gitops-scope (make-delivery-profile-scope gitops) nasa) scenario))
 (def github-change (.get gitops github change))
 (def github-check (.get gitops check))
 (def github-run-gitops (.get gitops evaluate))
-(def nasa-sdlc-npr7150_2
-  (.get lambda-aitia.init.exports Profiles nasa-7150-2d standard))
+(def nasa-sdlc-npr7150_2 (.get nasa standard))
 
 (def repository "tao3k/agentic-ai-lab")
 (def revision "0123456789abcdef")
