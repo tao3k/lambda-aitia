@@ -1,0 +1,9 @@
+{
+  "name": "lambda-aitia-quint-checks",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0 AND LGPL-2.1-or-later",
+  "dependencies": {
+    "@informalsystems/quint": "0.33.0"
+  }
+}

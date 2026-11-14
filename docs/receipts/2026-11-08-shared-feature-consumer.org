@@ -1,0 +1,1265 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Shared Feature Declaration Consumer Qualification
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Source and responsibility
+:PROPERTIES:
+:CUSTOM_ID: shared-feature-consumer-20261108
+:STATUS: partial
+:END:
+
+** Active Goal: Gerbil package interfaces
+
+The package path is =gerbil deps --install=, =gerbil build= and =gerbil test=.
+Gerbil owns dependency resolution, compilation and testing. Rust consumes the
+existing gerbil-scheme-rust package operations and program-build interfaces.
+AITIA must not reimplement their environment discovery or require Bazel before
+ordinary package work. Bazel remains an optional build/CI integration with its
+own independently qualified adapter; an adapter failure does not establish that
+the underlying Gerbil package interface failed.
+
+The existing Just test fences retain their original heaps, watchdogs and
+failure markers while delegating to these package interfaces. The 180-second
+installation refusal remains open. Converging this path is the active Goal,
+not an already implemented capability or a passing installation receipt.
+
+The proposed additional Bazel environment module was withdrawn. New files are
+named for their actual responsibility, such as package operations, compiler
+discovery or toolchain context; a generic =native= prefix does not explain that
+responsibility. Compiler, linker and library selection belong to the producing
+toolchain interfaces rather than accumulated machine paths in consumer recipes.
+
+** Direct package interface observations
+
+The following local invocations used the existing declared package pool and
+ordinary installed Gerbil, without invoking Bazel or adding a compiler path:
+
+| Package entry | Result and limit | Scope |
+|---------------+------------------+-------|
+| =gerbil build= | Natural exit 0; original 180-second fence and 2G heap | Existing dependency products; not a cold install |
+| =gerbil test t/modules/unit/source-collection-test.ss= | Natural exit 0; MODULE-OK, HARNESS-OK and final OK; 60-second fence and 512M heap | One real source-collection consumer Case |
+
+The direct Cargo control did not reach its assertions: linking refused with
+=library not found for -liconv=. Merely adding the existing developer profile's
+bin directory to PATH did not establish a complete Rust toolchain environment.
+This is an unresolved toolchain launch result, not a passing Rust qualification
+or evidence that Scheme package testing requires Bazel. No timeout or heap
+limit was increased. The full cold =gerbil deps --install= acceptance remains
+open; neither this build nor this individual test closes it.
+
+** Rust environment and package-query observations
+
+The existing =devenv shell= supplies the Rust linker environment missing from a
+PATH-only launch. Under that declared environment, the unchanged
+=test-rust-frozen-pytest= Case passes, including real execution and source-change
+refusal. No consumer linker paths were added.
+
+Full linked-program staging still refuses before Cargo assertions. The pinned
+bridge requests pkgconf's =--keep-system-libs= option, which pkg-config 0.29.2
+rejects. Producer work now uses =std/make pkg-config-libs=; its existing
+system-directory retention negative control remains unclosed. An intermediate
+private shell query was withdrawn. Neither the consumer dependency pin nor its
+complete linked-delivery verdict is updated on this partial evidence.
+
+** Latest published head CI observation
+
+At AITIA =3477a46504a0b1369d3dcba2d3e2d498460a0ee8=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42478478795][CI run 42478478795]] is completed with failure. Lean succeeds. Rust formatting
+and Clippy complete, but the workspace test process reaches its unchanged
+120-second limit during compilation, before a test verdict. Quint refuses in
+its unchanged 60-second compiler preparation bound, before model checking.
+The package install again refuses at the 180-second guard, with
+=elapsedMs: 180698=, four admitted cores and =outcome: timeout=. These failures
+are independent; no earlier green head or focused local test supersedes them.
+
+The Gerbil producer PR58 head =1291a1dfb1c902ea9c1350eef482dcb984a89a51=
+has a successful ordinary CI run, but its separately recorded uncached POO
+qualification still fails the 180-second budget. Ordinary producer CI is not
+acceptance of that cold-client obligation, and no unqualified producer archive
+is introduced into this consumer cohort.
+
+** Compiler identity query repair
+
+[[https://github.com/tao3k/gerbil-bazel/pull/58][Gerbil producer PR58]] now contains normally pushed commit
+=b05d0116b5882488c13a80b7cb435d2c23004512=, based on its prior head
+=1291a1dfb1c902ea9c1350eef482dcb984a89a51=. Only the generated compiler wrapper,
+its existing provider regression and the interface documentation changed.
+Standalone =gsc -v= bypasses compilation options and preserves stdout, stderr
+and status; mixed argument lists still follow ordinary mode handling.
+
+On that release baseline, =bash tools/ci/test_repository_provider.sh prebuilt=
+completed naturally in 39 seconds with =outcome: passed=. The existing
+compilation modes, nonzero status, dependency transition and project-view
+controls remain. Removing only the four-line query branch makes the same
+entry refuse with status 79 and =GSC-IDENTITY-QUERY-REFUSED=; the candidate was
+restored exactly before commit. An initial counterfactual launcher setup error
+was discarded and is not counted as that refusal.
+
+This is local producer adapter evidence. New-head remote CI and cold package
+installation remain separate obligations. No producer release archive, consumer
+SDK override, dependency revision or native package acceptance is inferred from
+this wrapper regression.
+
+** Producer query closure and remaining installation cut
+
+PR58 query-repair head =b5efb22fcd75e27416268878a99d4c98834f55ed= passes both
+Linux and macOS jobs in [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485220625][CI run 42485220625]]. Its preceding query-only head
+=b05d011= passed the provider regressions but correctly refused the stale
+extension lock. The existing [[https://github.com/tao3k/gerbil-bazel/actions/runs/42485023975][cross-platform lock maintenance run]] generated
+Linux state, merged Darwin state and revalidated the merged lock on Linux.
+The resulting commit changes only the two platform extension digests; no lock
+checks or dependency declarations were weakened.
+
+AITIA =185c976b59194e72b5492ddb320b297cfea2468c= passes Lean, Quint and Rust
+workspace jobs in [[https://github.com/tao3k/lambda-aitia/actions/runs/42484976088][CI run 42484976088]]. Package installation still refuses:
+=elapsedMs: 180487=, four admitted cores, =peakRssBytes: 5790774272= and
+=outcome: timeout=. At the cut a GCC =cc1= child remains runnable with 65
+seconds of CPU time and approximately 2.65 GB RSS. This observation contradicts
+an idle-wait diagnosis for this run; it is not evidence of completed compilation.
+
+A separate generation-only diagnostic using installed Gambit distinguishes
+the small table dynamic stub from its static body: 376 versus 277387 C lines;
+the static output declares 21389 labels. This exceeds the already declared
+10000-label single-host threshold. These are generated-source observations,
+not a completed C compilation, a speedup or a full-install receipt. No compiler
+policy, heap, worker limit or deadline is changed on this evidence.
+
+** Qualified repair cohort
+
+AITIA selects Lab =db317e18c36aa5692df482e1ff492c474bf98fc6= through
+=gerbil.pkg=. Lab selects Core =bb63bad10538ba0e2d2d29f4f3cfc559c35672eb=;
+its development package declares ASP =9ae9bc377cbab4b84de52b512a2c03375a36d6c9=.
+The local package pool contains Core's declared POO source
+=cd4de644385a591b879e3de5795418b5b7e9d767=. This is an existing-package
+consumer qualification, not evidence of a clean dependency installation.
+
+Earlier observations below used Lab =d24b7f0af21e534b1400190896f2695ea2366029=
+and Core =272c46bebb73fff524b62e8eee77fc61befea2af= unless explicitly stated.
+The repaired Core and matching Lab gitlink/Lean lock were normally pushed to
+the existing PR19 and PR34. The independent installation failures remain open.
+
+GitOps declares =features: '(github)=. The existing init selects =+github=;
+=-github= withdraws the Feature. The Feature owns its Contract and uses the
+shared =.def= through its ordinary Interface/Types/Objects roles. There is no
+second Feature declaration API or Enable field.
+
+The pinned ASP package exports =prepared-native-import-closure= from its
+=native-import-closure= owner. Lab's obsolete =gerbil-import-closure= import
+refused before the source-admission Suite could run. The repair updates the
+owner import and its call; it does not change prepared-graph admission.
+
+AITIA CI restores Core's direct package dependency through Lab's existing
+=runtime-dependencies.ss= entry after transitive installation, as Lab itself
+does. No dependency REV is duplicated in the workflow. ASP remains in Lab's
+development package; its compiled library is appended after the existing
+caller input order once the declared test prerequisites have been prepared.
+
+* Executed consumer observations
+
+All Scheme commands used existing Just entrypoints. The current Core build
+and AITIA package build exited naturally with status zero. The following
+consumer entries retained MODULE-OK, HARNESS-OK, final OK and natural exit
+zero, without error, heap-overflow or stack-overflow markers:
+
+| Existing entry | Observation |
+|----------------+-------------|
+| =just test-proof-scheme source-admission-test.ss= | 17 source files, 345 observations, zero diagnostics |
+| =just test-scheme-atomic gitops unit/gitops-protocol-test.ss= | Shared Feature and GitOps protocol accepted |
+| =just test-scheme-atomic gitops unit/github-adapter-test.ss= | GitHub adapter controls accepted |
+
+The source-admission replay using Lab's current Core recorded 3,323 microseconds
+for prepared-graph projection and 23,449 microseconds overall, inside the
+unchanged 100,000/15,000,000 microsecond assertions. These measurements describe
+that invocation, not a cross-machine performance guarantee.
+
+Lab namespace validation accepted 4,031 files. AITIA workflow expressions and
+schema passed actionlint with its shellcheck integration disabled; every run
+body separately passed bash syntax checking. This is not a clean shellcheck
+claim: existing SC2016 diagnostics for intentionally deferred child-shell
+expansion remain.
+
+* Receiver and loading ownership
+
+The package Prelude already supplies =yuanxu!=. Product =init.ss= therefore
+declares its selection directly, without importing the selection implementation
+again. Relative role imports describe Scheme dependencies; the Module System
+owns role resolution and its source/currentness guards. No business role
+constructs a runtime import path or repeats a binding name in a delayed-loader
+wrapper.
+
+The GitHub Feature derives from its supplied receiver. Its nested =change=
+operation reads the constructor from the final outer =self= when invoked.
+It neither imports another constructor from the owner nor captures an eagerly
+extracted parent procedure. A warmed parent adapter and an overridden child
+therefore retain distinct receiver behavior.
+
+POO =self= is the effective receiver. =sup= is the inherited computation for
+the current slot, not the containing directory or the whole Module tree.
+The inspected Haumea source at =252218e686de786f45311c323e105bd4340c2179=
+supplies the current file result as =self=, the containing directory view as
+=super=, and the perspective-dependent collection view as =root=. These
+spatial capabilities are distinct from POO's inherited-slot continuation.
+Consumers reach the selected tree through ordinary =init.exports= and =.get=:
+
+#+begin_src scheme
+(.get lambda-aitia.init.exports modules gitops)
+#+end_src
+
+Within a Module, cross-Module dependencies retain their declared =requires=
+aliases. A namespace path or inherited slot does not create a dependency or
+grant authorization. The structural namespace, receiver inheritance and
+runtime import lifecycle remain distinct responsibilities.
+
+* Consumer cleanup observations
+
+These observations use the same Core revision and installed package pool named
+above. The Feature receiver regression passed all three Cases: a supplied
+constructor is used, admission and adapter lookup leave it lazy, and a warmed
+adapter follows an overridden child without changing its parent.
+Core's existing =namespace-leaf-expression-test.ss= passed all six Cases,
+including inherited-slot continuations, nested shadowing and explicit
+containing namespaces. Both entries retained MODULE-OK, HARNESS-OK, final OK,
+natural exit zero and no error/heap/stack markers.
+Core's existing =namespace-projection-test.ss= also passed, preserving lazy
+leaf identity, visibility and refusal controls. The AITIA package build exited
+naturally with status zero against this installed pool; this was an incremental
+build, not a fresh package installation.
+
+After removing the eager Config import from the GitOps Interface, all five
+Assurance files passed their existing 512 MiB child Profiles through
+=just test-scheme assurance=. Source admission also passed with 17 source
+files, 345 observations and zero diagnostics. These are existing-package
+consumer observations; they do not qualify cold dependency installation.
+
+The final-receiver implementation and original Config use no
+=module-binding-action= adapter in business code. Results obtained while a
+handwritten delayed import was present do not qualify this implementation.
+
+* Unclosed acceptance
+
+The earlier =just check-semantic= attempt with the repaired Lab import and
+current Core passed source admission and package build, then overflowed all
+five Assurance children at 512 MiB and returned status 70. That historical
+failure is retained. The cleanup above closes those five focused consumer
+failures without changing their Profiles.
+
+The cold GitOps queue still returns status 70: its protocol and adapter
+consumers refuse =module link slot support changed= during scope construction.
+The diagnostic cut identifies Parser's =select-lr-action-factory= read before
+its initialization-time method registrations advance its revision from zero
+to eight. Initializer support and ordinary scope support need a repair in
+their owning boundary. Neither preloading Config nor a path-based business
+wrapper is accepted as closure. No support check, Profile, Case, watchdog,
+timeout or assertion was relaxed.
+
+At AITIA =ae11fe20979cf0b32e165c0459cff612056f4065=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42435829512][CI run 42435829512]] passed Lean, Quint and Rust jobs. The package-install job
+refused at its 180-second guard while compiling POO; its receipt records
+=outcome: timeout=, =elapsedMs: 180595= and four host-admitted build cores.
+Successful source fetching does not establish successful locked installation.
+At =f3f60835dc62e84985fa5aea871ac30f1bcaf234=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42460823313][CI run 42460823313]] again refused installation at 180,996 milliseconds with
+four host-admitted build cores. Its final compiler work was in Core, after
+POO compilation; attributing the whole timeout only to table C compilation is
+unsupported. Lean, Quint and Rust passed at that revision. This remains a
+failed installation and does not qualify the cleanup's complete CI.
+
+At cleanup revision =f154e4ad3bb7073c1228134e3b34e46e8b0d6c48=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42467299141][CI run 42467299141]] passed Lean and Rust. Installation again refused at
+the unchanged 180-second guard, with =elapsedMs: 181396= and four admitted
+cores; its final work was still in Core. Quint separately refused before
+the first model verdict: Apalache distribution download exceeded the existing
+12-second checker silence limit. This is a preparation failure, not a model
+counterexample or accepted verification.
+
+The verifier now prepares Quint's pinned compiler through the public =compile=
+command before entering the Cases. Preparation has its own 60-second bound;
+every actual checker invocation retains its original 60-second total and
+12-second silence limits. There is no synthetic progress or watchdog change.
+Using the installed Apalache 0.62.1, the complete 23 invariant/reachability
+checks and two temporal checks passed, including the unchanged 19,042-state
+lifecycle count. All nine existing Scheme-verdict controls also passed.
+A separate cold-tool download returned a non-archive response and was refused;
+these local results therefore do not claim cold tool-install acceptance.
+
+Preparation derives its model from the existing selected Case declarations;
+there is no second model inventory or fixed example target. A separate ingress
+selection passed all five original positive/negative checks with the unchanged
+248-state safe result.
+
+At =913f4beee7479ce48c871d90e26d3bb4546692e7=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42467868747][CI run 42467868747]] passed Quint, Lean and Rust. Its Native job failed
+earlier at =Install Just= with HTTP 504; dependency installation and Scheme
+acceptance did not run. This tool-transport failure does not replace or close
+the prior 180-second installation refusals.
+
+Core's current proofs pass, while its independent dense-declaration and
+selection capacity gates remain red. Lab's prior current-head Linux and Darwin
+deployment downstream gates pass, but complete development/package builds do
+not. Those results retain their own SHA attribution; neither finite proofs
+nor focused Feature consumers establish whole-project acceptance.
+
+* Core-owned cold dependency initialization repair
+
+The isolated Core candidate fixes the reader, leaving AITIA's ordinary Config
+imports intact. The actual cold path runs through Orgize's compiled interface
+and Parser's reduction-plan initializer. A generic's construction reads were
+retained across method registration as if they were long-lived Scope reads.
+The reader now separates successful dependency initialization from actual
+Scope-body reads, using the original compiler/evaluator and authenticated
+Context objects. Open evaluators/observers retain their original execution
+path; failed initialization retains the original exception and partial reads.
+
+Focused local evidence:
+
+- The actual GitOps protocol consumer passed its unchanged 60-second gate.
+- Core's five cold/hot, live-value, Context-retargeting and evaluator controls
+  passed with MODULE-OK, HARNESS-OK and final OK.
+- Core's build-input mutation qualification passed both before/after gold
+  suites and refused all four faults for the expected reason.
+- Lab's downstream A/B deployment qualification completed in about 78 seconds:
+  46 targets, four owners, three selected tests, real B-product consumption
+  and clean isolation. The 120-second aggregate/action and 60-second idle
+  budgets were unchanged.
+
+These are candidate-source observations, not a new published-head CI success.
+The full AITIA semantic queue and complete dependency-install acceptance remain
+separate gates. Prior published head =128a88097179fb154f81db57d17f8f2105264b2b=
+still has a cold-install refusal: 180,536 milliseconds, four admitted cores,
+and about 5.57 GB peak PSS. The last completed compiler work was in POO.
+Quint's failed archive download and Rust's Just HTTP 504 are independent tool
+transport failures. A local compiler-policy component experiment is not an
+installation receipt; no experimental compiler flags have been installed.
+
+A full cold compiled-output experiment then used the locked package graph,
+locally prefetched source objects, the official =gxpkg deps --install= entry
+and host-selected 12 cores. It still exited 124 after 180.028 seconds while
+Core was compiling, after POO completed. That failure rejects the proposed
+compiler-policy shortcut as an installation fix. Its partial outputs are not
+qualified or reused as a completed install cache.
+
+The complete semantic queue passed Assurance, SDLC and GitOps but exposed an
+obsolete source-collection expectation: five interfaces were listed although
+the product declares seven. The regression now includes NASA catalog and
+project-config in both the exact path list and the Module ID list. This
+changes no loading policy and retains the complete-list assertions. The fresh
+complete semantic queue passed in 272.575 seconds across the unchanged original
+per-action limits. Integration passed in 96.565 seconds; retirement binding
+and execution passed in 17.921 and 6.836 seconds. Each completed naturally with
+MODULE-OK, HARNESS-OK and final OK, without error/heap/stack markers. The earlier
+failed queue remains a failure. The final semantic replay after updating the
+Lab dependency declaration completed successfully in 273.965 seconds: 33
+MODULE-OK and 30 HARNESS-OK/final OK markers, with no failure/heap/stack marker.
+Rust/Python delivery has a separate receipt below.
+
+For repair commit =bb63bad10538ba0e2d2d29f4f3cfc559c35672eb=, Lean passed. Three Quint
+partitions failed during backend acquisition at their original 60-second
+preparation boundary; the remaining five partitions passed. Those acquisition
+failures were retained and the failed jobs retried without changing the model
+catalog or deadlines. All eight partitions subsequently passed, making
+[[https://github.com/tao3k/gebril-yuanxu/actions/runs/42475847192][that repair commit's proof workflow]] successful. Lab's matching Composition
+proof and workflow lint also pass.
+
+Core PR19 subsequently advanced through parallel work to
+=0e6aa50ac3515f94bc8ce39b22ccc0268998b1a3=. GitHub comparison reports the repair
+as an ancestor, with 119 additional commits. The consumer keeps its qualified
+=bb63bad= cohort; it does not silently import those parallel changes. The old
+repair commit's Native workflow was cancelled after the head advanced. Neither
+its focused results nor proof success qualify the new head's Native execution.
+
+** jj and Rust/Python delivery boundaries
+
+The original jj entry passed after supplying the same official 0.47.1 tool
+version used by CI. The macOS arm64 release was checked against the official
+SHA256 =50129b527f7cd6aef82aebd4bb2b670bb56766adc509ef3279c4327aa3592255=.
+The full jj/ORG/ASCENT entry completed in 22.266 seconds. The earlier missing
+=AITIA_JJ_BIN= launch failure remains a failed setup receipt.
+
+Direct Rust delivery first lacked the system-library pkg-config context.
+Replaying through Lab's locked =native_scheme_env= supplies OpenSSL, zlib and
+SQLite. Its bounded tool environment additionally needs the installed Rust
+tool directory. Selecting Apple system clang through Cargo's target linker
+setting corrects the unrelated Nix clang =-liconv= failure. These are local
+tool qualifications, not a changed runtime or a wider Case budget.
+
+The real pytest/source-mutation control passes. Scheme program staging also
+completes. Linked Rust delivery then refuses the producer's qualified =gsc=
+wrapper: a standalone =-v= request receives dynamic compilation options and
+prints =Unknown or improperly placed -v option ignored= instead of the version
+identity accepted by =discover_gambit_gsc_from_env=. The underlying paired
+compiler reports its identity normally. This is a gerbil-bazel wrapper/query
+boundary; it is not repaired by changing AITIA business imports or weakening
+the bridge's compiler authentication. Linked ABI, Quint consumer and installed
+Python wheel therefore remain unqualified by this entry. Compiler identity
+checking remains enforced; the original timeouts and heaps are unchanged.
+
+Raw transcripts remain local or CI artifacts. No logs, generated compiler
+products or machine-specific paths are committed. Storage executors, bindings
+and old Memory are unchanged by this repair.
+
+** Current bridge dependency synchronization
+
+Bridge PR18 repair =170e02c2fe9fa4cc92303c90e7281600f06bf1a0= was
+normally pushed. Its successor =3ccd4ccf6db52f1cac8522a96a0dd510fb69afc7=
+retains the repair and adjusts Linux CI installation. Lab and the AITIA Cargo
+manifests now select that successor; Cargo generated the matching lock.
+The locked Rust workspace completed naturally within the original 120-second
+fence: 14 passed, zero failed and one existing ignored case. Existing ignored cases remain ignored, not qualified. This workspace
+result does not cover linked Scheme delivery or an installed Python wheel.
+
+Lab =44c9e39bca7fa9373d7919e9e6022bfa4ee1d5d4= consumes provider
+=cbf2ba017b741b507eb57387726f56b09bc42911= through its existing Bazel override. The consumer budget
+patch and its export package were removed. The existing dependency projection
+checker passes after Bazel generates the lock. The producer's full prebuilt
+provider control and both resource-guard suites pass locally, including
+resource-budget preservation, nested-entry idempotence, deadline refusal,
+RSS refusal and process-tree cleanup. The non-v19 failure diagnostic reused
+an undefined tokenizer; it now uses that module's existing whitespace parser.
+No refusal code, workload, timeout or heap policy changed. The producer
+cross-platform lock workflow is pending; local controls do not qualify it.
+
+The current package-pool =gerbil deps --install= invocation refused with exit
+70 before compilation: parser =21fdb58642b135c48ad0006aab40e58e99e58c24=
+requires Core =fd215418d396aeb5a3aaa8209bc3870ccfbefe9c=, whose POO tag
+is =1f4b1720d80c3cca1daf64775cd7abfe63bebd0d=. The pool instead records
+=cd4de644385a591b879e3de5795418b5b7e9d767=. Lab's checked-in Core separately
+requires =6c3208d8751307c703209f36ea48126ab28e873c=. This incompatible-tag
+refusal is distinct from the earlier 180-second cold-compilation failures.
+No package was uninstalled or tag metadata rewritten. Neither full package
+installation nor current-cohort Scheme delivery is closed by this result.
+
+The separate strict lint entry passes formatting but refuses before Clippy
+analysis because its compiler reports 1.95.0, below the workspace's 1.97.1
+minimum. The successful workspace invocation used the declared environment's
+1.98.1 toolchain. This tool-selection difference remains a local verification
+gap; the earlier test result is not a lint pass.
+
+A bridge-only =gxpkg update= fetches and registers the selected revision.
+The installed package manager then misroutes the tagged package name into its
+plist lookup and reports a missing =gerbil.pkg= even though the file exists.
+An ordinary untagged update avoids that lookup, but its build requires target
+pkg-config metadata. The host and generic developer shell lack OpenSSL
+metadata; the Lab package-build entry supplies OpenSSL but lacks zlib metadata
+in that shell. All three setup refusals remain failed observations. No private
+linker search, generated SDK or package metadata rewrite was introduced.
+
+A subsequent bridge-only package build supplies the three installed target
+libraries' standard pkg-config metadata. The library query succeeds, so this
+control reaches compilation rather than repeating the metadata refusal. It
+then fails while linking =scheme/arrow=, with unresolved =calloc=, =free=,
+=malloc= and =strlen= for arm64. This is a distinct package-link failure, not
+a standard library-query failure or a passing current bridge install. The
+original 180-second fence and 2G heap remain unchanged; no Arrow/bindings
+implementation was modified.
+
+Lab successor =e84aac5f1e239fd323d0979a0b5b347aff4780b7= retains the
+dependency update and adapts the existing external-Bazel fixture and ownership
+document to the removed patch assets. AITIA selects that successor. These
+fixture/document changes do not alter the Rust source tested above; their
+latest-head CI remains separately required.
+
+** Paired installation handoff and full delivery qualification
+
+PR58 =d7c2cb6e4d0cc0b85e2668b09d0806f7c493aea4= passes Linux and
+macOS in [[https://github.com/tao3k/gerbil-bazel/actions/runs/42496440511][CI run 42496440511]]. The earlier lock-maintenance
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42493388261][run 42493388261]] generated Linux state, merged Darwin state and verified
+the result on Linux. The subsequent ordinary CI exposed an installer fixture
+that still rendered =NATIVE_ENVIRONMENT_ARGS=. Its replacement with the shared
+=ENVIRONMENT= field retains all original budget, refusal and stale-receipt
+assertions. The original fixture failure remains a failed observation.
+
+The local Arrow refusal was reproduced with a minimal C allocation bundle.
+GCC selected the Nix linker from PATH; Lab's existing =COMPILER_PATH= isolation
+selects the system linker and the same control succeeds. With the installed
+target libraries' pkg-config metadata, the existing Lab package-build entry
+also completes naturally. This does not establish an Arrow implementation
+defect; no Arrow or ownership implementation was changed.
+
+A separate linked-program failure reached the native owner but returned status
+4. The existing setup diagnostics are =[2, 1, 0, 0]=: setup returns a nonzero
+result, rather than host IO restoration failing. An independent bounded
+debugger replay identifies =cannot find library module :gerbil/core=. Debug
+verbosity only supplies diagnosis; it is not an acceptance replay.
+
+Bridge =d64d86b0114cc49127fa43f128e92685eac9ab8a= shares the existing
+installation-map generator between its default and external program builds.
+The external owner supplies that map to Gambit's setup parameters. No AITIA
+installation-path probe, environment mutation, loader, ABI revision or processor
+policy is introduced. Its unit controls pass (35 passed, seven existing ignored),
+AOT integration passes (19 passed), and formatting, strict Clippy and the real
+external-program lifecycle object build pass. Latest-head producer CI remains
+a separate required gate. Lab =4ae30b385157564a324af9503cf52fcb3a13bf51=
+selects this bridge and the qualified PR58 revision; the existing dependency
+projection checker passes after Bazel generates the lock.
+
+Against Core =091c4fe148cf00f753ab168beed193401c6db8ae= and its POO
+=6c3208d8751307c703209f36ea48126ab28e873c= dependency, package builds finish
+naturally. The full AITIA semantic queue passes with 33 MODULE-OK and 30
+HARNESS-OK markers; integration passes with two of each. Lab's existing
+deployment downstream Case completes with five MODULE-OK and two HARNESS-OK
+markers, including source/product/clean isolation. No error, heap overflow or
+stack overflow marker occurs. These use the current package pool and do not
+qualify a cold dependency installation.
+
+The linked-program Case now completes without a consumer =GERBIL_HOME=:
+compilation takes approximately 66 seconds and the complete runtime Case
+approximately 30 seconds, within the unchanged 120-second fence. Graph, GitOps,
+ORG, CLI and natural session close all pass. The full existing
+=check-rust-delivery= entry also completes naturally: real pytest and source
+mutation refusal, linked ABI, the Rust/Quint success and rejected-assertion
+controls, release Maturin wheel generation, and isolated wheel installation
+finish with =AITIA-INSTALLED-RUST-WHEEL-OK=. The deliberately rejected Quint
+assertion remains a required refusal, not an unexpected failure.
+
+Local lint's compiler discrepancy was traced to Cargo selecting the user's
+1.95 Clippy plugin ahead of the declared environment's 1.98 plugin. The latter
+passes the same complete strict lint. Refreshing compiler-info metadata alone
+did not repair the plugin selection and is not recorded as a fix.
+
+On AITIA =49e298e53062d41f1417b68a745f097fc48799e0=, the Rust job in
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42494309327][run 42494309327]] first fails during test compilation at the original
+120-second fence. That attempt saves compiler outputs. Its complete same-head
+Rust job replay passes after cache restoration; this is cache-assisted evidence,
+not a cold compilation result. Cargo cache fallback now permits restoration
+of unchanged dependencies across lock updates while Cargo and =--locked=
+retain authority over reuse and rebuilding. Gerbil cache keys and cold-install
+acceptance are unchanged.
+
+The same head's package installation still times out at =elapsedMs: 180155=,
+=peakRssBytes: 5780515840= and four admitted cores. Compiler output advances
+through POO table and remaining modules before the cut. No completed cold
+installation is inferred from the local package builds or cached Rust replay.
+This remains an open obligation under the original 180-second limit.
+
+The existing =test-project-sysml= entry also passes with the linked program:
+one complete Case, approximately 22 seconds compilation and 48 seconds runtime,
+within its original 120-second fence. It resolves the real commit Case and
+refuses invalid inputs against the recorded local service.
+
+Core's full existing =test-build-input-context-mutations= entry completes
+naturally: all before/after controls pass, all four mutants refuse with exit
+42, and =BUILD-INPUT-CONTEXT-MUTATIONS-OK mutations=4 source-unchanged=true=
+confirms the source is retained. These are current Core results, not inherited
+from the earlier repair revision.
+
+The qualified AITIA recipes therefore remove their repeated =GERBIL_HOME=
+probes, whole-Cargo SDK filtering and fixed C compiler/deployment defaults.
+The producer owns Gerbil compiler and setup context; Rust and Maturin keep
+their declared target environment. Generated outputs use the existing package
+root's =build= directory. Source and package identities, Case catalogs, builder
+core selection, timeouts, heaps and refusal assertions are retained.
+
+For published consumer head =d545aff8d7fdd61eda645d3a308a405c3e9eb9eb=,
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42499555697][CI run 42499555697]] passes Lean, Quint and the complete Rust workspace
+on the first attempt. The new Cargo cache fallback does not close the separate
+Gerbil installation gate: that job still refuses with =elapsedMs: 180651=,
+=peakRssBytes: 5890975744= and four admitted cores, before linked delivery.
+The local complete delivery result remains valid for the explicitly described
+installed package cohort; it is not remote cold-install evidence.
+
+** Cold compilation attribution
+
+Lab selects the published Linux =patcha379bb244bfa= archive, SHA256
+=3b345b1af68dfbbc0e73bae64941e4c8910d0ca192d81432ce699c5af385b565=.
+Its release points to producer =2dde985fec96b0792fa34735e6d091f904f8314e=,
+whose publication workflow applies the streaming compiler executor on Linux.
+The earlier =patche35312b4a951= release points to
+=7e1ddc4aa03bdcb60727d981651bbdaf5a82ddba= and applies that patch only on
+Darwin. That older release is used by producer CI, but not this Lab consumer.
+Updating the consumer to the already selected archive is therefore not a fix.
+
+In run 42499555697, the table source compilation event is approximately 39
+seconds after admission, while its =table~0.scm= native job begins around
+114 seconds. At the 180-second refusal, the active tree contains a =cc1=
+process with approximately 55 CPU seconds. The interval between those events
+includes source expansion and possible native-queue waiting; these logs alone
+do not separate them. They establish active compilation, not idle deadlock.
+
+The source's table constructors include nested observation and cursor guards.
+Lifting their captured state into separate procedures is an unvalidated
+compilation-cost hypothesis. The existing GCC macro-tracking patch also applies
+only on Darwin; its relevance to Linux has not been measured. Neither source
+semantics nor compiler options have been changed on either hypothesis. Complete
+package targets, original refusal controls, and the full 180-second installation
+obligation remain required.
+
+** Installation map ownership correction
+
+Bridge =d64d86b= exact-head CI exposed four Darwin qualification failures:
+independent instance adapters include the shared lifecycle with an external
+linker, but do not own the package-generated =build-home.h=. The missing header
+is a compile-time regression, distinct from AITIA initialization code 4 and
+from the 180-second package-install refusal.
+
+Bridge =fe3796edd1bad71df147a21a67f1b421f1bcbf89= explicitly selects the
+installation map only when the package build generates it. Both existing
+=instance_probe.c= and =owner_instance.c= compile without that header; the
+actual Cargo external-program build also passes. The AOT library and complete
+integration controls report 54 passed, seven pre-existing ignored. Original
+120-second boundaries and processor/cleanup behavior are unchanged.
+
+Lab =7047c5416df564bd38b5b6358c3a49052e455e7e= consumes that revision through
+the maintained pin generator and Bazel lock projection; its projection check
+passes. The AITIA Scheme declaration and all Rust bridge declarations are
+synchronized, and Cargo generates the corresponding lock. Current-head CI
+remains a separate obligation; no earlier head is substituted for it.
+
+The old Lab =4ae30b38= CI also has unresolved failures: declared dependency
+builds and the external Bazel consumer exceed their original 12-minute step
+limits; development-library builds time out on both platforms. Those results
+are retained and are not closed by this installation-map correction.
+
+A local table C-compilation attribution experiment at macro-tracking levels
+2 and 0 exceeded 180 seconds in both variants (180216 and 180376 ms).
+It used static object mode rather than Gerbil Darwin's actual dynamic-object
+mode. It does not establish a production compiler-option remedy or qualify
+Linux cold installation. No production compiler option or SDK was changed.
+
+With bridge =fe3796e= and Lab =7047c541=, the unchanged complete
+=just test-rust-linked-program= Case exits naturally with one test passed.
+Compilation takes 49.11 seconds; replay takes 29.97 seconds within the
+existing 120-second command guard. Session Graph/GitOps/ORG, CLI and cleanup
+markers all complete, with =GERBIL_HOME= unset. This is installed-cohort
+consumer evidence, not remote cold-install closure.
+
+** Production compiler attribution control
+
+The corrected local comparison retains the exact POO table production options
+=-O2 -D___SINGLE_HOST_LIMIT=10000=, Darwin's =-D___DYNAMIC -fPIC=, the same
+C input, the paired compiler, the original 180-second guard and 2G Scheme heap.
+GNU macro tracking 0 completes in 76171 ms with peak tree RSS 2273050624 bytes;
+tracking 2 completes in 75778 ms with peak tree RSS 5245386752 bytes.
+Both produce object SHA256
+=7196fa4eb1f76510b52b588f2fc6dd99387b3ce99cac4d4518b47f9a8ae0a6e8=
+from C input SHA256
+=84f5413b7885ed7a744d9d683721fc82daacd75cdcc641200a9ba5529a9f9059=.
+
+This is a serial, single-host Darwin object-compilation diagnostic, not a
+Linux installation benchmark. It supports reduced frontend memory and unchanged
+object bytes for this input; it does not show an elapsed-time improvement.
+No Linux compiler flag change is accepted on this evidence. The earlier
+static and incomplete-option timeout controls remain recorded as diagnostic
+scope mismatches, not as production failures or package acceptance.
+
+A separate real Scheme-only compilation of the unchanged table source, with
+=invoke-gsc: #f=, optimization and static output retained, completes in 5314 ms
+and peaks at 802848768 bytes under the same 180-second / 2G controls. Outputs
+are isolated diagnostic products, not an SDK or an installed package override.
+This separates local Scheme generation from the approximately 76-second C
+object cost. It does not quantify Linux queue delay: the remote 74-second
+source-event-to-native-start interval still requires queue/phase attribution.
+The existing compiler executor uses FIFO ready-job order; critical-path effects
+are a hypothesis, not an accepted scheduling change or package result.
+
+** Current consumer CI refusal
+
+AITIA PR2 head =99ce0316d7171c2712cc1f34b36ba2cf349814ea=, run
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42504931654][42504931654]],
+passes Lean, Quint and the Rust workspace. Its admission job
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42504931654/job/128805403044][128805403044]]
+still refuses dependency installation: elapsed 180196 ms, exit 71 under the
+resource guard / wrapper exit 124, peak process-tree PSS 5779320832 bytes,
+four admitted cores, original timeout 180000 ms. The PR job executes GitHub's
+merge candidate =fb2fcb3= for that head, not an earlier branch result.
+
+Admission begins at 17:29:35.635 UTC; the table source event is 17:30:04.360,
+its native job starts at 17:31:03.113, and later queued jobs resume at
+17:32:18.018. By 17:32:31.410 the log is compiling Core's
+=module-system/selection/init-syntax=; the cutoff tree contains gxpkg and an
+active gxi with 17 CPU seconds, rather than the previous run's active cc1.
+The total dependency obligation therefore remains incomplete even when the
+POO table compilation finishes before the guard. No retry or limit change is
+adopted as a remedy.
+
+** Rejected source-level compilation experiments
+
+Two isolated source-only snapshots of POO =6c3208d= retain all table checks,
+production C options and the original 180-second / 2G controls. Extracting the
+ordered-query helper compiles its object in 74667 ms; extracting ten method
+closure factories compiles in 74301 ms. Relative to the 76171 ms control,
+these single measurements do not establish an adequate installation remedy.
+Neither candidate is installed, committed or promoted into a producer pin.
+The unchanged library's existing =just test-file
+t/collection-order/table-order-test.ss= completes naturally in 9.49 seconds
+with MODULE-OK, CASE-OK, HARNESS-OK and final OK. This baseline confirms that
+the existing positive/refusal cases execute; it does not qualify either
+unadopted candidate's behavior or the full cold-install chain.
+
+Dependency inspection also confirms both pinned Parser and ASCENT declare
+Core =fd215418d396aeb5a3aaa8209bc3870ccfbefe9c= with POO =1f4b1720=, while
+the Lab Core gitlink =091c4fe= declares POO =6c3208d=. This is an actual
+source-cohort difference, not an accepted consumer override. Its effect on
+installation and subsequent direct-Core preparation remains to be measured.
+
+** GCC pass attribution
+
+With unchanged source and production options, adding only =-ftime-report=
+completes in 71427 ms, peak RSS 2353840128 bytes. The resulting object is
+byte-identical to the non-reporting control. GCC reports 68.45 CPU seconds:
+parsing 3.15 (5 percent), optimization/generation 65.30 (95 percent), and RTL
+PRE 20.63 (30 percent). The callgraph expansion aggregate includes downstream
+passes and must not be summed with those individual pass times. These data
+exclude parsing as the dominant cost on this host and do not justify lowering
+optimization, changing the backend split bound or weakening admission tests.
+
+** Lab source capture refusal and correction
+
+Lab =7047c541= run 42504692494 reports two distinct Linux failures: external
+Bazel library compilation raises Heap overflow after 344564 ms at the unchanged
+2G Scheme heap, while package acceptance rejects the source authoring gate in
+=t/module-system-observability-test.ss= line 430. The latter scans Lab's own
+sources, not a Core test suite. The native installer is a separate obligation.
+
+The existing Core authoring interface locates eleven self-referential slot
+initializers across D2 authoring, Agenda composition, Module descriptor options
+and the runtime Context adapter. Fixes use existing POO lexical capture
+shorthand; the computed options fallback receives a distinct parameter name,
+and the Agenda key helper has a distinct lexical name. Slot names, signatures,
+authorization policy, journal operations and lifecycle protocols are unchanged.
+The complete observability suite, D2 authoring and Module authoring suites pass
+through the existing Justfile entry, each within its original 120-second guard.
+
+A first complete Lab build with Core =091c4fe= / POO =6c3208d= still reaches the
+existing 180-second script deadline; partial compilation is retained as failure.
+Core PR19 already publishes =520aa69eff289a3e9535a2d242adaf50ec4de63c=, whose
+implementation is unchanged and whose dependency is POO
+=6394e95ca35d0d8f602bce2178bcdcdbb1b68309= with reduced SCC certificate storage.
+Both dependency and Core standard package builds complete naturally. Lab's
+maintained pin generator and Bazel lock projection check pass. With that cohort
+and the slot capture corrections, the complete =just build-library= now exits
+naturally with status 0 under the original 180-second script / 2G heap. This is
+local installed-cohort evidence, not a cold Linux install or remote CI pass.
+
+The post-build =t/module-system-test.ss= and full
+=t/yuanxu-deployment-downstream-test.ss= pass through the existing 120-second
+entrypoints. The downstream case reports targets=46, roots=1, owners=4,
+selected-tests=3, runtime-qualification=1, cold=A/B and clean-isolation=ok.
+The complete observability suite passes again on the built cohort. Core's
+unchanged input-context mutation driver passes before/after order and admission;
+all four mutants reject with exit 42, and its final receipt reports
+=mutations=4 source-unchanged=true=. Lab PR34 records this source and dependency
+cohort in =e11b02c4=; remote CI still requires its own current-head result.
+
+Core =520aa69= Linux CI has separate duration refusals for the original ten
+thousand declaration and selected-declaration cases. Those limits are retained;
+local package/build and consumer controls do not close those scale obligations.
+
+** AITIA e11 consumer qualification
+
+With Lab =e11b02c4d355664a7bbc8e10caaee0f2b359ca0e=, Core =520aa69=,
+POO =6394e95= and bridge =fe3796e=, the unchanged complete
+=just check-semantic= reports 33 MODULE-OK, 30 HARNESS-OK and no ERROR markers,
+then exits naturally with status 0. No source or runtime acceptance case is
+removed.
+
+The first delivery invocation refuses before any Case because the required
+=AITIA_PYTEST_PYTHON= input was missing. After selecting the existing verified
+pytest 9.0.2 interpreter, the unchanged =just check-rust-delivery= completes
+naturally: real pytest/source mutation controls pass; the linked-program Case
+passes in 24.71 seconds with Session, Graph, GitOps, ORG, CLI and close markers;
+Quint positive execution and the required QNT508 negative both execute; the
+release wheel build completes in 68 seconds; and the exact wheel installs and
+runs outside the checkout with =AITIA-INSTALLED-RUST-WHEEL-OK=. Existing
+120-second phase deadlines and the unset =GERBIL_HOME= condition are retained.
+This installed-cohort result does not close the separate Linux 180-second cold
+installation gate or substitute for the updated PR2 current-head CI.
+
+** Proof dependency lock completion and rejected scale candidate
+
+Bridge PR18 head =fe3796edd1bad71df147a21a67f1b421f1bcbf89= reports sixteen successful
+executed CI checks; the existing SMP capability gate remains explicitly
+skipped because this toolchain lacks multiple-threaded VMs. This producer
+result is separate from Lab and AITIA admission.
+
+Lab =e11b02c4= CI correctly rejects a missed proof pin: the Lean declaration
+and Lake lock still referenced Core =091c4fe= after the Core gitlink advanced.
+The declaration now names Core =520aa69=, and =lake update YuanxuProof= generates
+the lock. The original License contract command sequence passes unchanged,
+including namespace/proof-gitlink matching, dependency projections and 41
+Python maintenance tests. The existing
+=just check-runtime-semantic-query-lean= consumer builds successfully (30 Lake
+jobs). Lab =fea64411= contains only the two proof dependency files; runtime
+Scheme/Rust inputs are unchanged from the qualified =e11b02c4= cohort.
+
+A separate Core dependency candidate consumes POO PR17
+=e94cfc27f9424b3fc5a878969ee93b653d12d85a= after all its upstream CI succeeds.
+Its standard package build and Core build pass, but the original ten-thousand
+Case entrypoints still refuse. Their existing per-Case budget is 180000 ms and
+their maintained Justfile/fixture already selects the specialized 4G heap;
+neither setting is changed. Declaration admission reaches 4434 publications
+before =duration-exceeded 180000 180005=, with 186274 recorded file reads.
+Selected declarations refuse at =duration-exceeded 180000 180012= in the
+first-graph phase. These are failures, not successful scale qualification.
+
+No production dependency or verification rule is changed to admit that
+candidate. The uncommitted Core pin is restored to its published POO =6394e95=
+value and the current package API restores and rebuilds that package. Native
+VM accounting printed by the diagnostic is explicitly unqualified and is not
+reported as measured heap allocation. Publication metadata replay/read-route
+appears in the refusal stacks; no validation has been skipped on that basis.
+The 180-second cold installation and both scale obligations remain open.
+
+
+* Producer pin alignment and current-head refusal (2026-11-09)
+
+The authorized bridge change =170e02c= is an ancestor of PR18
+=fe3796edd1bad71df147a21a67f1b421f1bcbf89=, already consumed by Lab
+=fea64411296a1f2db5c1a192013421ad5cc73bd2= and AITIA
+=faa1633d2d7630f90749cf3b4ecfd7e8aad707f6=. PR18 subsequently advances to
+=13361b5abdbce7216e01445a71843990d463b5fb= through separate queue and evaluator
+preparation changes. Its CI is still running at this observation; the earlier
+sixteen successful checks apply to =fe3796e= only. These consumers have not been
+qualified against =13361b5=.
+
+AITIA's current-head [[https://github.com/tao3k/lambda-aitia/actions/runs/42511232868][run 42511232868]]
+passes Lean, Quint and the Rust workspace, but dependency admission refuses at
+=elapsedMs 181431= against =timeoutMs 180000=, with four effective build cores
+and =peakRssBytes 6123996160=. It has not reached linked delivery. No budget,
+heap, core admission rule or negative control is changed.
+
+Two local dependency-declaration candidates replace Core =fd215418= with
+=520aa69eff289a3e9535a2d242adaf50ec4de63c= in the existing =gerbil.pkg= files:
+Parser source =36fb2c71e297381a369eac2b411c68bbcc8ace62= and ASCENT source
+=62299efe57c1d6bc5a9b7c08c17962189543a5e0=. These are uncommitted source
+modifications, not published producer heads or a clean locked installation.
+Neither Lab's published Parser pin nor ASCENT pin is silently overridden.
+
+Parser's ordinary package build passes locally. Its maintained
+=just build-test-support= then naturally exits 0 and the Module System issues
+the test publication. Consuming that publication plus the existing ASP
+development dependency, both =just test-file t/public-interface-test.ss= and
+=just test-file t/core-observability-test.ss= naturally exit 0 with
+=MODULE-OK=, =HARNESS-OK= and final =OK=. The original per-test 120-second/1G
+settings remain. The frozen construction Case retains fifty object pairs,
+twenty samples and the 100ms limit: P95 =77.848ms=, maximum =79.296ms=.
+This is local candidate evidence, not a new macOS CI result. No claim of a
+qualified allocation measurement is made from the runtime statistics.
+
+The earlier attempts lacked the required progress/ASP modules and printed
+=ERROR HARNESS= despite a zero process status. Those attempts are failures;
+exit status alone is insufficient. Their subsequent success depends on the
+existing test preparation and admitted test publication, not a new runner.
+
+ASCENT's existing =just test-quick= passes all five suites. The first complete
+package build refuses: including development-library static inputs
+correctly refuses competing POO origins; after removing those test inputs from
+the production load path, the build reaches a =gsc -link= status-70 failure.
+Replaying the exact 257-input link with compiler diagnostics succeeds in
+5339ms. This isolates a diagnostic success only; it does not establish a
+concurrency cause, repair the compiler or qualify a cold complete build.
+A subsequent ordinary =just build-dependency github.com/tao3k/gerbil-ascent=
+naturally exits 0 under the same 180-second/2G settings, including both
+executables. This is a complete warm build after diagnostic preparation; the
+original status-70 failure and cold-installation obligation remain retained.
+
+The two local producer pin candidates are preserved for review. They are not
+pushed to Parser PR21 or ASCENT PR1 under authorization for the other producer
+and consumer PRs. Cold installation, current-head remote CI and the previously
+recorded Core scale obligations remain open.
+
+* Follow-up audit of the published revisions (2026-11-09)
+
+Bridge PR18 advances to =9aa4de6adc1f566f78586b046ba9452c1e996d7b=
+with sixteen successful checks and the SMP check skipped. It is five commits
+ahead of the consumed =fe3796e= revision and includes changes to signal cleanup
+and Gambit archive linking. Lab's Scheme dependency and AITIA's Cargo
+dependency still select =fe3796e=. Consumer qualification for the newer bridge
+revision is pending.
+[[https://github.com/tao3k/gerbil-scheme-rust/pull/18/checks][Bridge checks]]
+
+AITIA =f06d418= again fails in dependency admission with a 180000ms limit,
+four effective build cores, and a peak process-tree PSS of 5560382464 bytes.
+The receipt reports =elapsedMs 180550=. The timeout snapshot includes a
+running =cc1= descendant of =gsc=. The log identifies =table~0.c= during the
+same build, in =table-order=. This identifies an active compiler workload at
+the deadline. The snapshot alone cannot assign the whole elapsed time to
+that translation unit. The linked-delivery step has no result from this run.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42513927014/job/128832688119][Admission log]]
+
+Lab =fea64411= has separate failures. The Linux runtime job reaches exit 124
+in =build-library=. The macOS runtime job reports signal 9 in the same
+recipe, with no cause established by that signal alone. Both the macOS
+package job and the macOS source-build job report that =gambuild-C= is
+missing from the Bazel =local_gerbil= repository path during ASCENT
+compilation. This is a toolchain handoff failure observed on two paths.
+The Linux package and external Bazel jobs each reach their existing
+twelve-minute step limits.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42510923371][Lab CI]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42510923336/job/128823585600][macOS source build]]
+
+Parser PR21 and ASCENT PR1 still match the base revisions of the local
+one-line Core pin candidates. Parser has one failing macOS semantics check,
+ASCENT has eight failing checks, and Core PR19 has two failing build-and-test
+checks. The POO =table.ss= and =build.ss= files are identical between
+=1f4b1720= and =6394e95=. The candidate pins address dependency identity.
+A separate cold run on the aligned revisions is required to measure any
+change in installation time.
+
+* Remove the three-minute build cutoffs (2026-11-09)
+
+AITIA removes the 180-second installation override and the 180-second
+wrappers around dependency fetch, prerequisite preparation and the local
+Scheme build. Lab's two build scripts invoke =gxi= directly. CI retains
+its job deadline and the pinned Bazel installer retains its memory guard
+and default 600-second wall-clock deadline. Test budgets retain their
+separate role.
+
+The workflow parses as YAML and the changed shell steps pass =bash -n=.
+AITIA's =just build-scheme= exits 0 with the installed local packages.
+Lab's =just build-library= is still running compiler children at 197
+seconds, then exits 70 after a compiler worker reports =Stack overflow=.
+This run establishes that the old deadline is gone and leaves the complete
+Lab build and CI cold installation open.
+
+* Lab compile-worker stack overflow follow-up (2026-11-09)
+
+Lab PR34 =fea64411296a1f2db5c1a192013421ad5cc73bd2= contains its current
+PR base =4da003496fa5ffb30111ed3dc7fa51ac68f3d030=. Its Core gitlink,
+local Core checkout, and installed Yuanxu source all match current Core
+PR19 =520aa69eff289a3e9535a2d242adaf50ec4de63c=. The installed POO source
+is =6394e95ca35d0d8f602bce2178bcdcdbb1b68309=. The separate main workspace
+Core checkout has unrelated uncommitted changes.
+[[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab PR]]
+[[https://github.com/tao3k/gebril-yuanxu/pull/19][Yuanxu PR]]
+
+The same 2G heap and automatically selected build capacity were used for
+the diagnostic runs. The incremental build returned 0 in 146 seconds
+after compiling 56 targets against products retained from the first
+failure. In a separate package output directory, the same installed
+dependency cohort was copied without any Lab library or static products.
+The full =just build-library= command then failed with exit 70 at 357
+seconds, within its diagnostic 600-second guard. The original and
+isolated failures occurred in distinct =std/make= workers (6 and 9).
+The native barrier propagated the worker exception. Both failures had an
+empty Scheme continuation backtrace.
+
+The isolated run expanded 938 module contexts in the library-spec stage
+and produced 445 library targets. Yuanxu's module projection subsequently
+reported 290 newly registered contexts. The compiler started 208 targets
+before failure. The last parent-process GC reported a 2.0G heap and
+approximately 1.8G live data. The producer resource guard admitted all
+12 logical cores on this 32 GiB host. These observations establish
+process heap pressure and reproduce the overflow with fresh Lab outputs.
+They leave the retained-object ownership and allocation site unproven.
+The installed cohort includes the earlier local Parser and ASCENT pin
+candidates, so it cannot qualify a cold CI package installation.
+
+Publication remains pending a validated fix. The local 180-second cutoff
+removal is retained and the PR branches and dependency locks still refer
+to the previously published revisions.
+
+* 4G heap diagnostic control (2026-11-09)
+
+The Lab and Yuanxu revisions, installed dependency cohort, diagnostic
+options, automatically selected build capacity and 600-second guard match
+the 2G isolated-output run. A new output directory starts without any Lab
+products. The sole resource-policy change is the diagnostic =max-heap=4G=
+process option.
+
+The run exits 0 in 381 seconds after 512 compile starts. Compiler-input
+verification and the main return both complete. No stack or heap overflow
+is reported. The library specification again expands 938 module contexts
+for 445 library targets, and Yuanxu projection adds 290 registered
+contexts. The completed =std/make= phase records another 803 contexts,
+including 46 with an identity already present at the start of that phase.
+
+The greatest GC-reported live totals are 1899341424 bytes on the failing
+2G run and 1906217320 bytes on the successful 4G run. The 2G run stops
+after 208 compile starts. The close live totals and the different outcomes
+identify heap headroom as the controlling difference in this comparison.
+The installed runtime reports Gambit =ea114fc=. Its matching
+=lib/_kernel.scm= stack-limit handler calls =___stack_limit= and
+=___garbage_collect=, then raises =Stack overflow= if collection reports
+overflow. Thus the observed error can originate from inability to extend
+the Scheme stack under the VM heap cap. The run does not identify which
+objects account for the retained compiler memory.
+
+This is a complete isolated Lab build against an installed dependency
+cohort. The workflow heap setting and the CI cold-installation result are
+outside this diagnostic change.
+
+* Lab build-source audit and process boundary control (2026-11-09)
+
+The earlier PR run at Lab =3f0af42a= did pass Gerbil package builds and
+native unit-test jobs on Linux and macOS. Its Scheme package entry used the
+ASP PackageSpec facade and standard Gerbil build. The current
+=build-development.ss= computes the native library closure, prepares the
+Yuanxu-selected graph, and invokes =std/make= in the same process. The CI
+success at =a63f78eb= was a lock-refresh run that skipped those build jobs.
+The historical successful PR run used a different Gerbil release and
+source cohort. This history establishes the changed Lab build shape and
+does not isolate a first failing source commit.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/38102454919][Successful PR CI]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/41001516764][Lock refresh]]
+
+A diagnostic control keeps the installed Gambit and 2G heap and starts
+without Lab outputs. The existing =agentic-ai-lab-build-spec= runs in a
+separate process, writes 445 retained library targets and exits. A temporary
+diagnostic entry passes those targets to the existing Yuanxu projection and
+=std/make=. This entry is removed on exit and has no production handoff
+contract. The combined command keeps a 600-second guard.
+
+The most recent GC before entering =std/make= reports 411336256 live
+bytes in this control, versus 1384340784 bytes in the original 2G run.
+The compiler later reaches 1871748248 reported live bytes. It passes
+the original 208 compile starts but reaches the 600-second guard with
+exit 124 at 340 starts. It leaves 339 Lab interfaces, all in the 512-file
+reference roster of the successful 4G build. The other 173 are missing.
+No overflow appears before the deadline.
+
+Releasing the first specification process lowers the initial compiler
+memory and shifts the failure boundary. It does not qualify a complete
+2G build. Remaining investigation belongs to the Lab build demand and
+the compiler contexts retained through its full library and Module
+compilation. No candidate is promoted and no installed toolchain files
+are edited.
+
+* Calibrated 2G process boundary control (2026-11-09)
+
+The first specification-process control invoked =gxi= directly with
+=GERBIL_BUILD_CORES= unset. It therefore used one native Make worker
+instead of the Justfile's automatically selected value. Its 600-second
+refusal is retained, but the outcome cannot isolate the process boundary.
+An attempted optimizer-off control had the same launcher mismatch and was
+stopped before compilation. Its status is not a compiler result.
+
+A fresh-output control resolves =GERBIL_BUILD_CORES= through the actual
+Lab Justfile, which selects 12 on the test host. It keeps optimization,
+the 2G heap and the 600-second guard. The original Lab library-spec
+function yields 445 targets and exits in its own process. The fresh
+compiler process consumes those targets through Yuanxu's existing
+projection and Make guards.
+
+The run completes in 413 seconds with exit 0. It starts all 512 distinct
+compile targets and reaches the product-require and main-return stages.
+Its 512 =.ssi= and 512 =.ssxi.ss= filenames match the 4G reference exactly.
+The last GC before Make reports 411275976 live bytes, versus 1384340784
+in the failed 2G combined-process run. The highest GC-reported live
+total during the corrected control is 1875277928 bytes. No overflow or
+compiler-error marker appears.
+
+This establishes a complete 2G build with the specification process
+released, while retaining the native optimizer and automatic parallelism.
+The temporary target file is a diagnostic input and has no production
+currentness handoff. A production change must keep the library demand
+bound to its source and package inputs and preserve Yuanxu's existing
+checks across the process boundary.
+
+The unchanged =just test-file t/yuanxu-deployment-downstream-test.ss=
+also passes using the new 2G outputs as the production library and the
+existing ASP development dependency separately. It reports 45 selected
+targets, four owners, three selected tests, one runtime qualification,
+cold A/B, no hot recompilation and clean isolation. Both the inner and
+outer harness report =OK= and the refusal markers are absent.
+
+* Lab production specification handoff (2026-11-09)
+
+Lab PR34 =7ccf807631f103bb2dcf8587d08303e11abce053= moves library
+specification expansion into a child of the existing
+=build-development.ss= entry. The child records the native load path and
+Yuanxu observations of reached sources, package metadata and dependency
+interfaces. It exits before the parent projects the selected Graph and
+calls Make. The parent streams the observations through
+=module-source-admit-current!= before and after the build. The same
+init-owned compiler checks and product checks remain in the Make path.
+The private handoff directory is removed when the invocation exits.
+Gambit diagnostics use the normal output channels.
+
+Two failed controls were retained. Mixing the handoff with stdout was
+rejected because Gambit emits GC notifications there. Holding the
+entire byte snapshot in the compiler VM reproduced a worker stack
+overflow in 369 seconds. The final handoff streams the observations
+from the private file and releases each row after validation.
+
+The normal =just build-library= command starts with no Lab outputs and
+finishes in 442 seconds under a 2G heap, the Justfile's automatic 12-core
+allocation, optimization enabled and a 600-second guard. It compiles
+512 distinct targets. The relative filenames of 512 interfaces,
+512 optimizer metadata files, 993 objects and 512 static products match
+the complete 4G reference. A focused test of the production reader
+accepts current inputs and refuses changed source bytes, changed
+dependency-interface bytes, newly introduced package metadata and an
+import-path substitution.
+
+The same outputs pass the unchanged
+=just test-file t/yuanxu-deployment-downstream-test.ss= entry. Its
+receipt records 45 targets, four owners, three selected tests and one
+runtime qualification. Cold A/B, hot no-op and clean isolation pass.
+Both harnesses finish with =OK=.
+
+AITIA pins this Lab revision. Its cold package workflow drops the
+180-second override and prerequisite wrappers. The existing provider
+installation guard defaults to 600 seconds and the Scheme job retains
+its job limit and 2G process heap. The fresh CI installation result
+requires a separate receipt.
+
+* CI cold-install result and exact prefetch binding (2026-11-09)
+
+The production warm build returns 0 in 124 seconds and starts no compile
+targets. AITIA's standard =just build-scheme= also returns 0 against the
+new Lab library.
+
+AITIA CI for =d18200a= misses the package cache and runs the native cold
+installer. The preparatory fetch obtains each declared commit, but the
+installer selects =main= for already-cloned Parser, Bridge and Orgize
+repositories. When it reaches Orgize, the native package resolver rejects
+=gerbil-poo= tags =099b381588360a8a49fd772f666a1a00351366f5= and
+=cd4de644385a591b879e3de5795418b5b7e9d767= as incompatible. The provider
+receipt reports =elapsedMs 590147=, =timeoutMs 600000= and =exitCode 70=.
+Lean, Quint and Rust workspace pass. The native prerequisites and linked
+delivery steps are skipped after the installation error.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42551204780/job/128946978208][Cold installation log]]
+
+Lab's macOS package job separately fails during ASCENT dependency
+compilation because Bazel's =local_gerbil= path lacks =gambuild-C=. It
+does not reach the new Lab compiler entry.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42551117706/job/128946701651][macOS package log]]
+
+Lab =d63744be735e13382b7cf0542e345c0647498954= uses the existing
+=runtime-dependencies.ss --fetch-only= path to call Gerbil's =pkg-update=
+after obtaining each pinned commit. The native API binds the checkout
+and tag before =deps --install= resolves the graph. The empty local
+package directory check verifies all four exact checkouts and tags for
+Parser, Bridge, Orgize and ASCENT. The preparatory step produces no
+Lab library. The build-source handoff code and its 2G qualification
+inputs are unchanged. AITIA pins this new Lab revision for a second
+cold CI run.
+
+* Cold CI with exact source tags (2026-11-09)
+
+AITIA =dc1593bdef65a64ecb4655ff3d35373adcb18190= misses the native
+package cache. The CI log confirms that prefetch checks out each declared
+Parser, Bridge, Orgize and ASCENT revision. Installation reaches Parser's
+TLA+ parser and language assertion compilation before the provider
+terminates it. The guard receipt records =elapsedMs 601352=,
+=timeoutMs 600000=, four effective build cores, =peakRssBytes 5775001600=,
+=outcome timeout= and =exitCode 71=. The workflow step reports 124.
+The process snapshot shows active =gxi=, =gsc= and =cc1= at the deadline.
+The prior incompatible-tag error does not occur in this run. The
+complete dependency installation and native delivery remain unverified.
+Lean, Quint and Rust workspace checks pass.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42552558329/job/128951143387][Exact-pin cold installation]]
+
+On Lab =d63744be=, the macOS source-build and macOS package jobs both
+retain the =gambuild-C= missing-path failure during dependency
+compilation. They do not exercise the production handoff.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42552510593/job/128950994829][macOS source build]]
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42552510672/job/128951095089][macOS package build]]
+
+* Darwin dynamic driver and Parser cold compilation
+
+The macOS failure originates in Gerbil's static-object compilation branch.
+That branch invokes =gambuild-C= beside =GERBIL_GSC= to link the dynamic
+bundle. The mapped Gambit installation was already present in =GAMBOPT=.
+The Bazel toolchain generated =gerbil-gsc= but omitted the sibling driver.
+Bazel =37fc044d63cb9eafd969d3d6fd0e218608acd6d9= supplies the companion
+as a toolchain input and uses the same C compiler and dynamic flags.
+[[https://github.com/tao3k/gerbil-bazel/pull/58][Bazel producer PR]]
+
+The existing prebuilt provider regression passes on macOS, including
+caller flags and propagation of an injected exit status. The auto provider
+regression passes on Gerbil =1cfb032= and Gambit =ea114fc=, with a real
+=compile-module= invocation producing a static object and a dynamic bundle.
+Importing the resulting module returns the expected binding. Running the
+same compiler launcher without its sibling driver reproduces the missing
+=gambuild-C= refusal after generating the static object.
+Lab pins the Bazel change and checks the synchronized Linux and Darwin
+lock projections using its existing dependency contract.
+[[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab consumer PR]]
+
+In the previous Linux cold install, the first Parser compilation began
+approximately 414 seconds after the 600-second guard started. Generation
+of Parser's grammar artifacts began approximately 386 seconds after guard
+start. The guard expired while the compiler was active, before Orgize
+and the rest of the dependency install could finish.
+
+A separate Parser build used an empty Parser output directory and the
+installed Yuanxu and POO libraries. The Parser source was =36fb2c71= with
+the local Yuanxu pin aligned to =520aa69=. Under the 2G heap setting and
+the same 600-second guard, it completed in 121773 ms with 12 automatically
+selected cores. It produced 301 Scheme interfaces, 301 static Scheme
+sources, 655 dynamic objects and 37 compressed language artifacts.
+This is a local producer baseline. The Linux package installation with
+four automatically selected cores remains a separate verification.
+
+A cold-build experiment reused the parser IR verified by admission during
+program lowering, avoiding a second sidecar read and decode. It completed in
+154422 ms under the same heap, automatic 12-core selection and 600-second
+guard. All four output rosters matched the baseline and all 37 compressed
+language artifacts matched byte for byte. This measurement provides no
+elapsed-time improvement. The experimental source change was withdrawn and
+the Parser dependency was not promoted on this evidence.
+
+** Producer CI and locked-install observations
+
+The first Bazel CI at =37fc044= refused its stale extension lock on Linux
+and the Darwin provider probe expected a static object from the older
+Gerbil release. Follow-up =20d409ece2adea86607b77245be8542dd27c07f8= refreshes
+the cross-platform extension digest and requires the static Scheme source
+and dynamic object across both release families. It carries the same
+toolchain implementation as Lab's first pin. Its exact-head Linux and
+macOS jobs both pass.
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42554723182][Initial producer CI]]
+[[https://github.com/tao3k/gerbil-bazel/actions/runs/42555265294][Follow-up producer CI]]
+
+AITIA =f5f9780118ffecf01b3c0709905ba7029d4dd098= pins Lab
+=8fce5a773ea04e66cb934f10e048887ec25e58e3=. Its Linux cold run reaches
+Parser artifact generation after about 382 seconds and Parser module
+compilation after about 410 seconds. The receipt records =timeoutMs 600000=,
+=elapsedMs 600676=, four automatically admitted cores, peak tree PSS
+=5785529344= bytes and guard exit =71= (installer exit =124=). Gerbil and C
+compiler workers remain active at the cut. The installer has yet to reach
+Orgize and linked delivery. Lean, Quint and the Rust workspace pass on this
+head.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42554943718/job/128958449305][Linux cold installation]]
+
+A separate macOS cold run at Lab =8fce5a77= starts with an empty package
+directory. The existing Bazel environment runner binds the declared tags,
+then =@local_gerbil//:install_dependencies= compiles them with the 2G
+heap and 12 automatically selected cores. It reaches 91 POO, 273 Yuanxu
+and 24 Parser Scheme interfaces before the unchanged guard expires.
+Its receipt records =elapsedMs 602851=, =timeoutMs 600000=, Darwin peak
+process-tree physical footprint =6009372672= bytes and guard exit =71=
+(installer exit =124=). The active cold dependency path remains open on
+both platforms. The complete Parser-only build above uses already
+compiled dependencies.
+
+Lab's macOS Bazel source-build at =8fce5a77= reaches a different cut. The
+POO =6394e95= and Rust bridge =fe3796e= Bazel package actions issue successful
+receipts, with guarded times of 530675 ms and 60744 ms respectively, each
+at three automatically admitted cores. The original 12-minute workflow
+step then expires during the Yuanxu package action, before the graph
+reaches ASCENT's original missing-driver case. This establishes progress
+through the first package actions, while leaving the macOS downstream
+graph unqualified.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42554847878/job/128958162503][macOS Bazel source-build]]
+
+Lab =55bf2074a7ebbd3ad2708a1e17e566a71eb70249= then selects the qualified Bazel head.
+Strict Bazel lock resolution and the Gerbil dependency contract pass.
+The install receipts above remain tied to the measured Lab and AITIA heads.
+
+The run at AITIA =7b2946b3d7dde826d13ba302ee13301b6e5bf802= misses the
+Lab package cache with the final pin. Parser module compilation starts
+about 310 seconds after guard admission. Native installation proceeds to
+Orgize, where the generated =orgize-fold= events and tape modules are
+still compiling at the cut. The receipt records =elapsedMs 601552=,
+=timeoutMs 600000=, four automatically admitted cores, peak tree PSS
+=6439556096= bytes and guard exit =71= (installer exit =124=). The Parser
+pin is unchanged. This run passes the Parser build within the installation,
+while the complete cold dependency graph remains unqualified. Lean, Quint
+and the Rust workspace pass.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/42556923930/job/128964705599][Final-pin Linux cold installation]]
+
+Lab =55bf2074a7ebbd3ad2708a1e17e566a71eb70249= also advances past
+the previous cut in the macOS Bazel source job. With earlier package
+outputs available from the Bazel disk cache, the ASCENT =62299efe= action
+issues a successful receipt in 298406 ms through the Darwin sandbox and
+passes the action that previously refused the =gambuild-C= path. Parser
+=21fdb586= independently completes in 367575 ms. Both receipts report
+three automatically admitted cores and exit =0=. The graph then reaches
+Orgize, where the existing 12-minute workflow step expires. The source
+job does not reach Runtime WASM packaging.
+[[https://github.com/tao3k/agentic-ai-lab/actions/runs/42556919714/job/128964611951][Final-pin macOS source-build]]

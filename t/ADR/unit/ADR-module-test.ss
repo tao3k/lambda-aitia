@@ -5,13 +5,23 @@
 
 (import :std/test
         (only-in :std/error Error?)
-        (only-in :clan/poo/object .ref)
-        :poo-flow/src/module-system/declaration/interface
-        (only-in :poo-flow/lambda-aitia/modules/assurance/interface
-                 assurance-decision?)
-        :poo-flow/lambda-aitia/modules/ADR/interface)
+        (only-in :clan/poo/object .ref .get)
+        (only-in "../../../init.ss"
+                 lambda-aitia.init.exports))
 
 (export ADR-module-test)
+
+;;; Tests consume the same selected POO scope as downstream applications.
+(def ADR-scope (.get (.get lambda-aitia.init.exports modules) ADR))
+(def ADRProfile (.get ADR-scope profile))
+(def ADR-record (.get ADR-scope record))
+(def ADR-option (.get ADR-scope option))
+(def ADR-link (.get ADR-scope link))
+(def ADR-consequence (.get ADR-scope consequence))
+(def ADR-record-valid? (.get ADR-scope record-valid?))
+(def ADR-transition (.get ADR-scope transition))
+(def ADR-supersede (.get ADR-scope supersede))
+(def ADR->assurance-decision (.get ADR-scope assurance-decision))
 
 (def chosen
   (ADR-option "option/aitia" "Aitia owns ADR"
@@ -34,20 +44,20 @@
    '("Machine-readable lifecycle" "Explicit rationale")
    (list chosen rejected) consequences
    '("Unit tests validate transition and projection rules.")
-   '("tao3k maintainers") '("POO Flow maintainers") '("Aitia consumers")
+   '("tao3k maintainers") '("Agentic AI Lab maintainers") '("Aitia consumers")
    (list (ADR-link 'refines-rfc "RFC-0001"))))
 
 (def ADR-module-test
   (test-suite "Aitia-owned ADR module"
     (test-case "ADR keeps its acronym and Aitia ownership"
-      (check-equal? (ADR-profile? ADRProfile) #t)
+      (check-equal? ((.get ADR-scope profile?) ADRProfile) #t)
       (check-equal? (.ref ADRProfile 'identity) "lambda-aitia/ADR")
       (check-equal? (.ref ADRProfile 'owner) "lambda-aitia")
       (check-equal? (.ref ADRProfile 'module-family) 'ADR))
-    (test-case "only the public ADR selection resolves"
-      (check-equal?
-       (ADR-config (poo-flow-user-module-selection 'custom 'ADR '()))
-       ADR-module))
+    (test-case "public ADR scope exposes actual operations without authority"
+      (check-equal? (procedure? (.get ADR-scope canonical)) #t)
+      (check-equal? (.ref (.ref (.ref ADRProfile 'policies) 'authority)
+                          'accepted-is-authority?) #f))
 
     (test-case "standard record retains drivers, options and consequences"
       (check-equal? (ADR-record-valid? accepted) #t)
@@ -101,6 +111,6 @@
 
     (test-case "accepted ADR projects to unknown assurance, never authority"
       (let ((decision (ADR->assurance-decision accepted)))
-        (check-equal? (assurance-decision? decision) #t)
+        (check-equal? ((.get ADR-scope decision?) decision) #t)
         (check-equal? (.ref decision 'state) 'unknown)
         (check-equal? (.ref decision 'kind) 'decision)))))

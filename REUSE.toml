@@ -23,7 +23,17 @@ path = [
   "**/generated/**",
   "**/static/**",
   "modules/sdlc/standards/sources/*.html",
-  "proof/lean/lean-toolchain",
+  "dev/proof/lean/lean-toolchain",
+  "dev/sysml/commitEvidenceGraph.d2",
+  "dev/sysml/commitEvidenceGraph.svg",
+  "dev/sysml/gitOpsLifecycleBoundary.d2",
+  "dev/sysml/gitOpsLifecycleBoundary.svg",
+  "dev/sysml/gitOpsWriteRecovery.d2",
+  "dev/sysml/gitOpsWriteRecovery.svg",
+  "dev/sysml/modelEngineeringGraph.d2",
+  "dev/sysml/modelEngineeringGraph.svg",
+  "dev/sysml/runtimeArchitecture.d2",
+  "dev/sysml/runtimeArchitecture.svg",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 tao3k team and Contributors"

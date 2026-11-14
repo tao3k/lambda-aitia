@@ -2,10 +2,20 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d)
+(import (only-in "../../../init.ss" lambda-aitia.init.exports)
+        :std/test :std/error
+        (only-in :clan/poo/object .get .o .ref)
+        (only-in :tao3k/yuanxu/contribution/objects admit-contributions)
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss")
+
+(def sdlc (.get lambda-aitia.init.exports modules sdlc))
+(def sdlc-contribution (.get sdlc contribution))
+(def sdlc-module (.get sdlc default-contribution))
+(def sdlc-with-standards (.get sdlc with-standards))
+(def SdlcProfile (.get sdlc profile))
+(def StandardProfile. (.get sdlc standard-profile))
+(def standard-profile? (.get sdlc standard-profile?))
+
 (def ProjectSdlcProfile (sdlc-with-standards SdlcProfile (list Nasa7150_2D)))
 (def project-sdlc-module (sdlc-contribution ProjectSdlcProfile))
 (export sdlc-test)
@@ -24,7 +34,7 @@
     (test-case "clause references preserve edition and source location"
       (let ((clause (nasa-requirement-by-id "SWE-013")))
         (check-equal? (.ref clause 'identity) "SWE-013")
-        (check-equal? (.ref clause 'standard) "nasa/npr-7150.2d")
+        (check-equal? (.ref clause 'standard) "nasa/sdlc/npr-7150.2")
         (check-equal? (.ref clause 'section) "3.1.3")
         (check-equal? (.ref clause 'topic) 'lifecycle-planning)))
     (test-case "other standards compose without changing SDLC or NASA"

@@ -3,28 +3,68 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
+(import (only-in :clan/poo/object .o .ref .slot? .cc compute-precedence-list! object?)
+        (only-in :clan/poo/mop define-type Type. element?)
+        (only-in :clan/poo/type Record)
         :std/list/list)
 
-(export assurance-text? assurance-digest?
+(export AssuranceScopeContract assurance-text? assurance-digest?
         assurance-node-kind? assurance-state? assurance-relation-plane?
         assurance-relation-kind? assurance-relation-kind-plane
-        assurance-modality?
+        assurance-modality? assurance-evidence-kind?
         +assurance-node-kinds+ +assurance-states+
         +assurance-relation-planes+ +assurance-modalities+
+        +assurance-evidence-kinds+
         AssuranceNode AssuranceArtifact AssuranceClaim AssuranceAssumption
         AssuranceObservation AssuranceEvent AssuranceAction
         AssuranceObligation AssuranceEvidence AssuranceCounterexample
         AssuranceFinding AssuranceDecision AssuranceEffect
         AssuranceRelation AssuranceSnapshot
+        AssuranceReplacementRequirement AssuranceReplacementDerivation
+        AssuranceReplacementDeclarationReceipt
+        AssuranceVerificationPolicy AssuranceVerificationRequest
+        AssuranceVerificationPlan AssuranceVerifierCandidate
+        AssuranceVerifierChoice AssuranceVerifierChoiceReceipt
+        AssuranceVerifierInput AssuranceVerifierOutcome
+        AssuranceEvidenceAdmissionReceipt AssuranceVerificationSubject
+        AssuranceRequiredSupport AssessmentRequiredSupport AssuranceSupportWitness
+        AssuranceAssumptionAssessment
+        AssuranceChallengeAssessment
+        AssuranceResidualDisposition
+        AssuranceDecisionPreflight
+        AssuranceCompositionRequirement AssuranceCompositionDerivation
         make-assurance-invalidation-receipt-record
         assurance-node? assurance-artifact? assurance-claim?
         assurance-assumption? assurance-observation? assurance-event?
         assurance-action? assurance-obligation? assurance-evidence?
         assurance-counterexample? assurance-finding? assurance-decision?
         assurance-effect? assurance-relation? assurance-snapshot?
-        assurance-invalidation-receipt? assurance-invalidation-receipt-ref)
+        assurance-replacement-requirement?
+        assurance-replacement-derivation?
+        assurance-replacement-declaration-receipt?
+        assurance-invalidation-receipt? assurance-invalidation-receipt-ref
+        assurance-verification-policy? assurance-verification-request?
+        assurance-verification-plan? assurance-verifier-candidate?
+        assurance-verifier-choice? assurance-verifier-choice-receipt?
+        assurance-verifier-input? assurance-verifier-outcome?
+        assurance-evidence-admission-receipt?
+        assurance-required-support? assessment-required-support?
+        assurance-decision-preflight?
+        assurance-verification-subject?
+        assurance-composition-requirement?
+        assurance-composition-derivation?)
+
+(define-type (AssuranceScopeContract @ Type.)
+  identity: 'assurance/scope
+  .element?:
+  (lambda (value)
+    (and (object? value)
+         (.slot? value 'policy)
+         (every (lambda (name)
+                  (and (.slot? value name) (procedure? (.ref value name))))
+                '(artifact claim obligation evidence decision decision? digest
+                  snapshot snapshot-canonical? invalidate plan-verification
+                  verification-host host-admit)))))
 
 (def +assurance-node-kinds+
   '(artifact claim assumption observation event action obligation evidence
@@ -36,6 +76,9 @@
   '(provenance structural causal assurance authority))
 (def +assurance-modalities+
   '(observed declared derived hypothesized counterfactual))
+(def +assurance-evidence-kinds+
+  '(proof model-check replay unit-test integration-test native-test
+    static-analysis authorization-differential human-review))
 
 (def +assurance-relation-kind-planes+
   '((derived-from . provenance)
@@ -43,6 +86,7 @@
     (cites . provenance)
     (used . provenance)
     (depends-on . structural)
+    (composes . structural)
     (implements . structural)
     (tests . structural)
     (refines . structural)
@@ -73,19 +117,67 @@
 (def (assurance-relation-plane? value)
   (if (memq value +assurance-relation-planes+) #t #f))
 (def (assurance-modality? value) (if (memq value +assurance-modalities+) #t #f))
+(def (assurance-evidence-kind? value)
+  (if (memq value +assurance-evidence-kinds+) #t #f))
 (def (assurance-relation-kind-plane value)
   (let ((entry (assq value +assurance-relation-kind-planes+)))
     (and entry (cdr entry))))
 (def (assurance-relation-kind? value)
   (if (assurance-relation-kind-plane value) #t #f))
 
+;;; Pure schema construction: no CLOS class registry or parent mutation.
+(def (assurance-record-type identity direct-slots: (fields '()))
+  (.cc (apply Record (apply append fields)) identity: identity))
+(def (assurance-record? descriptor value)
+  (and (object? value)
+       (memq (.ref descriptor 'proto) (compute-precedence-list! value))
+       (element? descriptor value)
+       #t))
+
 (def (text-slot name)
-  (poo-clos-direct-slot-definition name type-predicate: assurance-text?))
+  (list (make-keyword name) (list (.cc Type. sexp: name '.element? assurance-text?))))
 (def (enum-slot name predicate)
-  (poo-clos-direct-slot-definition name type-predicate: predicate))
+  (list (make-keyword name) (list (.cc Type. sexp: name '.element? predicate))))
 (def (maybe-text? value) (or (not value) (assurance-text? value)))
+(def (maybe-digest? value) (or (not value) (assurance-digest? value)))
 (def (text-list? values)
   (and (list? values) (every assurance-text? values)))
+(def (symbol-list? values)
+  (and (list? values) (every symbol? values)))
+(def (evidence-kind-list? values)
+  (and (list? values) (pair? values)
+       (every assurance-evidence-kind? values)))
+(def (verifier-choice-reason? value)
+  (memq value '(chosen request-blocked evidence-kind-unsupported
+                capability-mismatch lower-priority)))
+(def (composition-blocker? value)
+  (or (not value)
+      (memq value '(conflicted-snapshot unresolved-frontier
+                    invalid-composition-claim insufficient-components
+                    invalid-component-claim missing-direct-obligation
+                    stale-direct-obligation))))
+(def (verification-blocker? value)
+  (or (not value)
+      (memq value '(conflicted-snapshot unresolved-frontier
+                    capability-unavailable stale-obligation
+                    dependency-unplanned dependency-blocked
+                    dependency-cycle))))
+(def (replacement-blocker? value)
+  (or (not value)
+      (memq value '(source-conflicted source-unresolved change-unresolved
+                    stale-source
+                    target-unchanged target-conflicted target-unresolved
+                    target-identity-changed graph-changed
+                    policy-changed claim-missing claim-changed))))
+(def (replacement-declaration-blocker? value)
+  (or (not value)
+      (memq value '(derivation-mismatch source-requirement-missing
+                    source-requirement-blocked target-frontier
+                    candidate-missing candidate-not-fresh candidate-not-unbound
+                    candidate-not-unknown candidate-claim-mismatch
+                    candidate-subject-mismatch candidate-scope-mismatch
+                    claim-not-declared support-link-missing
+                    support-link-hypothetical))))
 (def (revision-bindings? values)
   (and (list? values)
        (every (lambda (binding)
@@ -95,6 +187,15 @@
               values)))
 (def (witness-list? values)
   (and (list? values) (every text-list? values)))
+(def (invalidation-trajectories? values)
+  (and (list? values)
+       (every (lambda (entry)
+                (and (list? entry)
+                     (= (length entry) 3)
+                     (assurance-text? (car entry))
+                     (text-list? (cadr entry))
+                     (text-list? (caddr entry))))
+              values)))
 (def (nonnegative-integer? value)
   (and (integer? value) (>= value 0)))
 (def (one-of values)
@@ -106,36 +207,36 @@
         (text-slot 'revision)
         (enum-slot 'state assurance-state?)
         (enum-slot 'content-digest assurance-digest?)))
-(def (node-class identity)
-  (poo-clos-class identity direct-slots: (node-slots)))
-(def AssuranceNode (node-class 'aitia/assurance-node))
-(def (semantic-node-class identity slots)
-  (poo-clos-class identity direct-slots: (append (node-slots) slots)))
+(def (node-type identity)
+  (assurance-record-type identity direct-slots: (node-slots)))
+(def AssuranceNode (node-type 'aitia/assurance-node))
+(def (semantic-node-type identity slots)
+  (assurance-record-type identity direct-slots: (append (node-slots) slots)))
 (def AssuranceArtifact
-  (semantic-node-class
+  (semantic-node-type
    'aitia/artifact
    (list (text-slot 'owner) (enum-slot 'media-kind symbol?)
          (enum-slot 'provenance text-list?))))
 (def AssuranceClaim
-  (semantic-node-class
+  (semantic-node-type
    'aitia/claim
    (list (text-slot 'subject) (text-slot 'predicate)
          (enum-slot 'assumptions text-list?) (enum-slot 'defeaters text-list?)
          (enum-slot 'support-requirements text-list?) (text-slot 'scope)
          (text-slot 'valid-from) (enum-slot 'valid-until maybe-text?))))
 (def AssuranceAssumption
-  (semantic-node-class
+  (semantic-node-type
    'aitia/assumption
    (list (text-slot 'owner) (text-slot 'scope) (text-slot 'review-policy)
          (enum-slot 'expires-at maybe-text?))))
 (def AssuranceObservation
-  (semantic-node-class
+  (semantic-node-type
    'aitia/observation
    (list (text-slot 'subject) (text-slot 'source)
          (enum-slot 'clock-role symbol?)
          (enum-slot 'logical-position nonnegative-integer?))))
 (def AssuranceEvent
-  (semantic-node-class
+  (semantic-node-type
    'aitia/event
    (list (text-slot 'subject) (enum-slot 'event-kind symbol?)
          (text-slot 'observation) (enum-slot 'payload-digest assurance-digest?)
@@ -143,18 +244,21 @@
          (enum-slot 'commitment-state (one-of '(proposed committed revoked)))
          (enum-slot 'causal-parents text-list?))))
 (def AssuranceAction
-  (semantic-node-class
+  (semantic-node-type
    'aitia/action
    (list (text-slot 'subject) (enum-slot 'action-kind symbol?)
          (text-slot 'requested-by) (text-slot 'scope))))
 (def AssuranceObligation
-  (semantic-node-class
+  (semantic-node-type
    'aitia/obligation
    (list (text-slot 'subject) (text-slot 'claim) (text-slot 'snapshot)
-         (enum-slot 'evidence-kind symbol?) (enum-slot 'capability symbol?)
+         (enum-slot 'snapshot-revision maybe-text?)
+         (enum-slot 'snapshot-context-digest maybe-digest?)
+         (enum-slot 'evidence-kind assurance-evidence-kind?)
+         (enum-slot 'capability symbol?)
          (text-slot 'scope))))
 (def AssuranceEvidence
-  (semantic-node-class
+  (semantic-node-type
    'aitia/evidence
    (list (text-slot 'producer) (text-slot 'tool) (text-slot 'tool-version)
          (enum-slot 'input-artifacts text-list?) (text-slot 'obligation)
@@ -163,23 +267,23 @@
          (enum-slot 'admission-state
                     (one-of '(candidate admitted rejected stale))))))
 (def AssuranceCounterexample
-  (semantic-node-class
+  (semantic-node-type
    'aitia/counterexample
    (list (text-slot 'subject) (text-slot 'challenges) (text-slot 'evidence)
          (enum-slot 'details-digest assurance-digest?))))
 (def AssuranceFinding
-  (semantic-node-class
+  (semantic-node-type
    'aitia/finding
    (list (text-slot 'subject) (text-slot 'challenges) (text-slot 'evidence)
          (enum-slot 'finding-kind symbol?))))
 (def AssuranceDecision
-  (semantic-node-class
+  (semantic-node-type
    'aitia/decision
    (list (text-slot 'subject) (text-slot 'snapshot) (text-slot 'policy)
          (text-slot 'authority)
          (enum-slot 'outcome (one-of '(allow deny review unknown))))))
 (def AssuranceEffect
-  (semantic-node-class
+  (semantic-node-type
    'aitia/effect
    (list (text-slot 'subject) (text-slot 'decision)
          (enum-slot 'effect-kind symbol?)
@@ -187,7 +291,7 @@
                     (one-of '(requested blocked started completed failed revoked))))))
 
 (def AssuranceRelation
-  (poo-clos-class 'aitia/assurance-relation
+  (assurance-record-type 'aitia/assurance-relation
     direct-slots:
     (list (text-slot 'identity)
           (enum-slot 'plane assurance-relation-plane?)
@@ -201,7 +305,7 @@
 (def (relation-list? values)
   (and (list? values) (every assurance-relation? values)))
 (def AssuranceSnapshot
-  (poo-clos-class 'aitia/assurance-snapshot
+  (assurance-record-type 'aitia/assurance-snapshot
     direct-slots:
     (list (text-slot 'identity)
           (text-slot 'revision)
@@ -213,11 +317,354 @@
           (text-slot 'policy-revision)
           (enum-slot 'evidence-identities text-list?)
           (enum-slot 'state assurance-state?)
+          (enum-slot 'context-digest assurance-digest?)
           (enum-slot 'digest assurance-digest?)
           (enum-slot 'nodes node-list?)
           (enum-slot 'relations relation-list?)
           (enum-slot 'unresolved text-list?)
           (enum-slot 'conflicts text-list?))))
+
+;;; A derivation names questions requiring a fresh declaration; it does not
+;;; construct, bind, discharge or authorize a replacement obligation.
+(def AssuranceReplacementRequirement
+  (assurance-record-type 'aitia/replacement-requirement
+    direct-slots:
+    (list (text-slot 'source-obligation)
+          (text-slot 'source-revision)
+          (text-slot 'claim)
+          (text-slot 'subject)
+          (enum-slot 'evidence-kind assurance-evidence-kind?)
+          (enum-slot 'capability symbol?)
+          (text-slot 'scope)
+          (enum-slot 'blocker replacement-blocker?))))
+(def (replacement-requirement-list? values)
+  (and (list? values) (every assurance-replacement-requirement? values)))
+(def AssuranceReplacementDerivation
+  (assurance-record-type 'aitia/replacement-derivation
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.replacement-requirements")))
+          (text-slot 'identity)
+          (enum-slot 'source-snapshot-digest assurance-digest?)
+          (enum-slot 'target-snapshot-digest assurance-digest?)
+          (enum-slot 'changed text-list?)
+          (enum-slot 'witnesses invalidation-trajectories?)
+          (enum-slot 'unresolved text-list?)
+          (enum-slot 'requirements replacement-requirement-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; A caller-authored target obligation is checked and bound, never invented.
+;;; This receipt is inert even when its blocker is false.
+(def AssuranceReplacementDeclarationReceipt
+  (assurance-record-type 'aitia/replacement-declaration-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.replacement-declaration")))
+          (text-slot 'identity)
+          (enum-slot 'derivation-digest assurance-digest?)
+          (enum-slot 'source-snapshot-digest assurance-digest?)
+          (enum-slot 'draft-snapshot-digest assurance-digest?)
+          (enum-slot 'final-snapshot-digest maybe-digest?)
+          (text-slot 'source-obligation)
+          (text-slot 'target-obligation)
+          (enum-slot 'blocker replacement-declaration-blocker?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; Public planning values remain POO-native and contain no executable hook.
+(def AssuranceVerificationPolicy
+  (assurance-record-type 'aitia/verification-policy
+    direct-slots:
+    (list (text-slot 'identity)
+          (text-slot 'revision)
+          (enum-slot 'capabilities symbol-list?)
+          (enum-slot 'planner-executes? (one-of '(#f)))
+          (enum-slot 'grants-authority? (one-of '(#f))))))
+(def AssuranceVerificationRequest
+  (assurance-record-type 'aitia/verification-request
+    direct-slots:
+    (list (text-slot 'obligation-identity)
+          (text-slot 'subject)
+          (text-slot 'claim)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'evidence-kind assurance-evidence-kind?)
+          (enum-slot 'capability symbol?)
+          (enum-slot 'dependencies text-list?)
+          (enum-slot 'selected? boolean?)
+          (enum-slot 'blocker verification-blocker?))))
+(def (verification-request-list? values)
+  (and (list? values)
+       (every (lambda (value)
+                (assurance-verification-request? value))
+              values)))
+(def AssuranceVerificationPlan
+  (assurance-record-type 'aitia/verification-plan
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.planning-result")))
+          (text-slot 'identity)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (text-slot 'policy-identity)
+          (text-slot 'policy-revision)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'selected-obligations text-list?)
+          (enum-slot 'blocked-obligations text-list?)
+          (enum-slot 'changed text-list?)
+          (enum-slot 'impacted text-list?)
+          (enum-slot 'blocked-effects text-list?)
+          (enum-slot 'cycle-path text-list?)
+          (enum-slot 'cyclic-components witness-list?)
+          (enum-slot 'witnesses invalidation-trajectories?)
+          (enum-slot 'requests verification-request-list?)
+          (enum-slot 'unresolved text-list?)
+          (enum-slot 'conflicts text-list?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f)))
+          (enum-slot 'runtime-executed? (one-of '(#f))))))
+
+;;; These are declared candidates and inert explanation values, never adapter
+;;; handles or execution receipts.
+(def AssuranceVerifierCandidate
+  (assurance-record-type 'aitia/verifier-candidate
+    direct-slots:
+    (list (text-slot 'identity)
+          (text-slot 'revision)
+          (enum-slot 'priority nonnegative-integer?)
+          (enum-slot 'evidence-kinds evidence-kind-list?)
+          (enum-slot 'capability symbol?))))
+(def (verifier-candidate-list? values)
+  (and (list? values) (every assurance-verifier-candidate? values)))
+(def AssuranceVerifierChoice
+  (assurance-record-type 'aitia/verifier-choice
+    direct-slots:
+    (list (text-slot 'obligation-identity)
+          (text-slot 'candidate-identity)
+          (enum-slot 'selected? boolean?)
+          (enum-slot 'reason verifier-choice-reason?))))
+(def (verifier-choice-list? values)
+  (and (list? values) (every assurance-verifier-choice? values)))
+(def AssuranceVerifierChoiceReceipt
+  (assurance-record-type 'aitia/verifier-choice-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.verifier-choices")))
+          (text-slot 'identity)
+          (enum-slot 'plan-digest assurance-digest?)
+          (enum-slot 'candidates verifier-candidate-list?)
+          (enum-slot 'choices verifier-choice-list?)
+          (enum-slot 'unassigned-obligations text-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; A reported tool result is not an admission. Input bindings carry both the
+;;; source revision and digest so a green exit cannot float across snapshots.
+(def AssuranceVerifierInput
+  (assurance-record-type 'aitia/verifier-input
+    direct-slots:
+    (list (text-slot 'identity) (text-slot 'revision)
+          (enum-slot 'digest assurance-digest?))))
+(def (verifier-input-list? values)
+  (and (list? values) (every assurance-verifier-input? values)))
+(def AssuranceVerifierOutcome
+  (assurance-record-type 'aitia/verifier-outcome
+    direct-slots:
+    (list (text-slot 'identity)
+          (enum-slot 'status
+                     (one-of '(succeeded failed timed-out unavailable indeterminate)))
+          (text-slot 'producer) (text-slot 'tool) (text-slot 'tool-version)
+          (text-slot 'obligation) (text-slot 'subject) (text-slot 'scope)
+          (text-slot 'snapshot-revision)
+          (enum-slot 'snapshot-context-digest assurance-digest?)
+          (enum-slot 'inputs verifier-input-list?)
+          (enum-slot 'output-digest maybe-digest?)
+          (enum-slot 'accountable-authority maybe-text?)
+          (enum-slot 'review-scope maybe-text?))))
+(def AssuranceEvidenceAdmissionReceipt
+  (assurance-record-type 'aitia/evidence-admission-receipt
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.evidence-admission")))
+          (text-slot 'outcome) (text-slot 'obligation)
+          (enum-slot 'outcome-digest assurance-digest?)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'eligible? boolean?)
+          (enum-slot 'blocker
+                     (lambda (value)
+                       (or (not value)
+                           (memq value
+                                 '(outcome-not-successful snapshot-conflicted
+                                   stale-obligation
+                                   outcome-binding-mismatch missing-output
+                                   missing-inputs duplicate-inputs
+                                   input-binding-mismatch
+                                   human-authority-missing)))))
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; Exact subject for a Host-owned Agentic AI Lab verification adapter.  No
+;;; caller-authored presentation slot is an execution attestation by itself.
+(def AssuranceVerificationSubject
+  (assurance-record-type 'aitia/verification-subject
+    direct-slots:
+    (list (enum-slot 'snapshot (lambda (value) (assurance-snapshot? value)))
+          (enum-slot 'obligation (lambda (value) (assurance-obligation? value)))
+          (enum-slot 'evidence (lambda (value) (assurance-evidence? value)))
+          (enum-slot 'outcome
+                     (lambda (value) (assurance-verifier-outcome? value))))))
+
+;;; Host-checked support inventory is an input to Decision evaluation, not a
+;;; Decision or an authority receipt. A POO presentation cannot grant release.
+(def (required-support-blocker? value)
+  (or (not value)
+      (memq value '(obligation-missing obligation-stale support-link-missing
+                    admission-missing admission-invalid
+                    evidence-link-missing counterevidence-present claim-not-current source-changed))))
+(def AssessmentRequiredSupport
+  (assurance-record-type 'aitia/required-support-assessment
+    direct-slots:
+    (list (text-slot 'obligation)
+          (enum-slot 'supported? boolean?)
+          (enum-slot 'blocker required-support-blocker?))))
+(def (required-support-list? values)
+  (and (list? values) (every assessment-required-support? values)))
+(def (required-support-global-blocker? value)
+  (memq value '(snapshot-conflicted snapshot-unresolved claim-not-current
+                no-requirements duplicate-requirements
+                assumptions-unresolved defeaters-unresolved
+                claim-state-blocked challenge-unresolved source-changed)))
+(def (required-support-global-blockers? values)
+  (and (list? values)
+       (every required-support-global-blocker? values)))
+;;; An inert witness records the exact verification and the declared method.
+;;; It does not establish a stronger proposition or confer authority.
+(def AssuranceSupportWitness
+  (assurance-record-type 'aitia/support-witness
+    direct-slots:
+    (list (text-slot 'obligation) (text-slot 'evidence)
+          (text-slot 'admission) (text-slot 'relation)
+          (text-slot 'outcome)
+          (enum-slot 'outcome-digest assurance-digest?)
+          (text-slot 'scope)
+          (enum-slot 'declared-evidence-kind assurance-evidence-kind?)
+          (enum-slot 'capability symbol?)
+          (text-slot 'producer) (text-slot 'tool) (text-slot 'tool-version)
+          (enum-slot 'input-artifacts text-list?)
+          (enum-slot 'expires-at nonnegative-integer?))))
+(def (support-witness-list? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceSupportWitness value))
+              values)))
+(def AssuranceAssumptionAssessment
+  (assurance-record-type 'aitia/assumption-assessment
+    direct-slots:
+    (list (text-slot 'assumption)
+          (enum-slot 'owner maybe-text?)
+          (enum-slot 'review-policy maybe-text?)
+          (enum-slot 'obligation maybe-text?)
+          (enum-slot 'admission maybe-text?)
+          (enum-slot 'blocker
+                     (one-of '(#f assumption-missing scope-mismatch assumption-unavailable
+                               review-policy-unhandled validity-unqualified review-missing
+                               claim-not-current source-changed))))))
+(def (assumption-assessments? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceAssumptionAssessment value))
+              values)))
+(def AssuranceChallengeAssessment
+  (assurance-record-type 'aitia/challenge-assessment
+    direct-slots:
+    (list (text-slot 'challenge) (text-slot 'revision)
+          (enum-slot 'kind (one-of '(counterexample finding)))
+          (enum-slot 'state assurance-state?)
+          (text-slot 'subject) (text-slot 'evidence)
+          (enum-slot 'evidence-digest maybe-digest?)
+          (enum-slot 'scope maybe-text?) (enum-slot 'obligation maybe-text?)
+          (enum-slot 'relation maybe-text?))))
+(def (challenge-assessments? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceChallengeAssessment value))
+              values)))
+(def AssuranceResidualDisposition
+  (assurance-record-type 'aitia/residual-disposition
+    direct-slots:
+    (list (text-slot 'obligation) (text-slot 'decision) (text-slot 'authority)
+          (text-slot 'policy) (text-slot 'policy-revision) (text-slot 'admission)
+          (enum-slot 'outcome-digest assurance-digest?))))
+(def (residual-dispositions? values)
+  (and (list? values)
+       (every (lambda (value) (assurance-record? AssuranceResidualDisposition value))
+              values)))
+(def AssuranceRequiredSupport
+  (assurance-record-type 'aitia/required-support
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.required-support")))
+          (text-slot 'claim) (text-slot 'claim-revision)
+          (text-slot 'subject) (text-slot 'predicate) (text-slot 'scope)
+          (enum-slot 'assumptions text-list?)
+          (enum-slot 'assumption-assessments assumption-assessments?)
+          (enum-slot 'challenges challenge-assessments?)
+          (enum-slot 'residual-dispositions residual-dispositions?)
+          (enum-slot 'defeaters text-list?)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'semantic-snapshot-digest assurance-digest?)
+          (enum-slot 'requirements required-support-list?)
+          (enum-slot 'witnesses support-witness-list?)
+          (enum-slot 'blockers required-support-global-blockers?)
+          (enum-slot 'complete? boolean?)
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; A Host-issued preflight proves only that an undecided Decision and its
+;;; required support were current at issuance. Governance owns authority.
+(def AssuranceDecisionPreflight
+  (assurance-record-type 'aitia/decision-preflight
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.decision-preflight")))
+          (text-slot 'identity)
+          (text-slot 'issuer)
+          (text-slot 'decision)
+          (text-slot 'claim)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'release-authorized? (one-of '(#f))))))
+
+;;; A composition needs its own snapshot-bound obligation. Component support
+;;; remains separate and cannot discharge this structural requirement.
+(def AssuranceCompositionRequirement
+  (assurance-record-type 'aitia/composition-requirement
+    direct-slots:
+    (list (text-slot 'composition-claim)
+          (enum-slot 'component-claims text-list?)
+          (enum-slot 'direct-obligations text-list?)
+          (enum-slot 'current-obligations text-list?)
+          (enum-slot 'blocker composition-blocker?))))
+(def (composition-requirement-list? values)
+  (and (list? values)
+       (every assurance-composition-requirement? values)))
+(def AssuranceCompositionDerivation
+  (assurance-record-type 'aitia/composition-derivation
+    direct-slots:
+    (list (enum-slot 'schema
+                     (lambda (value)
+                       (equal? value "lambda-aitia.composition-requirements")))
+          (text-slot 'identity)
+          (enum-slot 'snapshot-digest assurance-digest?)
+          (enum-slot 'requirements composition-requirement-list?)
+          (enum-slot 'digest assurance-digest?)
+          (enum-slot 'verifier-executed? (one-of '(#f)))
+          (enum-slot 'release-authorized? (one-of '(#f))))))
 
 (defstruct assurance-invalidation-receipt-record
   (identity snapshot-digest changed impacted invalidated-evidence
@@ -227,22 +674,22 @@
   transparent: #t)
 
 (def (node-of-kind? class kind value)
-  (and (poo-flow-model? class value) (eq? (.ref value 'kind) kind)))
+  (and (assurance-record? class value) (eq? (.ref value 'kind) kind)))
 (def (assurance-node? value)
   (and (object? value) (.slot? value 'kind)
        (case (.ref value 'kind)
-         ((artifact) (poo-flow-model? AssuranceArtifact value))
-         ((claim) (poo-flow-model? AssuranceClaim value))
-         ((assumption) (poo-flow-model? AssuranceAssumption value))
-         ((observation) (poo-flow-model? AssuranceObservation value))
-         ((event) (poo-flow-model? AssuranceEvent value))
-         ((action) (poo-flow-model? AssuranceAction value))
-         ((obligation) (poo-flow-model? AssuranceObligation value))
-         ((evidence) (poo-flow-model? AssuranceEvidence value))
-         ((counterexample) (poo-flow-model? AssuranceCounterexample value))
-         ((finding) (poo-flow-model? AssuranceFinding value))
-         ((decision) (poo-flow-model? AssuranceDecision value))
-         ((effect) (poo-flow-model? AssuranceEffect value))
+         ((artifact) (assurance-record? AssuranceArtifact value))
+         ((claim) (assurance-record? AssuranceClaim value))
+         ((assumption) (assurance-record? AssuranceAssumption value))
+         ((observation) (assurance-record? AssuranceObservation value))
+         ((event) (assurance-record? AssuranceEvent value))
+         ((action) (assurance-record? AssuranceAction value))
+         ((obligation) (assurance-record? AssuranceObligation value))
+         ((evidence) (assurance-record? AssuranceEvidence value))
+         ((counterexample) (assurance-record? AssuranceCounterexample value))
+         ((finding) (assurance-record? AssuranceFinding value))
+         ((decision) (assurance-record? AssuranceDecision value))
+         ((effect) (assurance-record? AssuranceEffect value))
          (else #f))))
 (def (assurance-artifact? value) (node-of-kind? AssuranceArtifact 'artifact value))
 (def (assurance-claim? value) (node-of-kind? AssuranceClaim 'claim value))
@@ -264,10 +711,69 @@
   (node-of-kind? AssuranceDecision 'decision value))
 (def (assurance-effect? value) (node-of-kind? AssuranceEffect 'effect value))
 (def (assurance-relation? value)
-  (and (poo-flow-model? AssuranceRelation value)
+  (and (assurance-record? AssuranceRelation value)
        (eq? (.ref value 'plane)
             (assurance-relation-kind-plane (.ref value 'relation)))))
-(def (assurance-snapshot? value) (poo-flow-model? AssuranceSnapshot value))
+(def (assurance-snapshot? value) (assurance-record? AssuranceSnapshot value))
+(def (assurance-replacement-requirement? value)
+  (assurance-record? AssuranceReplacementRequirement value))
+(def (assurance-replacement-derivation? value)
+  (assurance-record? AssuranceReplacementDerivation value))
+(def (assurance-replacement-declaration-receipt? value)
+  (and (assurance-record? AssuranceReplacementDeclarationReceipt value)
+       (eq? (not (.ref value 'blocker))
+            (if (.ref value 'final-snapshot-digest) #t #f))))
+(def (assurance-verification-policy? value)
+  (assurance-record? AssuranceVerificationPolicy value))
+(def (assurance-verification-request? value)
+  (and (assurance-record? AssuranceVerificationRequest value)
+       (eq? (.ref value 'selected?)
+            (not (.ref value 'blocker)))))
+(def (assurance-verification-plan? value)
+  (and (assurance-record? AssuranceVerificationPlan value)
+       (equal?
+        (.ref value 'selected-obligations)
+        (map (lambda (request) (.ref request 'obligation-identity))
+             (filter (lambda (request) (.ref request 'selected?))
+                     (.ref value 'requests))))
+       (equal?
+        (.ref value 'blocked-obligations)
+        (map (lambda (request) (.ref request 'obligation-identity))
+             (filter (lambda (request) (not (.ref request 'selected?)))
+                     (.ref value 'requests))))))
+(def (assurance-verifier-candidate? value)
+  (assurance-record? AssuranceVerifierCandidate value))
+(def (assurance-verifier-choice? value)
+  (and (assurance-record? AssuranceVerifierChoice value)
+       (eq? (.ref value 'selected?)
+            (eq? (.ref value 'reason) 'chosen))))
+(def (assurance-verifier-choice-receipt? value)
+  (assurance-record? AssuranceVerifierChoiceReceipt value))
+(def (assurance-verifier-input? value)
+  (assurance-record? AssuranceVerifierInput value))
+(def (assurance-verifier-outcome? value)
+  (assurance-record? AssuranceVerifierOutcome value))
+(def (assurance-evidence-admission-receipt? value)
+  (and (assurance-record? AssuranceEvidenceAdmissionReceipt value)
+       (eq? (.ref value 'eligible?) (not (.ref value 'blocker)))))
+(def (assessment-required-support? value)
+  (and (assurance-record? AssessmentRequiredSupport value)
+       (eq? (.ref value 'supported?) (not (.ref value 'blocker)))))
+(def (assurance-required-support? value)
+  (and (assurance-record? AssuranceRequiredSupport value)
+       (eq? (.ref value 'complete?)
+            (and (null? (.ref value 'blockers))
+                 (pair? (.ref value 'requirements))
+                 (every (lambda (item) (.ref item 'supported?))
+                        (.ref value 'requirements))))))
+(def (assurance-decision-preflight? value)
+  (assurance-record? AssuranceDecisionPreflight value))
+(def (assurance-verification-subject? value)
+  (assurance-record? AssuranceVerificationSubject value))
+(def (assurance-composition-requirement? value)
+  (assurance-record? AssuranceCompositionRequirement value))
+(def (assurance-composition-derivation? value)
+  (assurance-record? AssuranceCompositionDerivation value))
 (def (assurance-invalidation-receipt? value)
   (assurance-invalidation-receipt-record? value))
 (def (assurance-invalidation-receipt-ref receipt name)

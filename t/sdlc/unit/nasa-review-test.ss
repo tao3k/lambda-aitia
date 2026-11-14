@@ -3,11 +3,11 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/test :std/error
-        :poo-flow/src/module-system/contribution/interface
-        :poo-flow/lambda-aitia/modules/sdlc/interface
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
+        (only-in :clan/poo/object .o .ref .get)
+        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        "../../../modules/sdlc/objects.ss"
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss"
+        "../../../modules/sdlc/standards/nasa-review.ss"
         :std/list/list)
 (def project (sdlc-project "flight" "r1" "software" #t))
 (def known-context
@@ -27,6 +27,8 @@
 (def nasa-review-test
   (test-suite "NASA full source review and conditional rules"
   (test-case "every index row has authoritative paragraphs, including continuations"
+    (def nasa-requirement-catalog
+      (.get lambda-aitia.init.exports modules nasa-7150-2d-catalog requirements))
     (check-equal? (length nasa-requirement-catalog) 130)
     (check-equal? (apply + (map (lambda (r) (length (.ref r 'source-parts))) nasa-requirement-catalog)) 255)
     (check-equal? (length (nasa-requirement-criteria "SWE-027")) 7)

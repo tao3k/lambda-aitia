@@ -2,13 +2,15 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/lambda-aitia/modules/gitops/types
-        :poo-flow/lambda-aitia/modules/gitops/objects
-        :poo-flow/lambda-aitia/modules/gitops/funs
-        :poo-flow/lambda-aitia/modules/gitops/syntax
-        :poo-flow/lambda-aitia/modules/gitops/config)
-(export (import: :poo-flow/lambda-aitia/modules/gitops/types)
-        (import: :poo-flow/lambda-aitia/modules/gitops/objects)
-        (import: :poo-flow/lambda-aitia/modules/gitops/funs)
-        (import: :poo-flow/lambda-aitia/modules/gitops/syntax)
-        (import: :poo-flow/lambda-aitia/modules/gitops/config))
+;;; -*- Gerbil -*-
+;; Initialize Config under the publication reader before recording scope support.
+(import "config.ss")
+
+(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(.def GitOps
+  identity: 'gitops
+  tags: '(software-engineering gitops)
+  core: (.o requires: (.o)
+            scope-contract: GitOpsScopeContract
+            exports: Config)
+  features: '(github))

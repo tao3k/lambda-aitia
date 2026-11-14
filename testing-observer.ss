@@ -3,15 +3,20 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import :std/list/list
+        (only-in :clan/poo/object .call .get)
         (only-in :gerbil/core string-contains string-prefix? string-suffix?)
         (only-in :std/string/misc string-trim-prefix)
         (only-in :asp-gerbil-scheme/testing-api
                  testing-interface-run-test-files!)
         (only-in :asp-gerbil-scheme/testing-runner-api
                  testing-interface-test-files)
-        (only-in ./testing-interface +lambda-aitia-testing-interface+))
+        (only-in "./testing-interface.ss"
+                 +lambda-aitia-testing-interface+
+                 lambda-aitia-sdlc-unit-testing-interface
+                 lambda-aitia-sdlc-unit-test-order))
 
 (export run-observed-test
+        run-observed-module-tests
         lambda-aitia-selected-test-files)
 
 (def (emit phase test-path)
@@ -67,11 +72,28 @@
       (error "no Lambda Aitia test files selected" test-path))
     test-files))
 
+(def (run-observed-files label test-files)
+  (emit-selection label (length test-files))
+  (if (and (equal? label "t/sdlc")
+           (every (lambda (path) (string-prefix? "./t/sdlc/unit/" path)) test-files))
+    (let (testing (lambda-aitia-sdlc-unit-testing-interface test-files))
+      (testing-interface-run-test-files!
+       testing (lambda-aitia-sdlc-unit-test-order testing test-files)))
+    (testing-interface-run-test-files! +lambda-aitia-testing-interface+ test-files)))
+
 (def (run-observed-test test-path)
   (emit 'native-test-process-start test-path)
-  (let (test-files (lambda-aitia-selected-test-files test-path))
-    (emit-selection test-path (length test-files))
-    (testing-interface-run-test-files!
-     +lambda-aitia-testing-interface+
-     test-files))
+  (run-observed-files test-path (lambda-aitia-selected-test-files test-path))
   (emit 'native-test-process-complete test-path))
+
+(def (run-observed-module-tests init-exports owners)
+  (let* ((selection (.call (.get init-exports tests) .select owners))
+         (files (.get selection spec))
+         (admit-current (.get selection admit-current)))
+    (unless (pair? files)
+      (error "no tests declared by selected Aitia modules" owners))
+    (emit 'native-test-process-start owners)
+    (dynamic-wind admit-current
+      (lambda () (run-observed-files owners files))
+      admit-current)
+    (emit 'native-test-process-complete owners)))

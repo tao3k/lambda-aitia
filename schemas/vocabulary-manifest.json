@@ -1,6 +1,6 @@
 {
   "manifestSchema": "lambda-aitia.vocabulary-manifest",
-  "revision": 2,
+  "revision": 5,
   "semanticOwner": "lambda-aitia",
   "nodeKinds": [
     "artifact",
@@ -33,7 +33,7 @@
     "observation": ["subject", "source", "clock-role", "logical-position"],
     "event": ["subject", "event-kind", "observation", "payload-digest", "modality", "commitment-state", "causal-parents"],
     "action": ["subject", "action-kind", "requested-by", "scope"],
-    "obligation": ["subject", "claim", "snapshot", "evidence-kind", "capability", "scope"],
+    "obligation": ["subject", "claim", "snapshot", "snapshot-revision", "snapshot-context-digest", "evidence-kind", "capability", "scope"],
     "evidence": ["producer", "tool", "tool-version", "input-artifacts", "obligation", "subject", "scope", "valid-from", "valid-until", "admission-state"],
     "counterexample": ["subject", "challenges", "evidence", "details-digest"],
     "finding": ["subject", "challenges", "evidence", "finding-kind"],
@@ -56,7 +56,7 @@
   },
   "relationPlanes": {
     "provenance": ["derived-from", "generated-by", "cites", "used"],
-    "structural": ["depends-on", "implements", "tests", "refines"],
+    "structural": ["depends-on", "composes", "implements", "tests", "refines"],
     "causal": ["precedes", "causal-parent", "enables", "prevents"],
     "assurance": ["supports", "discharges", "defeats", "invalidates"],
     "authority": ["authorizes", "denies", "requires-review"]
@@ -66,6 +66,11 @@
     "lambda-aitia.assurance-snapshot",
     "lambda-aitia.invalidation-receipt",
     "lambda-aitia.planning-result",
+    "lambda-aitia.replacement-requirements",
+    "lambda-aitia.replacement-declaration",
+    "lambda-aitia.verifier-choices",
+    "lambda-aitia.evidence-admission",
+    "lambda-aitia.composition-requirements",
     "lambda-aitia.native-descriptor",
     "lambda-aitia.native-error"
   ]

@@ -1,0 +1,590 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: AITIA Rust Framework
+
+* Implementation boundary
+
+This directory owns the Rust implementation of AITIA's engineering framework,
+not DE's Rust engineering Case. The same framework serves Rust, Python and
+mixed-language user Projects. [[file:../docs/rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] owns its semantics and authority boundary;
+[[file:../docs/plans/yuanxu-rust-framework-implementation.org][the implementation plan]] records unfinished work and acceptance controls.
+
+Scheme/POO already owns the declarative language and Module composition. Rust
+directly consumes it through =gerbil-scheme-rust=; it does not acquire another
+Project/engineering DSL. The experimental handwritten Rust declaration types
+were removed before acceptance because they duplicated that responsibility.
+Module refinement, object identity and source authority remain with their
+existing owners. Runtime effects remain explicit.
+No handwritten generic graph, POO interpreter, policy evaluator, receipt issuer
+or alternate package/source loader is part of this directory's mandate.
+
+* Bridge and Module correspondence
+
+Yuanxu's =yuanxu!=, Interface declarations and generated build projection own
+module source association and configured scopes. Rust consumes a qualified
+projection through the existing Scheme/Rust bridge. Actual Scheme object
+identity, GC roots, owner-thread affinity and resource lifetime remain enforced
+by that bridge; serialized identity strings are not authority capabilities.
+
+The Rust archive contract requires the Orgize Elements values module and
+the Orgize Contract values and evaluation modules exactly once. These
+identities follow the Orgize revision pinned by Lab. The earlier archive
+qualified against the prior interfaces remains a separate receipt.
+
+With the Lab-pinned package set, fresh staging produced the new Orgize
+module identities. The first linked gate reached the 120-second limit
+after 101 seconds of compilation and linking. A subsequent run also
+timed out. A diagnostic run against the newly staged archive completed
+the Session and CLI checks in 31.28 seconds of test execution, including
+normal shutdown. A subsequent full delivery run staged the program again
+and passed linked integration in 37.37 seconds of test execution. Maturin
+built the macOS arm64 ABI3 wheel, and the installed consumer passed Graph,
+GitOps, ORG Contract, ORG edit preflight, and frozen pytest checks with
+the same package set. The earlier cold timeout still applies to cold
+build qualification.
+
+The bridge currently has rooted Scheme-value and owner-lifecycle APIs. Its
+historical VM-free Scheme-to-Rust subset compiler was removed upstream. Do not
+design AITIA against that removed route or implement a replacement interpreter.
+The precise bridge revision, public API, generated program and portable build
+cohort must be qualified before adding a Cargo dependency or claiming execution.
+The local upstream checkout alone is not a distributable dependency identity.
+
+* Cargo workspace and development policy
+
+=rust/Cargo.toml= is a virtual workspace, not one monolithic package.
+=crates/aitia-runtime= owns actual Scheme program execution under the bridge's
+Runtime lifetime. =build-support/aitia-build-support= owns shared ASP Rust
+development policy. Further crates require real responsibilities and qualified
+consumers; this design does not add empty placeholder packages.
+
+The Cargo workspace and lockfile select the bridge and ASP Rust revisions.
+Those package declarations are the revision authority; this document does not
+maintain a second copy of their revision values. The production member consumes
+Build Support only through =[dev-dependencies]=; ASP's own
+documented Build Support pattern keeps its policy provider outside the Runtime
+dependency graph. Cargo test invokes the upstream deny-mode workspace gate;
+the local code does not implement another style scanner or suppress findings.
+
+The deny-mode workspace gate reported oversized responsibilities in the
+linked CLI test and the JJ workspace observer, as well as inline source
+tests and glob imports. The commit lifecycle now has its own integration
+module, and remote bookmark discovery has its own JJ observation module.
+The provider and push-route unit tests are mounted from =tests/unit=.
+The locked ASP Rust dependency includes the dev-edge ordering fix from
+[[https://github.com/tao3k/asp-rust/pull/41][ASP Rust PR 41]].
+The four package policy targets, workspace format and Clippy gates, and
+workspace tests passed after this split. The linked commit lifecycle and
+the real JJ workspace tests also passed under their existing guards.
+The linked Runtime keeps Scheme export binding and Context delivery in
+separate owner modules. The directory's =mod.rs= declares and re-exports the
+interface. An isolated copy with an oversized Context source fails the
+development gate with =RUST-MOD-R002=. Restoring the source passes the same gate.
+The Cargo lockfile is generated by Cargo. These Rust pins do not requalify
+Lab's older Scheme package cohort or silently replace its manifests.
+
+With the pinned bridge Scheme package compiled in the active package pool,
+=just stage-rust-program= calls the existing =build.ss= entry through Core's
+explicit compiler/product boundary. The standard =defbuild-script= main consumes
+the selected Graph and Core's output directory. A fresh compiler process then
+reads the admitted program products; it does not reuse source-expander contexts
+from compilation. Core checks the publication before and after that process.
+The products and manifest live under =GERBIL_PATH/build/aitia-program=.
+
+The program exports the already compiled SDLC flow graph and GitOps operations
+through the bridge's rooted-call boundary. Runtime does not load a Scheme
+checkout or invoke a Scheme compiler. The compiler produces the builtin Module
+list and startup stub. Archive linking, the Rust invocation and
+installed-runtime qualification are separate gates. Run
+=just test-rust-linked-program= to stage and link the program and exercise the
+SDLC graph, GitOps decision, and recorded Assurance Provider. Set =AITIA_JJ_BIN=
+and =AITIA_PYTEST_PYTHON= to the JJ and pytest executables used by the fixture.
+Compilation uses the toolchain
+reported by the paired Gerbil executable. The Rust callback borrows the live bridge owner, so a
+request or response root cannot outlive that owner.
+
+Both bindings use the Scheme JSON projection in =bindings/operations.ss=.
+Rust staging consumes the selected Yuanxu Module closure and the linked program.
+The archive contract rejects the legacy C transport and its ABI descriptor
+module.
+
+* Command-line consumer
+
+=just build-rust-cli= builds =rust/target/debug/aitia= in the current package
+pool. The Scheme-backed commands consume one UTF-8 JSON request from standard input and
+return one JSON response on standard output. Invalid input and runtime
+failures return a nonzero exit status.
+
+#+begin_src sh
+export GERBIL_HOME="$(gxi -e '(displayln (gerbil-home))')"
+printf '%s\n' '{"lifecycle-id":"release/42"}' | rust/target/debug/aitia flow-graph
+rust/target/debug/aitia gitops-evaluate < change.json
+rust/target/debug/aitia org-contract-evaluate < elements-query.json
+rust/target/debug/aitia jj-observe "$PWD"
+#+end_src
+
+The graph response contains the Scheme Graph's nodes and edges. The ORG
+command uses the same Element request and verdict as the Python Session. A
+valid query returns a verdict even if its expectation fails. Graph, policy
+and ORG verdicts carry no effect authority.
+
+The linked integration test exercises an ORG match through the CLI and
+checks a failed expectation and malformed input through the same linked
+program in one Session. This passed locally with an already staged
+Scheme program. Fresh staging and installed-wheel acceptance with the
+Lab-pinned package set remain separate gates.
+The Scheme-backed commands use the installed Gerbil and its package pool.
+The read-only =jj-observe= command returns a workspace cut through =jj-lib=.
+The adapter reads the operation store, commit and tree directly and checks
+that the operation head is still current. The =jj= executable prepares
+repositories in qualification tests.
+The linked Rust integration gate passed. A separate CLI run against JJ
+=v0.47.1= in a disposable repository, with the Gerbil environment unset,
+returned byte-identical cuts before and after creating an untracked file.
+An explicit rewrite retained the change and parent identities and changed
+the operation, commit and tree identities.
+
+* Python distribution
+
+The Python distribution is a Rust extension built with PyO3 and packaged
+by Maturin. It consumes the Rust runtime and its Scheme bridge.
+=just check-rust-delivery= qualifies the linked program and installs the wheel
+built by that run in a fresh environment. Both checks use one staging of
+the Scheme program.
+
+The default Cargo workspace checks cover Rust code without starting or
+building a standalone Scheme runtime. Only =linked-program= enables the
+bridge, and the delivery gate exercises that feature through AITIA's
+staged program.
+
+The CI job installs the immutable Gerbil release through Lab's release
+installer and resolves the Lab and Core package manifests through Lab's
+Gerbil dependency entrypoint. It builds those producers before staging the
+AITIA program. The wheel test uses the same Gerbil release and package
+products as the linked Rust test.
+
+=AitiaSession= owns one linked runtime thread for callers that need to
+reuse it across requests. Its synchronous rendezvous keeps the request
+queue bounded. Callers exchange owned Rust strings, and =close= joins
+the owner after the bridge's cleanup. The linked Gerbil program is
+one-shot within a process. A closed session cannot be reopened there.
+The linked integration test exercises Graph consumption from another Rust
+thread, invalid input, both GitOps verdicts, and explicit owner shutdown.
+
+Before staging the linked program, make OpenSSL, zlib and SQLite visible
+to the host's =pkg-config=. Verify the build environment with
+=pkg-config --keep-system-libs --libs openssl zlib sqlite3=. The bridge
+uses that option to retain system linker arguments.
+
+=just build-rust-wheel= builds the PyO3 extension with Maturin. The initial
+development distribution is =lambda-aitia-rust= so it can be qualified
+alongside the existing wheel. A fresh external virtual environment imported
+the development wheel, read a Graph from another Python thread, received a
+GitOps refusal and rejected a request after close. The repaired macOS 26
+wheel was built separately. The smoke test uses the workspace Scheme package
+pool and paired SDK. Orgize parity and an independently provisioned runtime
+remain open.
+
+On macOS 26.6.1 arm64 with Python 3.13.12, both existing wheels
+installed and imported. With the workspace package pool but without an
+explicit =GERBIL_HOME=, session setup returned
+=GERBIL_STATUS_RUNTIME_UNAVAILABLE=. The repaired macOS 26 wheel read a
+Graph and exited normally in a fresh external environment with the same
+package pool and the paired =GERBIL_HOME= supplied. Use
+=just check-installed-rust-wheel <wheel>= to verify the installed Graph,
+GitOps decisions and session close under that runtime contract. A fresh release build with
+Maturin 1.16.0 and pkgconf emitted the =macosx_14_0_arm64= wheel. The
+installed check passed for that artifact and for the earlier
+=macosx_26_0_arm64= artifact on macOS 26.6.1. The wheel tags identify the
+artifacts tested. The fresh release wheel also returned an accepted
+development decision for a current NASA source lock, then rejected a stale
+lock for the same change. Neither response granted release or executed the
+runtime effect.
+
+=Session.org_contract_evaluate= takes a JSON request with =rows=,
+=scopeId=, =queryKind=, =fieldName=, =fieldValue=, =expectation= and
+=expectedCount=. Each row supplies =id=, =parentId=, =kind=, =fieldName=
+and =fieldValue=. Parent =-1= denotes the root. An empty query field
+selects by element kind. The response contains =matchedCount= and =passed=.
+A valid query with zero matches returns an ordinary verdict. Invalid
+inputs propagate as Session errors. The operation evaluates supplied
+Elements and leaves source admission and authorization to their owners.
+The Scheme transport test and fresh installed-wheel run passed. The wheel
+checked field and kind matches, a missing field value, the three count
+operators, malformed requests and continued use of the same Session
+after a rejection. The existing Scheme binding and GitOps integration
+suites also passed through =just test-integration= after the shared
+projection changed.
+
+Rust source capture preserves the =lambda-aitia.source-tree.v1= byte
+format and the 64 MiB and 10,000-file limits. It walks relative to opened
+directory handles and refuses symlinks and non-regular entries. It also
+refuses path spellings that the Rust decoder cannot represent. The
+decoder validates the file and byte limits, ordering, path safety, and
+file-directory conflicts before returning borrowed file entries. The Rust
+wire-order, round-trip, and malformed-input tests passed. =FrozenWorkspace=
+prepares an isolated source directory from the validated bytes and owns
+its cleanup. The workspace test confirms that editing either copy leaves
+the other intact and that replay mutations are visible in a new capture. A fresh Maturin wheel passed the
+same byte-format and directory-symlink checks through
+=capture_source_tree(Path(...))= in an external Python environment.
+The installed run also retained the Session, SDLC, GitOps and ORG controls.
+
+=run_frozen_pytest= runs explicit selectors from a private frozen workspace
+on Unix. It requires a caller-selected absolute Python interpreter and
+uses a 30-second process deadline, an 8 MiB output budget and an 8 KiB
+diagnostic tail. It reports the process outcome and whether a new capture
+matches the original input. A bounded JUnit report supplies a SHA-256 digest
+and observed pass, fail and skip counts. Malformed or unavailable reports
+yield no counts. The focused real-pytest test covers successful execution,
+report extraction, source mutation and invalid selectors.
+
+The installed extension exposes =run_frozen_pytest(interpreter, payload,
+selectors)=. Its result contains the process outcome, local verdict, exit code, source
+comparison, the original and observed source SHA-256 digests, the selected
+test names, diagnostic bytes and optional report. An unavailable recapture
+has no observed digest. A local pass requires unchanged source, successful
+exit, at least one passing case, and zero failed or skipped cases. Host
+admission remains a separate decision. Set
+=AITIA_PYTEST_PYTHON= to the absolute path of a Python interpreter with
+pytest when running =just check-installed-rust-wheel <wheel>= to exercise
+execution with a separate verifier environment.
+
+=OrgEditReview::prepare= checks caller-supplied ORG projection spans
+against the exact source bytes. It rejects stale digests, duplicate IDs,
+overlapping ranges and edits that split UTF-8. The result holds ordered
+edits and can recheck the source bytes before review. Orgize owns the
+projection, and the review carries no write authority.
+
+The Python wheel exposes the same check through =OrgEdit= and
+=OrgEditReview(source_id, source, projected_sha256, edits)=. The source
+owner supplies the bytes again to =source_current(source)=.
+
+Independent SDK provisioning, trusted projection custody, and Host
+admission of pytest observations remain open.
+
+* Rust performance evidence
+
+** Commit command startup
+
+The AITIA CLI and Marlin TUI both use the Gerbil Scheme Rust build archive
+and =LinkedGerbilProgram= entry. The linked executable does not need a
+Gerbil compiler at runtime. The AITIA archive manifest used for the local
+measurement contains 723 modules; the inspected Marlin TUI manifest
+contains 888. Those counts describe the link inputs, not the work performed
+by each module during initialization. Marlin's recorded PTY observations
+also distinguish macOS first execution of a newly linked file from time
+inside the application.
+
+Three instrumented development-build invocations of =aitia jj commit= on
+the same recorded 49-path candidate returned the same size review payload.
+VM initialization took 1,232–2,373 ms, Scheme draft evaluation took
+1,147–3,050 ms, and VM shutdown took less than 0.1 ms. The JJ manifest/diff,
+source reads, selected configuration audit and final re-observation were
+measured separately; none explained the seconds in either Scheme phase.
+A macOS process sample found POO object construction, slot operations and
+Gambit garbage collection in the initialization interval. These local
+observations are not release or tail-latency qualification.
+
+An isolated compiler control rebuilt the same Scheme application with
+cross-module optimization enabled on Darwin, keeping the SDK and installed
+dependencies. In baseline/optimized/optimized/baseline order, VM
+initialization was 961/1,115/984/1,143 ms and draft evaluation was
+644/622/684/637 ms. The review results matched except for the expected
+compiler-owned review context. This control did not establish a speedup;
+the production Darwin compiler setting was retained.
+
+Project Config now compiles its immutable envelope Contract once per loaded
+Scheme program, on demand. Validation still runs for each manifest. The
+commit command passes the same recorded bytes to the configuration check
+and to draft evaluation, retaining both the cut binding and the final
+currentness check. The Scheme GitOps and Project Config suites passed. All
+five linked integration cases passed in 40.11 seconds with the existing
+120-second guard. The relinked development binary returned the same two
+supported obligations for the 49-path candidate in 1,785 ms. Its help
+route took 16 ms without entering Scheme. These observations do not
+establish a speedup over the paired baseline.
+
+To qualify a startup change, measure process entry, linked VM
+initialization, first Scheme operation, and shutdown separately. Attribute
+initialization work to the linked module initializers before changing the
+Yuanxu selection or publication. A smaller archive, a no-op command or
+an already running VM cannot stand in for the first complete commit review.
+
+An instrumented development executable ran against the same 76-path PR 2
+candidate. The local manifest spent 1.064 seconds in VM initialization,
+90 ms in Scheme configuration and 10 ms reading the JJ project. The
+first execution of the newly linked file had additional wall time outside
+those phases. In prepare, VM initialization took 1.043 seconds,
+Scheme review with JSON conversion 1.434 seconds, GitHub 738 ms and
+OpenSysML 419 ms. Individual JJ reads took 2 to 7 ms. VM cleanup took
+under 0.2 ms.
+
+The earlier linked review export serialized the Rust facts to JSON and
+parsed them in Scheme before running the policy. Its 1.434-second
+measurement includes both directions of conversion, ORG admission,
+ASCENT evaluation and rendering.
+
+The review request now uses the bridge's rooted values. Rust constructs
+Scheme scalars, strings, lists and hash tables, then sends the request
+with the effective configuration from the same VM. The existing byte
+budget is measured in Rust without allocating a serialized request.
+Creating Scheme strings and collections from Rust facts still allocates.
+The review result and the CLI output still use JSON. The recorded
+project overlay remains a JSON source document.
+
+Rust now overlaps GitHub and OpenSysML reads for an enabled, affected
+model. Both workers finish before review evaluates the facts. The final
+bookmark and JJ operation are checked again before the CLI returns the
+review. A paired prepare diagnostic reproduced the exact review,
+provider observations and model report with the same JJ operation.
+The overlapping host phase took 1.015 and 0.759 seconds, with OpenSysML
+finishing inside the GitHub interval. End-to-end serial timings were
+4.43 and 3.95 seconds, and overlapping timings were 5.67 and 3.21
+seconds. This confirms overlap and output correspondence. It leaves
+stable end-to-end improvement and the one-second target unverified.
+The uninstrumented linked CLI cases and OpenSysML consumer passed in
+83.02 and 31.40 seconds under the existing joint 120-second guard.
+
+The configuration export returns a rooted pair with the Scheme review
+configuration and its host projection. Scheme selects the NASA policy
+and OpenSysML check once for that recorded configuration. Review borrows
+the selected values from the same VM. This avoids a second parse,
+validation and policy selection within the command. A subsequent
+admission selects again from its own captured cut. The original
+combined input budget still applies.
+
+On the same 76-path PR 2 candidate the resulting description matched
+the previous one byte for byte, and JJ did not advance its operation.
+One run per command took 13 ms for help, 0.987 seconds for project
+manifest, 3.614 seconds for context, 3.369 seconds for preview and
+4.331 seconds for prepare. These wall times do not isolate the savings
+from configuration reuse or establish a stable speedup.
+The first joint run passed all five CLI cases and reached the existing
+120-second guard during OpenSysML. The full repeat using the same
+compiled program passed five CLI cases in 70.07 seconds and the
+OpenSysML case in 29.85 seconds within that guard.
+
+On the 77-path candidate the linked CLI produced a review with Evidence,
+OpenSysML and the outstanding pull request check. It rejected the draft
+that omitted the Open row. Preview and prepare emitted identical
+description bytes, and the JJ operation stayed unchanged. One run took
+4.815 seconds for context, 3.540 seconds for preview and 3.886 seconds for
+prepare. Alternating the old and new binaries on the same candidate
+did not establish a consistent wall-time improvement. Their policy
+context differs because it identifies the linked build. Live provider
+unavailability also prevented a complete paired prepare run.
+
+An instrumented build measured the byte-budget count at 61–70 microseconds,
+rooted request construction at 553–588 microseconds, and response copy
+plus Rust decode at 19–23 microseconds. The Scheme call, including policy
+and result encoding, took 999–1,227 ms in the observed context and
+preview. GitHub was unavailable for those samples. The preview retained
+the provider obligation and rejected narration bound to the earlier PR
+observation. These measurements establish the cost of the typed input
+path and leave Scheme policy and result encoding to be measured separately.
+
+The initial joint verification passed five CLI cases in 113.82 seconds,
+then reached the 120-second guard during OpenSysML. The full repeat reached
+the same guard during the local-remote commit case. Both attempts are
+retained as incomplete joint verification. The isolated OpenSysML case
+passed in 86.34 seconds using the same linked program and 120-second guard.
+
+The commit semantics, provider association, model assessment and evidence
+queries now use ASCENT's one-shot evaluation for their captured inputs.
+The retained session path previously created source and recovery state
+that these callers never updated. The rules, completion checks and Scheme
+authority boundary remain the same.
+
+Two alternating context pairs on the same 77-path candidate returned equal
+changes, provider and model observations, and review projections apart from
+their build-bound policy contexts. GitHub was unavailable in all four
+samples and the blocking PR obligation remained Open. Scheme review and
+response encoding took 952 and 1,021 ms before, and 951 and 951 ms after.
+This removes unused session work. The measured difference does not explain
+the remaining review latency. A separate Scheme probe of the recorded
+100,915-byte RFC measured 126–142 ms for its complete ORG Element graph,
+including parsing. The linked review needs further attribution.
+
+The updated linked program passed the five CLI cases in 82.09 seconds.
+The joint run reached its 120-second guard during OpenSysML. The same
+OpenSysML case passed separately in 36.12 seconds. The first direct Scheme
+run reported all five modules passing and reached its 60-second guard.
+A complete repeat passed and exited normally within the same guard.
+
+A paired context run compared reusing the selected Scheme policy with
+selecting it again. Both pairs used the same 77-path candidate and
+returned equal projections apart from the build-bound review context.
+GitHub was unavailable throughout and the PR obligation stayed Open.
+Scheme review and response encoding took 2.398 and 3.173 seconds before,
+and 2.256 and 2.292 seconds after. Configuration took 198–204 ms in the
+new build. The prior build did not time that phase in this comparison,
+and these review samples were slower than the earlier samples on this
+candidate. They do not establish an end-to-end speedup.
+
+The first linked test run exposed a POO cyclic slot in the new review
+configuration. Slot expressions now capture differently named locals.
+The fixed candidate passed the five linked CLI cases in 113.73 seconds.
+The joint run reached the unchanged 120-second guard during OpenSysML.
+The same candidate passed that test separately in 84.70 seconds.
+
+The Rust commands now verify JJ rewrite identity before starting the
+Scheme VM for evidence readback and push. Evidence readback also rejects
+an inconsistent archive cut or description at that boundary. Requests
+that pass these checks still use the recorded Scheme configuration and
+policy. Push still revalidates the cut and destination through JJ before
+transport. The existing linked CLI and OpenSysML suite completed under
+its joint 120-second guard. Five CLI cases took 69.54 seconds and the
+OpenSysML case took 27.82 seconds. The compiled declaration case passed separately in 10.59 seconds using
+its trusted Scheme declaration and the existing macOS process restrictions.
+
+** Marlin Release and linked commit preview
+
+On the same Darwin host, a copied Marlin Release binary reached its first
+interactive PTY frame in 3,183 ms on first execution and in 232 and 488 ms
+on two repeats. Its in-process first-frame markers were 458, 218 and
+470 ms. Its cumulative Scheme VM-ready markers were 169, 82 and 215 ms.
+The PTY used a local fixture, with Gerbil runtime paths pointing to an
+absent directory. The first run included substantial time before the
+application's own markers.
+
+The rebuilt AITIA dev-profile AOT binary ran the recorded 31-path
+preview with a local OpenSysML service in 7,010, 3,480 and 4,180 ms.
+The accompanying revision evidence queries took 3,240, 3,480 and
+3,790 ms. All three previews returned byte-identical responses, and
+all three revision reads returned three verified observations and no
+missing reports. The preview description, Evidence, Open and model
+result also matched the preceding AOT build.
+
+The AITIA Release binary built from the same staged Scheme inputs ran
+preview in 3,270, 1,660 and 1,880 ms. Revision evidence queries took
+950, 1,410 and 1,330 ms. Release and dev previews matched apart from
+the review context bound to the linked archive. Revision query responses
+matched byte for byte. Both local builds used the classic macOS linker.
+Each command exited normally under the existing 120-second guard.
+
+A separate fresh copy of the same AITIA binary returned commit help
+in 2,132 ms on its first execution and in 24 and 35 ms on repeats.
+Help exits before entering Scheme. The same copy resolved the recorded
+project manifest in 5,791, 4,263 and 4,451 ms. That operation enters
+Scheme and validates project configuration, without running commit
+review. These observations include other build activity on the host.
+The Marlin comparison covers different commands. These sequential
+samples leave stable tail latency and attribution of the first-run
+penalty open.
+
+The inspected AITIA stage manifest contains 379 eager non-system rows and
+252 deferred rows. The inspected Marlin stage manifest contains 121
+eager non-system rows and 673 deferred rows. AITIA's eager closure still
+includes ASCENT, Parser and Orgize Fold. Marlin passes runtime imports
+from its Yuanxu Make projection to the bridge stager. AITIA's linked
+entry imports the shared operations module, which imports the application
+publication and the journal runtime. Its Context provider already uses
+a template import and initializes through Yuanxu on demand. These counts
+describe the staged graphs. Attribution requires measuring initialization
+of the linked modules and their first use. Preview qualification must
+include the first complete review, the same JJ cut, ORG Contract,
+applicable model checks, and parity of the rendered description,
+Evidence and Open.
+
+On a later sequential rerun of the existing AITIA Release executable,
+help took 80, 10 and 20 ms. Project manifest took 1,150, 1,020 and
+990 ms. Preview on the same 31-path recorded cut took 1,440, 1,410
+and 2,590 ms. All three previews matched byte for byte, and the
+local OpenSysML server reported 25, 0 and 0 ms for parsing. This
+fixture used a local push target. Live GitHub observation requires
+its own timing.
+
+A previously linked Marlin Release executable reached its first
+interactive frame in 413, 127 and 156 ms in fresh PTY processes
+with Gerbil package paths unavailable. Its Scheme VM markers were
+298, 50 and 87 ms from Marlin's Rust startup marker. Each process
+handled Ctrl-Q and exited normally. The current checkout's Release
+binary did not qualify for that comparison: it attempted a dynamic
+Gerbil module load and exited with code 1 when the package paths
+were unavailable.
+
+The AITIA manifest command already spends about a second before
+any preview evaluation. AITIA should apply Marlin's linked
+dependency selection at its own Module publication boundary.
+Keep project configuration in the initial dependency closure.
+Demand the linked GitOps review roles for preview and the durable
+journal roles for admission or recovery within the same VM. The
+GitOps publication currently imports review and commit admission
+together, so deferring an import at the Rust transport entry alone
+still leaves the journal eager. Qualify the first complete preview
+on the recorded cut, including the first demand of each role.
+
+** Other runtime paths
+
+Measure cold process startup through the first Graph separately from steady
+state calls on a live owner. In steady state, distinguish Yuanxu Scope
+resolution and Graph construction from response projection, root transfer,
+and output encoding. Keep execution and cleanup measurements separate when
+the DE engineering drivers are attached. For Python, measure the PyO3
+boundary against the same Rust operation and workload.
+
+The linked tests currently establish behavior in the workspace pool.
+Throughput, allocation and tail latency require release-build measurements
+with a fixed Graph workload and a qualified installed consumer.
+
+* Required framework consumer cases
+
+| Framework use | Engineering selection | Evidence subject |
+|---------------+-----------------------+------------------|
+| Rust service development | applicable DE Rust concurrency/ownership plus independent design/release constraints | user's source and toolchain, not AITIA's own executor |
+| Python framework development | applicable or newly contributed Python task/cleanup/compatibility definitions | user's Python environment and source, not AITIA's former Python bindings |
+| AITIA self-engineering | applicable DE definitions bound to its Rust executor | AITIA implementation and bridge/runtime cohort |
+
+Language selection is extensible, not a hard-coded two-language enum. Methods
+and exploration branches are project-selected values, not a fixed next-action
+pipeline. Tool observations, support admission, Human decisions and effect grants
+must retain their independent issuers and currentness checks.
+
+* Current qualification state
+
+Workspace source and the first owner-scoped bridge call boundary are present.
+AITIA AOT program projection, Module consumer parity, real process lifecycle
+and recovery remain unqualified. A declaration-only five-test experiment is
+withdrawn, not retained as evidence of the framework. Development proofs live in
+=../dev/proof/= and consume the semantic Module owners.
+
+* Commit check observations
+
+=aitia jj commit=, =aitia jj commit preview= and =aitia jj commit prepare= return an
+=executions= array for the selected, successfully observed JJ checks. Each row
+contains the method, NASA requirement, execution identity, input/report bindings
+and original structured =report=. The recorded-change report contains the exact
+returned Changes; the configuration-audit report contains the independently
+checked Git commit, tree and parent identities. Empty Changes produce no check
+executions. Unknown methods do not become successful observations.
+
+The reports are collected once through JJ Rust. Only the compact receipt facts
+are sent to Scheme; full reports remain on the Rust return path. Agent draft
+input cannot supply =executions=. These observations support only the named JJ
+checks; they are not model checks or a complete code-quality assessment.
+
+This response makes original observations available to an Artifact consumer.
+It does not persist an evidence catalog or implement revision-GQL traversal.
+The Governance journal retains authorization and recovery state, not these raw
+reports. A consumer must preserve the returned report and its source cut before
+claiming that a historical query can retrieve the original execution.
+
+* Review preservation at the effect boundary
+
+=aitia jj commit preview= previews the complete structured proposal and returns its
+current context. =previewDescription= is readable even with an unresolved
+required check; only an admitted =description= can be prepared. Scheme matches
+the narration rows to the current Evidence and Open relations and owns the
+rendered Git text. Prepare/apply require that context; push does not refresh it.
+The JJ adapter observes the verified original cut of the applied description-only
+rewrite, and current Scheme rules recheck the original review. Changing a
+rationale or supplying a retired context must leave the remote unchanged.
+Signed admission binds the rewrite and review context together. Existing journal
+addresses preserve revocation, single-use consumption and historical recovery.
+
+With SysML enabled, the external SDK runs on a scoped Rust host worker and joins
+before returning. No VM reference crosses that boundary. The same single Scheme
+owner handles policy, and transport/model failures remain failures. This avoids
+running SDK HTTP I/O on that owner without adding retries or another VM.

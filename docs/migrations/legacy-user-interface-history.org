@@ -9,16 +9,16 @@ The direct children have fixed responsibilities:
 
 | Path | Responsibility |
 |------+----------------|
-| =init.ss= | Module enablement only; one =poo-flow!= declaration selects Modules and flags. |
+| =init.ss= | Module enablement only; one =agentic-ai-lab!= declaration selects Modules and flags. |
 | =config.ss= | Final User Composition declarations using direct =use-composition= forms. |
 | =modules/= | User-owned modules that are private or not ready for contribution. |
 | =profiles/= | Reusable, inheritable POO Profile objects. |
 | =scenarios/= | Reusable scenario cases and review exercises referenced by compositions. |
 
-No other top-level Scheme file is accepted by the POO Flow contributor builder.
+No other top-level Scheme file is accepted by the Agentic AI Lab contributor builder.
 This keeps a repository readable from its directory shape and prevents a
 scenario from silently becoming a second module registry or Profile library.
-There is no =package.ss=: POO Flow owns construction and module loading.
+There is no =package.ss=: Agentic AI Lab owns construction and module loading.
 =modules/<module-name>/= is the only admitted local-module shape. Each module
 contains =types.ss=, =objects.ss=, =funs.ss=, =config.ss= and =interface.ss=;
 the directory itself contains no loader or registry. Local module directories
@@ -26,7 +26,7 @@ are ignored by Git so unfinished work is not pushed accidentally. A ready
 module moves to the repository's top-level =modules/= tree and passes the
 contribution gate.
 
-=init.ss= enables Funflow and SDLC only. POO Flow's internal User Interface
+=init.ss= enables Funflow and SDLC only. Agentic AI Lab's internal User Interface
 loader discovers every Scheme module under =profiles/= and =scenarios/= once,
 imports those bindings into =config.ss=, and then expands its direct
 =use-composition= declarations. The user writes no discovery list, aggregate
@@ -59,11 +59,11 @@ reserved for the Git Change, Check and Decision boundary contracts.
 
 =scenarios/sdlc-cases.ss= demonstrates NASA plus a local standard, native POO
 derivation, explicit facts, and pure review preparation. The files import the
-installed POO Flow interface and this contribution only; they do not import the
+installed Agentic AI Lab interface and this contribution only; they do not import the
 parent repository's downstream configuration.
 
 Run =just build-scheme= followed by =just test-scheme=. Both commands delegate
-to the POO Flow root environment.  The contribution's =gerbil.pkg= declares
+to the Agentic AI Lab root environment.  The contribution's =gerbil.pkg= declares
 native package identity only; it owns no build script or PackageSpec.
 
 * Team release policy
@@ -99,7 +99,7 @@ provider integration declarations without claiming those external effects.
 scenario suite passed 39 checks across twelve scenarios and malformed inputs;
 the existing SDLC and init configuration suites passed 17 and 7 checks.
 These 63 checks exercise explicit source facts, not live authority or runtime
-integration. Tests used isolated child output and POO Flow library dependencies.
+integration. Tests used isolated child output and Agentic AI Lab library dependencies.
 
 * NASA release review case
 =scenarios/nasa-release.ss= assembles all 130 applicability records and class-specific

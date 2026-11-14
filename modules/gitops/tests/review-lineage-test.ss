@@ -1,0 +1,75 @@
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+(import :std/test :std/error
+        (only-in :tao3k/yuanxu/graph/types yuanxu-graph-edges yuanxu-graph-nodes
+                 yuanxu-graph-edge-kind yuanxu-graph-edge-from)
+        (only-in "../review-lineage.ss" gitops-review-lineage))
+(export review-lineage-test)
+
+(def review-lineage-test
+  (test-suite "Review lineage over a recorded GitOps revision"
+    (test-case "only documents named by the verified report have parse edges"
+      (let* ((changes (list (hash ("path" "selected.sysml") ("before" #f)
+                                  ("after" (hash ("kind" "file"))))
+                            (hash ("path" "removed.sysml") ("before" "old") ("after" #f))))
+             (graph (gitops-review-lineage
+                     "revision" changes '() '("sysml.parse") '() '("selected.sysml"))))
+        (check-equal?
+         (filter-map (lambda (edge)
+                       (and (eq? 'parsed_by (yuanxu-graph-edge-kind edge))
+                            (yuanxu-graph-edge-from edge)))
+                     (yuanxu-graph-edges graph))
+         (list (string->symbol "revision#path:selected.sysml")))))
+    (test-case "inconsistent observations cannot project verified lineage"
+      (let* ((project gitops-review-lineage)
+             (file-entry (hash ("kind" "file")))
+             (changes (list (hash ("path" "current.sysml") ("before" #f) ("after" file-entry))
+                            (hash ("path" "deleted.sysml") ("before" file-entry) ("after" #f))
+                            (hash ("path" "link.sysml") ("before" #f)
+                                  ("after" (hash ("kind" "symlink"))))
+                            (hash ("path" "code.ss") ("before" #f) ("after" file-entry))))
+             (input (hash ("path" "config.json") ("entry" file-entry)))
+             (verified '("sysml.parse"))
+             (parsed '("current.sysml"))
+             (missing (project "revision" changes '() '() verified '())))
+        (check-equal? (filter-map (lambda (edge)
+                                   (and (eq? 'parsed_by (yuanxu-graph-edge-kind edge)) edge))
+                                 (yuanxu-graph-edges missing))
+                      '())
+        (for-each
+         (lambda (paths)
+           (check-exception (project "revision" changes '() verified '() paths) Error?))
+         '(("other.sysml") ("deleted.sysml") ("link.sysml") ("code.ss")
+           ("current.sysml" "current.sysml") ()))
+        (check-exception (project "revision" changes '() '() verified parsed) Error?)
+        (check-exception (project "revision" changes '() verified verified parsed) Error?)
+        (check-exception (project "revision" changes '() '("jj.recorded-change" "jj.recorded-change")
+                                  '() '()) Error?)
+        (check-exception (project "revision" changes '() '()
+                                  '("jj.recorded-change" "jj.recorded-change") '()) Error?)
+        (check-exception (project "revision" (cons (car changes) changes) '() '() '() '()) Error?)
+        (check-exception (project "revision" changes (list input input) '() '() '()) Error?)))
+    (test-case "policy source and change observations agree on the revision's file"
+      (let* ((path "design.org")
+             (file (hash ("kind" "file") ("id" "recorded") ("executable" #f)))
+             (old (hash ("kind" "file") ("id" "previous") ("executable" #f)))
+             (executable (hash ("kind" "file") ("id" "recorded") ("executable" #t)))
+             (link (hash ("kind" "symlink") ("id" "recorded")))
+             (source (lambda (entry) (list (hash ("path" path) ("entry" entry)))))
+             (changes (lambda (after) (list (hash ("path" path) ("before" old) ("after" after)))))
+             (project (lambda (changed inputs sources)
+                        (gitops-review-lineage "revision" changed inputs '() '() '() sources)))
+             (graph (project (changes file) (source file) (source file))))
+        (check-equal? (length (yuanxu-graph-nodes graph)) 2)
+        (check-equal? (map yuanxu-graph-edge-kind (yuanxu-graph-edges graph))
+                      '(changes reads_config has_policy_source))
+        (check-exception (project (changes file) '() (source old)) Error?)
+        (check-exception (project (changes file) '() (source executable)) Error?)
+        (check-exception (project (changes #f) '() (source file)) Error?)
+        (check-exception (project '() (source old) (source file)) Error?)
+        (check-exception (project (changes file) (source old) '()) Error?)
+        (check-exception (project (changes #f) (source file) '()) Error?)
+        (check-exception (project '() (source (hash ("kind" "file") ("id" "recorded"))) '()) Error?)
+        (check-exception (project '() '() (source link)) Error?)
+        (check-exception (project '() '() (append (source file) (source file))) Error?)))))

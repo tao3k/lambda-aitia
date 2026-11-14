@@ -8,23 +8,36 @@
 :ID:         lambda-aitia-rfc-0001
 :STATUS:     draft
 :DATE:       2026-09-17
+:UPDATED:    2026-11-07
 :END:
 
 * Decision summary
 
-Lambda Aitia owns a domain-neutral, POO-native model of why an engineering
-claim is justified, what defeats or invalidates that justification, which
-verification obligations follow, and which decisions/effects must remain
-blocked.  It does not own domain knowledge, a second graph engine, verifier
-implementations, runtime execution or effect authority.
+[[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] refines the current ownership and runtime direction: Yuanxu shared
+mechanisms, Lab product mechanisms, Aitia SDLC assurance, DE engineering Library
+and Rust execution. [[file:../adrs/0009-rust-engineering-runtime-and-DE-library.org][ADR 0009]] accepts that direction while cross-runtime
+admission, authorization and recovery remain proposed and unqualified.
+
+Lambda Aitia organizes its software-engineering capabilities around the
+complete SDLC, including requirements, design, algorithms and implementation
+strategies, verification/testing, delivery, operation, maintenance and
+retirement. Its POO-native assurance kernel models why an engineering claim is
+justified, what defeats or invalidates that justification, which obligations
+follow, and which decisions/effects must remain blocked. Software semantics
+belong to Aitia's modules; generic graph, temporal/causal and runtime mechanisms
+remain Agentic AI Lab-owned, and existing verifiers retain their checking semantics.
 
 The core abstraction is an executable causal assurance case, not a collection
 of verification result flags:
 
-#+begin_example
-claims + assumptions + typed relations + obligations + evidence
-+ invalidation + decisions + effect guards
-#+end_example
+claims, assumptions, typed relations, obligations and evidence, together with
+invalidation, decisions and effect guards.
+
+[[file:0004-sdlc-design-and-causal-trajectories.org][RFC 0004]] refines this architecture with design alternatives, conditional
+guarantees, behavior and design-evolution trajectories, reusable Recipes and
+the deferred MRR direction. Software design is an early leverage point within
+the full lifecycle. The eight-stage assurance/execution flow is a protocol
+used throughout that lifecycle, not a complete SDLC phase list.
 
 * Problem
 
@@ -49,32 +62,33 @@ through named, checked functions that emit receipts.
 |-------+------+--------------|
 | Lambda Episteme | vertical knowledge, Profiles, Cases and non-SDLC domain sources | Software/SDLC causal assurance or runtime authority |
 | Lambda Aitia | Software/SDLC, ADR and standards modules; claims, assumptions, relation semantics, obligations, evidence admission, invalidation and planning | non-software vertical truth, graph runtime, verifier semantics or effect execution |
-| POO Flow | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
-| POO Flow Python runtime | generic runtime and lifecycle transport | Aitia bindings, Aitia Scheme semantics or a second SDLC implementation |
-| Aitia Python SDLC Runtime | production SDLC API, Aitia-owned CFFI transport, ABI negotiation and typed receipt projection | reimplementing Scheme decisions or POO Flow's generic Runtime mechanisms |
+| Agentic AI Lab | POO composition, functional flow, graph substrate, adapter/runtime handoff | concrete contribution semantics or silent assurance promotion |
+| Aitia Rust Runtime | tool execution, jj workspace operations, transport and custody of execution observations | Scheme assurance decisions or Agentic AI Lab's generic Runtime mechanisms |
+| Aitia Python bindings | access to the Rust-owned Session through PyO3 | assurance semantics, execution policy or independent receipt custody |
 | Lean | general proof terms and assurance laws | current runtime state or action authority |
-| TLA+/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
-| Cedar | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
+| Quint/TLC | bounded temporal lifecycle behavior and counterexamples | theorem proving or production execution |
+| Cedar (optional Lab provider) | authorization evaluation over admitted input | evidence freshness, proof construction or effect completion |
 | Runtime Host | final typed boundary for authorized execution | manufacturing missing evidence or guessing transport/runtime state |
 | Application | explicit selection, composition and policy | redefining source-owned semantics |
 
-Dependency rule: POO Flow core must remain usable without Lambda Aitia.
-Lambda Aitia consumes POO Flow as its public mechanism library and may use the
+Dependency rule: Agentic AI Lab core must remain usable without Lambda Aitia.
+Lambda Aitia consumes Agentic AI Lab as its public mechanism library and may use the
 complete reviewed public surface needed by Software/SDLC.  The constraint is
 one-way semantic ownership and public API stability, not a minimal dependency.
 Integration belongs to an application or an isolated contribution adapter;
-POO Flow core never imports Lambda Aitia, and the parent Git submodule causes no
+Agentic AI Lab core never imports Lambda Aitia, and the parent Git submodule causes no
 implicit activation.
 
-Lambda Aitia owns its Python project under =bindings/python=.  Its Scheme
-semantic surface is compiled AOT and exposed through a dedicated C ABI using
-the owned result/release convention established by POO Flow's Scheme-native
-ABI.  Public Scheme and Python namespaces remain unversioned; ABI revision is
-explicit descriptor metadata rather than part of those names.  The production
-Python package validates and materializes lifecycle requests and receipts;
-Scheme remains the decision owner.  POO Flow's =packages/python-runtime=
-remains the separate generic execution/lifecycle mechanism consumed by the
-Aitia SDLC runtime rather than becoming a second SDLC semantic API.
+Scheme/POO owns the assurance semantics. The Rust workspace stages the
+compiled Scheme program through the Gerbil/Rust bridge and exposes an
+owner-scoped Session. [[file:../../rust/crates/aitia-python/Cargo.toml][The Python binding crate]] packages that Session
+through PyO3 and Maturin. [[file:0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] defines the authority and recovery
+boundary and records the open integration obligations.
+
+The [[file:nasa-ai-assurance-objectives.org][NASA AI assurance design]] applies the existing assurance objects
+to source-status separation, project AI roles and revision-bound
+evidence. It records two engineering acceptance cases and leaves
+runtime adoption open.
 
 * Semantic objects
 
@@ -106,7 +120,23 @@ commitment state and declared causal parents.
 
 A question that must be discharged for a claim or decision at an exact
 snapshot.  The obligation states the required evidence kind and capability;
-it does not select or invoke a tool by itself.
+it does not select or invoke a tool by itself.  A candidate obligation is
+explicitly bound to the snapshot identity, revision and canonical context
+digest before selection.  That context digest excludes only the obligations'
+own binding fields to avoid a self-referential hash; the final snapshot digest
+includes the complete bound obligations.  Rebinding an old obligation is not
+replacement-obligation derivation and is rejected.
+The first derivation step emits an inert replacement-requirements receipt
+from an old snapshot, a target snapshot and a change set.  It names affected
+old obligations and their structural witnesses, and blocks automatic carryover
+when the source binding, target frontier, claim or policy is not current.
+It does not assign a new obligation identity or claim a replacement exists.
+An explicit second step may bind a caller-authored fresh obligation already
+declared in a target draft with the revised claim and =supports= edge.  It
+replays the derivation, rejects non-canonical or unresolved snapshots, and
+returns a final snapshot plus an inert declaration receipt.  A changed claim
+blocks automatic carryover but not this explicit declaration; a policy change
+still blocks it.  Neither step admits evidence or authorizes an effect.
 
 ** Evidence
 
@@ -147,6 +177,13 @@ that an assurance obligation is discharged, or that an effect is authorized.
 =unknown=, and deprecated/superseded records to =stale=.  Only a separately
 admitted assurance closure and authority receipt can cross the effect boundary.
 
+Requirements, assumptions, alternatives and conditional guarantees form the
+design context for these choices. A finding can reopen that context before
+implementation changes. Algorithm optimization is evaluated against the chosen
+contract; changing its assumptions or guarantees reopens the design decision.
+The existing design-contract review checks declarations, not arbitrary logical
+implication. RFC 0004 specifies the corresponding qualification work.
+
 * Relation planes
 
 ** Provenance plane
@@ -157,7 +194,9 @@ itself manufacture a derivation or causal claim.
 
 ** Structural dependency plane
 
-Representative relations: =depends-on=, =implements=, =tests= and =refines=.
+Representative relations: =depends-on=, =composes=, =implements=, =tests= and
+=refines=.  =composes= points from a composite claim to a component claim;
+its reverse impact projection uses the shared Agentic AI Lab Graph.
 This plane supports reverse impact and obligation selection.  Its output is
 explicitly structural and has no release or runtime authority.
 
@@ -167,6 +206,13 @@ Representative relations: =precedes=, =causal-parent=, =enables= and
 =prevents=.  Modalities are observed, declared, derived, hypothesized and
 counterfactual.  Missing parents and temporal contradictions create an unknown
 frontier.  Earlier-than never automatically promotes to caused-by.
+
+Agentic AI Lab's Temporal Causality owns generic event graphs, causal cuts, trajectory
+assessment and witness paths. Aitia connects scoped system behavior to the
+evolution of design decisions and their assurance using checked projections.
+Late observations create new assessment cuts; observed failures, model traces
+and counterfactual branches retain their modality and environment. Full Aitia
+trajectory integration is a pending RFC 0004 gate, beyond structural impact.
 
 ** Assurance plane
 
@@ -211,15 +257,15 @@ An assurance snapshot binds:
 
 Change processing is pure:
 
-#+begin_example
-admit change
-  -> compute structural witnesses
-  -> select affected claims and assumptions
-  -> invalidate dependent support
-  -> derive obligations
-  -> invalidate decisions
-  -> emit effect guards
-#+end_example
+#+begin_export mermaid
+flowchart TD
+    C["Change<br/>admitted"] --> W["Structural witnesses<br/>computed"]
+    W --> A["Claims and assumptions<br/>affected set selected"]
+    A --> S["Dependent support<br/>invalidated"]
+    S --> O["New obligations<br/>pending"]
+    S --> D["Dependent decisions<br/>invalidated"]
+    D --> E["Effect guards<br/>blocked"]
+#+end_export
 
 An invalidation receipt reports affected and unresolved identities.  Its slots
 for temporal assessment, assurance closure, release authorization and runtime
@@ -228,21 +274,609 @@ receipt.  Presentation values cannot mutate the admitted snapshot.
 
 * Functional verification planning
 
-The planner consumes values and returns a value:
-
-#+begin_example
-Plan : Change -> Snapshot -> Policy -> PlanningResult
-#+end_example
+The planner consumes =Change=, =Snapshot= and =Policy= values and returns a
+=PlanningResult= value.
 
 PlanningResult contains ordered obligations, capability requirements,
 dependency constraints, rejected alternatives and blockers.  Tool invocation
 is outside this function.  An adapter later consumes one obligation and returns
 a typed execution outcome; evidence admission is another separate function.
+The first reported-outcome contract records exact input identity, revision and
+digest bindings and emits an inert structural eligibility receipt. A reported
+success, even when structurally eligible, is not a trusted execution
+attestation. Host-owned adapter identity and effectful admission are required
+before an =AssuranceEvidence= may become authoritative. Its caller-supplied
+=admission-state= is metadata, not proof of that transition. Changing that
+slot after verification would alter the snapshot context and invalidate the
+outcome's original binding. A configured Host therefore issues a separate
+admission object over candidate evidence without editing the snapshot. Its
+private issuance record binds the verifier seal, obligation, evidence, outcome,
+full semantic snapshot, validity interval and source-invalidation epoch.
+Currentness is checked against the Host's configured snapshot source and clock;
+the Host reconstructs the source snapshot to reject stale displayed digests,
+and source changes invalidate earlier seals, including if the old cut reappears.
+This is a Host-local admission candidate, not a decision or effect grant.
+=assurance-host-admitted-support?= consumes that exact current admission with
+one current =supports=/=discharges= assurance relation to its bound obligation.
+It requires the relation to be present in the same Host snapshot and rejects
+copied admissions, speculative modalities, expiration and source invalidation.
+This is one edge witness; it does not close all claim requirements or produce
+an =allow= Decision. Full closure, Cedar policy and Runtime effect gating remain
+separate steps.
+=assurance-host-required-support= now evaluates the claim-declared obligation
+inventory against the Host's current cut. Its typed POO receipt reports one
+blocker per required obligation, rejects missing obligation-to-claim and
+evidence-to-obligation links, and leaves empty/duplicate requirements,
+assumptions, defeaters, unresolved frontiers and challenges visibly blocked.
+Even =complete?= means only that the declared support inventory is witnessed;
+=release-authorized?= remains false. Validity intervals, policy evaluation and
+the actual Decision authority boundary are still separate work.
+The Host may now issue a weak-key-indexed Decision preflight for an exact
+*undecided* Decision node already present in that cut. It checks the
+=depends-on= edge to the supported claim, policy/snapshot/subject bindings and
+current required support; currentness rechecks the Host source epoch and the
+admissions. Copies, revocation, source changes and rollback cannot reuse it.
+This preflight carries =release-authorized? #f= and is not a Cedar result,
+an =allow= Decision or an effect token. The Agentic AI Lab Cedar Provider constructs
+inert inputs; the independent Runtime Host still owns policy evaluation and
+effect admission.
+=assurance-host-cedar-request= now rechecks that exact preflight and projects
+its Decision authority, claim subject, policy identity/revision and full
+semantic snapshot digest into Agentic AI Lab's Cedar request family.
+The application supplies the action, intent and Agentic AI Lab runtime handoff.
+The resulting request and its context are editable input, not a second Host
+seal; copying or changing them cannot establish Aitia admission. The Runtime
+Host rejects the projected =agentic_ai_lab_preflight_only= marker before policy
+evaluation, regardless of its value. This fail-closed check blocks accidental
+promotion of the official preflight path; it does not attest an edited request
+with the marker removed. A future Runtime-owned admission must independently
+bind the source cut at use, evaluate Cedar through both engines and gate the
+effect. The optional Cedar preflight adapter keeps a weak identity ledger for
+its projected requests. =assurance-host-cedar-request-current?= rechecks the exact issued
+request and the current source cut, rejecting copied or edited presentations,
+revocation, source change and rollback. The configured Scheme Effect Host calls
+this source predicate before and after its policy callback. Its configured
+policy reader checks the requested policy identity and revision against
+the policy and entity digests of the permit. It checks the same binding at
+reservation and delivery. A detected policy change retires the grant, including
+after the old policy returns. The grant binds the handoff sequence, payload
+byte count and payload digest as well as the separate intent digest.
+The Scheme lifecycle suite refused revision, policy-digest and entity-digest
+substitutions and rejected delivery after a policy replacement. Restoring
+the old policy left the old grant retired. A newly issued grant delivered
+under the restored policy. The two linked Rust Cases also passed.
+The first lifecycle replay reached the 12-second silence watchdog while
+starting its second worker. Packing faults and witnesses with the existing
+160-step batch rule passed the serial replay with the same 512 MiB heap,
+deadlines and all 16 actions, nine witness traces and seven fault traces.
+These rules apply to the configured local adapter. The production Cedar Runtime
+has no Aitia source-admission adapter, and the Scheme projection itself performs
+no Cedar evaluation.
+The Agentic AI Lab Cedar capability may require Runtime-owned source admission for
+an action independently of caller context. Aitia's eventual release action
+must use that administrative requirement, and the unmarked request path must
+remain closed until an admitted =allow= Decision and exact current source are
+checked at issue and effect consumption. The present preflight is undecided
+and cannot satisfy that requirement.
+The pinned Lab AOT Runtime Host built and passed all 11 authorization
+qualification tests against the locked Cedar dependency. The suite
+exercised Rust and Lean permit and deny witnesses, signed grants, exact
+handoff consumption, replay refusal and revocation. It includes
+=preflight_only_request_requires_runtime_source_admission= and
+=source_bound_capability_rejects_stripped_preflight_context=, which cover
+the marked projection and attempts to bypass source admission by stripping
+its marker. The local working copies now qualify an Aitia source-bound
+action through the real dual-engine Runtime and an actual file handoff.
+The producer revision and deployment qualification remain open. The
+source lookup and local evidence are recorded in
+[[file:0006-engineering-runtime-and-library-boundaries.org::*Optional source-bound Cedar integration][RFC 0006]].
+=assurance-host-sealed-support?= is the configured Host seal predicate, not a
+promotion transition.
+The lower-level =assurance-support-sealed-under-adapter?= is conditional on a
+caller-supplied adapter and time; it is not an authority or effect gate.
+It checks structural relationships, the current snapshot, exact
+evidence/outcome bindings and a Agentic AI Lab verification seal over the complete
+semantic subject. Agentic AI Lab rejects copied or forged adapter presentations as
+well as copied, modified, expired or revoked receipts. This proves issuance by
+the exact adapter instance, not that a caller-supplied adapter was installed
+by a trusted Host. Adapter selection and the evaluation clock must both be
+controlled at the execution boundary; caller-provided values cannot authorize
+an effect. Cedar and Runtime Host remain separate.
+Verifier choice explanation consumes the inert plan and an explicit catalog of
+POO-native candidate declarations.  Evidence-kind/capability compatibility and
+declared numeric priority determine a deterministic choice; every rejected
+candidate and unassigned planned obligation remains visible.  A chosen
+declaration is not proof that an adapter is installed, executable or trusted.
 
-The first verifier kinds are Lean proof, TLA+/TLC model check, runtime replay,
+Verifier integrations include Lean proof, Quint/TLC model check, runtime replay,
 unit test, integration test, Cedar differential, static analysis and human
 review.  This list is extensible through named POO-native helpers, not raw
 compute hooks.
+Tool-specific producers qualify against the existing evidence-kind vocabulary;
+the maintained lane does not include TLAPS.
+Reuse the necessary upstream checker and trusted execution boundary before
+adding a new implementation, as specified by RFC 0004.
+
+* Support assessment
+
+The [[file:../../dev/sysml/aitia-commit.sysml][SysML v2 AssuranceSupport
+package]] models a judgment over the existing Claim, Obligation, Evidence
+and Relation inventory at a specific semantic snapshot. The linked Cases
+implement the scoped assessment below. Unresolved assumptions, defeaters
+and challenges keep the claim open.
+
+| Judgment | Question | Owner |
+|----------+----------+-------|
+| Admission | Did the recorded method actually consume the bound input and produce this outcome for this obligation? | Assurance Host with independently observed Rust execution and ORG Contract validation |
+| Support | Which fragment of the scoped proposition does admitted evidence establish, under which conditions? | Scheme Assurance over the current graph, with ASCENT deriving support, contradiction and missing relations |
+| Closure | Do current support and explicit dispositions cover every required obligation for the declared scope? | Assurance on the claim's declared inventory |
+| Authorization | May this principal perform this exact effect under current policy? | Governance and its effect boundary |
+
+An assessment carries claim and obligation references, the observed fragment,
+method and strength, subject and scope, assumptions, defeaters, residual
+obligations, shared input or oracle dependencies, and a validity binding.
+Strength is method-specific. A Lean theorem, a bounded Quint check, a
+named integration test and an operational observation have different
+applicability. They can complement one another when their correspondence
+is established. Shared input or oracle dependencies qualify any claim of
+independence.
+
+Assumption dispositions bind an owner, scope, current supporting evidence
+and validity condition. An unresolved defeater keeps the corresponding
+obligation open. Residuals can remain visible outside a narrower supported
+claim. Accepting a residual risk is a scoped Governance decision and leaves
+the associated unproved proposition visible. A changed source, method,
+provider guarantee, projection or environment reopens affected obligations.
+Use the full semantic snapshot when dependency coverage is uncertain.
+
+** Residual disposition
+
+An outstanding engineering obligation may point through =requires-review=
+to a Governance Decision for the same subject and claim. The Decision
+binds the exact snapshot revision and current policy. A separate obligation
+with =human-review= and capability =residual-risk-acceptance= supports that
+Decision. Its owner-recorded outcome must come from the named authority
+and bind the canonical Decision digest. This review obligation sits outside
+the engineering claim's support requirements.
+
+The Host projects a =residualDispositions= row for a current accepted
+review. It reports the open obligation, Decision, authority, policy
+revision, admission and outcome digest. The engineering obligation
+remains in =remaining=. Source changes, stale admissions and review
+withdrawal remove the current disposition. Governance still owns effect
+authorization and the execution boundary checks it independently.
+
+The Host consumes the configured review ledger. Connecting a deployed
+Governance authority as that ledger's issuer remains an integration step.
+
+The Scheme regression accepted the scoped decision from the controlled
+review ledger while retaining the unresolved engineering obligation.
+A copied admission, changed snapshot revision, different reviewer,
+denied decision and substituted decision digest each withheld the
+current disposition.
+The Rust ADR 0008 test retains all five deployment integration obligations
+and the provider-owner review obligation. The unreviewed retry-horizon
+assumption has a =review-missing= blocker and the fixture has an empty
+=residualDispositions= inventory. The deployment assessment uses the
+current commit after rewrite and requires evidence from the deployed
+provider and its accountable review source.
+The Agent HTTP regression passed against the same staged program.
+The lifecycle checker exported the model graph and stopped at the
+12-second silence watchdog before the Scheme action worker entered its
+harness. The retained action batch also stopped under that watchdog.
+A timing probe with the existing inner worker limits reached the harness
+after 21 seconds and finished the retained batch naturally. The Host and
+replay fixture now import the Cedar object and decision modules they use.
+The required-support and decision-preflight suites passed after rebuilding
+those imports. The serial correspondence rerun then passed at the original
+limits, covering all 16 actions, nine witness traces and seven fault traces.
+
+** Assumption review
+
+The Host implements the =human-review= disposition for a named Assumption
+in the current snapshot. The Assumption and claim use the same scope. A
+required obligation must declare =human-review= with capability
+=assumption-review= and link to the Assumption with =supports=. The exact
+Host admission must carry a recorded outcome from the Assumption owner.
+The Host checks both recorded outcome custody and the current input
+binding. The condition assessment identifies the review obligation and
+admission, or gives the reason it remains open. Withdrawal or expiry of
+the review admission reopens the condition. Absolute dates on Assumptions
+remain open until a clock with the appropriate validity semantics is
+available. The assessment carries no effect authority.
+
+The Scheme required-support regression qualified the premise with a
+current owner review in a controlled execution ledger and reopened it
+after withdrawal. A different reviewer, missing ledger, absent support
+relation, different assumption scope and unqualified date each kept the
+premise open even with an ordinary obligation witness. The decision
+preflight and lifecycle boundary suites also passed under their existing
+budgets.
+The re-staged Rust Agent HTTP and ADR 0008 replay Cases passed with the
+updated receipt projection. Those Cases declared no Assumptions and
+reported an empty =assumptionAssessments= inventory. Positive review
+qualification was exercised by the controlled Scheme fixture.
+The first Quint/Scheme replay overlapped a build and hit the 12-second
+silence watchdog while loading the fault worker. After the other jobs
+exited, serial replay passed at the same limits with all 16 actions,
+nine action-witness traces and seven fault traces.
+
+** Design cases
+
+| Case | Support expected | Refusal or residual |
+|------+------------------+---------------------|
+| ADR 0008 lost ACK with stable key | The existing two-worker-process SQLite and loopback HTTP replay supports the observed sequential retry scenario | Universal at-most-one remains open until stable tenant/job/intent identity, concurrent attempts, atomic deduplication and retention covering the retry horizon are qualified |
+| ADR 0008 same key with changed payload or expired retention | A qualified provider refuses the changed intent or establishes a reconciled outcome before another attempt | The current fixture keeps the payload fixed and models no expiry. A prior success supplies neither guarantee nor retry authority |
+| Agent input preserves tool calls, result links and required constraints | Semantic correspondence covers those fields and the consumer uses the verified packet | A valid digest cannot establish that the renderer preserved any required field |
+| Agent input drops a tool call, accepts an orphan result, ignores a failed check or substitutes the packet after checking | Each injection should be detectable at its own boundary | Block consumption on the refused check. Preserve the observation and keep the corresponding obligation open |
+| JJ rewrite or GitHub merge candidate changes the reviewed subject | Reevaluate support against the exact resulting cut and its inputs | A stable change identity or previous PR status alone carries no support to the new subject |
+
+The lost-ACK evidence and fixture limits are recorded in
+[[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008]].
+The input-assurance controls are informed by the
+[[https://arxiv.org/abs/2611.02676v1][input assurance preprint]].
+The method-specific fragments and residuals draw on the
+[[https://arxiv.org/abs/2610.04710v1][trajectory assurance preprint]].
+These motivate project Cases. Their results concern their own evaluation
+pipelines. The [[file:nasa-ai-assurance-objectives.org][NASA source inventory]]
+distinguishes active revision B, draft revision C and project adoption.
+
+** Counterevidence in the replay assessment
+
+The linked ADR 0008 failing Case uses the recorded pytest observation after
+the Org Contract match, ASCENT contradiction and frozen-source digest check.
+Scheme attaches the failed report as cited evidence for a Counterexample
+against that Case's claim at the exact revision. The observed =defeats=
+relation and the challenge assessment expose the subject, revision, Case
+scope, obligation and report digest. The obligation remains open with
+=counterevidence-present=. Governance retains release authority.
+
+For other Graph inputs, challenge records preserve the citation even when
+its binding fails. The current evidence digest requires an observed defeat
+edge, supported challenge and evidence nodes, and matching claim revision,
+subject and evidence scope. That projection records the graph binding.
+The linked replay path establishes provenance for the ADR 0008 report.
+Revision changes leave historical contradictions visible to the GitOps
+query and refuse the old report as current support or counterevidence.
+
+The local linked test compared the emitted counterexample digest to the
+actual failing pytest report and verified the buggy Case selector, revision
+and open obligation. The fixed Case had a supporting witness and an empty
+challenge inventory. The same test rewrote the JJ cut and verified that
+neither prior report supplied a current assessment. The Scheme regression
+kept citations visible for a different subject, a historical revision and a
+stale challenge while withholding the current evidence binding. The Agent
+HTTP integration also passed against the re-staged program.
+The first lifecycle run stopped at the 12-second silence watchdog in the
+action batch. The retained batch passed under the same guard, and a full
+serial rerun matched all 16 actions across nine witness traces and refused
+all seven fault traces. Strict SysML validation passed.
+
+** Agent input delivery boundary
+
+The linked Rust owner serializes the projected provider history once and
+asks the Assurance Module to compare its ordered fragment with the
+owner-supplied source history. The fragment retains tool call identity,
+name and arguments, paired output identity and content, and system and
+developer constraints. Ordinary user and assistant messages and
+reasoning items are outside this judgment. A missing pair, duplicate
+call, unsupported item or changed required fragment refuses delivery.
+
+On acceptance the Rust entry invokes the consumer with the same
+serialized packet it sent to Scheme for checking. It returns no
+reusable permission or checked flag for a different packet. This
+entry requires the caller to supply authentic source history. The
+recorded-source entry reads the history file from the selected JJ tree
+and rechecks the exact workspace cut before invoking the consumer.
+A successful callback produces a delivery observation with the JJ cut,
+repository-relative history path, source digest and exact delivered packet
+digest. A failed callback returns its failure without a delivery observation.
+The owner checks the cut again before using the observation as current
+evidence. A rewrite during the callback preserves its result and the
+historical observation. The currentness check refuses the old cut.
+
+The local linked Rust integration exercised both entries with the compiled
+Scheme program. It delivered byte-identical accepted input and refused
+missing calls, missing or reordered outputs, duplicate calls, omitted or
+weakened constraints, and a substituted output. The recorded-source Case
+used JJ v0.47.1. A dirty checkout edit did not affect the read. After a
+rewrite, the old cut and a projection of the former constraints were both
+refused. The test independently recomputed the source and packet digests
+from the original recorded history and the bytes received by the consumer.
+It exercised a callback failure and a JJ rewrite inside a successful
+callback. Neither supplied current evidence. The successful callback
+still returned the exact bytes it received.
+
+The linked delivery operation records the application-declared project
+with the exact jj cut before invoking the consumer. The linked
+=assess_recorded_agent_input= operation accepts the expected project and
+workspace, the Rust-owned delivery observation and the exact packet. It
+matches the resolved workspace root against the recorded cut, rereads
+history and checks currentness again after assessment. The Assurance Host
+materializes the history and packet and checks their digests and the
+declared fragment before admitting the observation. The report identifies
+the project as claim subject, along with the commit, history path, method,
+witness and remaining requirements. The delivery observation retains the
+exact packet digest. The operation uses a Host scoped to the assessment and
+returns a report without an admission capability.
+
+The linked test obtained one witness with both inputs and no remaining
+fragment obligation. The report granted no release authority. A different
+packet that satisfied the same fragment rule was rejected because its
+digest differed from the delivered packet. A different project in the
+same workspace and the same project in a second real jj workspace were
+both refused. After the jj rewrite, assessment
+returned =Reopened= for the old delivery and for the delivery that raced
+the rewrite. Reassessment did not invoke the consumer again.
+
+The linked =with_verified_recorded_provider_request= entry combines
+owner-selected request settings with the renderer's input. It checks
+correspondence inside the serialized request and gives the transport
+that same body. The assessment reads the input from the delivered
+body and binds its full digest. The check covers the required history
+fragment. Ownership of model settings, endpoint and effect authority
+remains with the calling application.
+
+The local loopback Provider read the exact JSON request body over HTTP.
+The linked test refused a substituted tool result and a template with
+a prepopulated input before the transport was called. Changing the
+owner-selected instructions after delivery refused reassessment.
+A JJ rewrite reopened the HTTP delivery's correspondence obligation.
+The Agent input qualification runs the recorded request, HTTP Provider and
+live Context recovery subprocess together. Select the ignored Case explicitly
+and provide the JJ executable and the staged linked program. The recovery
+subprocess must emit its success marker and exit successfully.
+
+#+begin_src sh
+AITIA_JJ_BIN="$jj" AITIA_PROGRAM_MANIFEST="$program_manifest" \
+  timeout --foreground --signal=TERM --kill-after=5s 120s \
+  cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime \
+  --features linked-program --test agent_input -- --ignored --exact \
+  delivers_only_the_agent_input_packet_that_scheme_checked
+#+end_src
+
+The Scheme Context delivery module accepts the live Lab Query owner
+and a reference to a Query observation in its journal. It resolves the
+selected headline through Orgize and reads its =AGENT_INPUT= property from
+the admitted source cut. The owner supplies the request settings and the
+send operation. A successful delivery returns a read-only assessment
+operation bound to the original owner, Query observation and request body.
+The linked operations resolve preparation and recovery through the
+Assurance Yuanxu Scope. The Scope includes the Context delivery module
+in its selected source build. That module owns the Lab Query and Orgize
+imports used to prepare and recover delivery. Claim construction and
+evidence assessment use the separate input correspondence and Host
+operations.
+
+The Scheme harness used the Lab Query owner with actual Org Elements and
+ASCENT support. It refused an absent or foreign observation, an altered
+projection and a failed send. It obtained Host support at the current
+source, then observed reopening after replacement, withdrawal, reissuing
+the original bytes under a newer generation, and replacement during
+delivery. The assessment operation returns no effect authority.
+
+The linked runtime uses one Lab Query owner for Context publication,
+observation, request preparation and reassessment. The existing Gerbil
+bridge keeps the prepared body and assessor in a strong Scheme root.
+Rust borrows the exact body for the transport and returns a receipt only
+on transport success. The receipt has process-local ownership and carries
+no effect authority.
+
+The linked Rust test published a real Org source, ran the Lab Query, and
+sent the checked body to the loopback HTTP Provider. Its Host assessment
+matched the digest of the body read by the Provider. The test refused
+an unissued observation and a changed projection before sending. A failed
+transport returned no receipt. Replacement and withdrawal during delivery
+reopened the corresponding assessments. Reissuing the original bytes
+at a later generation left the old receipt reopened.
+
+The live Context transport classifies a definite pre-send failure as
+=NotSent= and a lost confirmation as =Indeterminate=. The latter retains
+the attempt identity and checked body digest in an owner-local pending
+value. The application must independently authenticate the Provider
+record. Only a matching attempt and digest can produce a delivery receipt.
+Reconciliation has no send operation and the Host still checks the
+original Context observation.
+
+The linked HTTP fixture read and retained the request, then closed the
+connection without an acknowledgement. The runtime returned an
+indeterminate result. A wrong attempt and a wrong body digest were
+refused. The matching Provider record reconciled without another send,
+and the Host reported support for that exact body. Replacing the source
+reopened both the normal and reconciled receipts. A deployed adapter
+must supply trustworthy Provider records, unique attempt identities and
+its own persistence for pending outcomes.
+
+The first assessment after a successful live Context delivery admits the
+evidence once. The rooted receipt retains that Host and its admission for
+reassessment. The lease uses Lab's monotonic clock and lasts 300 seconds
+from the first assessment. Expiry, replacement or withdrawal retires the
+admission and reopens the obligation. Subsequent assessment cannot issue
+a new admission for the same receipt. The Scheme test advanced a
+controlled clock to the lease boundary and restored the earlier clock and
+source states. It observed one verification per receipt and no restored
+support. The linked HTTP test assessed the same receipt twice.
+
+The application binds its project before accessing the live Context
+catalog through =bind_context_project=. The binding permits the same
+identity again and rejects a different identity for that owner.
+For restart, =context_checkpoint= exports the project and the Lab Query
+catalog encoded with its inert journal codec. The fresh program must
+bind the same project. The application supplies the trusted current
+digest to =restore_context_checkpoint=. Lab
+replays original source cuts and Query observations into the restored
+catalog. The Rust restart test recovered the current selection in a
+separate process and rejected an older checkpoint against the current
+digest, malformed bytes even with their matching digest, and restoration
+over a live catalog. A historical selection stayed unusable. A fresh
+delivery from the restored current selection could acquire a new Host
+admission. Delivery receipts and leases stay process-local. The application
+owns durable checkpoint publication and the selection of the current digest.
+
+Before transport, the application can persist the attempt's
+=recovery_record= with its project, identity, Query observation
+reference and checked body digest. After restoring the Lab catalog, the application
+passes that record, its trusted digest and independently authenticated
+Provider bytes to =recover_context_delivery=. Rust matches the record's
+project to the bound owner and checks the attempt and exact body before
+Scheme rechecks correspondence against the restored live observation. This path has no send operation and creates
+a new assessment receipt without transferring the original Host lease.
+
+The linked HTTP test rejected an unbound owner and a project switch.
+The restart subprocess rejected a checkpoint and a recovery record
+with a substituted project, each with a recomputed digest. It restored
+and reconciled the same-project records under the existing test budget.
+Project identity is supplied by the application owner. Checkpoints and
+attempt records require that identity in their persisted form.
+
+The local HTTP test synced an attempt record before sending, then
+withheld the acknowledgement. A separate process restored the catalog
+and recovered support from the matching Provider record. It refused
+recovery before catalog restoration, changed record or body bindings,
+and a matching Provider record for an obsolete Context observation.
+The application still owns durable publication, Provider authentication,
+and the reconciliation policy for outcomes that the Provider cannot confirm.
+
+Checkpoint export checks both the 4 MiB restore envelope and the Lab
+decoder's lexical, depth and node limits. An Org document containing a
+literal vertical tab was accepted by the live catalog. The earlier export
+returned a checkpoint that the Lab decoder could not read. The linked
+regression verifies that export now refuses that checkpoint. The source
+and its live catalog history are preserved.
+
+A lock-pinned restart repeat exposed byte drift from JSON hash-table
+field ordering. Export now writes the project and journal in a fixed
+order. Restore still validates the digest of the original bytes before
+decoding. The linked restart test restored an envelope with reversed
+fields and its matching digest, then reproduced the canonical bytes.
+
+The first combined Cargo rebuild used one job and exceeded the existing
+120-second guard. The paired bridge caps AOT compiler parallelism by
+Cargo's job budget. A separate cold AOT archive build used the existing
+Cargo build script, the same staged Scheme inputs, an empty output directory
+and automatic worker count. It produced the archive in about 96 seconds
+under the same guard. The linked runtime and HTTP regression passed with
+an existing Cargo build. A complete cold Cargo build plus regression under
+one guard and qualification against a deployed Provider remain open.
+
+** Host witness projection
+
+The existing =host-required-support= receipt exposes the exact proposition,
+subject, claim revision, scope and semantic snapshot digest. Each selected
+witness identifies the current admission, evidence, relation, declared
+method kind and capability, outcome identity and canonical digest, producer,
+tool, adapter version, input artifact identities and expiry. The linked Rust
+receipt carries these fields for the scoped obligation. The replay adapter
+version identifies the receipt producer protocol. It does not identify the
+installed pytest release. Missing, copied, expired and superseded admissions
+cannot supply witnesses. Claim-level blockers remain visible even when
+some obligations have witnesses. The receipt carries no effect authority.
+
+If the requested proposition differs from the current claim or the Host
+observes source movement during assessment, it clears the witnesses and
+marks each requested obligation as remaining, with the cut failure as its
+reason. A scoped witness that was selected before the movement cannot make
+the Rust =remaining= list look closed.
+
+The required-support suite exercised both a changed proposition and a
+source change triggered by the execution reader after witness lookup.
+Both cleared the witnesses and reopened the requirement row. The linked
+Agent HTTP and recorded ADR 0008 tests passed with the updated program.
+They checked the selected obligation and witness method, capability and
+scope. The Agent test checked the outcome digest format and the ADR test
+matched the witness outcome identity to the actual pytest report digest.
+Strict SysML validation and the nine-action-witness and seven-fault
+Scheme replay suites passed with the existing budgets.
+
+This projection exposes what the current Host checked. General
+method-to-fragment correspondence and additional review policies remain
+separate implementation obligations.
+
+Before the policy and payload binding change, the focused Gerbil harness
+reported =MODULE-OK= for the required-support, kernel, evidence admission,
+decision preflight and lifecycle boundary suites. The required-support
+controls included copied and expired admissions, an outstanding assumption
+and a changed proposition.
+
+Before separating the Context delivery imports, the ASP boundary suite and
+the lifecycle replay exhausted the 512 MiB worker heap during Module loading.
+After the separation, =just test-scheme-atomic assurance= completed the
+lifecycle boundary, Context delivery, required support and Decision preflight
+files individually, with the pinned Lab testing extension and unchanged
+worker heap and deadline. The lifecycle suite rejected a permit for a
+different policy and verified the token's handoff sequence, byte length and
+digest through reservation and delivery.
+
+The lifecycle checker exported 19,042 Quint/TLC states and 16 actions.
+The Scheme action-witness replay matched 26 projected states across nine
+traces and refused all seven fault traces. The replay receipt includes
+=init.ss=, the Assurance configuration and its local implementation
+sources in the checked source cut. It recorded SHA-256
+=b68434dd4b15d72c13ce3a3fe65ff6d01eaa04c143378ac9a081013bad7a396e=
+for =modules/assurance/config.ss=. The 3,084-trace robustness run is a
+separate workload. The existing Lean build and axiom audit passed locally.
+
+After staging the updated Scheme program, the Rust linked Graph/GitOps/Org
+integration, Agent HTTP loopback and recorded-cut ADR 0008 replay all
+passed under their existing 120-second test guards. These are local runs
+against the pinned package set and staged program. They do not establish a
+cold build or a production Cedar authorization path.
+
+The Rust recorded-source pytest runner replays the ADR 0008 Worker against
+its loopback Provider at one JJ cut. The fixed selector reports one passing
+test, one external commit and a completed task. The buggy selector reports
+one failed test at the duplicate-commit assertion with two commits. Both
+observations retain the selected Case and matching before/after source
+digests. A dirty checkout substitution is excluded. After recording it
+with JJ, the change ID stays stable while the commit and tree change.
+The old cut is refused both as an execution input and as a current
+observation. The passing observation remains available as history.
+[[file:../../dev/qualification/job-executor/README.org::*Recorded Rust replay][Recorded Rust replay]]
+
+The linked runtime also checks an authored Org observation against that
+actual Rust run. Orgize binds the method, selected Case, exact JJ cut
+and both source and report digests. ASCENT reports support for the fixed
+Case, scoped contradiction for the buggy Case and reopening after the
+rewrite. Substitution of the method, selector, digests or result was
+refused in the local linked test. Current passing support requires a Host
+witness over the reconstructed frozen input and the runtime-owned outcome.
+The witness is scoped to the selected pytest Case and exact revision. The
+buggy result leaves its obligation open with a contradiction and no
+supporting witness. After the rewrite, neither historical result receives a
+current Host assessment. When the runtime owner selects =adr-0008=,
+the same report includes a separate deployment claim at the live cut.
+Each condition has a declared capability and an open Host obligation.
+Fixture support cannot discharge provider identity, changed intent,
+retention, atomicity or concurrent reconciliation. The report carries no
+release authority.
+[[file:../../dev/qualification/job-executor/README.org::*Linked runtime replay assessment][Linked runtime replay assessment]]
+
+A Host configured with =execution-reader:= requires an independently stored
+canonical outcome digest, indexed by the attempt identity, and a
+=source-reader:= for the bytes. It checks custody at verification,
+admission and consumption. A seal whose matching execution custody has been
+withdrawn is revoked when detected. Restoring the same digest does not
+revive that seal. An unregistered attempt or a substituted outcome does not
+produce a seal.
+
+The joint qualification reads the actual Rust replay, checks its frozen
+bytes with the Host, and uses the existing Orgize Contract and ASCENT query
+at the before and after JJ cuts. The failed buggy selector contradicts its
+own obligation. The stable selector supports only the bounded fixed Case.
+Rewriting the cut reopens that obligation and refuses the old Host
+admission. The test harness owns the exchange record and configures the
+trusted reader. The linked assessment above uses the runtime-owned run
+directly and does not retain its Host admission across calls. Durable
+receipt storage and production provider qualification remain open.
+
+** Model checks
+
+The existing strict SysML command accepts the updated package. A control
+that replaces the ADR replay assessment type with an undefined type is
+refused as an unresolved reference. The local Rust SDK integration test
+accepts the updated document through OpenSysML 0.12.1 and refuses malformed
+SysML. These are structural model checks. The two Case rows specify separate
+behavioral qualification obligations.
 
 * Assurance laws
 
@@ -258,13 +892,166 @@ The architecture requires executable formal statements of at least these laws:
    history without an explicit authorized transition.
 5. Composition obligation: independently supported A and B do not imply that
    compose(A,B) is supported.
+   An explicit =composes= relation identifies the component claims, while a
+   separate obligation must be declared on the composite claim, named in that
+   claim's support requirements, linked by =supports= and bound to the exact
+   snapshot.  The composition-requirements receipt only checks this structural
+   declaration; it never admits evidence or grants authority.
 6. Unknown blocks closure: an unresolved required frontier cannot grant
    authority.
 7. Effect separation: authorization neither proves effect start nor effect
    completion.
 
-Lean proves general laws.  TLA+/TLC checks lifecycle interleavings such as a
+Lean proves general laws. Quint/TLC checks lifecycle interleavings such as a
 source change racing a cached decision or an effect beginning after revocation.
+The bounded lifecycle model additionally separates safety from progress:
+eventual effect start is required only when the source and clock remain stable,
+no revocation intervenes, and the Host weakly fairly schedules every enabled
+stage. Without that scheduling assumption, a stuttering behavior after a grant
+is a valid counterexample. Neither result substitutes for a trusted Host clock,
+adapter identity, or Runtime effect gate.
+
+* Support Assessment research
+:PROPERTIES:
+:CUSTOM_ID: support-assessment
+:END:
+
+This section proposes a read-only assessment over the existing Assurance
+graph. The Host currently checks exact admission and required-support
+witnesses. It conservatively blocks unresolved assumptions, defeaters
+and challenges. The assessment below needs qualification before any
+change to that gate.
+
+** Three judgments at the same cut
+
+| Judgment | Inputs and meaning |
+|----------+--------------------|
+| Admission | The Host verifies evidence custody, input and verifier bindings, obligation identity and currentness at the captured cut. |
+| Support | A method with an explicit coverage claim supports a specified fragment of a Claim under stated assumptions and within a stated scope. An admitted result can still leave the fragment unsupported. |
+| Authorization | Governance and the Runtime evaluate the proposed effect under current policy and enforce the resulting authority at execution. A supported Claim can inform that decision. |
+
+A Support Assessment projects the existing Claim, Obligation, Evidence,
+Assumption, Finding and assurance relations. It keeps the Claim and cut
+identities, the fragment, the evidence and method identities, the applicable
+scope and the justification for the mapping. It reports uncovered fragments
+and residual risks with their reasons. The graph remains the source of
+these identities. The assessment grants neither authority nor a new
+evidence lifecycle state.
+
+** Conditional support and closure
+
+A conditional finding has the form =C under Gamma in S=, where =C= is
+the Claim, =Gamma= is the set of explicit premises and =S= bounds the
+system, versions, environment and observations to which it applies.
+A sufficient argument for =Gamma => C= establishes conditional support.
+Support in the current operating envelope also requires current evidence
+or an enforced gate for each premise at that envelope. An assumption
+accepted as a risk retains its status and requires an accountable decision
+with scope and expiry. Risk acceptance supplies no evidence that the
+premise holds.
+
+Assess method coverage per fragment. A Lean result supports its stated
+theorem and premises. A Quint result supports the explored model scope
+and requires a separate correspondence argument to apply to execution.
+A replay supports its exercised trace and environment. Provider Contracts
+or runtime observations can support operational premises when their
+version, applicability and observation window match. Combining results
+across scopes requires a composition obligation that justifies their
+connection. Keep these distinct forms of support without assigning them
+a common numeric score.
+
+Derive assessment results from the current graph.
+
+- =unaddressed= marks a required fragment without qualifying evidence.
+- =addressed-but-not-established= marks an attempted argument with
+  insufficient coverage, an open premise or another residual.
+- =established-under-assumptions= retains the exact premises and scope.
+- =established-in-operating-envelope= additionally binds each premise to
+  current evidence or an enforced control.
+- =refuted= retains an applicable counterexample. A counterexample outside
+  the declared premises can challenge the operating envelope without
+  refuting the conditional theorem.
+- =stale= and =conflicted= retain prior assessments and their witnesses
+  while reopening affected obligations. A live conflict stays visible
+  even when a separate argument supports the same fragment.
+
+An assumption or defeater disposition records its owner, scope, effective
+interval, supporting or rebutting evidence and the relation it affects.
+Expiry, source or environment change, counterevidence and withdrawal of
+a supporting relation reopen the dependent obligations. The initial
+research preserves whole-snapshot invalidation. A smaller impact closure
+requires an argument that its dependencies are complete and a fallback
+to whole-snapshot invalidation when completeness is unknown.
+
+** Trajectory evidence through Temporal Causality and ASCENT
+
+Lab already exposes =agentic-ai-lab-causal-trajectory-assess= and the
+=agentic-ai-lab-ascent-exchange= solve/verify boundary. This gives the
+trajectory assessment a concrete implementation path. The following
+AITIA composition is a qualification target.
+
+1. Temporal Causality assesses a declared trajectory against a causal
+   event graph. It preserves event identity, parent relations, modality,
+   the causal cut and the observation frontier. A temporal ordering
+   alone cannot fill in a missing causal edge.
+2. The existing ASCENT exchange recomputes the cut, requires one binding
+   per event and keeps valid time and knowledge time in explicit domains.
+   The lens carries the observation window, knowledge cut, horizon and
+   closure status. Solve and verify bind the answer to that exchange and
+   its root. The exchange digest supplies content integrity. Evidence
+   custody and admission remain Host checks.
+3. AITIA assesses which Claim fragment that verified answer supports.
+   ASCENT rules can derive a scoped witness or explain a missing parent,
+   open horizon, conflicting observation or uncovered premise. Keep
+   the witness path, rule, exchange identity and scope with the answer.
+   Absence in an open observation window stays unknown. A late event
+   changes what is known at a later cut and triggers reassessment while
+   preserving the earlier answer with its original cut.
+
+For ADR 0008, the observed trajectory ties a submission, a lost
+acknowledgement, a restart and a retry to the same logical operation.
+A provider-side deduplication observation can support one-commit behavior
+for that trace. Replaying with a different key exercises the duplicate
+commit branch. Removing the provider observation, leaving the window
+open or crossing the deduplication retention boundary leaves the broader
+Claim open. A counterfactual branch keeps its modality and cannot supply
+the missing provider observation. Lean and Quint can establish separate
+properties over their declared premises and model scope. AITIA must
+justify the correspondence before using those results to assess the
+observed trajectory or current operating envelope.
+
+MRR is a candidate provider for cross-source lineage and impact queries.
+Orgize supplies document and Contract observations. GitOps supplies
+change and revision identity. Governance retains effect authorization.
+
+** Source authority and verification cases
+
+The standards module should retain edition, authority status and scope.
+NASA's standards catalog lists revision B of NASA-STD-8739.8 as active.
+OSMA announced revision C as a draft on 2026-11-05 and describes its
+objective-based structure. Treat C as research input until an authoritative
+status change. Instantiate applicable objectives as existing Claims and
+Obligations. Track AI-assisted development, AI delivered as part of a
+system, and Agents operating tools as separately scoped roles. Evidence
+for one role can be considered for another only through an explicit
+applicability argument.
+[[https://standards.nasa.gov/standard/nasa/nasa-std-87398][NASA standards catalog]]
+[[https://sma.nasa.gov/news/articles/newsitem/2026/11/05/nasa-modernizes-software-assurance-guidance-with-updates-to-nasa-std-8739-8c-and-the-software-engineering-and-assurance-handbook][NASA OSMA draft announcement]]
+
+| Case | Positive control | Refusal or reopening controls |
+|------+------------------+-------------------------------|
+| [[file:../adrs/0008-stable-operation-key-after-lost-ack.org][ADR 0008 lost acknowledgement]] | The recorded bounded replay supports the exercised lost-ACK fragment. A broader at-most-once argument declares stable operation identity, atomic commit and deduplication, and retention covering the retry window. | A passing replay leaves concurrent attempts, restart durability, retention and same-key/different-payload behavior open until independently covered. Expired retention reopens the envelope obligation. Retry authority remains a separate runtime check. |
+| Agent input assurance | Required tool calls, results and safety premises survive projection. The consumer receives the same verified bytes. | Drop a call or premise, inject an unmatched result, allow consumption after failed validation, and replace verified bytes before consumption. Require a specific reason for each failure at the boundary it exercises. |
+| Change and environment invalidation | Reassess against the recorded Commit and Tree, effective environment and provider version. Keep JJ Change ID for lineage. | Rewrite the same Change, replace a PR head with a merge-queue cut, or change the environment, provider or Context projection. Historical observations remain available with their original scope. |
+
+The input-assurance case uses the paper's distinction between structural
+preservation, validator coverage, enforcement and actual consumption.
+The trajectory-evidence paper motivates recording fragments and residuals
+per method. Both are research inputs to this design. The acceptance
+experiment must measure false support, missed faults and unnecessary
+revalidation on Aitia's own fixtures.
+[[https://arxiv.org/abs/2611.02676][Does the Judge See What the Evaluation Requires?]]
+[[https://arxiv.org/abs/2610.04710][Organising Trajectory Evidence for Language-Model Agent Assurance]]
 
 * Public API direction
 
@@ -308,7 +1095,7 @@ standards compliance, release certification or unrestricted causal inference.
 3. Copying Software/SDLC standards into the assurance kernel: rejected because
    standards already have an Aitia-owned SDLC module and hard-coding them into
    the kernel would collapse the domain/module boundary.
-4. A second Graph implementation: rejected because POO Flow owns the graph
+4. A second Graph implementation: rejected because Agentic AI Lab owns the graph
    substrate and algorithms.
 5. Green-check aggregation: rejected because it loses revisions, assumptions,
    provenance, invalidation and effect boundaries.
@@ -318,11 +1105,11 @@ standards compliance, release certification or unrestricted causal inference.
 * Closed architecture decisions and remaining acceptance work
 
 The repository license is closed as =Apache-2.0 AND
-LGPL-2.1-or-later=, matching POO Flow.  The former open decisions are closed by:
+LGPL-2.1-or-later=, matching Agentic AI Lab.  The former open decisions are closed by:
 
-1. ADR 0004: Aitia owns assurance-specific Lean/TLA+ sources and may consume a
-   pinned POO Flow proof package for generic laws.
-2. ADR 0007 supersedes ADR 0003: POO Flow is Aitia's public mechanism library;
+1. ADR 0004 r2: Aitia owns assurance-specific Lean/Quint sources and may consume a
+   pinned Agentic AI Lab proof package for generic laws.
+2. ADR 0007 supersedes ADR 0003: Agentic AI Lab is Aitia's public mechanism library;
    additions require a stable public owner, not an artificially small
    allowlist.
 3. ADR 0005: canonical JSON snapshots are persistence projections, never

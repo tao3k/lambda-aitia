@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+[package]
+name = "aitia-jj"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Read-only observations of JJ-backed AITIA workspaces"
+
+[features]
+real-jj = []
+
+[dependencies]
+jj-lib = "=0.47.1"
+# Repository discovery before JJ initialization uses the same backend library.
+gix = { version = "=0.90.0", default-features = false }
+getrandom = "0.4"
+futures = { version = "0.3", default-features = false, features = ["executor"] }
+serde = { version = "1", features = ["derive"] }
+
+sha2 = "0.10.9"
+
+[dev-dependencies]
+aitia-build-support.workspace = true
+serde_json = "1"
+tempfile = "3"
+
+[[test]]
+name = "policy"
+path = "tests/unit/policy.rs"
+
+[[test]]
+name = "workspace_cut"
+path = "tests/integration/workspace_cut.rs"
+required-features = ["real-jj"]
+
+[lints]
+workspace = true

@@ -1,0 +1,21 @@
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;;
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+;;; -*- Gerbil -*-
+;;; Reusable GitHub workflow Profiles; no scenario or runtime execution lives here.
+
+(import (only-in :clan/poo/object .def)
+        :agentic-ai-lab/modules/workflow/profiles/github-ci-contract)
+(export actions)
+
+(.def (actions @ agentic-ai-lab-funflow-github-ci-profile)
+  (name 'actions)
+  (owner 'lambda-aitia)
+  (features '(pull-request environments deployments schema-validation))
+  (extends agentic-ai-lab-funflow-github-ci-profile)
+  (scope '(workflow))
+  (capabilities '(pull-request environments deployments))
+  (guard '(schema-validated))
+  (runtime-executed #f)
+  (source 'lambda-aitia.user-interface.profiles.github.actions))

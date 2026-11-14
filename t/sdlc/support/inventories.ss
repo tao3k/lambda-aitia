@@ -4,10 +4,10 @@
 
 ;;; Synthetic complete inventories shared by module-owned tests only.
 (import (only-in :clan/poo/object .ref)
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-review
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-structured
+        "../../../modules/sdlc/objects.ss"
+        "../../../modules/sdlc/standards/nasa-7150-2d.ss"
+        "../../../modules/sdlc/standards/nasa-review.ss"
+        "../../../modules/sdlc/standards/nasa-structured.ss"
         :std/list/list)
 (def (test-inventories project class-value digest-value)
   (let* ((rules (nasa-trace-rules class-value))

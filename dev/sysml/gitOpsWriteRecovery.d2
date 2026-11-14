@@ -1,0 +1,21 @@
+# AitiaCommit::gitOpsWriteRecovery — interconnection rendering (render asInterconnectionDiagram)
+classes: {
+  usage: { style: { fill: white; stroke: "#181818"; stroke-width: 1; font-color: black; font-size: 14; border-radius: 8 } }
+  connection: { style: { stroke: "#181818"; font-size: 13; font-color: black; stroke-width: 3 } }
+}
+n0: "«part»\nprepareLocalOperation" { class: usage }
+n1: "«part»\nrecordWriteAttempt" { class: usage }
+n2: "«part»\nguardedPublication" { class: usage }
+n3: "«part»\nrefuseLocalWrite" { class: usage }
+n4: "«part»\nreconcileWriteAttempt" { class: usage }
+n5: "«part»\nretainUnresolvedAttempt" { class: usage }
+n6: "«part»\nrequireFreshIntent" { class: usage }
+n7: "«item»\nlocalEffectReceipt : GitOpsOperationReceipt" { class: usage }
+n0 -- n1: "preparedOperation" { class: connection }
+n1 -- n2: "durableAttempt" { class: connection }
+n2 -- n3: "staleCutOrRevocation" { class: connection }
+n2 -- n7: "confirmedLocalEffect" { class: connection }
+n2 -- n4: "lostAcknowledgement" { class: connection }
+n4 -- n7: "provenEffect" { class: connection }
+n4 -- n6: "provenNoEffect" { class: connection }
+n4 -- n5: "ambiguousOutcome" { class: connection }

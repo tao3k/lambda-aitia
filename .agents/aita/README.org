@@ -1,0 +1,222 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: AITIA project configuration
+
+Run =aitia init= in the project to create =.agents/aita/project.json=.
+Initialization preserves an existing configuration. From any directory in
+the project, =aitia check= locates the nearest Git root and reads that
+project's recorded configuration. =aitia project-manifest= reports the
+effective settings and discovered inputs at the same JJ cut.
+
+The [[file:project.json][AITIA declaration]] enables the SysML service and its
+=parse= capability. Both switches must be true to run OpenSysML.
+The default configuration enables no services. The check discovers regular
+=.sysml= files in the recorded tree in project-relative order. SysML packages
+and imports express the model structure. A checkout edit only enters the
+check after JJ records it.
+
+The [[file:../../modules/project-config/config.ss][Scheme ProjectConfig Module]]
+resolves POO declarations and project JSON through the same Contract. Its
+=checks= slot selects operations from effective settings. Rust receives
+those operation identities and executes their adapters. The JSON
+declaration carries data. Scheme owns its interpretation and defaults.
+
+For a project-specific binary, stage the linked program with
+=AITIA_PROJECT_DECLARATION= pointing to the project's trusted
+=.agents/aita/project.ss=. The file contains one Scheme expression that
+returns a POO declaration. Record that source in JJ with any optional
+=project.json= overlay. At runtime AITIA verifies the recorded Scheme
+source against the compiled declaration before evaluating it. A recorded
+replacement or deletion requires a rebuilt program. The stock binary
+accepts standalone JSON configuration.
+
+* AITIA's own commit Case
+
+The =programs.jj.settings= declaration selects the project identity, NASA
+Profile and the primary NASA requirement. Enable the program with
+=programs.jj.enable=. The =naming= declaration binds the project key, type
+vocabulary, affected scopes and engineering records. The reviewed draft supplies
+a structured intent proposal. The review response lists =scopePaths= as
+scope and changed-path pairs, and =unscopedPaths= as changed paths outside
+all admitted scopes. A title may name an affected scope in a change that
+also touches other paths. NASA clause identifiers remain evidence and
+obligation references. The =checks= list maps catalog requirements to project methods. Scheme
+rejects identifiers outside the selected catalog, duplicate requirements
+and reuse of one execution method for multiple requirements in a profile.
+=aitia jj commit= reads this declaration and the change inventory
+from one recorded JJ cut. The output contains relative paths, the
+standard edition and source-lock digest, and the exact tree, parents
+and operation. A dirty configuration edit becomes effective after JJ
+records it.
+
+AITIA discovers GitHub pull requests from JJ's remote bookmark and repository.
+GitHub supplies the PR number, target branch, and check status at runtime.
+When the discovered PR head belongs to a published parent, its checks stay
+attached to that parent. If a relevant bookmark cannot be matched reliably,
+review reports =gitops.pull-request= in Open. Supply =GH_TOKEN= through the
+process environment for authenticated reads when the anonymous quota is
+exhausted. Keep the credential outside the recorded project configuration.
+An unavailable GitHub response leaves the association Open.
+
+The Runtime can produce evidence for =jj.recorded-change= and
+=jj.configuration-audit=. The audit reads the Git object and compares
+its tree and ordered parents with the recorded JJ cut. An unimplemented
+method remains open. The context's =review.clauses= tells a drafter
+which Org references the current assessment requires. ASCENT derives these
+clauses from the selected Profile and evidence at the recorded cut.
+Scheme turns them into an Org Contract for that draft. The drafter chooses
+how to explain the change within those clauses. Send =proposal=, =narration=,
+=org= and =context= to =aitia jj commit preview=. The narration has one
+=change= paragraph and two arrays, =evidence= and =open=. Each entry contains
+=obligation= and a single =text= paragraph. Cover the applicable obligations
+from =review.clauses= exactly: supported or contradicted checks go in Evidence,
+and unresolved checks go in Open. Use an empty array when there are no rows
+for that section. Copy the fresh =review.context= into the draft before
+preparation. The Org properties carry readable obligation references.
+The Runtime context binds those references to the exact cut and observations
+outside the Org document.
+The Runtime reevaluates the live cut and Scheme executes the generated
+Org Contract. =review.previewDescription= shows the formatted text, including
+Open when an applicable check is unresolved. =review.description= and its
+digest are available only when the draft is eligible for preparation. Scheme
+renders the title from the admitted engineering reference and proposal, and
+formats the prose in plain Git text with stable headings and list order.
+The project's admitted language governs the prose.
+Machine cut identities, evidence digests and source locks stay in Runtime
+receipts and JJ operations. =aitia jj commit prepare= takes the same draft,
+reruns those checks and adds the exact unpublished JJ attempt to the
+response. The attempt identifies the expected and resulting operations
+and commits. Preserve the attempt for recovery. A successful prepare
+leaves the visible repository head unchanged.
+
+Keep the apply result for review lineage. Pass it on standard input to
+=aitia jj commit evidence <revision> --gql= using the exact result
+revision from its receipt. The response contains the verified original
+check reports under =observations= and the executed query and rows
+under =lineage.query=. For example, a reviewer can follow a changed file
+to the JJ inventory check with this query shape. AITIA substitutes the
+applied revision in the emitted query.
+
+#+begin_src gql
+MATCH (r:Revision)-[:changes]->(f:FileVersion)-[:enumerated_by]->(e:EvidenceReport)
+WHERE r.revision = $revision
+RETURN f.path, e.method
+#+end_src
+
+The response also supplies the recorded configuration query and the
+OpenSysML evidence query when the corresponding sources are available.
+=lineage.query.verifiedReports= lists the checks with verified reports
+for the selected revision. Use =method= to find each report under
+=observations=. The Git configuration audit covers the commit object,
+tree, and ordered parents. The project-input query lists the recorded
+configuration files and their changed state.
+=lineage.query.engineeringReference= links the title's engineering ID to
+its ORG Element and recorded file when the apply result supplies a proposal
+that reproduces the actual title under Scheme policy.
+=lineage.query.changedFiles= lists the revision's changed paths from JJ,
+including when the inventory report is missing. =lineage.query.missingReports=
+selects missing check methods from the same revision. Inspect it before drawing a conclusion from empty rows.
+=lineage.dependencyCoverage= remains =unknown= for code relationships.
+A recovery record can locate the committed body and original inventory
+even when the apply response and its archived reports were lost.
+
+By default, =aitia jj commit apply= takes the original =draft= and prepared
+=attempt=. Start with an unsigned working-copy leaf. Keep the destination
+bookmark on its reviewed ancestor until push. Use
+=aitia jj commit preview --applied= to compare an existing commit with
+the current review. =matchesWrittenDescription= checks the rendered text,
+and =reviewContextCurrent= checks the supplied context. Push reports a
+stale context before transport. If =matchesWrittenDescription= is true,
+review the refreshed preview and use its context with the original
+attempt. If it is false, prepare and apply the revised description at
+the current cut before requesting push. Preparation rejects a
+description rewrite that would also move a bookmark or a descendant.
+Apply reruns the checks and writes through JJ under its
+operation-head lock. =aitia jj commit recover= accepts the same =attempt= and
+checks it against JJ history. After reading back the written commit, pass the same approved request to
+=aitia jj git push --remote origin --bookmark name=. The command rechecks
+the applied receipt, current candidate and exact description before JJ
+advances the existing remote bookmark. The backend requires preserved
+bookmark ancestry and enforces the remote lease. Transport errors leave an
+unknown remote outcome for reconciliation. Independent signed description
+approval remains scoped to its local write and cannot authorize this push.
+
+For independent signed approval, set =programs.jj.settings.governance= to
+=signed= in the recorded project declaration. Set =AITIA_GOVERNANCE_POLICY= to the
+operator-owned JSON file outside the workspace. Its fields are =project=,
+=workspace= (canonical workspace path) and =publicKey= (hex-encoded
+Ed25519 public key). The adjacent =.sqlite= journal is persistent state.
+The runtime configuration and journal directory are part of the operator
+trust boundary. Keep the private signing key with the reviewer.
+
+=aitia jj commit prepare= returns the =intent= and, with that configuration, the
+=governanceRevision= for review. If the operator provisions the policy
+after preparation, =aitia jj commit= reports the revision without
+preparing a different operation. =aitia jj commit decision= takes =message= and
+=signature=. The signature is hex-encoded Ed25519 over the exact UTF-8
+message. The approval message is JSON with =kind= equal to
+=aitia.commit.approve.v1= and fields =project=, =revision=, =approval=,
+=intent=, =notBefore= and =expiresAt=. The time bounds are Unix seconds.
+A revocation uses =aitia.commit.revoke.v1= and =project=, =revision= and
+=approval=. A reviewer supplies a fresh approval identity for each decision.
+
+In signed mode, =aitia jj commit apply= also requires the =approval= identity.
+It consumes the journal approval under the JJ operation-head lock.
+=aitia jj commit recover= can retrieve the admitted attempt by approval identity.
+Recovery checks history without retrying a write.
+
+The intended first execution is the AITIA change that introduces this
+configuration. JJ supplies the recorded commit and operation. The NASA
+SDLC catalog and Yuanxu Scenario supply applicable engineering
+obligations. The SysML check produces a parse observation. Quint remains an independent qualification lane. ORG Contract
+binds observations to independent execution data. ASCENT derives
+current support, gaps, contradictions and reopened obligations.
+The recorded Project declaration selects any required Governance approval. See the
+[[file:../../dev/sysml/README.org][commit design and verification evidence]].
+
+AITIA uses the default JJ path. The independent-approval qualification
+uses an isolated JJ workspace and fixture signer.
+
+* Engineering reference admission
+
+[[file:../../docs/rfcs/0007-source-bound-commit-engineering.org][RFC 0007]] distinguishes the engineering item from the linked PR and NASA SWE
+obligations. Each configured =naming.references= entry names an identity,
+project-relative ORG source and stable Element ID. The same headline must carry
+that identity as =ENGINEERING_ID=. Rust supplies the actual source bytes from the
+recorded JJ tree; a draft cannot provide those bytes. Scheme executes the ORG
+Contract and ASCENT relates the admitted references to affected scopes and
+candidate intent. Context reports include those relations for deliberation.
+
+Changed naming policy, source contents or revision invalidates old review
+context. Missing, conflicting or out-of-scope intent remains Open. A rationale
+is proposed reasoning for review, not proof of semantic correctness or permission
+to push. The focused projection tests are separate from linked Runtime and
+remote CI qualification; consult RFC 0007 for remaining integration obligations.
+
+Commit language follows the project, not a hard-coded English policy.
+=naming.languageSources= names the project documents observed from the current
+JJ tree. The LLM proposes a language and its source; ASCENT checks that the
+source was observed and reports disagreement with an optional explicit
+=naming.primaryLanguage=. Language identification and prose quality remain
+review judgments. Unicode text is accepted, while control-character restrictions
+still apply. Source links ground a proposal; they do not prove its language.
+
+
+* Reviewing a structured proposal
+
+=aitia jj commit= exposes the recorded project facts before an intent is chosen.
+After the LLM supplies its structured proposal, =aitia jj commit preview= is an
+explicit read-only preview. Its returned =review.context= binds all proposal
+fields, including rationale and language, to the observed sources and rules.
+Review the full description and copy that returned context into the draft.
+=aitia jj commit prepare= does not renew it. A changed proposal needs another preview
+and review; equal title/body text alone does not preserve the earlier review.
+
+=aitia jj commit apply= checks that same context. For a signed project, the approval
+intent binds both the prepared rewrite and its exact review context. A fresh
+preview cannot reuse a grant for a different context, even with unchanged prose.
+=aitia jj git push= observes the verified description-only rewrite through JJ,
+then rechecks the original context under current Scheme rules. It does not
+replace the supplied context with a newly computed value. A stale review or
+changed rationale is refused before the local-remote transport boundary.

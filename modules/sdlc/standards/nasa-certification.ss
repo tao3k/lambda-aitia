@@ -4,11 +4,11 @@
 
 ;;; NPR 7150.2D compliance dossier and independently verified authority decision.
 ;;; This module never impersonates NASA, authenticates a signer, or authorizes release.
-(import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/src/module-system/contribution/verification
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .get .o .ref .slot? object?)
+        :tao3k/yuanxu/contribution/verification
+        "../types.ss"
+        (only-in "nasa-7150-2d-profile.ss" Nasa7150_2D)
         :std/list/list
         :std/list/list
         (only-in :gerbil/runtime/hash list->hash-table-string))
@@ -26,34 +26,34 @@
 ;;; NASA owns its submission and authority-decision object family. Keeping the
 ;;; family beside its operations bounds incremental invalidation to this module.
 (def (text-slot name)
-  (poo-clos-direct-slot-definition name type-predicate: sdlc-text?))
+  (sdlc-record-field name type-predicate: sdlc-text?))
 (def SdlcComplianceDossier
-  (poo-clos-class 'sdlc/compliance-dossier
+  (sdlc-record-type 'sdlc/compliance-dossier
     direct-superclasses: (list SdlcBoundFact)
     direct-slots:
     (append
      (map text-slot '(identity standard edition))
      (list
-      (poo-clos-direct-slot-definition 'software-class type-predicate: symbol?)
-      (poo-clos-direct-slot-definition 'mapping-matrix-digest type-predicate: sdlc-artifact-digest?)
-      (poo-clos-direct-slot-definition 'project-gate type-predicate: object?)
-      (poo-clos-direct-slot-definition 'institution-gate type-predicate: object?)
-      (poo-clos-direct-slot-definition 'complete? type-predicate: boolean?)))))
+      (sdlc-record-field 'software-class type-predicate: symbol?)
+      (sdlc-record-field 'mapping-matrix-digest type-predicate: sdlc-artifact-digest?)
+      (sdlc-record-field 'project-gate type-predicate: object?)
+      (sdlc-record-field 'institution-gate type-predicate: object?)
+      (sdlc-record-field 'complete? type-predicate: boolean?)))))
 (def SdlcCertificationDecision
-  (poo-clos-class 'sdlc/certification-decision
+  (sdlc-record-type 'sdlc/certification-decision
     direct-superclasses: (list SdlcBoundFact)
     direct-slots:
     (append
      (map text-slot '(identity dossier signer record))
      (list
-      (poo-clos-direct-slot-definition 'authority type-predicate: symbol?)
-      (poo-clos-direct-slot-definition
+      (sdlc-record-field 'authority type-predicate: symbol?)
+      (sdlc-record-field
        'decision type-predicate:
        (lambda (value) (if (memq value '(compliant noncompliant)) #t #f)))))))
 (def (sdlc-compliance-dossier? value)
-  (poo-flow-model? SdlcComplianceDossier value))
+  (sdlc-record? SdlcComplianceDossier value))
 (def (sdlc-certification-decision? value)
-  (poo-flow-model? SdlcCertificationDecision value))
+  (sdlc-record? SdlcCertificationDecision value))
 
 (def (bound? value project)
   (every (lambda (slot)
@@ -85,7 +85,7 @@
   (map (lambda (row) (.ref row 'identity))
        (filter (lambda (row)
                  (eq? (not (.slot? row 'class-matrix)) institutional?))
-               nasa-requirement-catalog)))
+               (.get Nasa7150_2D requirements))))
 
 (def nasa-project-requirement-identities (catalog-identities #f))
 (def nasa-institution-requirement-identities (catalog-identities #t))
@@ -102,14 +102,14 @@
                                nasa-project-requirement-identities)
                (eligible-gate? institution-gate-value 'institution
                                nasa-institution-requirement-identities))))
-    (poo-flow-check-model
+    (validate
      SdlcComplianceDossier
-     (.o (:: @ (poo-flow-model-prototype SdlcComplianceDossier))
+     (.o (:: @ (.ref SdlcComplianceDossier 'proto))
          identity: identity-value
          subject: (.ref project 'subject)
          revision: (.ref project 'revision)
          scope: (.ref project 'scope)
-         standard: "nasa/npr-7150.2d"
+         standard: "nasa/sdlc/npr-7150.2"
          edition: "NPR 7150.2D"
          software-class: class-value
          mapping-matrix-digest: matrix-digest
@@ -121,9 +121,9 @@
                                   signer-value record-value decision-value)
   (unless (sdlc-compliance-dossier? dossier-value)
     (error "invalid NASA compliance dossier"))
-  (poo-flow-check-model
+  (validate
    SdlcCertificationDecision
-   (.o (:: @ (poo-flow-model-prototype SdlcCertificationDecision))
+   (.o (:: @ (.ref SdlcCertificationDecision 'proto))
        identity: identity-value
        subject: (.ref dossier-value 'subject)
        revision: (.ref dossier-value 'revision)
@@ -141,9 +141,9 @@
                (equal? (.ref decision-value 'dossier)
                        (.ref dossier-value 'identity)))
     (error "certification decision is not bound to the dossier"))
-  (poo-flow-check-model
+  (validate
    SdlcVerificationRequest
-   (.o (:: @ (poo-flow-model-prototype SdlcVerificationRequest))
+   (.o (:: @ (.ref SdlcVerificationRequest 'proto))
        subject: (.ref dossier-value 'subject)
        revision: (.ref dossier-value 'revision)
        scope: (.ref dossier-value 'scope)
@@ -182,11 +182,11 @@
                                 admitted? reported-failures))
          (certification-slots decision
                               '(identity dossier authority signer record decision))
-         (certification-slots nasa-catalog-source-digests
+         (certification-slots (.get Nasa7150_2D source-digests)
                               '(chapter2 chapter3 chapter4 chapter5 chapter6 appendix-c)))
         port)))))
 (def (nasa-certification-verification-adapter identity-value operation)
-  (poo-flow-verification-adapter
+  (yuanxu-verification-adapter
    identity-value operation certification-request-snapshot))
 
 (def (nasa-certification-review dossier-value decision-value adapter receipts now)
@@ -196,9 +196,9 @@
     (error "invalid NASA certification review inputs"))
   (let* ((request (nasa-certification-verification-request
                    dossier-value decision-value))
-         (admission (poo-flow-verification-admission adapter receipts now))
+         (admission (yuanxu-verification-admission adapter receipts now))
          (verified?
-          (poo-flow-verification-admission-valid? admission request))
+          (yuanxu-verification-admission-valid? admission request))
          (status-value
           (cond
            ((not (.ref dossier-value 'complete?)) 'dossier-incomplete)

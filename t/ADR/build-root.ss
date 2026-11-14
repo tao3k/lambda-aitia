@@ -3,6 +3,6 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/lambda-aitia/modules/ADR/interface)
+(import "../../init.ss")
 (export ADR-test-fixtures-loaded?)
 (def ADR-test-fixtures-loaded? #t)

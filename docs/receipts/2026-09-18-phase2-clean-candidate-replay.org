@@ -19,13 +19,13 @@ toolchain contract and current evidence are recorded in
 
 * Exact source cut
 
-- POO Flow: =f4575d4abed2cf6ed605a57f193ddd522eeb3488=
+- Agentic AI Lab: =f4575d4abed2cf6ed605a57f193ddd522eeb3488=
 - Lambda Aitia: =46b6393185a8cde0251f5ee5820a0fc2531e6213=
 - Host: Darwin arm64
 - Build concurrency: =GERBIL_BUILD_CORES=12=
 - Darwin environment: =env -u SDKROOT=
 
-The replay used detached worktrees.  The POO Flow worktree contained only the
+The replay used detached worktrees.  The Agentic AI Lab worktree contained only the
 expected Lambda Aitia gitlink difference plus temporary build products and one
 candidate build-spec addition making the already tracked
 =src/user-interface/config-discovery-syntax.ss= an installed public entry.
@@ -43,7 +43,7 @@ and removed the deprecated =-ld_classic= option.  After that correction:
 - =just build= completed with no linker warning;
 - no deployment-target downgrade or macOS-version compatibility path was used.
 
-This adapter is replay infrastructure, not yet a published POO Flow build
+This adapter is replay infrastructure, not yet a published Agentic AI Lab build
 contract.  The owning parent build must publish an equivalent Darwin arm64
 toolchain boundary before the clean-clone gate can close.
 
@@ -51,7 +51,7 @@ toolchain boundary before the clean-clone gate can close.
 
 The Phase 2 Assurance test was run with an isolated atomic-test =GERBIL_PATH=
 and an explicit source/load closure containing only the two detached worktrees
-and the freshly built POO Flow library.  It completed with all test cases and
+and the freshly built Agentic AI Lab library.  It completed with all test cases and
 checks passing, including:
 
 - canonical snapshot stability under input permutation;
@@ -75,7 +75,7 @@ Build completed successfully (4 jobs).
 
 The complete =just build-contribute lambda-aitia= replay is not green.  It
 first demonstrated that the tracked User Interface discovery module was absent
-from the published POO Flow build closure.  After the isolated candidate entry
+from the published Agentic AI Lab build closure.  After the isolated candidate entry
 was added, the build advanced and then stopped at additional parent-owned
 dependencies that are present only in the dirty parent workspace:
 
@@ -86,12 +86,12 @@ dependencies that are present only in the dirty parent workspace:
 - the generic =modules/standards= library is not committed at the replayed
   parent revision.
 
-These are POO Flow mechanism/library owners.  They must be reviewed, tested and
-published in POO Flow; copying them into Aitia would violate the established
+These are Agentic AI Lab mechanism/library owners.  They must be reviewed, tested and
+published in Agentic AI Lab; copying them into Aitia would violate the established
 dependency direction.  Healthcare qualification material is unrelated to this
 Software/SDLC replay and is not part of the required Aitia closure.
 
-POO Flow is Aitia's public mechanism library.  This blocker does not justify
+Agentic AI Lab is Aitia's public mechanism library.  This blocker does not justify
 minimizing Aitia's dependency or removing required mechanisms; it requires POO
 Flow to publish its complete reviewed public Library closure for the pinned
 Aitia revision.
@@ -100,5 +100,5 @@ Aitia revision.
 
 The bounded Phase 2 Scheme kernel and modular Lean proof are admitted for this
 exact source cut.  RFC 0002 remains =active= because the repository-wide clean
-checkout gate additionally requires a published POO Flow dependency revision
+checkout gate additionally requires a published Agentic AI Lab dependency revision
 whose installed library closes every direct Aitia production import.

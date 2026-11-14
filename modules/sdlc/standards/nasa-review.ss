@@ -3,18 +3,17 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Source-bound review across every catalog requirement. No authority execution.
-(import (only-in :clan/poo/object .o .ref .slot? object?)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/lambda-aitia/modules/sdlc/types
-        :poo-flow/lambda-aitia/modules/sdlc/objects
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d
-        :poo-flow/lambda-aitia/modules/sdlc/standards/nasa-7150-2d-catalog
+(import (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/object .get .o .ref .slot? object?)
+        "../types.ss"
+        "../objects.ss"
+        "nasa-7150-2d.ss"
         :std/list/list)
 (export nasa-requirement-criteria nasa-criterion-evidence nasa-assess-project
         nasa-tailoring-requirements nasa-safety-component nasa-safety-review)
 
 (def (row-digest row)
-  (.ref nasa-catalog-source-digests
+  (.ref (.get Nasa7150_2D source-digests)
         (string->symbol (string-append "chapter" (substring (.ref row 'section) 0 1)))))
 (def (nasa-requirement-criteria id)
   (let* ((row (nasa-requirement-by-id id)) (parts (.ref row 'source-parts)))
@@ -27,11 +26,11 @@
   (unless (sdlc-project? project) (error "invalid NASA evidence project"))
   (unless (member criterion-id (map (lambda (c) (.ref c 'identity)) (nasa-requirement-criteria requirement-id)))
     (error "unknown NASA criterion" requirement-id criterion-id))
-  (poo-flow-check-model SdlcCriterionEvidence
-    (.o (:: @ (poo-flow-model-prototype SdlcCriterionEvidence))
+  (validate SdlcCriterionEvidence
+    (.o (:: @ (.ref SdlcCriterionEvidence 'proto))
         identity: id kind: 'sdlc.evidence
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
-        standard: "nasa/npr-7150.2d" requirement: requirement-id criterion: criterion-id
+        standard: "nasa/sdlc/npr-7150.2" requirement: requirement-id criterion: criterion-id
         source-digest: (row-digest (nasa-requirement-by-id requirement-id))
         producer: producer-value outcome: outcome-value)))
 (def (unique-ids? values)
@@ -76,14 +75,24 @@
     (error "invalid NASA project assessment inputs"))
   (for-each
    (lambda (e)
-     (unless (and (equal? (.ref e 'standard) "nasa/npr-7150.2d")
+     (unless (and (equal? (.ref e 'standard) "nasa/sdlc/npr-7150.2")
                   (member (.ref e 'criterion)
                           (map (lambda (c) (.ref c 'identity))
                                (nasa-requirement-criteria (.ref e 'requirement)))))
        (error "evidence is not bound to a NASA criterion"))) evidence))
-(def (nasa-assess-project class-value project context evidence)
+;; A stage may request a finite subset. Input validation remains global, and
+;; every selected row uses the same assessment as a complete catalog review.
+(def (assessment-rows requirements)
+  (if requirements
+    (begin
+      (unless (and (list? requirements)
+                   (= (length requirements) (length (delete-duplicates/hash requirements))))
+        (error "invalid assessment requirement selection"))
+      (map nasa-requirement-by-id requirements))
+    (.get Nasa7150_2D requirements)))
+(def (nasa-assess-project class-value project context evidence requirements: (requirements #f))
   (validate-review-inputs project context evidence)
-  (let* ((rows (map (lambda (row) (assess-one row class-value project context evidence)) nasa-requirement-catalog))
+  (let* ((rows (map (lambda (row) (assess-one row class-value project context evidence)) (assessment-rows requirements)))
          (pending-values (filter (lambda (r) (not (memq (.ref r 'status) '(evidence-present not-invoked)))) rows)))
     (.o kind: 'sdlc.nasa-assessment subject: (.ref project 'subject)
         revision: (.ref project 'revision) scope: (.ref project 'scope)
@@ -117,8 +126,8 @@
 
 (def (nasa-safety-component id project safety-value coverage-value complexity-value)
   (unless (sdlc-project? project) (error "invalid safety snapshot"))
-  (poo-flow-check-model SdlcSafetyComponent
-    (.o (:: @ (poo-flow-model-prototype SdlcSafetyComponent)) identity: id
+  (validate SdlcSafetyComponent
+    (.o (:: @ (.ref SdlcSafetyComponent 'proto)) identity: id
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
         safety-critical?: safety-value mcdc-percent: coverage-value cyclomatic-complexity: complexity-value)))
 (def (nasa-safety-review project components)
@@ -144,23 +153,23 @@
 (def (nasa-tailoring-packet id project requirement-id rationale-value risk-value mitigations-value acceptance-value archive-value)
   (unless (sdlc-project? project) (error "invalid tailoring project"))
   (nasa-requirement-by-id requirement-id)
-  (poo-flow-check-model SdlcTailoringPacket
-    (.o (:: @ (poo-flow-model-prototype SdlcTailoringPacket)) identity: id
+  (validate SdlcTailoringPacket
+    (.o (:: @ (.ref SdlcTailoringPacket 'proto)) identity: id
         subject: (.ref project 'subject) revision: (.ref project 'revision) scope: (.ref project 'scope)
-        standard: "nasa/npr-7150.2d" requirement: requirement-id
+        standard: "nasa/sdlc/npr-7150.2" requirement: requirement-id
         rationale: rationale-value risk: risk-value mitigations: mitigations-value
         risk-acceptance: acceptance-value archived-matrix: archive-value)))
 (def (nasa-authority-attestation id packet authority-value signer-value record-value decision-value)
   (unless (sdlc-tailoring-packet? packet) (error "invalid tailoring packet"))
-  (poo-flow-check-model SdlcAuthorityAttestation
-    (.o (:: @ (poo-flow-model-prototype SdlcAuthorityAttestation)) identity: id
+  (validate SdlcAuthorityAttestation
+    (.o (:: @ (.ref SdlcAuthorityAttestation 'proto)) identity: id
         subject: (.ref packet 'subject) revision: (.ref packet 'revision) scope: (.ref packet 'scope)
         standard: (.ref packet 'standard) requirement: (.ref packet 'requirement)
         request: (.ref packet 'identity) authority: authority-value signer: signer-value
         record: record-value decision: decision-value)))
 (def (nasa-tailoring-review project class-value context packet attestations)
   (unless (and (sdlc-project? project) (sdlc-tailoring-packet? packet)
-               (bound? packet project) (equal? (.ref packet 'standard) "nasa/npr-7150.2d")
+               (bound? packet project) (equal? (.ref packet 'standard) "nasa/sdlc/npr-7150.2")
                (list? attestations) (every sdlc-authority-attestation? attestations)
                (unique-ids? attestations))
     (error "invalid tailoring review inputs"))
@@ -196,10 +205,10 @@
 (export nasa-assess-institution)
 ;;; Center/Agency source obligations have their own review scope, so project
 ;;; reports do not silently discharge duties belonging to institutional owners.
-(def (nasa-assess-institution class-value snapshot context evidence)
+(def (nasa-assess-institution class-value snapshot context evidence requirements: (requirements #f))
   (validate-review-inputs snapshot context evidence)
   (unless (memq class-value '(a b c d e f)) (error "invalid NASA software class"))
-  (let* ((institutional (filter (lambda (r) (not (.slot? r 'class-matrix))) nasa-requirement-catalog))
+  (let* ((institutional (filter (lambda (r) (not (.slot? r 'class-matrix))) (assessment-rows requirements)))
          (reviews
           (map (lambda (r)
                  (let* ((id (.ref r 'identity))
