@@ -5,7 +5,7 @@
 
 (import (only-in :clan/poo/object .cc)
         (only-in :clan/poo/type Record)
-        (only-in :tao3k/yuanxu/modules/funflow/scenario Scenario))
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/scenario Scenario))
 (export ScopeContract)
 
 (def ScopeContract

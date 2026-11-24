@@ -6,8 +6,8 @@
 (import (only-in :clan/poo/mop element?)
         (only-in :std/test check-equal? test-case test-suite)
         (only-in :clan/poo/object .ref .get)
-        (only-in :tao3k/yuanxu/modules/funflow/scenario Scenario)
-        (only-in :tao3k/yuanxu/modules/funflow/control-plane/graph execution-plan?)
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/scenario Scenario)
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/graph execution-plan?)
         (only-in :tao3k/yuanxu/module-system/selection/objects
                  yuanxu-user-module-selection-flags
                  yuanxu-user-module-selection-key)

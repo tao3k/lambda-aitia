@@ -6,7 +6,7 @@
 ;;; Delivery and NASA Profile composition for the GitHub scenario.
 (import (only-in :clan/poo/object .get)
         (only-in :clan/poo/mop .new)
-        (only-in :tao3k/yuanxu/modules/funflow/scenario Scenario)
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/scenario Scenario)
         (only-in :tao3k/yuanxu/profile-composition/profile-bundle profiles compose)
         (only-in :tao3k/yuanxu/profile-composition/selection-syntax use-module))
 (export make-github-gitops-scenario)
