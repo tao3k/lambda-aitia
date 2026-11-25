@@ -148,7 +148,7 @@ jobs:
         run: |
           mkdir -p "$GERBIL_PATH/pkg"
           gerbil pkg dir --add git.cons.io/mighty-gerbils/gerbil-directory
-          timeout --signal=TERM --kill-after=5s 600s bash -e -c '
+          timeout --signal=TERM --kill-after=5s 1800s bash -e -c '
             gerbil env gerbil interactive packages/automation/runtime-dependencies.ss
             cd core
             gerbil env gerbil interactive ../packages/automation/runtime-dependencies.ss
@@ -167,9 +167,12 @@ jobs:
           test "$(git -C core rev-parse HEAD)" = "$(git rev-parse HEAD:core)"
           test -z "$(git -C core status --porcelain --untracked-files=all)"
           gerbil env just build-core
+          if [ "${{ steps.gerbil-package-cache.outputs.cache-hit }}" != "true" ]; then
+            gerbil env gerbil interactive packages/automation/runtime-dependencies.ss --rebuild-core-dependents
+          fi
           gerbil env gerbil pkg link github.com/tao3k/agentic-ai-lab "$PWD"
           # Gerbil emits the package manifest consumed by AITIA's build.
-          timeout --signal=TERM --kill-after=5s 600s gerbil pkg build github.com/tao3k/agentic-ai-lab
+          timeout --signal=TERM --kill-after=5s 1200s gerbil pkg build github.com/tao3k/agentic-ai-lab
           gerbil env just build-library deps-dev build-testing
           printf 'GERBIL_LOADPATH=%s:%s/.gerbil/lib:%s:%s/dev/.gerbil/lib\n' \
             "$GITHUB_WORKSPACE" "$PWD" "$PWD" "$PWD" >> "$GITHUB_ENV"
