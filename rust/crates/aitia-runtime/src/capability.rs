@@ -261,6 +261,53 @@ impl HostCapabilityRegistry {
             .map_err(|error| CapabilityError::Execution(error.to_string()))
     }
 
+    /// Decode a Scheme-emitted JSON frame batch, validate and dispatch it via [`Self::dispatch_batch`],
+    /// and return `(receipt_key, parsed_json_payload)` pairs.
+    ///
+    /// # Errors
+    /// Fails closed on malformed frame descriptors, unknown capabilities, effect-class mismatches,
+    /// missing fence tokens, or capability execution failures.
+    #[cfg(feature = "linked-program")]
+    pub fn dispatch_protocol_frames(
+        &self,
+        raw_frames: &[serde_json::Value],
+    ) -> Result<Vec<(String, serde_json::Value)>, CapabilityError> {
+        let mut frames = Vec::with_capacity(raw_frames.len());
+        let mut keys = Vec::with_capacity(raw_frames.len());
+        for raw in raw_frames {
+            let cap = raw["capability"]
+                .as_str()
+                .ok_or_else(|| CapabilityError::Execution("frame missing capability".to_owned()))?;
+            let effect_class = match raw["effectClass"].as_str() {
+                Some("host-read") => HostEffectClass::HostRead,
+                Some("fenced-effect") => HostEffectClass::FencedEffect,
+                _ => {
+                    return Err(CapabilityError::Execution(
+                        "frame has invalid effectClass".to_owned(),
+                    ));
+                }
+            };
+            let payload = serde_json::to_string(&raw["payload"])
+                .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+            frames.push(CapabilityFrame {
+                capability: CapabilityId::new(cap),
+                effect_class,
+                payload,
+                fence_token: raw["fenceToken"].as_str().map(str::to_owned),
+            });
+            keys.push(raw["receiptKey"].as_str().unwrap_or(cap).to_owned());
+        }
+        let receipts = self.dispatch_batch(&frames)?;
+        keys.into_iter()
+            .zip(receipts)
+            .map(|(key, receipt)| {
+                let parsed = serde_json::from_str(&receipt.payload)
+                    .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+                Ok((key, parsed))
+            })
+            .collect()
+    }
+
     /// Construct the default read-only host capability registry for the linked CLI.
     #[cfg(feature = "linked-program")]
     #[must_use]

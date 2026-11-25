@@ -54,6 +54,7 @@
                  workflow-choice-hypotheses
                  workflow-choice-flow-plan
                  workflow-execute-choice-worlds
+                 workflow-converge-choice-worlds
                  workflow-open-obligation-session
                  workflow-session-snapshot
                  workflow-session-append-evidence!
@@ -77,6 +78,7 @@
         workflow-solve-sdlc-choices
         workflow-choice-flow-plan
         workflow-execute-choice-worlds
+        workflow-converge-choice-worlds
         workflow-open-obligation-session
         workflow-session-snapshot
         workflow-session-append-evidence!
@@ -87,7 +89,8 @@
         workflow-reconcile-step
         workflow-reconcile
         workflow-reconcile-events
-        workflow-retract-premise)
+        workflow-retract-premise
+        workflow-plan-protocol-step)
 
 (def +cut-observe-sig+ (Fun GitOpsCutEvidence <- GitOpsCutRequest))
 (def +config-audit-sig+ (Fun GitOpsConfigEvidence <- GitOpsConfigRequest))
@@ -670,3 +673,104 @@
      (.o (event-kind := 'premise-retracted)
          (premise-id := premise-id)
          (cut := next-cut)))))
+
+;;; Scheme-owned 4-state Inversion-of-Control protocol step (RFC 0008):
+;;;   1. `need-host-frames`: Scheme declares missing read-only HostCapability frames;
+;;;      Rust dispatches them blindly via `HostCapabilityRegistry::dispatch_batch`.
+;;;   2. `need-synthesis-or-human`: all HostRead receipts present, but graph has open
+;;;      synthesis holes, competing worlds, or human audit gates.
+;;;   3. `need-fenced-frames`: unique grounded world with live approval awaiting a
+;;;      fenced effect frame (`action-authorized?: #f` at plan boundary).
+;;;   4. `quiescent`: all obligations discharged with zero open holes or human gates.
+(def (workflow-plan-protocol-step ctx)
+  (unless (object? ctx)
+    (error "workflow-plan-protocol-step expects a POO protocol context" ctx))
+  (let* ((case-id (opt-ref ctx 'case-id 'aitia/case/gitops-commit))
+         (directory (opt-ref ctx 'directory "."))
+         (requested-paths (opt-ref ctx 'requested-paths '()))
+         (model-check-enabled? (opt-ref ctx 'model-check-enabled? #t))
+         (include-pr? (and (opt-ref ctx 'include-pr-observation? #f) #t))
+         (receipts (opt-ref ctx 'receipts (.o)))
+         (has-jj-cut? (and (object? receipts) (opt-ref receipts 'jj-observe-cut #f) #t))
+         (has-sysml-scopes? (and (object? receipts)
+                                 (.slot? receipts 'sysml-project-scopes)
+                                 (list? (.ref receipts 'sysml-project-scopes))))
+         (has-pr? (and (object? receipts) (opt-ref receipts 'github-observe-pr #f) #t))
+         (missing-frames
+          (append
+           (if has-jj-cut?
+             '()
+             (list (.o (capability := "gitops.jj.observe-cut")
+                       (effect-class := 'host-read)
+                       (receipt-key := "gitops.jj.observe-cut")
+                       (payload := (.o (directory := directory)
+                                       (requested-paths := requested-paths))))))
+           (if has-sysml-scopes?
+             '()
+             (list (.o (capability := "sysml.project-scopes")
+                       (effect-class := 'host-read)
+                       (receipt-key := "sysml.project-scopes")
+                       (payload := (.o (directory := directory)
+                                       (enabled := model-check-enabled?))))))
+           (if (and include-pr? (not has-pr?))
+             (list (.o (capability := "gitops.github.observe-pr")
+                       (effect-class := 'host-read)
+                       (receipt-key := "gitops.github.observe-pr")
+                       (payload := (.o (directory := directory)))))
+             '()))))
+    (if (pair? missing-frames)
+      (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
+          (schema := "lambda-aitia.workflow-protocol-step.v1")
+          (state := 'need-host-frames)
+          (case-id := case-id)
+          (frames := missing-frames)
+          (graph := #f)
+          (initial-frontier := #f)
+          (report := #f)
+          (final-frontier := #f)
+          (proposal-admission := #f)
+          (action-authorized? := #f))
+      (let* ((naming (.ref ctx 'naming))
+             (cut (.ref ctx 'cut))
+             (sources (opt-ref ctx 'sources '()))
+             (paths (opt-ref ctx 'paths '()))
+             (proposals (opt-ref ctx 'proposals '()))
+             (observations (opt-ref ctx 'observations '()))
+             (approval-live? (and (opt-ref ctx 'approval-live? #f) #t))
+             (run-reconcile? (opt-ref ctx 'reconcile? #t))
+             (proposal (opt-ref ctx 'proposal #f))
+             (graph (workflow-gitops-commit-graph
+                     naming cut sources paths proposals
+                     observations: observations
+                     approval-live?: approval-live?))
+             (initial (workflow-reconcile-frontier graph))
+             (proposal-res (and proposal (workflow-admit-proposal graph proposal)))
+             (report (if run-reconcile? (workflow-reconcile graph) #f))
+             (final-frontier (if report (.ref report 'final-frontier) (.get initial frontier)))
+             (choice-sol (.get graph choice-solution))
+             (unsat (.ref final-frontier 'unsatisfied-obligations))
+             (blocked (.ref final-frontier 'blocked-on-human-obligations))
+             (holes (.ref final-frontier 'ready-synthesis-holes))
+             (state
+              (cond
+               ((and (null? unsat) (null? blocked) (null? holes))
+                'quiescent)
+               ((and approval-live?
+                     (= (.get choice-sol world-count) 1)
+                     (eq? (.get (car (.get choice-sol worlds)) dispatch-decision) 'fenced-apply)
+                     (null? blocked)
+                     (null? holes))
+                'need-fenced-frames)
+               (else
+                'need-synthesis-or-human))))
+        (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
+            (schema := "lambda-aitia.workflow-protocol-step.v1")
+            (state := state)
+            (case-id := case-id)
+            (frames := '())
+            (graph := graph)
+            (initial-frontier := initial)
+            (report := report)
+            (final-frontier := final-frontier)
+            (proposal-admission := proposal-res)
+            (action-authorized? := #f))))))

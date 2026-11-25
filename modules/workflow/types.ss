@@ -34,6 +34,14 @@
         ChoiceWorldType
         ChoiceFlowPlanType
         ChoiceExecutionType
+        ChoiceConvergenceType
+        ChoiceConvergenceStatusType
+        EpistemicVerdictKind
+        EpistemicProbeEvidence
+        WorkflowProtocolState
+        HostEffectClassKind
+        HostFrameSpecType
+        WorkflowProtocolStepType
         ObligationSessionType
         ChoiceStatusType
         ChoiceOptionSymbolList
@@ -126,12 +134,44 @@
   .element?: (lambda (value)
                (tagged-object? value 'lambda-aitia.workflow.choice-world-execution.v1)))
 
+(define-type (ChoiceConvergenceType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.choice-convergence.v1)))
+
 (define-type (ObligationSessionType @ Type.)
   .element?: (lambda (value)
                (tagged-object? value 'lambda-aitia.workflow.obligation-session.v1)))
 
 (def ChoiceStatusType
   (Enum unique-deduction competing-worlds unsatisfiable))
+
+(def ChoiceConvergenceStatusType
+  (Enum converged-unique irreducible-competition unsatisfiable plan-rejected budget-exhausted))
+
+(def EpistemicVerdictKind
+  (Enum supports refutes inconclusive))
+
+(def EpistemicProbeEvidence
+  (Record kind: [(Enum epistemic-verdict)]
+          verdict: [EpistemicVerdictKind]
+          option: [Symbol]
+          detail: [NonEmptyString]))
+
+(def WorkflowProtocolState
+  (Enum need-host-frames need-synthesis-or-human need-fenced-frames quiescent))
+
+(def HostEffectClassKind
+  (Enum host-read fenced-effect))
+
+(def HostFrameSpecType
+  (Record capability: [NonEmptyString]
+          effect-class: [HostEffectClassKind]
+          receipt-key: [NonEmptyString]
+          payload: [Object]))
+
+(define-type (WorkflowProtocolStepType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.protocol-step.v1)))
 
 (def ChoiceOptionSymbolList
   (List (Or Symbol NonEmptyString)))
@@ -191,6 +231,7 @@
                domain?: [WorkflowObjectPredicate]
                patch-request-type: [WorkflowTypeDescriptor]
                patch-evidence-type: [WorkflowTypeDescriptor]
+               probe-evidence-type: [WorkflowTypeDescriptor]
                make-pure-runner: [(Function (list GovernedRunnerType) '())]
                pure-task-node:
                [(Function (list DeterministicTaskNodeType)
@@ -252,6 +293,12 @@
                [(Function (list ChoiceExecutionType)
                           (list ChoiceSolutionType GovernedRunnerType ChoiceFlowPlanType)
                           keywords: (list (cons 'approval-live?: Bool)))]
+               converge-choice-worlds:
+               [(Function (list ChoiceConvergenceType)
+                          (list ProcedureType GovernedRunnerType ChoiceFlowPlanType)
+                          keywords: (list (cons 'max-rounds: UInt)
+                                          (cons 'approval-live?: Bool)
+                                          (cons 'initial-refuted: ChoiceOptionSymbolList)))]
                open-obligation-session:
                [(Function (list ObligationSessionType)
                           (list ChoiceOptionSymbolList (List ChoiceEdgePair) (List ChoiceEdgePair))
@@ -289,5 +336,7 @@
                                           (cons 'completed-cas: OptionalCasList)))]
                retract-premise:
                [(Function (list ObligationGraphType) (list ObligationGraphType NonEmptyString)
-                          keywords: (list (cons 'new-cut: (Or False UInt))))])
+                          keywords: (list (cons 'new-cut: (Or False UInt))))]
+               plan-protocol-step:
+               [(Function (list WorkflowProtocolStepType) (list Object))])
        identity: 'workflow/scope))

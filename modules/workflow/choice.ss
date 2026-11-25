@@ -57,6 +57,7 @@
         workflow-choice-hypotheses
         workflow-choice-flow-plan
         workflow-execute-choice-worlds
+        workflow-converge-choice-worlds
         workflow-open-obligation-session
         workflow-session-snapshot
         workflow-session-append-evidence!
@@ -596,6 +597,148 @@
                                        (action-authorized? := #f))
                                    t-results)
                              t-blocked)))))))))))))
+
+;;; Stage 4: Active Epistemic Probing & Auto-Refutation Convergence Loop.
+;;; Runs read-only `ChoiceFlowPlan.` probes across surviving Finite-Choice worlds
+;;; against ONE shared `FunflowCasStore` runner. Any probe returning a typed
+;;; `EpistemicProbeEvidence` with `verdict: 'refutes` feeds its `option` into the
+;;; next round's `closed ()` pruning set (`solve-fn refuted-syms`), reusing CAS
+;;; results for untouched prefixes and surviving branch probes until reaching:
+;;;   - `'converged-unique`: 1 surviving world with no further refutations
+;;;   - `'irreducible-competition`: >1 worlds with no further refutations
+;;;   - `'unsatisfiable`: all worlds pruned by closed contradictions (fail-closed)
+;;;   - `'plan-rejected` / `'budget-exhausted`: fail-closed safety stops
+(def (extract-round-verdicts exec-receipt)
+  (let loop ((ws (.get exec-receipt worlds)) (verdicts '()))
+    (if (null? ws)
+      (reverse verdicts)
+      (let* ((w (car ws))
+             (widx (.get w world-index))
+             (trs (.get w task-results)))
+        (let tloop ((ts trs) (acc verdicts))
+          (if (null? ts)
+            (loop (cdr ws) acc)
+            (let* ((tr (car ts))
+                   (val (opt-ref tr 'value #f)))
+              (if (and (object? val)
+                       (eq? (opt-ref val 'kind #f) 'epistemic-verdict)
+                       (memq (opt-ref val 'verdict #f) '(supports refutes inconclusive))
+                       (opt-ref val 'option #f))
+                (tloop (cdr ts)
+                       (cons (.o (kind := 'epistemic-verdict)
+                                 (world-index := widx)
+                                 (task-id := (.get tr task-id))
+                                 (verdict := (.ref val 'verdict))
+                                 (option := (as-symbol (.ref val 'option)))
+                                 (detail := (opt-ref val 'detail ""))
+                                 (cas-hit? := (.get tr cas-hit?))
+                                 (action-authorized? := #f))
+                             acc))
+                (tloop (cdr ts) acc)))))))))
+
+(def (workflow-converge-choice-worlds
+      solve-fn runner plan
+      max-rounds: (max-rounds 4)
+      approval-live?: (approval-live? #f)
+      initial-refuted: (initial-refuted '()))
+  (unless (procedure? solve-fn)
+    (error "workflow-converge-choice-worlds expects a solve-fn procedure" solve-fn))
+  (validate GovernedRunnerType runner)
+  (validate ChoiceFlowPlanType plan)
+  (let loop ((round 0)
+             (refuted (normalize-symbol-list initial-refuted))
+             (rounds-acc '())
+             (exec-total 0)
+             (hit-total 0))
+    (let ((sol (solve-fn refuted)))
+      (validate ChoiceSolutionType sol)
+      (let ((wcount (.get sol world-count)))
+        (if (= wcount 0)
+          (.o (kind := 'lambda-aitia.workflow.choice-convergence.v1)
+              (schema := "lambda-aitia.workflow-choice-convergence.v1")
+              (convergence-status := 'unsatisfiable)
+              (reason := 'choice-space-unsatisfiable)
+              (round-count := round)
+              (rounds := (reverse rounds-acc))
+              (refuted-options := refuted)
+              (final-solution := sol)
+              (final-execution := #f)
+              (total-executions := exec-total)
+              (total-cas-hits := hit-total)
+              (action-authorized? := #f))
+          (let ((exec (workflow-execute-choice-worlds
+                       sol runner plan approval-live?: approval-live?)))
+            (if (not (.get exec admitted?))
+              (.o (kind := 'lambda-aitia.workflow.choice-convergence.v1)
+                  (schema := "lambda-aitia.workflow-choice-convergence.v1")
+                  (convergence-status := 'plan-rejected)
+                  (reason := (.get exec reason))
+                  (round-count := round)
+                  (rounds := (reverse rounds-acc))
+                  (refuted-options := refuted)
+                  (final-solution := sol)
+                  (final-execution := exec)
+                  (total-executions := exec-total)
+                  (total-cas-hits := hit-total)
+                  (action-authorized? := #f))
+              (let* ((next-exec-total (+ exec-total (.get exec total-executions)))
+                     (next-hit-total (+ hit-total (.get exec total-cas-hits)))
+                     (round-verdicts (extract-round-verdicts exec))
+                     (newly-refuted
+                      (delete-duplicates/hash
+                       (filter (lambda (opt) (not (memq opt refuted)))
+                               (map (lambda (v) (.get v option))
+                                    (filter (lambda (v) (eq? (.get v verdict) 'refutes))
+                                            round-verdicts)))))
+                     (round-entry
+                      (.o (kind := 'lambda-aitia.workflow.choice-convergence-round.v1)
+                          (round := round)
+                          (world-count := wcount)
+                          (choice-status := (.get sol choice-status))
+                          (refuted-before := refuted)
+                          (newly-refuted := newly-refuted)
+                          (verdicts := round-verdicts)
+                          (executions := (.get exec total-executions))
+                          (cas-hits := (.get exec total-cas-hits))
+                          (fenced-blocked-count := (.get exec fenced-blocked-count))
+                          (action-authorized? := #f)))
+                     (next-rounds (cons round-entry rounds-acc)))
+                (cond
+                 ((null? newly-refuted)
+                  (let ((final-status (if (= wcount 1)
+                                        'converged-unique
+                                        'irreducible-competition)))
+                    (.o (kind := 'lambda-aitia.workflow.choice-convergence.v1)
+                        (schema := "lambda-aitia.workflow-choice-convergence.v1")
+                        (convergence-status := final-status)
+                        (reason := final-status)
+                        (round-count := (+ round 1))
+                        (rounds := (reverse next-rounds))
+                        (refuted-options := refuted)
+                        (final-solution := sol)
+                        (final-execution := exec)
+                        (total-executions := next-exec-total)
+                        (total-cas-hits := next-hit-total)
+                        (action-authorized? := #f))))
+                 ((>= (+ round 1) max-rounds)
+                  (.o (kind := 'lambda-aitia.workflow.choice-convergence.v1)
+                      (schema := "lambda-aitia.workflow-choice-convergence.v1")
+                      (convergence-status := 'budget-exhausted)
+                      (reason := 'convergence-round-budget-exhausted)
+                      (round-count := (+ round 1))
+                      (rounds := (reverse next-rounds))
+                      (refuted-options := (normalize-symbol-list (append refuted newly-refuted)))
+                      (final-solution := sol)
+                      (final-execution := exec)
+                      (total-executions := next-exec-total)
+                      (total-cas-hits := next-hit-total)
+                      (action-authorized? := #f)))
+                 (else
+                  (loop (+ round 1)
+                        (normalize-symbol-list (append refuted newly-refuted))
+                        next-rounds
+                        next-exec-total
+                        next-hit-total)))))))))))
 
 ;;; Incremental Native ASCENT Obligation Session (Slice B):
 ;;; Opens a retained checked `relational-program` with symbol scalars and

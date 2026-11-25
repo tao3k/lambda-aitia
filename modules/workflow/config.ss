@@ -24,6 +24,8 @@
   build-graph: workflow-gitops-commit-graph
   build-choice-plan: workflow-choice-flow-plan
   execute-plan: workflow-execute-choice-worlds
+  converge-plan: workflow-converge-choice-worlds
+  plan-protocol-step: workflow-plan-protocol-step
   reconcile: workflow-reconcile)
 
 (.def (UnscopedScopeAuditCaseProfile. @ GitOpsCommitCaseProfile.)
@@ -39,7 +41,8 @@
   choice-plan-prototype: ChoiceFlowPlan.
   solve-choices: workflow-solve-sdlc-choices
   build-choice-plan: workflow-choice-flow-plan
-  execute-plan: workflow-execute-choice-worlds)
+  execute-plan: workflow-execute-choice-worlds
+  converge-plan: workflow-converge-choice-worlds)
 
 (.def WorkflowCaseProfiles.
   gitops-commit: GitOpsCommitCaseProfile.
@@ -55,6 +58,7 @@
       domain?: workflow-domain-profile?
       patch-request-type: WorkflowPatchRequest
       patch-evidence-type: WorkflowPatchEvidence
+      probe-evidence-type: EpistemicProbeEvidence
       make-pure-runner: workflow-make-pure-runner
       pure-task-node: workflow-pure-task-node
       evidence-fact: workflow-evidence-fact
@@ -67,6 +71,7 @@
       solve-sdlc-choices: workflow-solve-sdlc-choices
       choice-flow-plan: workflow-choice-flow-plan
       execute-choice-worlds: workflow-execute-choice-worlds
+      converge-choice-worlds: workflow-converge-choice-worlds
       open-obligation-session: workflow-open-obligation-session
       session-snapshot: workflow-session-snapshot
       session-append-evidence!: workflow-session-append-evidence!
@@ -77,4 +82,5 @@
       reconcile-step: workflow-reconcile-step
       reconcile: workflow-reconcile
       reconcile-events: workflow-reconcile-events
-      retract-premise: workflow-retract-premise))
+      retract-premise: workflow-retract-premise
+      plan-protocol-step: workflow-plan-protocol-step))

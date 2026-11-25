@@ -150,6 +150,15 @@ impl AitiaSession {
         self.call_string(move |program| program.workflow_reconcile(&payload))
     }
 
+    /// Execute one Scheme-owned 4-state inversion-of-control workflow protocol step.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn workflow_protocol_step(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.workflow_protocol_step(&payload))
+    }
+
     /// End the session and wait for Scheme cleanup.
     ///
     /// # Errors

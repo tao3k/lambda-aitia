@@ -39,7 +39,8 @@
         aitia-context-operation
         aitia-nasa-draft-payload
         aitia-commit-journal-payload
-        aitia-workflow-reconcile-payload)
+        aitia-workflow-reconcile-payload
+        aitia-workflow-protocol-step-payload)
 
 (def +aitia-decision-schema+ "lambda-aitia.gitops-decision")
 

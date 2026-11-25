@@ -501,4 +501,112 @@
         (check-equal? (member 'SWE-083 (.get s4 discharged)) #f)
         (check-equal? (member 'gitops.commit-semantics (.get s4 discharged)) #f)
         (check (and (member 'SWE-084 (.get s4 discharged)) #t) => #t)
-        (check-equal? (.get s4 action-authorized?) #f)))))
+        (check-equal? (.get s4 action-authorized?) #f)))
+
+    (test-case "11. Active epistemic probing auto-refutes disproven worlds across rounds with cross-round FunFlow CAS reuse"
+      (let* ((g-base ((.get wf gitops-commit-graph)
+                      test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                      approval-live?: #t))
+             (sem (.get g-base semantics-assessment))
+             (solve-with-refuted
+              (lambda (refuted)
+                ((.get wf solve-gitops-choices)
+                 sem test-cut
+                 approval-live?: #t
+                 forbidden-scopes: refuted)))
+             (req-type (.get wf patch-request-type))
+             (ev-type (.get wf patch-evidence-type))
+             (probe-type (.get wf probe-evidence-type))
+             (shared-calls (box 0))
+             (extend-calls (box 0))
+             (declare-calls (box 0))
+             (fenced-calls (box 0))
+             (shared-prefix
+              ((.get wf pure-task-node)
+               "task:conv-shared" "SWE-083" "ev:conv-shared" 'conv-shared
+               req-type ev-type
+               (lambda (req)
+                 (set-box! shared-calls (+ 1 (unbox shared-calls)))
+                 (.o (kind := 'synthesized-patch)
+                     (action := (.get req action))
+                     (targets := (.get req targets))))
+               (.o (action := 'inspect-sysml) (targets := '(".github/workflows/ci.yml")))
+               effect-class: 'pure-cas))
+             (make-verdict-probe
+              (lambda (opt verdict counter detail)
+                ((.get wf pure-task-node)
+                 (string-append "task:epistemic-probe:" (symbol->string opt))
+                 "gitops.commit-semantics"
+                 (string-append "ev:epistemic-probe:" (symbol->string opt))
+                 (string->symbol (string-append "epistemic-probe-" (symbol->string opt)))
+                 req-type probe-type
+                 (lambda (_req)
+                   (set-box! counter (+ 1 (unbox counter)))
+                   (.o (kind := 'epistemic-verdict)
+                       (verdict := verdict)
+                       (option := opt)
+                       (detail := detail)))
+                 (.o (action := opt) (targets := '(".github/workflows/ci.yml")))
+                 effect-class: 'pure-cas)))
+             (fenced-tail-task
+              ((.get wf pure-task-node)
+               "task:conv-fenced" "gitops.commit-applied" "ev:conv-fenced" 'conv-fenced
+               req-type ev-type
+               (lambda (req)
+                 (set-box! fenced-calls (+ 1 (unbox fenced-calls)))
+                 (.o (kind := 'synthesized-patch) (action := 'apply) (targets := '())))
+               (.o (action := 'apply) (targets := '()))
+               effect-class: 'fenced-effect))
+             ;; Case A: extend-existing-scope is refuted -> Round 1 prunes it via closed () & hits CAS on both shared prefix & declare probe!
+             (plan-converge
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope := (list (make-verdict-probe 'extend-existing-scope 'refutes extend-calls "Existing scope ownership policy excludes CI workflows")))
+                   (declare-new-scope := (list (make-verdict-probe 'declare-new-scope 'supports declare-calls "Dedicated ci-infra CommitScope satisfies boundary rules"))))
+               choice-key: 'scope-decision
+               shared-prefix: (list shared-prefix)
+               fenced-tail: (list fenced-tail-task)))
+             (conv-a ((.get wf converge-choice-worlds)
+                      solve-with-refuted ((.get wf make-pure-runner)) plan-converge
+                      approval-live?: #t))
+             ;; Case B: both probes refute -> fail-closed 'unsatisfiable
+             (b1 (box 0))
+             (b2 (box 0))
+             (plan-unsat
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope := (list (make-verdict-probe 'extend-existing-scope 'refutes b1 "Refuted A")))
+                   (declare-new-scope := (list (make-verdict-probe 'declare-new-scope 'refutes b2 "Refuted B"))))
+               choice-key: 'scope-decision))
+             (conv-b ((.get wf converge-choice-worlds)
+                      solve-with-refuted ((.get wf make-pure-runner)) plan-unsat))
+             ;; Case C: both probes inconclusive -> preserves irreducible competition without collapsing!
+             (c1 (box 0))
+             (c2 (box 0))
+             (plan-competing
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope := (list (make-verdict-probe 'extend-existing-scope 'inconclusive c1 "Needs reviewer input")))
+                   (declare-new-scope := (list (make-verdict-probe 'declare-new-scope 'inconclusive c2 "Needs reviewer input"))))
+               choice-key: 'scope-decision))
+             (conv-c ((.get wf converge-choice-worlds)
+                      solve-with-refuted ((.get wf make-pure-runner)) plan-competing)))
+        ;; Case A: converged to unique surviving world with ZERO duplicate probe executions!
+        (check-equal? (.get conv-a convergence-status) 'converged-unique)
+        (check-equal? (.get conv-a round-count) 2)
+        (check-equal? (.get conv-a refuted-options) '(extend-existing-scope))
+        (check-equal? (.get (.get conv-a final-solution) world-count) 1)
+        (check-equal? (.get (car (.get (.get conv-a final-solution) worlds)) scope-decision) 'declare-new-scope)
+        (check-equal? (unbox shared-calls) 1)
+        (check-equal? (unbox extend-calls) 1)
+        (check-equal? (unbox declare-calls) 1)
+        (check-equal? (.get conv-a total-executions) 3)
+        (check-equal? (.get conv-a total-cas-hits) 3)
+        (check-equal? (unbox fenced-calls) 0)
+        (check-equal? (.get conv-a action-authorized?) #f)
+        ;; Case B: all worlds refuted -> fail-closed 'unsatisfiable
+        (check-equal? (.get conv-b convergence-status) 'unsatisfiable)
+        (check-equal? (.get (.get conv-b final-solution) world-count) 0)
+        (check-equal? (.get conv-b action-authorized?) #f)
+        ;; Case C: irreducible competition preserved cleanly in 1 round
+        (check-equal? (.get conv-c convergence-status) 'irreducible-competition)
+        (check-equal? (.get conv-c round-count) 1)
+        (check-equal? (.get (.get conv-c final-solution) world-count) 2)
+        (check-equal? (.get conv-c action-authorized?) #f)))))

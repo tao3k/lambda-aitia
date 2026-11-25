@@ -8,7 +8,8 @@
         (only-in :lambda-aitia/bindings/operations
                  aitia-org-contract-evaluate-payload
                  aitia-gitops-evaluate-payload
-                 aitia-workflow-reconcile-payload))
+                 aitia-workflow-reconcile-payload
+                 aitia-workflow-protocol-step-payload))
 (export aitia-operations-test)
 
 (def +aitia-operations-test-json-read-options+
@@ -114,4 +115,93 @@
         (check (hash-get admission "admitted") => #f)
         (check (hash-get admission "reason") => "raw-single-step-tool-call-forbidden")
         (check (hash-get admission "actionAuthorized") => #f)))
+    (test-case "Scheme 4-state workflow protocol emits host-read frames then converges cleanly on receipts"
+      (let* ((base-naming
+              (hash (projectKey "AITIA")
+                    (primaryLanguage "en")
+                    (languageSources (vector "README.md"))
+                    (types (vector "feat"))
+                    (references (vector (hash (identity "RFC-0008")
+                                              (source "docs/rfcs/0008.org")
+                                              (element "ascent-obligation-funflow"))))))
+             (req1
+              (json->string
+               (hash (caseId "aitia/case/gitops-commit")
+                     (project "lambda-aitia")
+                     (directory ".")
+                     (requestedPaths (vector "README.md" "docs/rfcs/0008.org"))
+                     (modelCheckEnabled #t)
+                     (naming base-naming)
+                     (receipts (hash)))))
+             (step1 (read-aitia-json (aitia-workflow-protocol-step-payload req1)))
+             (frames1 (hash-get step1 "frames"))
+             (cap-ids (map (lambda (f) (hash-get f "capability")) frames1))
+             (receipts2
+              (hash ("gitops.jj.observe-cut"
+                     (hash (cut (hash (workspace "default")
+                                      (change "kxy")
+                                      (operation "op1")
+                                      (commit "abc123")
+                                      (tree "tree123")
+                                      (parents (vector "p0"))))
+                           (paths (vector "modules/workflow/reconcile.ss"))
+                           (sources (vector
+                                     (hash (path "README.md") (text "English readme.\n"))
+                                     (hash (path "docs/rfcs/0008.org")
+                                           (text "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n"))))))
+                    ("sysml.project-scopes"
+                     (vector (hash (name "gitops") (paths (vector "modules/workflow")))))))
+             (req2
+              (json->string
+               (hash (caseId "aitia/case/gitops-commit")
+                     (project "lambda-aitia")
+                     (directory ".")
+                     (naming base-naming)
+                     (receipts receipts2)
+                     (proposals (vector (hash (identity "AITIA-RFC-0008")
+                                              (reference "RFC-0008")
+                                              (language "en")
+                                              (languageSource "README.md")
+                                              (type "feat")
+                                              (scope "gitops")
+                                              (summary "Add 4-state protocol")
+                                              (rationale "Scheme drives host frames"))))
+                     (approvalLive #f)
+                     (reconcile #t))))
+             (step2 (read-aitia-json (aitia-workflow-protocol-step-payload req2)))
+             (rec2 (hash-get step2 "reconciliation"))
+             (req3
+              (json->string
+               (hash (caseId "aitia/case/gitops-commit")
+                     (project "lambda-aitia")
+                     (directory ".")
+                     (naming base-naming)
+                     (receipts receipts2)
+                     (proposals (vector (hash (identity "AITIA-RFC-0008")
+                                              (reference "RFC-0008")
+                                              (language "en")
+                                              (languageSource "README.md")
+                                              (type "feat")
+                                              (scope "gitops")
+                                              (summary "Add 4-state protocol")
+                                              (rationale "Scheme drives host frames"))))
+                     (approvalLive #t)
+                     (reconcile #t))))
+             (step3 (read-aitia-json (aitia-workflow-protocol-step-payload req3))))
+        ;; Round 1: Scheme requests missing host-read frames with zero authority
+        (check (hash-get step1 "schema") => "lambda-aitia.workflow-protocol-step.v1")
+        (check (hash-get step1 "state") => "need-host-frames")
+        (check (length frames1) => 2)
+        (check (and (member "gitops.jj.observe-cut" cap-ids) #t) => #t)
+        (check (and (member "sysml.project-scopes" cap-ids) #t) => #t)
+        (check (hash-get step1 "actionAuthorized") => #f)
+        ;; Round 2 (no approval): converges to need-synthesis-or-human with unique deduction
+        (check (hash-get step2 "state") => "need-synthesis-or-human")
+        (check (hash-get step2 "frames") => '())
+        (check (hash-get rec2 "choiceStatus") => "unique-deduction")
+        (check (hash-get rec2 "choiceWorldCount") => 1)
+        (check (hash-get step2 "actionAuthorized") => #f)
+        ;; Round 2 (with approval): reaches quiescent fixed point with zero authority
+        (check (hash-get step3 "state") => "quiescent")
+        (check (hash-get step3 "actionAuthorized") => #f)))
     ))

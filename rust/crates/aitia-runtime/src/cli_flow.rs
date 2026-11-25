@@ -1,97 +1,101 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-//! Thin `aitia flow` CLI adapter delegating host observations to
-//! [`crate::HostCapabilityRegistry`] and passing raw receipts to Scheme.
+//! Thin `aitia flow` CLI adapter implementing the generic Scheme-driven
+//! 4-state inversion-of-control loop over [`crate::HostCapabilityRegistry`].
 
 use crate::{
-    AitiaProgram, CapabilityFrame, CapabilityId, HostCapabilityRegistry, HostEffectClass,
-    MAX_REQUEST_BYTES, cli, with_linked_program,
+    AitiaProgram, HostCapabilityRegistry, HostEffectClass, MAX_REQUEST_BYTES, cli,
+    with_linked_program,
 };
 use aitia_jj::{WorkspaceCut, observe_project_sources};
-use std::{
-    io::{self, Write},
-    path::Path,
-};
+use std::io::{self, Write};
+use std::path::Path;
+
+const MAX_PROTOCOL_ROUNDS: usize = 8;
+const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json";
 
 pub(super) fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
-    const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json";
     match operation {
-        ["--help" | "-h"] => {
-            writeln!(io::stdout().lock(), "{USAGE}")?;
-            Ok(())
-        }
-        ["capabilities"] => {
-            let descriptors: Vec<serde_json::Value> = HostCapabilityRegistry::default_linked()
-                .descriptors()
-                .into_iter()
-                .map(|(capability, effect_class)| {
-                    let effect = match effect_class {
-                        HostEffectClass::HostRead => "host-read",
-                        HostEffectClass::FencedEffect => "fenced-effect",
-                    };
-                    serde_json::json!({ "capability": capability, "effectClass": effect })
-                })
-                .collect();
-            writeln!(
-                io::stdout().lock(),
-                "{}",
-                serde_json::to_string(&serde_json::json!({
-                    "schema": "lambda-aitia.host-capabilities.v1",
-                    "capabilities": descriptors,
-                    "actionAuthorized": false,
-                }))?
-            )?;
-            Ok(())
-        }
+        ["--help" | "-h"] => writeln!(io::stdout().lock(), "{USAGE}").map_err(Into::into),
+        ["capabilities"] => print_capabilities(),
         ["reconcile"] => {
             let request = cli::read_request()?;
             let response = with_linked_program(|program| program.workflow_reconcile(&request))?;
-            writeln!(io::stdout().lock(), "{response}")?;
-            Ok(())
+            writeln!(io::stdout().lock(), "{response}").map_err(Into::into)
+        }
+        ["run", rest @ ..] => {
+            let (case_id, overlay) = parse_run_args(rest)?;
+            print_json(&execute_project_protocol(case_id, overlay.as_ref())?)
         }
         ["gitops"] | ["gitops", "--proposal-stdin"] => {
-            let overlay: Option<serde_json::Value> = if operation.len() == 2 {
-                Some(serde_json::from_str(&cli::read_request()?)?)
-            } else {
-                None
-            };
-            let observed =
-                observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
-            let response = with_linked_program(|program| {
-                Ok(reconcile_recorded_gitops_flow(
-                    &program,
-                    observed,
-                    overlay.as_ref(),
-                ))
-            })??;
-            writeln!(io::stdout().lock(), "{response}")?;
-            Ok(())
+            let overlay = (operation.len() == 2).then(read_json_stdin).transpose()?;
+            let step = execute_project_protocol("aitia/case/gitops-commit", overlay.as_ref())?;
+            print_json(&step["reconciliation"])
         }
         ["submit-patch"] => {
-            let proposal: serde_json::Value = serde_json::from_str(&cli::read_request()?)?;
-            let overlay = serde_json::json!({ "proposal": proposal, "reconcile": false });
-            let observed =
-                observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
-            let response = with_linked_program(|program| {
-                Ok(reconcile_recorded_gitops_flow(
-                    &program,
-                    observed,
-                    Some(&overlay),
-                ))
-            })??;
-            writeln!(io::stdout().lock(), "{response}")?;
-            Ok(())
+            let overlay = serde_json::json!({ "proposal": read_json_stdin()?, "reconcile": false });
+            let step = execute_project_protocol("aitia/case/gitops-commit", Some(&overlay))?;
+            print_json(&step["reconciliation"])
         }
         _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
     }
 }
 
-fn reconcile_recorded_gitops_flow(
+fn read_json_stdin() -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    Ok(serde_json::from_str(&cli::read_request()?)?)
+}
+
+fn print_json(value: &serde_json::Value) -> Result<(), Box<dyn std::error::Error>> {
+    writeln!(io::stdout().lock(), "{}", serde_json::to_string(value)?).map_err(Into::into)
+}
+
+fn parse_run_args<'a>(
+    rest: &'a [&'a str],
+) -> Result<(&'a str, Option<serde_json::Value>), Box<dyn std::error::Error>> {
+    let (case_id, read_stdin) = match rest {
+        [] => ("aitia/case/gitops-commit", false),
+        ["--proposal-stdin"] => ("aitia/case/gitops-commit", true),
+        ["--case", id] => (*id, false),
+        ["--case", id, "--proposal-stdin"] | ["--proposal-stdin", "--case", id] => (*id, true),
+        _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+    };
+    Ok((case_id, read_stdin.then(read_json_stdin).transpose()?))
+}
+
+fn print_capabilities() -> Result<(), Box<dyn std::error::Error>> {
+    let descriptors: Vec<serde_json::Value> = HostCapabilityRegistry::default_linked()
+        .descriptors()
+        .into_iter()
+        .map(|(capability, effect_class)| {
+            let effect = match effect_class {
+                HostEffectClass::HostRead => "host-read",
+                HostEffectClass::FencedEffect => "fenced-effect",
+            };
+            serde_json::json!({ "capability": capability, "effectClass": effect })
+        })
+        .collect();
+    print_json(&serde_json::json!({
+        "schema": "lambda-aitia.host-capabilities.v1",
+        "capabilities": descriptors,
+        "actionAuthorized": false,
+    }))
+}
+
+fn execute_project_protocol(
+    case_id: &str,
+    overlay: Option<&serde_json::Value>,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let observed = observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
+    with_linked_program(|program| Ok(drive_scheme_protocol(&program, observed, case_id, overlay)))?
+}
+
+fn drive_scheme_protocol(
     program: &AitiaProgram<'_>,
     observed: (WorkspaceCut, aitia_jj::RecordedProjectSources),
+    case_id: &str,
     overlay: Option<&serde_json::Value>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let (cut, project_sources) = observed;
     let source = cli::recorded_configuration_input(&project_sources)?;
     let (_, projection) = program.resolve_project_config(&source)?;
@@ -103,40 +107,14 @@ fn reconcile_recorded_gitops_flow(
     let project = policy["project"]
         .as_str()
         .ok_or_else(|| io::Error::other("No recorded commit project"))?;
-    let requested_paths = cli::review_source_paths(policy)?;
-    let directory = cut.workspace_root().to_string_lossy().into_owned();
-    let registry = HostCapabilityRegistry::default_linked();
-    let receipts = registry.dispatch_batch(&[
-        CapabilityFrame {
-            capability: CapabilityId::new("gitops.jj.observe-cut"),
-            effect_class: HostEffectClass::HostRead,
-            payload: serde_json::json!({
-                "directory": directory,
-                "requestedPaths": requested_paths,
-            })
-            .to_string(),
-            fence_token: None,
-        },
-        CapabilityFrame {
-            capability: CapabilityId::new("sysml.project-scopes"),
-            effect_class: HostEffectClass::HostRead,
-            payload: serde_json::json!({
-                "directory": directory,
-                "enabled": configuration.model_check_enabled(),
-            })
-            .to_string(),
-            fence_token: None,
-        },
-    ])?;
-    let jj_obs: serde_json::Value = serde_json::from_str(&receipts[0].payload)?;
-    let sysml_scopes: serde_json::Value = serde_json::from_str(&receipts[1].payload)?;
-    let mut request = serde_json::json!({
+    let mut state = serde_json::json!({
+        "caseId": case_id,
         "project": project,
-        "cut": jj_obs["cut"],
+        "directory": cut.workspace_root().to_string_lossy().into_owned(),
+        "requestedPaths": cli::review_source_paths(policy)?,
+        "modelCheckEnabled": configuration.model_check_enabled(),
         "naming": policy["naming"],
-        "sysmlScopes": sysml_scopes,
-        "sources": jj_obs["sources"],
-        "paths": jj_obs["paths"],
+        "receipts": {},
         "proposals": [],
         "observations": [],
         "approvalLive": false,
@@ -149,12 +127,30 @@ fn reconcile_recorded_gitops_flow(
             "observations",
             "approvalLive",
             "reconcile",
+            "includePrObservation",
         ] {
             if let Some(value) = extra.get(field) {
-                request[field] = value.clone();
+                state[field] = value.clone();
             }
         }
     }
-    let payload = serde_json::to_string(&request)?;
-    Ok(program.workflow_reconcile(&payload)?)
+    let registry = HostCapabilityRegistry::default_linked();
+    for _ in 0..MAX_PROTOCOL_ROUNDS {
+        let req = serde_json::to_string(&state)?;
+        let step: serde_json::Value = serde_json::from_str(&program.workflow_protocol_step(&req)?)?;
+        if step["state"].as_str() != Some("need-host-frames") {
+            return Ok(step);
+        }
+        let raw_frames = step["frames"]
+            .as_array()
+            .ok_or_else(|| io::Error::other("Scheme protocol step missing frames array"))?;
+        let receipts = registry.dispatch_protocol_frames(raw_frames)?;
+        let map = state["receipts"]
+            .as_object_mut()
+            .ok_or_else(|| io::Error::other("protocol receipts must be an object"))?;
+        for (key, payload) in receipts {
+            map.insert(key, payload);
+        }
+    }
+    Err(io::Error::other("workflow protocol exceeded host frame round budget").into())
 }
