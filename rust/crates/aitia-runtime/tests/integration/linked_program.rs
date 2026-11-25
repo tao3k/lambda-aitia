@@ -154,6 +154,7 @@ fn compiled_project_declaration_requires_its_recorded_source() {
         "identity":"WORK-1", "source":".agents/aita/work.org", "element":"work-1"
     }]);
     naming["languageSources"] = json!([".agents/aita/work.org"]);
+    naming["scopes"] = json!([{"name": "gitops", "paths": [".agents/aita", "Model.sysml"]}]);
     std::fs::write(&data, serde_json::to_vec(&overlay).unwrap()).unwrap();
     write_commit_work_item(root);
     record(&["describe", "-m", "Record the commit policy overlay"]);
