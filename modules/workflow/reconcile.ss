@@ -48,6 +48,11 @@
                  plan-funflow-c4-frontier)
         (only-in "../gitops/commit-semantics.ss" gitops-commit-semantics)
         (only-in "../gitops/commit-evidence.ss" gitops-commit-evidence)
+        (only-in "./choice.ss"
+                 workflow-solve-gitops-choices
+                 workflow-choice-hypotheses
+                 workflow-choice-flow-plan
+                 workflow-execute-choice-worlds)
         (only-in "./types.ss"
                  WorkflowEffectClass WorkflowOriginTier WorkflowTypeDescriptor
                  GitOpsCutRequest GitOpsCutEvidence
@@ -63,6 +68,9 @@
         workflow-dag-patch
         workflow-competing-branches
         workflow-raw-tool-call
+        workflow-solve-gitops-choices
+        workflow-choice-flow-plan
+        workflow-execute-choice-worlds
         workflow-gitops-commit-graph
         workflow-reconcile-frontier
         workflow-admit-proposal
@@ -155,31 +163,10 @@
                (eq? (.get obs outcome) 'passed)))
         observations))
 
-(def (semantics-hypotheses semantics)
-  (let ((unscoped (.get semantics unscoped-paths))
-        (open-rows (.get semantics open)))
-    (append
-     (if (pair? unscoped)
-       (list
-        (make-hypothesis
-         "hyp:scope-registration-missing"
-         "Changed paths belong to an existing scope whose project.json path list is incomplete."
-         open-questions: (list (list 'unscoped-paths unscoped)))
-        (make-hypothesis
-         "hyp:separate-scope-required"
-         "Changed paths represent an independent governance scope and should not be folded into gitops."
-         open-questions: (list (list 'unscoped-paths unscoped))))
-       '())
-     (if (and (null? unscoped) (pair? open-rows))
-       (list
-        (make-hypothesis
-         "hyp:proposal-narration-incomplete"
-         "Current commit proposal violates naming, reference, or language grounding contracts."
-         open-questions: open-rows))
-       '()))))
-
-;;; Build an immutable Lab `ObligationGraph.` directly from Lambda Aitia's native
-;;; `gerbil-ascent` GitOps semantics and commit-evidence observations.
+;;; Build an immutable Lab `ObligationGraph.` directly from Lambda Aitia's
+;;; two-stage native `gerbil-ascent` pipeline:
+;;;   Stage 1: stratified `gitops-commit-semantics` + `gitops-commit-evidence`
+;;;   Stage 2: Lean-verified `relational-choice-program` (`workflow-solve-gitops-choices`)
 (def (workflow-gitops-commit-graph
       naming cut sources paths proposals
       graph-id: (graph-id "aitia.gitops-commit")
@@ -187,11 +174,20 @@
       observations: (observations '())
       approval-live?: (approval-live? #f)
       cedar-grant-live?: (cedar-grant-live? #t)
+      candidate-offers: (candidate-offers '())
+      forbidden-scopes: (forbidden-scopes '())
+      state-budget: (state-budget 32)
       extra-hypotheses: (extra-hypotheses '())
       extra-tasks: (extra-tasks '()))
   (let* ((commit-id (.get cut commit))
          (cut-premise (string-append "premise:cut:" commit-id))
          (semantics (gitops-commit-semantics naming cut sources paths proposals))
+         (choice-solution (workflow-solve-gitops-choices
+                           semantics cut
+                           approval-live?: approval-live?
+                           candidate-offers: candidate-offers
+                           forbidden-scopes: forbidden-scopes
+                           state-budget: state-budget))
          (evidence-view (gitops-commit-evidence cut '("SWE-083" "SWE-084") observations))
          (swe-83-ok? (and (observation-for-obligation observations "SWE-083") #t))
          (swe-84-ok? (and (observation-for-obligation observations "SWE-084") #t))
@@ -332,7 +328,7 @@
             description: "Propose a bounded TypedFunflowDagPatch or BoundedCompetingBranches to resolve unscoped paths or incomplete commit narration."
             premise-ids: (list cut-premise)
             max-branches: 4)))
-         (hypotheses (append (semantics-hypotheses semantics) extra-hypotheses)))
+         (hypotheses (append (workflow-choice-hypotheses choice-solution) extra-hypotheses)))
     (.o (:: @ (make-obligation-graph
                graph-id
                cut: cut-index
@@ -343,6 +339,7 @@
                synthesis-holes: synthesis-holes
                cedar-grant-live?: cedar-grant-live?))
         (semantics-assessment := semantics)
+        (choice-solution := choice-solution)
         (evidence-assessment := evidence-view)
         (cut-premise := cut-premise))))
 
@@ -367,6 +364,7 @@
     (.o (schema := "lambda-aitia.workflow-frontier.v1")
         (frontier := frontier)
         (funflow-plan := funflow-plan)
+        (choice-solution := (opt-ref graph 'choice-solution #f))
         (frontier-mode := (.ref frontier 'frontier-mode))
         (quiescent? := (.ref frontier 'quiescent?))
         (discharged-obligations := (.ref frontier 'discharged-obligations))

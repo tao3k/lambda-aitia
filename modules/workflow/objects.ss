@@ -6,10 +6,11 @@
 ;;; DE and user projects specialize domains via standard POO prototype
 ;;; composition (`:: @`), never a separate custom workflow DSL.
 
-(import (only-in :clan/poo/object .def))
+(import (only-in :clan/poo/object .def .o))
 
 (export AitiaWorkflowDomain.
-        GitOpsCommitWorkflowDomain.)
+        GitOpsCommitWorkflowDomain.
+        ChoiceFlowPlan.)
 
 (.def AitiaWorkflowDomain.
   aitia-workflow-domain?: #t
@@ -30,3 +31,15 @@
   synthesis-hole-id: "hole:gitops-commit-narration-or-scope"
   human-gate-obligation: "gitops.commit-review-approved"
   fenced-effect-obligation: "gitops.commit-applied")
+
+;;; Declarative POO prototype for Finite-Choice -> Typed FunFlow routing
+;;; (the Coproduct/ArrowChoice dual of FunFlow's Product `flow-fanout`).
+;;; DE extends branches via standard POO prototype composition (`:: @`),
+;;; never an opaque routing callback or custom workflow DSL.
+(.def ChoiceFlowPlan.
+  kind: 'lambda-aitia.workflow.choice-flow-plan.v1
+  choice-key: 'scope-decision
+  shared-prefix: '()
+  branches: (.o)
+  fenced-tail: '()
+  action-authorized?: #f)

@@ -54,16 +54,24 @@
 (def aitia-workflow-reconcile-test
   (test-suite "Lambda Aitia RFC 0008 native ASCENT + FunFlow workflow reconciliation"
 
-    (test-case "1. POO prototype composition extends workflow domain without a custom DSL"
+    (test-case "1. POO prototype composition extends workflow domain and config.ss case profiles without a custom DSL"
       (let* ((base (.get wf gitops-commit-domain))
              (custom (.o (:: @ base)
                          domain-id: 'de/custom-gitops-commit
-                         default-max-branches: 3)))
+                         default-max-branches: 3))
+             (case-prof (.get wf profiles gitops-commit))
+             (custom-case (.o (:: @ case-prof)
+                              case-id: 'de/case/custom-review
+                              state-budget: 16)))
         (check-equal? ((.get wf domain?) base) #t)
         (check-equal? ((.get wf domain?) custom) #t)
+        (check-equal? ((.get wf domain?) case-prof) #t)
         (check-equal? (.get custom domain-id) 'de/custom-gitops-commit)
         (check-equal? (.get custom raw-tool-calls-allowed?) #f)
-        (check-equal? (.get custom action-authorized?) #f)))
+        (check-equal? (.get custom action-authorized?) #f)
+        (check-equal? (.get case-prof case-id) 'aitia/case/gitops-commit)
+        (check-equal? (.get custom-case case-id) 'de/case/custom-review)
+        (check-equal? (.get custom-case allow-fenced-in-competition?) #f)))
 
     (test-case "2. Deterministic-first FunFlow frontier batches disjoint checks with 0 LLM calls and stops at human audit gate"
       (let* ((g0 ((.get wf gitops-commit-graph)
@@ -198,4 +206,170 @@
         (check-equal? (member "ev:SWE-083" live-ids) #f)
         (check-equal? (member "ev:gitops-commit-receipt" live-ids) #f)
         (check-equal? (.get f-after frontier-mode) 'dispatch-deterministic-funflow)
-        (check-equal? (length (.get f-after unsatisfied-obligations)) 5)))))
+        (check-equal? (length (.get f-after unsatisfied-obligations)) 5)))
+
+    (test-case "5. Native ASCENT Finite-Choice forces closed 'deduction (overriding open offers) and branches with provenance on unscoped paths"
+      ;; Clean single-scope cut + hallucinated open offer: closed singleton wins via forced 'deduction!
+      (let* ((g-clean ((.get wf gitops-commit-graph)
+                       test-naming test-cut test-sources '("justfile") (list valid-proposal)
+                       candidate-offers: '(hallucinated-scope)
+                       approval-live?: #f))
+             (sol-clean (.get g-clean choice-solution))
+             (w-clean (car (.get sol-clean worlds))))
+        (check-equal? (.get sol-clean choice-status) 'unique-deduction)
+        (check-equal? (.get sol-clean world-count) 1)
+        (check-equal? (.get sol-clean action-authorized?) #f)
+        (check-equal? (.get w-clean scope-decision) 'gitops)
+        (check-equal? (.get w-clean dispatch-decision) 'human-audit-gate)
+        (check-equal? (.get w-clean scope-derivation-kind) 'deduction)
+        (check-equal? (.get w-clean dispatch-derivation-kind) 'deduction)
+        (check (pair? (.get w-clean scope-provenance)) => #t)
+        (check (pair? (.get w-clean dispatch-provenance)) => #t))
+      ;; Unscoped cut + hallucinated open offer: closed 2-way disjunction restricts to exactly 2 competing worlds!
+      (let* ((g-unscoped ((.get wf gitops-commit-graph)
+                          test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                          candidate-offers: '(bypass-all-scopes)
+                          approval-live?: #f))
+             (sol-unscoped (.get g-unscoped choice-solution))
+             (worlds (.get sol-unscoped worlds))
+             (scopes (map (lambda (w) (.get w scope-decision)) worlds)))
+        (check-equal? (.get sol-unscoped choice-status) 'competing-worlds)
+        (check-equal? (.get sol-unscoped world-count) 2)
+        (check (and (member 'extend-existing-scope scopes) #t) => #t)
+        (check (and (member 'declare-new-scope scopes) #t) => #t)
+        (check-equal? (member 'bypass-all-scopes scopes) #f)
+        (for-each (lambda (w)
+                    (check-equal? (.get w scope-derivation-kind) 'branch)
+                    (check-equal? (.get w dispatch-decision) 'epistemic-competition)
+                    (check (pair? (.get w scope-provenance)) => #t)
+                    (check-equal? (.get w action-authorized?) #f))
+                  worlds)))
+
+    (test-case "6. Finite-Choice empty closed rule prunes refuted worlds and detects unsatisfiable contradictions fail-closed"
+      ;; Refuting one of the two competing scope hypotheses leaves only the surviving world
+      (let* ((g-pruned ((.get wf gitops-commit-graph)
+                        test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                        forbidden-scopes: '(extend-existing-scope)))
+             (sol-pruned (.get g-pruned choice-solution)))
+        (check-equal? (.get sol-pruned world-count) 1)
+        (check-equal? (.get (car (.get sol-pruned worlds)) scope-decision) 'declare-new-scope))
+      ;; Refuting both competing hypotheses prunes all worlds -> 'unsatisfiable fail-closed!
+      (let* ((g-unsat ((.get wf gitops-commit-graph)
+                       test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                       forbidden-scopes: '(extend-existing-scope declare-new-scope)))
+             (sol-unsat (.get g-unsat choice-solution))
+             (hyp-ids (map (lambda (h) (.ref h 'hypothesis-id)) (.ref g-unsat 'hypotheses))))
+        (check-equal? (.get sol-unsat choice-status) 'unsatisfiable)
+        (check-equal? (.get sol-unsat world-count) 0)
+        (check (and (member "hyp:choice-space-unsatisfiable" hyp-ids) #t) => #t)))
+
+    (test-case "7. Declarative POO ChoiceFlowPlan enforces static branch completeness, shares FunFlow CAS prefixes ONCE, and blocks FencedEffect across competing worlds"
+      (let* ((g-unscoped ((.get wf gitops-commit-graph)
+                          test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                          approval-live?: #t))
+             (choice-sol (.get g-unscoped choice-solution))
+             (runner ((.get wf make-pure-runner)))
+             (req-type (.get wf patch-request-type))
+             (ev-type (.get wf patch-evidence-type))
+             (shared-calls (box 0))
+             (probe-calls (box 0))
+             (fenced-calls (box 0))
+             (shared-prefix-task
+              ((.get wf pure-task-node)
+               "task:shared-sysml-prefix"
+               "SWE-083"
+               "ev:shared-sysml-prefix"
+               'shared-sysml-prefix
+               req-type
+               ev-type
+               (lambda (req)
+                 (set-box! shared-calls (+ 1 (unbox shared-calls)))
+                 (.o (kind := 'synthesized-patch)
+                     (action := (.get req action))
+                     (targets := (.get req targets))))
+               (.o (action := 'inspect-sysml-tree) (targets := '(".github/workflows/ci.yml")))
+               read-footprint: '(sysml-model)
+               write-footprint: '()
+               effect-class: 'pure-cas))
+             (make-probe
+              (lambda (sdec)
+                ((.get wf pure-task-node)
+                 (string-append "task:probe:" (symbol->string sdec))
+                 "gitops.commit-semantics"
+                 (string-append "ev:probe:" (symbol->string sdec))
+                 (string->symbol (string-append "probe-" (symbol->string sdec)))
+                 req-type
+                 ev-type
+                 (lambda (req)
+                   (set-box! probe-calls (+ 1 (unbox probe-calls)))
+                   (.o (kind := 'synthesized-patch)
+                       (action := (.get req action))
+                       (targets := (.get req targets))))
+                 (.o (action := sdec) (targets := '(".github/workflows/ci.yml")))
+                 read-footprint: '(sysml-model)
+                 write-footprint: '()
+                 effect-class: 'pure-cas)))
+             (fenced-apply-task
+              ((.get wf pure-task-node)
+               "task:fenced-apply"
+               "gitops.commit-applied"
+               "ev:gitops-commit-receipt"
+               'fenced-commit-apply
+               req-type
+               ev-type
+               (lambda (req)
+                 (set-box! fenced-calls (+ 1 (unbox fenced-calls)))
+                 (.o (kind := 'synthesized-patch)
+                     (action := (.get req action))
+                     (targets := (.get req targets))))
+               (.o (action := 'apply-commit) (targets := '(".github/workflows/ci.yml")))
+               read-footprint: '(sysml-model)
+               write-footprint: '(jj-commit-history)
+               effect-class: 'fenced-effect))
+             ;; Negative control 1: incomplete POO ChoiceFlowPlan fails closed with 0 executions!
+             (incomplete-plan
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope := (list (make-probe 'extend-existing-scope))))
+               choice-key: 'scope-decision
+               shared-prefix: (list shared-prefix-task)))
+             (incomplete-res
+              ((.get wf execute-choice-worlds) choice-sol runner incomplete-plan approval-live?: #t))
+             ;; Complete declarative POO ChoiceFlowPlan (zero opaque routing callback!)
+             (complete-plan
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope := (list (make-probe 'extend-existing-scope)))
+                   (declare-new-scope := (list (make-probe 'declare-new-scope))))
+               choice-key: 'scope-decision
+               shared-prefix: (list shared-prefix-task)
+               fenced-tail: (list fenced-apply-task)))
+             (exec
+              ((.get wf execute-choice-worlds) choice-sol runner complete-plan approval-live?: #t)))
+        ;; Incomplete plan failed closed BEFORE running shared-prefix!
+        (check-equal? (.get incomplete-res admitted?) #f)
+        (check-equal? (.get incomplete-res reason) 'incomplete-choice-flow-branches)
+        (check-equal? (.get incomplete-res missing-branches) '(declare-new-scope))
+        (check-equal? (.get incomplete-res total-executions) 0)
+        ;; Negative control 2: FencedEffect is forbidden inside shared-prefix
+        (check-exception
+         ((.get wf choice-flow-plan)
+          (.o (extend-existing-scope := '()))
+          shared-prefix: (list fenced-apply-task))
+         Error?)
+        ;; Complete plan: shared prefix executed ONCE, second world served from FunFlow CAS!
+        (check-equal? (.get exec admitted?) #t)
+        (check-equal? (.get exec choice-status) 'competing-worlds)
+        (check-equal? (.get exec world-count) 2)
+        (check-equal? (unbox shared-calls) 1)
+        (check-equal? (unbox probe-calls) 2)
+        (check-equal? (.get exec total-executions) 3)
+        (check-equal? (.get exec total-cas-hits) 1)
+        ;; FencedEffect strictly blocked in ALL competing worlds even with approval-live?: #t!
+        (check-equal? (unbox fenced-calls) 0)
+        (check-equal? (.get exec fenced-blocked-count) 2)
+        (check-equal? (.get exec action-authorized?) #f)
+        (let ((w0 (car (.get exec worlds)))
+              (w1 (cadr (.get exec worlds))))
+          (check-equal? (.get w0 cas-hits) 0)
+          (check-equal? (.get w1 cas-hits) 1)
+          (check-equal? (.get (car (.get w0 fenced-blocked-tasks)) reason)
+                        'fenced-effect-blocked-in-competing-worlds))))))

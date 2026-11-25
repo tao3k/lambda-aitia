@@ -445,8 +445,11 @@ check-rust-zero-loadpath: build-rust-cli
     grep -Fq '"releaseAuthorized":false' <<< "$out"
     manifest="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" project-manifest)"
     grep -Fq '"schemaVersion":1' <<< "$manifest"
-    flow_out="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" flow gitops)"
+    flow_req='{"project":"lambda-aitia","cut":{"workspace":"default","change":"kxy","operation":"op1","commit":"abc123","tree":"tree123","parents":["p0"]},"naming":{"projectKey":"AITIA","primaryLanguage":"en","languageSources":["README.md"],"types":["feat"],"references":[{"identity":"RFC-0008","source":"docs/rfcs/0008.org","element":"ascent-obligation-funflow"}]},"sysmlScopes":[{"name":"gitops","paths":["modules/workflow"]}],"sources":[{"path":"README.md","text":"English readme.\n"},{"path":"docs/rfcs/0008.org","text":"* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n"}],"paths":["modules/workflow/reconcile.ss"],"proposals":[{"identity":"AITIA-RFC-0008","reference":"RFC-0008","language":"en","languageSource":"README.md","type":"feat","scope":"gitops","summary":"Zero loadpath choice flow","rationale":"Verify Finite-Choice and FunFlow without GERBIL_LOADPATH."}],"observations":[],"approvalLive":false,"reconcile":true}'
+    flow_out="$(printf '%s\n' "$flow_req" | env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" flow reconcile)"
     grep -Fq '"schema":"lambda-aitia.workflow-reconcile.v1"' <<< "$flow_out"
+    grep -Fq '"choiceStatus":"unique-deduction"' <<< "$flow_out"
+    grep -Fq '"choiceWorldCount":1' <<< "$flow_out"
     grep -Fq '"actionAuthorized":false' <<< "$flow_out"
 
 # Qualify the linked program, Quint consumer and the exact wheel built here.

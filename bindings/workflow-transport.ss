@@ -107,6 +107,51 @@
                                (if (string? q) q (call-with-output-string (lambda (p) (write q p)))))
                              (.ref hyp 'open-questions))))))
 
+(def (scalar->json value)
+  (cond
+   ((symbol? value) (symbol->string value))
+   ((or (string? value) (number? value) (boolean? value)) value)
+   (else (call-with-output-string (lambda (p) (write value p))))))
+
+(def (provenance-step->json step)
+  (let ((kind (car step))
+        (assignment (cadr step))
+        (supports (caddr step)))
+    (hash (kind (symbol->string kind))
+          (relation (symbol->string (car assignment)))
+          (args (list->vector (map scalar->json (cdr assignment))))
+          (supports
+           (list->vector
+            (map (lambda (sup)
+                   (let ((ordinal (list-ref sup 0))
+                         (head-kind (list-ref sup 1))
+                         (premises (list-ref sup 3))
+                         (offered (list-ref sup 4)))
+                     (hash (ordinal ordinal)
+                           (headKind (symbol->string head-kind))
+                           (premises
+                            (list->vector
+                             (map (lambda (p) (list->vector (map scalar->json p)))
+                                  premises)))
+                           (offered (list->vector (map scalar->json offered))))))
+                 supports))))))
+
+(def (choice-world->json world)
+  (let ((sdec (.get world scope-decision))
+        (ddec (.get world dispatch-decision))
+        (skind (.get world scope-derivation-kind))
+        (dkind (.get world dispatch-derivation-kind)))
+    (hash (worldIndex (.get world world-index))
+          (scopeDecision (and sdec (symbol->string sdec)))
+          (dispatchDecision (and ddec (symbol->string ddec)))
+          (scopeDerivationKind (and skind (symbol->string skind)))
+          (dispatchDerivationKind (and dkind (symbol->string dkind)))
+          (scopeProvenance
+           (list->vector (map provenance-step->json (.get world scope-provenance))))
+          (dispatchProvenance
+           (list->vector (map provenance-step->json (.get world dispatch-provenance))))
+          (actionAuthorized #f))))
+
 (def (branch-matrix->json matrix)
   (and matrix
        (hash (kind (symbol->string (.ref matrix 'kind)))
@@ -160,11 +205,16 @@
                              (json-workflow-proposal wf raw-proposal))))
          (report (if run-reconcile? ((.get wf reconcile) graph) #f))
          (final-frontier (if report (.ref report 'final-frontier) (.get initial frontier)))
-         (semantics (.get graph semantics-assessment)))
+         (semantics (.get graph semantics-assessment))
+         (choice-sol (.get graph choice-solution)))
     (json->string
      (hash (schema "lambda-aitia.workflow-reconcile.v1")
            (project project)
            (commit (.get cut commit))
+           (choiceStatus (symbol->string (.get choice-sol choice-status)))
+           (choiceWorldCount (.get choice-sol world-count))
+           (choiceWorlds
+            (list->vector (map choice-world->json (.get choice-sol worlds))))
            (initialFrontierMode (symbol->string (.get initial frontier-mode)))
            (initialParallelBatch (list->vector initial-batch))
            (subagentsSpawned subagents)

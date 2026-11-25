@@ -2,16 +2,43 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o)
+(import (only-in :clan/poo/object .def .o)
         "types.ss"
         "objects.ss"
         "func.ss"
         "reconcile.ss")
-(export Config)
+(export Config
+        GitOpsCommitCaseProfile.
+        UnscopedScopeAuditCaseProfile.
+        WorkflowCaseProfiles.)
+
+;;; Role: `config.ss` owns Profile & Case DAG/Flow composition via pure POO
+;;; prototype inheritance (`:: @`), without inventing a custom workflow DSL.
+(.def (GitOpsCommitCaseProfile. @ GitOpsCommitWorkflowDomain.)
+  case-id: 'aitia/case/gitops-commit
+  choice-key: 'scope-decision
+  state-budget: 32
+  allow-fenced-in-competition?: #f
+  choice-plan-prototype: ChoiceFlowPlan.
+  build-graph: workflow-gitops-commit-graph
+  build-choice-plan: workflow-choice-flow-plan
+  execute-plan: workflow-execute-choice-worlds
+  reconcile: workflow-reconcile)
+
+(.def (UnscopedScopeAuditCaseProfile. @ GitOpsCommitCaseProfile.)
+  case-id: 'aitia/case/unscoped-scope-audit
+  default-max-branches: 4
+  allow-fenced-in-competition?: #f)
+
+(.def WorkflowCaseProfiles.
+  gitops-commit: GitOpsCommitCaseProfile.
+  unscoped-scope-audit: UnscopedScopeAuditCaseProfile.)
 
 (def Config
   (.o domain-prototype: AitiaWorkflowDomain.
       gitops-commit-domain: GitOpsCommitWorkflowDomain.
+      choice-flow-plan-prototype: ChoiceFlowPlan.
+      profiles: WorkflowCaseProfiles.
       domain?: workflow-domain-profile?
       patch-request-type: WorkflowPatchRequest
       patch-evidence-type: WorkflowPatchEvidence
@@ -23,6 +50,9 @@
       dag-patch: workflow-dag-patch
       competing-branches: workflow-competing-branches
       raw-tool-call: workflow-raw-tool-call
+      solve-gitops-choices: workflow-solve-gitops-choices
+      choice-flow-plan: workflow-choice-flow-plan
+      execute-choice-worlds: workflow-execute-choice-worlds
       gitops-commit-graph: workflow-gitops-commit-graph
       reconcile-frontier: workflow-reconcile-frontier
       admit-proposal: workflow-admit-proposal

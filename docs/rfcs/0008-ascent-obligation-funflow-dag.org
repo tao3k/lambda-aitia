@@ -28,15 +28,27 @@ In accordance with =core/module-system/design/44-current-project-programming-sty
 =AGENTS.md=, =lambda-aitia= MUST NOT invent a parallel workflow macro DSL or shadow interpreter
 that hides or duplicates native =gerbil-ascent= or =gerbil-poo=:
 
-1. *Reasoning and Frontier Plane*: Native =gerbil-ascent= Datalog/Lattice programs
-   (=ascent= / =relational-program=), reused directly from =modules/gitops/commit-semantics.ss=,
-   =modules/gitops/commit-evidence.ss=, and =agentic-ai-lab/modules/graph-engine/ascent-reconciler.ss=.
+1. *Reasoning and Frontier Plane*: Native =gerbil-ascent= two-stage pure relational pipeline:
+   - *Stage 1 (Stratified Fact & Closure Layer)*: =ascent= / =relational-program= reused from
+     =modules/gitops/commit-semantics.ss=, =modules/gitops/commit-evidence.ss=, and
+     =agentic-ai-lab/modules/graph-engine/ascent-reconciler.ss= for stratified negation, SysML v2
+     scope projection, Org contract verification, and transitive obligation closure.
+   - *Stage 2 (Lean-Verified Finite-Choice Multi-World Solver)*: Native =relational-choice-program=
+     and =relational-choice-solve= with detached =provenance?: #t= derivation witnesses
+     (=modules/workflow/choice.ss=). Hard graph/SysML/policy invariants are encoded as =closed= rules
+     (singleton intersection triggers forced ='deduction= with 0 LLM calls; empty closed =()= prunes
+     contradictions automatically), while bounded Agent/LLM divergence and cross-scope candidates are
+     encoded as =open= offers bounded by =state-budget:=.
 2. *Object and Extension Plane*: Native =gerbil-poo= prototypes and pure constructors
    (=Obligation.=, =Hypothesis.=, =EvidenceFact.=, =DeterministicTaskNode.=, =SynthesisHole.=,
    =ObligationGraph.=, =AitiaWorkflowDomain.=, =GitOpsCommitWorkflowDomain.=). DE and user projects
    extend domains through ordinary POO prototype composition (=:: @=), never a custom DSL.
-3. *Execution and Effect-Fence Plane*: =agentic-ai-lab/modules/funflow= (=PureCAS.=,
+3. *Execution and Cross-World CAS Plane*: =agentic-ai-lab/modules/funflow= (=PureCAS.=,
    =VerifiedEpistemic.=, =FencedEffect.=, =ParallelFrontierStrategy.=, =GovernedFunflowRunner.=).
+   Surviving Finite-Choice worlds share one =FunflowCasStore= (=workflow-execute-choice-worlds=):
+   shared read-only prefixes compute ONCE (=cas-hit?: #t= on subsequent worlds), diverging epistemic
+   probes run independently, and =FencedEffect.= transitions are strictly blocked whenever
+   =world-count != 1= or signed human approval is absent.
 4. *Wire / Agent Projection Plane*: Thin, pure JSON/Schema projections over admitted POO facts for
    Rust =AitiaSession= and LLM callers (=reconcile= / =submit_patch= / =submit_decision=).
 

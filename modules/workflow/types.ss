@@ -30,6 +30,12 @@
         GovernedRunnerType
         OrchestratorStrategyType
         WorkflowEventType
+        ChoiceSolutionType
+        ChoiceWorldType
+        ChoiceFlowPlanType
+        ChoiceExecutionType
+        ChoiceStatusType
+        ChoiceOptionSymbolList
         GitOpsCutRequest
         GitOpsCutEvidence
         GitOpsConfigRequest
@@ -98,6 +104,33 @@
 (define-type (OrchestratorStrategyType @ Type.)
   .element?: (lambda (value) (and (object? value) (.slot? value '.admit-frontier))))
 
+(define-type (ChoiceSolutionType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.choice-solution.v1)))
+
+(define-type (ChoiceWorldType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.choice-world.v1)))
+
+(define-type (ChoiceFlowPlanType @ Type.)
+  .element?: (lambda (value)
+               (and (tagged-object? value 'lambda-aitia.workflow.choice-flow-plan.v1)
+                    (.slot? value 'choice-key)
+                    (.slot? value 'shared-prefix)
+                    (.slot? value 'branches)
+                    (object? (.ref value 'branches))
+                    (.slot? value 'fenced-tail))))
+
+(define-type (ChoiceExecutionType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.choice-world-execution.v1)))
+
+(def ChoiceStatusType
+  (Enum unique-deduction competing-worlds unsatisfiable))
+
+(def ChoiceOptionSymbolList
+  (List (Or Symbol NonEmptyString)))
+
 (def WorkflowEffectClass
   (Enum pure-cas verified-epistemic fenced-effect))
 
@@ -144,6 +177,8 @@
 (def WorkflowScopeContract
   (.cc (Record domain-prototype: [WorkflowDomainProfileType]
                gitops-commit-domain: [WorkflowDomainProfileType]
+               choice-flow-plan-prototype: [ChoiceFlowPlanType]
+               profiles: [Object]
                domain?: [WorkflowObjectPredicate]
                patch-request-type: [WorkflowTypeDescriptor]
                patch-evidence-type: [WorkflowTypeDescriptor]
@@ -177,8 +212,28 @@
                                           (cons 'observations: (List GitOpsCommitObservation))
                                           (cons 'approval-live?: Bool)
                                           (cons 'cedar-grant-live?: Bool)
+                                          (cons 'candidate-offers: ChoiceOptionSymbolList)
+                                          (cons 'forbidden-scopes: ChoiceOptionSymbolList)
+                                          (cons 'state-budget: UInt)
                                           (cons 'extra-hypotheses: (List HypothesisType))
                                           (cons 'extra-tasks: (List DeterministicTaskNodeType))))]
+               solve-gitops-choices:
+               [(Function (list ChoiceSolutionType)
+                          (list Object GitOpsCommitCut)
+                          keywords: (list (cons 'approval-live?: Bool)
+                                          (cons 'candidate-offers: ChoiceOptionSymbolList)
+                                          (cons 'forbidden-scopes: ChoiceOptionSymbolList)
+                                          (cons 'state-budget: UInt)))]
+               choice-flow-plan:
+               [(Function (list ChoiceFlowPlanType)
+                          (list Object)
+                          keywords: (list (cons 'choice-key: Symbol)
+                                          (cons 'shared-prefix: (List DeterministicTaskNodeType))
+                                          (cons 'fenced-tail: (List DeterministicTaskNodeType))))]
+               execute-choice-worlds:
+               [(Function (list ChoiceExecutionType)
+                          (list ChoiceSolutionType GovernedRunnerType ChoiceFlowPlanType)
+                          keywords: (list (cons 'approval-live?: Bool)))]
                reconcile-frontier:
                [(Function (list Object) (list ObligationGraphType)
                           keywords: (list (cons 'strategy: OptionalStrategy)
