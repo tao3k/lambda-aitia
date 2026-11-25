@@ -82,7 +82,9 @@ jobs:
           npm ci --prefix dev/proof/quint
           mkdir -p "$QUINT_HOME"
           python3 dev/proof/quint/test_scheme_replay.py
-          just check-quint check-quint-commit check-quint-ai-assurance
+          just check-quint all
+          just check-quint-commit
+          just check-quint-ai-assurance
 
   scheme-runtime:
     name: Scheme checks and linked delivery
@@ -124,7 +126,10 @@ jobs:
         run: |
           git submodule update --init core
           python3 packages/automation/install_gerbil_release.py "$RUNNER_TEMP/gerbil-release"
-          echo 'GAMBOPT=max-heap=2G,debug=q' >> "$GITHUB_ENV"
+          source "$RUNNER_TEMP/gerbil-release/activate"
+          export GAMBOPT="${GAMBOPT:+${GAMBOPT},}max-heap=2G,debug=q"
+          printf 'GAMBOPT=%s\n' "$GAMBOPT" >> "$GITHUB_ENV"
+          test -x "$(gxi -e '(display (path-expand "gsc" (path-expand "~~bin")))')"
           cores=$(nproc)
           memory_cores=$(awk '/^MemTotal:/ { print int($2 / 2097152) }' /proc/meminfo)
           (( memory_cores >= 1 )) || memory_cores=1
@@ -228,7 +233,9 @@ jobs:
           uv pip install --python "$RUNNER_TEMP/aitia-pytest/bin/python" 'pytest==9.0.2'
           echo "AITIA_PYTEST_PYTHON=$RUNNER_TEMP/aitia-pytest/bin/python" >> "$GITHUB_ENV"
 
-      - run: just test-jj-commit-evidence check-rust-delivery
+      - run: |
+          just test-jj-commit-evidence
+          just check-rust-delivery
 
       - name: Set up Java for full lifecycle stress replay
         if: github.event_name == 'workflow_dispatch' && inputs.lifecycle-stress

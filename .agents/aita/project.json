@@ -49,6 +49,7 @@
                 "rust/crates/aitia-runtime",
                 "bindings",
                 ".agents/aita",
+                ".github/workflows",
                 "dev/sysml",
                 "docs/rfcs",
                 "justfile"
