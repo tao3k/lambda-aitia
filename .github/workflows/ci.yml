@@ -178,8 +178,8 @@ jobs:
           gerbil env just build-library deps-dev
           GERBIL_PATH="$PWD/dev/.gerbil" GERBIL_LOADPATH="$PWD/.gerbil/lib:$PWD/dev/.gerbil/lib" gxpkg build github.com/tao3k/asp-gerbil-scheme
           gerbil env just build-test-support t/fixtures/testing/source-admission.ss
-          printf 'GERBIL_LOADPATH=%s:%s/.gerbil/lib:%s:%s/dev/.gerbil/lib\n' \
-            "$GITHUB_WORKSPACE" "$PWD" "$PWD" "$PWD" >> "$GITHUB_ENV"
+          printf 'GERBIL_LOADPATH=%s/.gerbil/lib:%s/dev/.gerbil/lib:%s:%s\n' \
+            "$PWD" "$PWD" "$GITHUB_WORKSPACE" "$PWD" >> "$GITHUB_ENV"
 
       - name: Align gerbil-scheme-rust Scheme compiler package with rust/Cargo.lock
         run: |
@@ -188,15 +188,13 @@ jobs:
           rev="${revs[0]}"
           pkg="github.com/tao3k/gerbil-scheme-rust"
           pkg_dir="$GERBIL_PATH/pkg/$pkg"
-          if [ -d "$pkg_dir/.git" ]; then
-            git -C "$pkg_dir" fetch --no-tags origin "$rev"
-            gerbil pkg update "$pkg@$rev"
-          else
+          if [ ! -d "$pkg_dir/.git" ]; then
             mkdir -p "$(dirname "$pkg_dir")"
             git clone --no-checkout "https://$pkg.git" "$pkg_dir"
-            git -C "$pkg_dir" fetch --no-tags origin "$rev"
-            gerbil pkg update "$pkg@$rev"
           fi
+          git -C "$pkg_dir" fetch --no-tags origin "$rev"
+          git -C "$pkg_dir" checkout --detach "$rev"
+          test -f "$pkg_dir/gerbil.pkg"
           gerbil pkg clean "$pkg"
           gerbil pkg build "$pkg"
 
