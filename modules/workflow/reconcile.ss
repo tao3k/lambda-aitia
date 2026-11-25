@@ -17,7 +17,7 @@
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/task
                  make-pure-task)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/flow
-                 flow? task-flow)
+                 flow? task-flow flow-arr flow-then flow-fanout flow-input-contract)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/runner
                  make-runner)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/strategy
@@ -52,6 +52,7 @@
                  workflow-solve-gitops-choices
                  workflow-solve-sdlc-choices
                  workflow-choice-hypotheses
+                 workflow-choice-arrow-entry
                  workflow-choice-flow-plan
                  workflow-execute-choice-worlds
                  workflow-converge-choice-worlds
@@ -67,6 +68,11 @@
                  GitOpsApplyRequest GitOpsApplyEvidence))
 
 (export workflow-make-pure-runner
+        workflow-flow-arr
+        workflow-flow-then
+        workflow-flow-fanout
+        workflow-arrow-task-node
+        workflow-choice-arrow-entry
         workflow-pure-task-node
         workflow-evidence-fact
         workflow-with-evidence
@@ -113,6 +119,41 @@
 
 (def (make-typed-capability-flow name signature proc)
   (task-flow name (make-pure-task name signature proc)))
+
+;;; Native FunFlow Arrow combinators with strict POO Type descriptors (zero `Any`).
+(def (workflow-flow-arr name input-type output-type proc)
+  (validate WorkflowTypeDescriptor input-type)
+  (validate WorkflowTypeDescriptor output-type)
+  (flow-arr name (Fun output-type <- input-type) proc))
+
+(def (workflow-flow-then name left right)
+  (flow-then name left right))
+
+(def (workflow-flow-fanout name left right)
+  (flow-fanout name left right))
+
+;;; Wrap ANY native FunFlow `flow?` Arrow (sequential `flow-then`, parallel
+;;; `flow-fanout`, `flow-arr`, `flow-map`) directly as a DeterministicTaskNode.
+(def (workflow-arrow-task-node
+      task-id obligation-id produces-evidence-id arrow input
+      required-evidence-ids: (required-evidence-ids '())
+      premise-ids: (premise-ids '())
+      read-footprint: (read-footprint '())
+      write-footprint: (write-footprint '())
+      effect-class: (effect-class 'pure-cas))
+  (unless (flow? arrow)
+    (error "workflow-arrow-task-node expects a native FunFlow flow? Arrow" arrow))
+  (validate WorkflowEffectClass effect-class)
+  (validate (flow-input-contract arrow) input)
+  (make-deterministic-task-node
+   task-id obligation-id produces-evidence-id
+   arrow
+   input
+   required-evidence-ids: required-evidence-ids
+   premise-ids: premise-ids
+   read-footprint: read-footprint
+   write-footprint: write-footprint
+   effect-class: effect-class))
 
 ;;; Construct a strongly typed FunFlow deterministic task node.
 ;;; Both `input-type` and `output-type` must be explicit POO Type descriptors,

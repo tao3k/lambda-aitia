@@ -37,16 +37,20 @@
                  relational-program-transaction!
                  relational-program-session-run
                  relational-program-query)
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/flow
+                 flow? flow-name flow-input-contract)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/durable-dag
                  ParallelFrontierStrategy.)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/governed-runner
                  governed-funflow-run)
         (only-in :tao3k/agentic-ai-lab/modules/graph-engine/obligation-graph
-                 make-hypothesis make-obligation-graph deterministic-task-node?)
+                 make-hypothesis make-obligation-graph
+                 make-deterministic-task-node deterministic-task-node?)
         (only-in :tao3k/agentic-ai-lab/modules/graph-engine/dag-frontier-scheduler
                  plan-funflow-c4-frontier)
         (only-in "./objects.ss" ChoiceFlowPlan.)
         (only-in "./types.ss"
+                 WorkflowEffectClass
                  ChoiceSolutionType
                  ChoiceFlowPlanType
                  ObligationSessionType
@@ -55,6 +59,7 @@
 (export workflow-solve-gitops-choices
         workflow-solve-sdlc-choices
         workflow-choice-hypotheses
+        workflow-choice-arrow-entry
         workflow-choice-flow-plan
         workflow-execute-choice-worlds
         workflow-converge-choice-worlds
@@ -381,18 +386,76 @@
 
 ;;; Declarative POO ChoiceFlowPlan constructor:
 ;;;   - `shared-prefix` and every slot in `branches` MUST contain only typed
-;;;     `PureCAS.` or `VerifiedEpistemic.` DeterministicTaskNodes (zero FencedEffect).
+;;;     `PureCAS.` or `VerifiedEpistemic.` DeterministicTaskNodes or native
+;;;     FunFlow `flow?` Arrow entries (`workflow-choice-arrow-entry`) — zero FencedEffect.
 ;;;   - `fenced-tail` isolates all `FencedEffect.` tasks behind the multi-world
 ;;;     and human-approval safety fence.
-(def (assert-non-fenced-tasks! label tasks)
-  (unless (and (list? tasks) (every deterministic-task-node? tasks))
-    (error (string-append label " expects a list of typed DeterministicTaskNode objects") tasks))
-  (for-each
-   (lambda (task)
-     (when (eq? (opt-ref task 'effect-class 'pure-cas) 'fenced-effect)
-       (error (string-append label " forbids FencedEffect tasks; place them in fenced-tail")
-              (.ref task 'task-id))))
-   tasks))
+(def (choice-arrow-entry? value)
+  (and (object? value)
+       (.slot? value 'arrow)
+       (flow? (.ref value 'arrow))
+       (.slot? value 'input)))
+
+(def (workflow-choice-arrow-entry
+      arrow input
+      task-id: (task-id #f)
+      obligation-id: (obligation-id "workflow.arrow-probe")
+      produces-evidence-id: (produces-evidence-id #f)
+      required-evidence-ids: (required-evidence-ids '())
+      read-footprint: (read-footprint '())
+      write-footprint: (write-footprint '())
+      effect-class: (effect-class 'pure-cas))
+  (unless (flow? arrow)
+    (error "workflow-choice-arrow-entry expects a native FunFlow flow? Arrow" arrow))
+  (validate WorkflowEffectClass effect-class)
+  (when (eq? effect-class 'fenced-effect)
+    (error "workflow-choice-arrow-entry forbids FencedEffect; place fenced tasks in fenced-tail"
+           (flow-name arrow)))
+  (validate (flow-input-contract arrow) input)
+  (.o (kind := 'lambda-aitia.workflow.choice-arrow-entry.v1)
+      (arrow := arrow)
+      (input := input)
+      (task-id := task-id)
+      (obligation-id := obligation-id)
+      (produces-evidence-id := produces-evidence-id)
+      (required-evidence-ids := required-evidence-ids)
+      (read-footprint := read-footprint)
+      (write-footprint := write-footprint)
+      (effect-class := effect-class)))
+
+(def (normalize-choice-entry label entry)
+  (cond
+   ((deterministic-task-node? entry)
+    (when (eq? (opt-ref entry 'effect-class 'pure-cas) 'fenced-effect)
+      (error (string-append label " forbids FencedEffect tasks; place them in fenced-tail")
+             (.ref entry 'task-id)))
+    entry)
+   ((choice-arrow-entry? entry)
+    (let* ((arrow (.ref entry 'arrow))
+           (fname (symbol->string (flow-name arrow)))
+           (eff (opt-ref entry 'effect-class 'pure-cas))
+           (tid (or (opt-ref entry 'task-id #f) (string-append "task:arrow:" fname)))
+           (ob-id (opt-ref entry 'obligation-id "workflow.arrow-probe"))
+           (ev-id (or (opt-ref entry 'produces-evidence-id #f) (string-append "ev:arrow:" fname)))
+           (input (.ref entry 'input)))
+      (when (eq? eff 'fenced-effect)
+        (error (string-append label " forbids FencedEffect tasks; place them in fenced-tail") tid))
+      (validate (flow-input-contract arrow) input)
+      (make-deterministic-task-node
+       tid ob-id ev-id arrow input
+       required-evidence-ids: (opt-ref entry 'required-evidence-ids '())
+       read-footprint: (opt-ref entry 'read-footprint '())
+       write-footprint: (opt-ref entry 'write-footprint '())
+       effect-class: eff)))
+   (else
+    (error (string-append label " expects typed DeterministicTaskNode or ChoiceArrowEntry objects") entry))))
+
+(def (normalize-non-fenced-tasks! label value)
+  (let ((entries (cond
+                  ((list? value) value)
+                  ((or (deterministic-task-node? value) (choice-arrow-entry? value)) (list value))
+                  (else (error (string-append label " expects a list or single task/arrow entry") value)))))
+    (map (lambda (entry) (normalize-choice-entry label entry)) entries)))
 
 (def (workflow-choice-flow-plan
       branches
@@ -403,15 +466,15 @@
     (error "workflow-choice-flow-plan expects a POO branches object" branches))
   (unless (symbol? choice-key)
     (error "workflow-choice-flow-plan expects a symbol choice-key" choice-key))
-  (assert-non-fenced-tasks! "choice-flow-plan shared-prefix" shared-prefix)
-  (unless (and (list? fenced-tail) (every deterministic-task-node? fenced-tail))
-    (error "choice-flow-plan fenced-tail expects typed DeterministicTaskNode objects" fenced-tail))
-  (.o (:: @ ChoiceFlowPlan.)
-      (choice-key := choice-key)
-      (shared-prefix := shared-prefix)
-      (branches := branches)
-      (fenced-tail := fenced-tail)
-      (action-authorized? := #f)))
+  (let ((norm-prefix (normalize-non-fenced-tasks! "choice-flow-plan shared-prefix" shared-prefix)))
+    (unless (and (list? fenced-tail) (every deterministic-task-node? fenced-tail))
+      (error "choice-flow-plan fenced-tail expects typed DeterministicTaskNode objects" fenced-tail))
+    (.o (:: @ ChoiceFlowPlan.)
+        (choice-key := choice-key)
+        (shared-prefix := norm-prefix)
+        (branches := branches)
+        (fenced-tail := fenced-tail)
+        (action-authorized? := #f))))
 
 ;;; Stage 3: Execute a declarative POO `ChoiceFlowPlan.` across ALL surviving
 ;;; Finite-Choice worlds against a SINGLE shared `GovernedFunflowRunner`
@@ -431,7 +494,7 @@
          (wcount (.get choice-solution world-count))
          (status (.get choice-solution choice-status))
          (ckey (.ref plan 'choice-key))
-         (shared-prefix (.ref plan 'shared-prefix))
+         (shared-prefix (normalize-non-fenced-tasks! "choice-flow-plan shared-prefix" (.ref plan 'shared-prefix)))
          (branches (.ref plan 'branches))
          (fenced-tail (.ref plan 'fenced-tail))
          ;; Static pre-execution completeness check across all surviving worlds!
@@ -450,22 +513,20 @@
             '()
             (map (lambda (w)
                    (let* ((key-val (.ref w ckey))
-                          (branch-tasks (.ref branches key-val))
+                          (branch-tasks (normalize-non-fenced-tasks!
+                                         (string-append "choice-flow-plan branch:" (symbol->string key-val))
+                                         (.ref branches key-val)))
                           (tasks (append shared-prefix branch-tasks fenced-tail)))
-                     (assert-non-fenced-tasks!
-                      (string-append "choice-flow-plan branch:" (symbol->string key-val))
-                      branch-tasks)
                      (let* ((tmp-graph (make-obligation-graph
                                         (string-append "choice-world:" (symbol->string key-val))
                                         det-tasks: tasks))
                             (plan-obj (plan-funflow-c4-frontier
                                        tmp-graph tasks
                                        strategy: ParallelFrontierStrategy.)))
-                       (cons (.get w world-index) plan-obj))))
+                       (list (.get w world-index) plan-obj tasks))))
                  worlds)))
          (invalid-dags
-          (filter (lambda (entry) (not (.ref (cdr entry) 'valid?))) dag-plans)))
-    (assert-non-fenced-tasks! "choice-flow-plan shared-prefix" shared-prefix)
+          (filter (lambda (entry) (not (.ref (cadr entry) 'valid?))) dag-plans)))
     (cond
      ((pair? missing-branches)
       (.o (kind := 'lambda-aitia.workflow.choice-world-execution.v1)
@@ -484,7 +545,7 @@
       (.o (kind := 'lambda-aitia.workflow.choice-world-execution.v1)
           (schema := "lambda-aitia.workflow-choice-execution.v1")
           (admitted? := #f)
-          (reason := (.ref (cdar invalid-dags) 'reason))
+          (reason := (.ref (cadar invalid-dags) 'reason))
           (missing-branches := '())
           (choice-status := status)
           (world-count := wcount)
@@ -514,11 +575,9 @@
               (fenced-blocked-count := blocked-total)
               (action-authorized? := #f))
           (let* ((w (car ws))
-                 (dag-plan (cdar dplans))
-                 (ddec (.get w dispatch-decision))
-                 (key-val (.ref w ckey))
-                 (branch-tasks (.ref branches key-val))
-                 (tasks (append shared-prefix branch-tasks fenced-tail)))
+                 (dag-plan (cadar dplans))
+                 (tasks (caddar dplans))
+                 (ddec (.get w dispatch-decision)))
             (let tloop ((ts tasks)
                         (w-exec 0)
                         (w-hit 0)

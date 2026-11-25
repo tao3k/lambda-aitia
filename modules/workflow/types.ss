@@ -11,6 +11,7 @@
         (only-in :clan/poo/type Type. define-type Bool False List Object Record
                  Function Enum Or Symbol Pair)
         (only-in :clan/poo/number UInt)
+        (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/flow flow?)
         (only-in "../gitops/types.ss"
                  NonEmptyString GitOpsCommitCut GitOpsCommitNaming
                  GitOpsCommitSources GitOpsCommitProposals GitOpsCommitObservation))
@@ -21,6 +22,8 @@
         WorkflowOriginTier
         WorkflowTypeDescriptor
         ProcedureType
+        FlowType
+        ChoiceArrowSpecType
         ObligationGraphType
         EvidenceFactType
         DeterministicTaskNodeType
@@ -76,6 +79,16 @@
 
 (define-type (ProcedureType @ Type.)
   .element?: procedure?)
+
+(define-type (FlowType @ Type.)
+  .element?: flow?)
+
+(define-type (ChoiceArrowSpecType @ Type.)
+  .element?: (lambda (value)
+               (and (object? value)
+                    (.slot? value 'arrow)
+                    (flow? (.ref value 'arrow))
+                    (.slot? value 'input))))
 
 (define-type (ObligationGraphType @ Type.)
   .element?: (lambda (value)
@@ -233,6 +246,33 @@
                patch-evidence-type: [WorkflowTypeDescriptor]
                probe-evidence-type: [WorkflowTypeDescriptor]
                make-pure-runner: [(Function (list GovernedRunnerType) '())]
+               flow-arr:
+               [(Function (list FlowType)
+                          (list Symbol WorkflowTypeDescriptor WorkflowTypeDescriptor ProcedureType))]
+               flow-then:
+               [(Function (list FlowType)
+                          (list Symbol FlowType FlowType))]
+               flow-fanout:
+               [(Function (list FlowType)
+                          (list Symbol FlowType FlowType))]
+               arrow-task-node:
+               [(Function (list DeterministicTaskNodeType)
+                          (list NonEmptyString NonEmptyString NonEmptyString FlowType Object)
+                          keywords: (list (cons 'required-evidence-ids: (List NonEmptyString))
+                                          (cons 'premise-ids: (List NonEmptyString))
+                                          (cons 'read-footprint: (List Symbol))
+                                          (cons 'write-footprint: (List Symbol))
+                                          (cons 'effect-class: WorkflowEffectClass)))]
+               choice-arrow-entry:
+               [(Function (list ChoiceArrowSpecType)
+                          (list FlowType Object)
+                          keywords: (list (cons 'task-id: (Or False NonEmptyString))
+                                          (cons 'obligation-id: NonEmptyString)
+                                          (cons 'produces-evidence-id: (Or False NonEmptyString))
+                                          (cons 'required-evidence-ids: (List NonEmptyString))
+                                          (cons 'read-footprint: (List Symbol))
+                                          (cons 'write-footprint: (List Symbol))
+                                          (cons 'effect-class: WorkflowEffectClass)))]
                pure-task-node:
                [(Function (list DeterministicTaskNodeType)
                           (list NonEmptyString NonEmptyString NonEmptyString Symbol
@@ -287,7 +327,7 @@
                [(Function (list ChoiceFlowPlanType)
                           (list Object)
                           keywords: (list (cons 'choice-key: Symbol)
-                                          (cons 'shared-prefix: (List DeterministicTaskNodeType))
+                                          (cons 'shared-prefix: (List (Or DeterministicTaskNodeType ChoiceArrowSpecType)))
                                           (cons 'fenced-tail: (List DeterministicTaskNodeType))))]
                execute-choice-worlds:
                [(Function (list ChoiceExecutionType)

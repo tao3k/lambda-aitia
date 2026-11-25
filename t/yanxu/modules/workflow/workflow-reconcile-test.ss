@@ -609,4 +609,85 @@
         (check-equal? (.get conv-c convergence-status) 'irreducible-competition)
         (check-equal? (.get conv-c round-count) 1)
         (check-equal? (.get (.get conv-c final-solution) world-count) 2)
-        (check-equal? (.get conv-c action-authorized?) #f)))))
+        (check-equal? (.get conv-c action-authorized?) #f)))
+
+    (test-case "12. ChoiceFlowPlan directly accepts native FunFlow flow-then and flow-fanout Arrows with shared CAS reuse"
+      (let* ((g-unscoped ((.get wf gitops-commit-graph)
+                          test-naming test-cut test-sources '(".github/workflows/ci.yml") (list valid-proposal)
+                          approval-live?: #f))
+             (choice-sol (.get g-unscoped choice-solution))
+             (req-type (.get wf patch-request-type))
+             (ev-type (.get wf patch-evidence-type))
+             (probe-type (.get wf probe-evidence-type))
+             (shared-calls (box 0))
+             (seq-calls (box 0))
+             (fanout-calls (box 0))
+             ;; Native FunFlow sequential Arrow: flow-arr >>> flow-arr via flow-then!
+             (step1-arrow
+              ((.get wf flow-arr) 'arrow-normalize req-type req-type
+               (lambda (req)
+                 (set-box! shared-calls (+ 1 (unbox shared-calls)))
+                 req)))
+             (step2-arrow
+              ((.get wf flow-arr) 'arrow-emit-evidence req-type ev-type
+               (lambda (req)
+                 (.o (kind := 'synthesized-patch)
+                     (action := (.get req action))
+                     (targets := (.get req targets))))))
+             (shared-composed-arrow
+              ((.get wf flow-then) 'shared-arrow-pipeline step1-arrow step2-arrow))
+             ;; Native FunFlow sequential probe Arrow for extend-existing-scope
+             (extend-arrow
+              ((.get wf flow-then)
+               'extend-probe-arrow
+               ((.get wf flow-arr) 'extend-check req-type req-type
+                (lambda (req)
+                  (set-box! seq-calls (+ 1 (unbox seq-calls)))
+                  req))
+               ((.get wf flow-arr) 'extend-verdict req-type probe-type
+                (lambda (_req)
+                  (.o (kind := 'epistemic-verdict)
+                      (verdict := 'refutes)
+                      (option := 'extend-existing-scope)
+                      (detail := "Refuted by composed FunFlow flow-then arrow"))))))
+             ;; Native FunFlow fanout Arrow: flow-fanout running two typed checks in parallel!
+             (declare-fanout-arrow
+              ((.get wf flow-fanout)
+               'declare-fanout-probe
+               ((.get wf flow-arr) 'fanout-left req-type ev-type
+                (lambda (req)
+                  (set-box! fanout-calls (+ 1 (unbox fanout-calls)))
+                  (.o (kind := 'synthesized-patch)
+                      (action := (.get req action))
+                      (targets := (.get req targets)))))
+               ((.get wf flow-arr) 'fanout-right req-type probe-type
+                (lambda (_req)
+                  (.o (kind := 'epistemic-verdict)
+                      (verdict := 'supports)
+                      (option := 'declare-new-scope)
+                      (detail := "Supported by FunFlow flow-fanout arrow"))))))
+             (plan
+              ((.get wf choice-flow-plan)
+               (.o (extend-existing-scope :=
+                     ((.get wf choice-arrow-entry)
+                      extend-arrow
+                      (.o (action := 'extend-existing-scope) (targets := '(".github/workflows/ci.yml")))))
+                   (declare-new-scope :=
+                     ((.get wf choice-arrow-entry)
+                      declare-fanout-arrow
+                      (.o (action := 'declare-new-scope) (targets := '(".github/workflows/ci.yml"))))))
+               choice-key: 'scope-decision
+               shared-prefix:
+               (list ((.get wf choice-arrow-entry)
+                      shared-composed-arrow
+                      (.o (action := 'inspect-sysml) (targets := '(".github/workflows/ci.yml")))))))
+             (exec ((.get wf execute-choice-worlds) choice-sol ((.get wf make-pure-runner)) plan)))
+        (check-equal? (.get exec admitted?) #t)
+        (check-equal? (.get exec world-count) 2)
+        ;; Composed shared-prefix Arrow runs ONCE and hits FunFlow CAS on world 2!
+        (check-equal? (unbox shared-calls) 1)
+        (check-equal? (unbox seq-calls) 1)
+        (check-equal? (unbox fanout-calls) 1)
+        (check-equal? (.get exec total-executions) 3)
+        (check-equal? (.get exec total-cas-hits) 1)
+        (check-equal? (.get exec action-authorized?) #f)))))

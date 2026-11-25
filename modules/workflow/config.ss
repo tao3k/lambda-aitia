@@ -60,6 +60,11 @@
       patch-evidence-type: WorkflowPatchEvidence
       probe-evidence-type: EpistemicProbeEvidence
       make-pure-runner: workflow-make-pure-runner
+      flow-arr: workflow-flow-arr
+      flow-then: workflow-flow-then
+      flow-fanout: workflow-flow-fanout
+      arrow-task-node: workflow-arrow-task-node
+      choice-arrow-entry: workflow-choice-arrow-entry
       pure-task-node: workflow-pure-task-node
       evidence-fact: workflow-evidence-fact
       with-evidence: workflow-with-evidence
