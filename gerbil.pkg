@@ -5,4 +5,4 @@
 ;;; Independent AITIA package identity. Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
 (package: lambda-aitia
- depend: ("github.com/tao3k/agentic-ai-lab@1d8d2fbd59a2b1745a7f9df2ee01befff8541e5f"))
+ depend: ("github.com/tao3k/agentic-ai-lab@d8d240b67ecf2dff6e2504bfd7fd64085f18dc8c"))

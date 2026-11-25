@@ -56,6 +56,7 @@
                 "dev/sysml",
                 "docs/rfcs",
                 "t/yanxu/modules/workflow",
+                "gerbil.pkg",
                 "justfile"
               ]
             }
