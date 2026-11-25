@@ -67,6 +67,10 @@
       solve-sdlc-choices: workflow-solve-sdlc-choices
       choice-flow-plan: workflow-choice-flow-plan
       execute-choice-worlds: workflow-execute-choice-worlds
+      open-obligation-session: workflow-open-obligation-session
+      session-snapshot: workflow-session-snapshot
+      session-append-evidence!: workflow-session-append-evidence!
+      session-retract-evidence!: workflow-session-retract-evidence!
       gitops-commit-graph: workflow-gitops-commit-graph
       reconcile-frontier: workflow-reconcile-frontier
       admit-proposal: workflow-admit-proposal

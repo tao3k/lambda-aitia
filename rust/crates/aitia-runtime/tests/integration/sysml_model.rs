@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 use aitia_runtime::{
-    RecordedSysmlError, extract_declared_scopes, parse_recorded_sysml, parse_sysml,
+    RecordedSysmlError, extract_declared_capabilities, extract_declared_scopes,
+    parse_recorded_sysml, parse_sysml,
 };
 use opensysml::Connection;
 use std::path::Path;
@@ -44,6 +45,37 @@ fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn 
             .iter()
             .any(|p| p == "rust/crates/aitia-runtime/src/sysml.rs")
     );
+    let capabilities = extract_declared_capabilities(&model)?;
+    let cap_pairs: Vec<(&str, &str)> = capabilities
+        .iter()
+        .map(|spec| (spec.capability_id.as_str(), spec.effect_class.as_str()))
+        .collect();
+    assert_eq!(
+        cap_pairs,
+        [
+            ("gitops.github.observe-pr", "host-read"),
+            ("gitops.jj.observe-cut", "host-read"),
+            ("sysml.parse-revision", "host-read"),
+            ("sysml.parse-workspace", "host-read"),
+            ("sysml.project-scopes", "host-read"),
+            ("sysml.revision-scopes", "host-read"),
+        ]
+    );
+    #[cfg(feature = "linked-program")]
+    {
+        let registered: Vec<(&str, &str)> = aitia_runtime::HostCapabilityRegistry::default_linked()
+            .descriptors()
+            .into_iter()
+            .map(|(id, effect)| {
+                let class = match effect {
+                    aitia_runtime::HostEffectClass::HostRead => "host-read",
+                    aitia_runtime::HostEffectClass::FencedEffect => "fenced-effect",
+                };
+                (id, class)
+            })
+            .collect();
+        assert_eq!(registered, cap_pairs);
+    }
     Ok(())
 }
 

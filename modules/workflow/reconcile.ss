@@ -53,7 +53,11 @@
                  workflow-solve-sdlc-choices
                  workflow-choice-hypotheses
                  workflow-choice-flow-plan
-                 workflow-execute-choice-worlds)
+                 workflow-execute-choice-worlds
+                 workflow-open-obligation-session
+                 workflow-session-snapshot
+                 workflow-session-append-evidence!
+                 workflow-session-retract-evidence!)
         (only-in "./types.ss"
                  WorkflowEffectClass WorkflowOriginTier WorkflowTypeDescriptor
                  GitOpsCutRequest GitOpsCutEvidence
@@ -73,6 +77,10 @@
         workflow-solve-sdlc-choices
         workflow-choice-flow-plan
         workflow-execute-choice-worlds
+        workflow-open-obligation-session
+        workflow-session-snapshot
+        workflow-session-append-evidence!
+        workflow-session-retract-evidence!
         workflow-gitops-commit-graph
         workflow-reconcile-frontier
         workflow-admit-proposal

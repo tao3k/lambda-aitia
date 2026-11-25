@@ -9,7 +9,7 @@
 
 (import (only-in :clan/poo/object object? .slot? .ref .cc)
         (only-in :clan/poo/type Type. define-type Bool False List Object Record
-                 Function Enum Or Symbol)
+                 Function Enum Or Symbol Pair)
         (only-in :clan/poo/number UInt)
         (only-in "../gitops/types.ss"
                  NonEmptyString GitOpsCommitCut GitOpsCommitNaming
@@ -34,6 +34,7 @@
         ChoiceWorldType
         ChoiceFlowPlanType
         ChoiceExecutionType
+        ObligationSessionType
         ChoiceStatusType
         ChoiceOptionSymbolList
         GitOpsCutRequest
@@ -125,11 +126,18 @@
   .element?: (lambda (value)
                (tagged-object? value 'lambda-aitia.workflow.choice-world-execution.v1)))
 
+(define-type (ObligationSessionType @ Type.)
+  .element?: (lambda (value)
+               (tagged-object? value 'lambda-aitia.workflow.obligation-session.v1)))
+
 (def ChoiceStatusType
   (Enum unique-deduction competing-worlds unsatisfiable))
 
 (def ChoiceOptionSymbolList
   (List (Or Symbol NonEmptyString)))
+
+(def ChoiceEdgePair
+  (Pair (Or Symbol NonEmptyString) (Or Symbol NonEmptyString)))
 
 (def WorkflowEffectClass
   (Enum pure-cas verified-epistemic fenced-effect))
@@ -244,6 +252,16 @@
                [(Function (list ChoiceExecutionType)
                           (list ChoiceSolutionType GovernedRunnerType ChoiceFlowPlanType)
                           keywords: (list (cons 'approval-live?: Bool)))]
+               open-obligation-session:
+               [(Function (list ObligationSessionType)
+                          (list ChoiceOptionSymbolList (List ChoiceEdgePair) (List ChoiceEdgePair))
+                          keywords: (list (cons 'live-evidence: ChoiceOptionSymbolList)
+                                          (cons 'active-defeaters: ChoiceOptionSymbolList)))]
+               session-snapshot: [(Function (list Object) (list ObligationSessionType))]
+               session-append-evidence!:
+               [(Function (list Object) (list ObligationSessionType (Or Symbol NonEmptyString)))]
+               session-retract-evidence!:
+               [(Function (list Object) (list ObligationSessionType ChoiceOptionSymbolList))]
                reconcile-frontier:
                [(Function (list Object) (list ObligationGraphType)
                           keywords: (list (cons 'strategy: OptionalStrategy)

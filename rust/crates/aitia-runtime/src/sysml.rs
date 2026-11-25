@@ -16,6 +16,14 @@ pub struct SysmlScopeProjection {
     pub element_id: String,
 }
 
+/// Host capability specification projected from a parsed SysML v2 `HostCapabilitySpec` part.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SysmlCapabilitySpec {
+    pub capability_id: String,
+    pub effect_class: String,
+    pub element_id: String,
+}
+
 fn collect_text_values(value: &Value, out: &mut Vec<String>) {
     match value {
         Value::Text(text) if !text.is_empty() => out.push(text.clone()),
@@ -101,6 +109,70 @@ pub fn extract_declared_scopes(model: &Model) -> Result<Vec<SysmlScopeProjection
             .then_with(|| left.element_id.cmp(&right.element_id))
     });
     Ok(scopes)
+}
+
+fn collect_capability_candidates(
+    symbol: &Symbol,
+    depth: usize,
+    candidates: &mut Vec<String>,
+) -> Result<(), Error> {
+    if depth > 4 {
+        return Ok(());
+    }
+    let children = symbol.children()?;
+    let has_id = children.iter().any(|child| child.name() == "capabilityId");
+    let has_effect = children.iter().any(|child| child.name() == "effectClass");
+    if has_id && has_effect && symbol.kind().to_ascii_lowercase().contains("part") {
+        candidates.push(symbol.id().to_owned());
+        return Ok(());
+    }
+    for child in children {
+        collect_capability_candidates(&child, depth + 1, candidates)?;
+    }
+    Ok(())
+}
+
+/// Project declared `HostCapabilitySpec` parts (`capabilityId` + `effectClass`) from a parsed SysML v2 model.
+///
+/// # Errors
+/// Fails if OpenSysML symbol traversal or instantiation fails.
+pub fn extract_declared_capabilities(model: &Model) -> Result<Vec<SysmlCapabilitySpec>, Error> {
+    let mut candidates = Vec::new();
+    for root in model.roots() {
+        collect_capability_candidates(root, 0, &mut candidates)?;
+    }
+    let mut specs = Vec::new();
+    for fqn in candidates {
+        let instantiation = model.instantiate(&fqn)?;
+        for instance in instantiation.instances() {
+            let Some(id_feature) = instance.feature("capabilityId") else {
+                continue;
+            };
+            let Some(Value::Text(capability_id)) = id_feature.value() else {
+                continue;
+            };
+            let Some(effect_feature) = instance.feature("effectClass") else {
+                continue;
+            };
+            let Some(Value::Text(effect_class)) = effect_feature.value() else {
+                continue;
+            };
+            if !capability_id.is_empty() && !effect_class.is_empty() {
+                specs.push(SysmlCapabilitySpec {
+                    capability_id: capability_id.clone(),
+                    effect_class: effect_class.clone(),
+                    element_id: fqn.clone(),
+                });
+                break;
+            }
+        }
+    }
+    specs.sort_by(|left, right| {
+        left.capability_id
+            .cmp(&right.capability_id)
+            .then_with(|| left.element_id.cmp(&right.element_id))
+    });
+    Ok(specs)
 }
 
 /// Parse captured source contents under their project-relative document names.

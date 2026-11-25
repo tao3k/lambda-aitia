@@ -74,6 +74,11 @@ package AitiaProjectArchitecture {
         attribute :>> effectClass = "host-read";
     }
 
+    part githubObservePrCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.github.observe-pr";
+        attribute :>> effectClass = "host-read";
+    }
+
     part sysmlProjectScopesCapability : HostCapabilitySpec {
         attribute :>> capabilityId = "sysml.project-scopes";
         attribute :>> effectClass = "host-read";

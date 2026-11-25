@@ -36,7 +36,7 @@ const ALLOWED_TOP_LEVEL_SRC_FILES: &[&str] = &[
 const CLI_LINE_CEILINGS: &[(&str, usize)] = &[
     ("cli.rs", 820),
     ("cli_commit.rs", 845),
-    ("cli_flow.rs", 150),
+    ("cli_flow.rs", 160),
 ];
 
 #[test]
@@ -114,6 +114,43 @@ fn sysml_v2_owns_project_commit_scopes_not_project_json() {
     assert!(
         sysml_text.contains("part def CommitScope"),
         "dev/sysml/project-architecture.sysml must declare `part def CommitScope`"
+    );
+    assert!(
+        sysml_text.contains("part def HostCapabilitySpec"),
+        "dev/sysml/project-architecture.sysml must declare `part def HostCapabilitySpec`"
+    );
+
+    // Bidirectional parity gate: EVERY HostCapability registered in src/capability.rs
+    // must be declared as a HostCapabilitySpec in dev/sysml/project-architecture.sysml,
+    // and vice versa (0 undocumented or shadow host capabilities).
+    let capability_rs =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/capability.rs"))
+            .expect("read src/capability.rs");
+    let mut rust_caps = BTreeSet::new();
+    let lines: Vec<&str> = capability_rs.lines().collect();
+    for window in lines.windows(2) {
+        if window[0].contains("fn capability_id(&self) -> &'static str") {
+            let trimmed = window[1].trim();
+            if let Some(id) = trimmed.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+                rust_caps.insert(id.to_owned());
+            }
+        }
+    }
+    let mut sysml_caps = BTreeSet::new();
+    for line in sysml_text.lines() {
+        if let Some(rest) = line.split("capabilityId = \"").nth(1)
+            && let Some(id) = rest.split('"').next()
+        {
+            sysml_caps.insert(id.to_owned());
+        }
+    }
+    assert!(
+        !rust_caps.is_empty(),
+        "src/capability.rs must register at least one HostCapability"
+    );
+    assert_eq!(
+        rust_caps, sysml_caps,
+        "Rust HostCapabilityRegistry and dev/sysml/project-architecture.sysml HostCapabilitySpec drifted out of sync!"
     );
 }
 

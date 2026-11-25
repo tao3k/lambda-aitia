@@ -15,7 +15,7 @@ use std::{
 };
 
 pub(super) fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
-    const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]";
+    const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json";
     match operation {
         ["--help" | "-h"] => {
             writeln!(io::stdout().lock(), "{USAGE}")?;
@@ -63,6 +63,21 @@ pub(super) fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Err
                     &program,
                     observed,
                     overlay.as_ref(),
+                ))
+            })??;
+            writeln!(io::stdout().lock(), "{response}")?;
+            Ok(())
+        }
+        ["submit-patch"] => {
+            let proposal: serde_json::Value = serde_json::from_str(&cli::read_request()?)?;
+            let overlay = serde_json::json!({ "proposal": proposal, "reconcile": false });
+            let observed =
+                observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
+            let response = with_linked_program(|program| {
+                Ok(reconcile_recorded_gitops_flow(
+                    &program,
+                    observed,
+                    Some(&overlay),
                 ))
             })??;
             writeln!(io::stdout().lock(), "{response}")?;

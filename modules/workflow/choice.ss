@@ -29,8 +29,13 @@
         (only-in :clan/poo/type validate)
         (only-in :std/list/list every filter delete-duplicates/hash)
         (only-in :gerbil-ascent/program/api
+                 relational-program
                  relational-choice-program
                  relational-choice-solve
+                 relational-open-program-session
+                 relational-program-append-source!
+                 relational-program-transaction!
+                 relational-program-session-run
                  relational-program-query)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/durable-dag
                  ParallelFrontierStrategy.)
@@ -44,13 +49,18 @@
         (only-in "./types.ss"
                  ChoiceSolutionType
                  ChoiceFlowPlanType
+                 ObligationSessionType
                  GovernedRunnerType))
 
 (export workflow-solve-gitops-choices
         workflow-solve-sdlc-choices
         workflow-choice-hypotheses
         workflow-choice-flow-plan
-        workflow-execute-choice-worlds)
+        workflow-execute-choice-worlds
+        workflow-open-obligation-session
+        workflow-session-snapshot
+        workflow-session-append-evidence!
+        workflow-session-retract-evidence!)
 
 (def (opt-ref obj key default)
   (if (and (object? obj) (.slot? obj key))
@@ -586,3 +596,82 @@
                                        (action-authorized? := #f))
                                    t-results)
                              t-blocked)))))))))))))
+
+;;; Incremental Native ASCENT Obligation Session (Slice B):
+;;; Opens a retained checked `relational-program` with symbol scalars and
+;;; stratified negation once, then evolves it across cuts via:
+;;;   - `relational-program-append-source!` (monotone evidence arrival)
+;;;   - `relational-program-transaction!`   (atomic premise retraction on cut change)
+(def (session-result->snapshot result)
+  (let* ((discharged (map car (relational-program-query result 'ob_discharged)))
+         (unsatisfied (map car (relational-program-query result 'ob_unsatisfied))))
+    (.o (kind := 'lambda-aitia.workflow.obligation-session-snapshot.v1)
+        (discharged := discharged)
+        (unsatisfied := unsatisfied)
+        (quiescent? := (null? unsatisfied))
+        (action-authorized? := #f))))
+
+(def (workflow-open-obligation-session
+      obligations deps required-evidence
+      live-evidence: (live-evidence '())
+      active-defeaters: (active-defeaters '()))
+  (let* ((ob-rows (map (lambda (o) (list (as-symbol o))) obligations))
+         (dep-rows (map (lambda (p) (list (as-symbol (car p)) (as-symbol (cdr p)))) deps))
+         (req-rows (map (lambda (p) (list (as-symbol (car p)) (as-symbol (cdr p)))) required-evidence))
+         (live-syms (normalize-symbol-list live-evidence))
+         (def-syms (normalize-symbol-list active-defeaters))
+         (ev-rows (map list live-syms))
+         (def-rows (map list def-syms))
+         (program
+          (relational-program
+            (relation obligation (o) ob-rows (role input))
+            (relation ob_dep (o dep) dep-rows (role input))
+            (relation ob_req_ev (o ev) req-rows (role input))
+            (relation live_evidence (ev) ev-rows (role input))
+            (relation ob_defeater (o) def-rows (role input))
+            (relation ob_missing_ev (o) '() (role derived))
+            (relation ob_unsatisfied (o) '() (role derived))
+            (relation ob_discharged (o) '() (role derived))
+            (rule (ob_missing_ev ?o)
+                  (ob_req_ev ?o ?ev)
+                  (not (live_evidence ?ev)))
+            (rule (ob_unsatisfied ?o) (ob_missing_ev ?o))
+            (rule (ob_unsatisfied ?o) (ob_defeater ?o))
+            (rule (ob_unsatisfied ?o) (ob_dep ?o ?dep) (ob_unsatisfied ?dep))
+            (rule (ob_discharged ?o)
+                  (obligation ?o)
+                  (not (ob_unsatisfied ?o)))
+            (limits 256 1024 1024)))
+         (session (relational-open-program-session program)))
+    (.o (kind := 'lambda-aitia.workflow.obligation-session.v1)
+        (session := session)
+        (live-evidence-box := (box live-syms))
+        (defeaters-box := (box def-syms))
+        (action-authorized? := #f))))
+
+(def (workflow-session-snapshot ob-session)
+  (validate ObligationSessionType ob-session)
+  (session-result->snapshot
+   (relational-program-session-run (.ref ob-session 'session))))
+
+(def (workflow-session-append-evidence! ob-session evidence-id)
+  (validate ObligationSessionType ob-session)
+  (let* ((sym (as-symbol evidence-id))
+         (live-box (.ref ob-session 'live-evidence-box))
+         (session (.ref ob-session 'session)))
+    (unless (memq sym (unbox live-box))
+      (set-box! live-box (cons sym (unbox live-box)))
+      (relational-program-append-source! session 'live_evidence (list sym)))
+    (session-result->snapshot (relational-program-session-run session))))
+
+(def (workflow-session-retract-evidence! ob-session retracted-ids)
+  (validate ObligationSessionType ob-session)
+  (let* ((drop-syms (normalize-symbol-list retracted-ids))
+         (live-box (.ref ob-session 'live-evidence-box))
+         (remaining (filter (lambda (s) (not (memq s drop-syms))) (unbox live-box)))
+         (session (.ref ob-session 'session)))
+    (set-box! live-box remaining)
+    (session-result->snapshot
+     (relational-program-transaction!
+      session
+      (list (cons 'live_evidence (map list remaining)))))))

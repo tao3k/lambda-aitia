@@ -451,6 +451,12 @@ check-rust-zero-loadpath: build-rust-cli
     grep -Fq '"choiceStatus":"unique-deduction"' <<< "$flow_out"
     grep -Fq '"choiceWorldCount":1' <<< "$flow_out"
     grep -Fq '"actionAuthorized":false' <<< "$flow_out"
+    caps_out="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" flow capabilities)"
+    grep -Fq '"schema":"lambda-aitia.host-capabilities.v1"' <<< "$caps_out"
+    grep -Fq '"gitops.jj.observe-cut"' <<< "$caps_out"
+    grep -Fq '"gitops.github.observe-pr"' <<< "$caps_out"
+    grep -Fq '"sysml.project-scopes"' <<< "$caps_out"
+    grep -Fq '"actionAuthorized":false' <<< "$caps_out"
 
 # Qualify the linked program, Quint consumer and the exact wheel built here.
 [group('check')]
