@@ -1,9 +1,13 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-//! `aitia flow` subcommand and SysML v2 architecture scope projection bridge.
+//! Thin `aitia flow` CLI adapter delegating host observations to
+//! [`crate::HostCapabilityRegistry`] and passing raw receipts to Scheme.
 
-use crate::{AitiaProgram, MAX_REQUEST_BYTES, cli, cli_commit, with_linked_program};
+use crate::{
+    AitiaProgram, CapabilityFrame, CapabilityId, HostCapabilityRegistry, HostEffectClass,
+    MAX_REQUEST_BYTES, cli, cli_commit, with_linked_program,
+};
 use aitia_jj::{WorkspaceCut, observe_project_sources, observe_recorded_sources, recorded_changes};
 use std::{
     io::{self, Write},
@@ -73,12 +77,23 @@ fn reconcile_recorded_gitops_flow(
         }
     }
     let paths: Vec<&str> = changes.iter().map(|change| change.path.as_str()).collect();
-    let sysml_scopes = observe_sysml_scopes(&cut, configuration.model_check_enabled());
-    let naming = merge_sysml_scopes(&policy["naming"], &sysml_scopes);
+    let registry = HostCapabilityRegistry::default_linked();
+    let scope_receipt = registry.dispatch(&CapabilityFrame {
+        capability: CapabilityId::new("sysml.project-scopes"),
+        effect_class: HostEffectClass::HostRead,
+        payload: serde_json::json!({
+            "directory": cut.workspace_root().to_string_lossy(),
+            "enabled": configuration.model_check_enabled(),
+        })
+        .to_string(),
+        fence_token: None,
+    })?;
+    let sysml_scopes: serde_json::Value = serde_json::from_str(&scope_receipt.payload)?;
     let mut request = serde_json::json!({
         "project": project,
         "cut": cli_commit::review_cut_value(&cut),
-        "naming": naming,
+        "naming": policy["naming"],
+        "sysmlScopes": sysml_scopes,
         "sources": sources,
         "paths": paths,
         "proposals": [],
@@ -104,37 +119,6 @@ fn reconcile_recorded_gitops_flow(
 }
 
 #[cfg(feature = "sysml")]
-fn scopes_to_json(scopes: Vec<crate::SysmlScopeProjection>) -> Vec<serde_json::Value> {
-    scopes
-        .into_iter()
-        .map(|scope| {
-            serde_json::json!({
-                "name": scope.name,
-                "paths": scope.paths,
-                "elementId": scope.element_id,
-            })
-        })
-        .collect()
-}
-
-#[cfg(feature = "sysml")]
-pub(super) fn observe_sysml_scopes(cut: &WorkspaceCut, enabled: bool) -> Vec<serde_json::Value> {
-    if !enabled {
-        return Vec::new();
-    }
-    match crate::sysml::project_recorded_scopes(cut) {
-        Ok(scopes) => scopes_to_json(scopes),
-        // Fail closed: an unparseable or oversized SysML model contributes zero scopes.
-        Err(_) => Vec::new(),
-    }
-}
-
-#[cfg(not(feature = "sysml"))]
-pub(super) fn observe_sysml_scopes(_cut: &WorkspaceCut, _enabled: bool) -> Vec<serde_json::Value> {
-    Vec::new()
-}
-
-#[cfg(feature = "sysml")]
 pub(super) fn observe_commit_sysml_and_scopes(
     cut: &WorkspaceCut,
     affected_paths: &[String],
@@ -144,7 +128,17 @@ pub(super) fn observe_commit_sysml_and_scopes(
         return (None, Vec::new());
     }
     let (model, scopes) = crate::sysml::observe_commit_sysml_and_scopes(cut, affected_paths);
-    (model, scopes_to_json(scopes))
+    let projected = scopes
+        .into_iter()
+        .map(|scope| {
+            serde_json::json!({
+                "name": scope.name,
+                "paths": scope.paths,
+                "elementId": scope.element_id,
+            })
+        })
+        .collect();
+    (model, projected)
 }
 
 #[cfg(not(feature = "sysml"))]
@@ -159,21 +153,4 @@ pub(super) fn observe_commit_sysml_and_scopes(
     let model =
         (!affected_paths.is_empty()).then(|| cli::observe_commit_sysml(cut, affected_paths));
     (model, Vec::new())
-}
-
-pub(super) fn merge_sysml_scopes(
-    naming: &serde_json::Value,
-    sysml_scopes: &[serde_json::Value],
-) -> serde_json::Value {
-    let mut merged = naming.clone();
-    let mut combined = merged
-        .get("scopes")
-        .and_then(serde_json::Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    combined.extend(sysml_scopes.iter().cloned());
-    if let Some(object) = merged.as_object_mut() {
-        object.insert("scopes".to_owned(), serde_json::Value::Array(combined));
-    }
-    merged
 }

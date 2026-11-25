@@ -54,6 +54,10 @@ name = "policy"
 path = "tests/unit/policy.rs"
 
 [[test]]
+name = "framework_boundary"
+path = "tests/unit/framework_boundary.rs"
+
+[[test]]
 name = "linked_program"
 path = "tests/integration/linked_program.rs"
 required-features = ["linked-program"]

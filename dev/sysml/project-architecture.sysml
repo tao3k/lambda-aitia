@@ -36,6 +36,7 @@ package AitiaProjectArchitecture {
             "t/library",
             "t/yanxu/modules/workflow",
             "gerbil.pkg",
+            "AGENTS.md",
             "justfile"
         );
     }

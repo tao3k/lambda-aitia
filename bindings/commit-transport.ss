@@ -60,7 +60,10 @@
 (def (archived-engineering-reference gitops review paths)
   (let* ((cut (replay-cut (json-required review "project") (json-required review "cut")))
          (proposal (json-commit-proposal (json-required review "proposal")))
-         (naming (json-commit-naming (json-required review "naming") symbol->string))
+         (sysml-scopes
+          (map (lambda (row) (json-commit-scope row symbol->string))
+               (optional-json-list review "sysmlScopes")))
+         (naming (json-commit-naming (json-required review "naming") symbol->string sysml-scopes))
          (semantics ((.get gitops commit-semantics) naming cut
                      (recorded-commit-sources review cut) paths (list proposal))))
     (unless (equal? (.get semantics titles)

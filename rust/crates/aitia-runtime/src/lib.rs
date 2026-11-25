@@ -6,6 +6,12 @@
 //! This boundary initializes a build-owned program; it issues no admission,
 //! Human approval or effect authority and implements no replacement DSL.
 
+mod capability;
+pub use capability::{
+    CapabilityError, CapabilityFrame, CapabilityId, HostCapability, HostCapabilityRegistry,
+    HostEffectClass, HostReceipt,
+};
+
 #[cfg(any(feature = "linked-program", feature = "sysml"))]
 mod limits;
 #[cfg(any(feature = "linked-program", feature = "sysml"))]
