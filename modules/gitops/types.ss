@@ -149,7 +149,9 @@
                review-lineage: [(Function (list Object)
                  (list String (List Any) (List Any)
                        (List String) (List String) (List String) (List Any)
-                       (Or False GitOpsEngineeringReference)))]
+                       (Or False GitOpsEngineeringReference))
+                 keywords: (list (cons 'adr-references: (List Object))
+                                 (cons 'affected-domains: (List Object))))]
                review-query: [(Function (list Object) (list Object String))]
                model-gaps: [(Function (list Object)
                                       (list GitOpsModelMappings (List NonEmptyString)

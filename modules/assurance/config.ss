@@ -13,6 +13,8 @@
       prepare-context-input: assurance-prepare-context-input
       prepare-context-body: assurance-prepare-context-body
       assess-agent-input-delivery: assurance-assess-agent-input-delivery
+      replay-profiles: ReplayProfiles
+      replay-profile: assurance-replay-profile
       replay-cases: assurance-replay-cases
       replay-observation-matches?: assurance-replay-observation-matches?
       assess-replay-deployment: assurance-assess-replay-deployment

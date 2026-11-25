@@ -6,7 +6,8 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 # Gerbil derives its default from the host; preserve caller-supplied limits.
 # GAMBOPT heap limits apply per process, not to the whole compiler tree.
-export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", `gxi -:max-heap=2G -e '(display (##core-count))'`)
+# Fall back to POSIX core detection so non-Scheme recipes (Lean/Quint CI) work without gxi.
+export GERBIL_BUILD_CORES := env_var_or_default("GERBIL_BUILD_CORES", `if command -v gxi >/dev/null 2>&1; then gxi -:max-heap=2G -e '(display (##core-count))'; elif command -v nproc >/dev/null 2>&1; then nproc; elif command -v sysctl >/dev/null 2>&1; then sysctl -n hw.ncpu; else echo 2; fi`)
 
 self_root := justfile_directory()
 export GERBIL_PATH := env_var_or_default("GERBIL_PATH", self_root + "/.gerbil")
@@ -77,6 +78,8 @@ stage-rust-program program="aitia-program":
       (def dependency-path (getenv "GERBIL_LOADPATH"))
       (def (stage-program!)
         (when (file-exists? manifest) (delete-file manifest))
+        (when (file-exists? products)
+          (run-process/batch (list "rm" "-rf" products)))
         (def declaration (getenv "AITIA_PROJECT_DECLARATION" #f))
         (def declaration-inputs
           (if declaration
@@ -428,6 +431,19 @@ test-jj-recorded-evidence:
     timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features gitops --lib -- pytest::tests::observes_adr_0008_at_a_recorded_cut --ignored --exact
     {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi {{ gerbil_test_runtime_options }} -e '(import (only-in :gerbil/tools/gxtest main)) (let (status (main "dev/proof/scheme/jj-recorded-evidence-test.ss")) (unless (zero? status) (error "Gerbil tests failed" status)))'
 
+# Verify the linked Rust CLI runs with zero GERBIL_LOADPATH / GERBIL_PATH / GERBIL_HOME.
+[group('check')]
+check-rust-zero-loadpath: build-rust-cli
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target="${CARGO_TARGET_DIR:-rust/target}"
+    cli="$target/debug/aitia"
+    out="$(printf '{"lifecycle-id":"zero-loadpath-check"}\n' | env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" flow-graph)"
+    grep -Fq '"schema":"lambda-aitia.sdlc-flow-graph"' <<< "$out"
+    grep -Fq '"releaseAuthorized":false' <<< "$out"
+    manifest="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" project-manifest)"
+    grep -Fq '"schemaVersion":1' <<< "$manifest"
+
 # Qualify the linked program, Quint consumer and the exact wheel built here.
 [group('check')]
 check-rust-delivery:
@@ -436,7 +452,7 @@ check-rust-delivery:
     test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
     scratch="$(mktemp -d)"
     trap 'rm -rf -- "$scratch"' EXIT
-    just test-rust-frozen-pytest test-jj-recorded-evidence test-rust-linked-program test-rust-project-declaration check-rust-quint build-rust-wheel release "$scratch"
+    just test-rust-frozen-pytest test-jj-recorded-evidence test-rust-linked-program test-rust-project-declaration check-rust-zero-loadpath check-rust-quint build-rust-wheel release "$scratch"
     shopt -s nullglob
     wheels=("$scratch"/*.whl)
     test "${#wheels[@]}" -eq 1

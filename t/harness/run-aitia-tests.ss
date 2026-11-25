@@ -80,6 +80,7 @@
   (let (base (path-strip-directory file))
     (member base '("job-retirement-impact-test.ss"
                    "aitia-operations-test.ss"
+                   "decision-preflight-test.ss"
                    "source-admission-test.ss"))))
 
 (def (vm-for-file default-vm file)

@@ -1,0 +1,1730 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0007 Historical Execution and Qualification Logbook (Archived 2026-11-25)
+#+startup: overview
+
+Archived verbatim from [[file:../rfcs/0007-source-bound-commit-engineering.org][RFC 0007]] lines 2428-4147 to keep the normative RFC
+focused on contract and protocol specifications without altering any recorded
+historical observation.
+
+*** Yuanxu release alignment
+
+The linked Lab checkout moves to the Yuanxu =v0.1.0= release and its
+declared POO dependency. Parser's =v0.1.0= package, the current Orgize
+PR head and the ASCENT PR's release-alignment head each declare the
+same Yuanxu release. Lab's Bazel bridge projection follows the linked
+Rust bridge revision. Lab's package-to-Bazel projection checker and
+the frozen Bazel module lock check passed.
+
+The release publishes Scheme modules under =tao3k/yuanxu= and exports
+=std-make-spec= as the admitted target list. Lab and AITIA consumers
+use that namespace and pass the projection to Gerbil's standard
+build entry. AITIA retains Yuanxu's output directory for linked
+program staging and the platform-specific compiler options. The
+release-specific Scheme build and downstream validation precede
+Rust delivery qualification.
+
+The first release Core installation reached the 600-second guard while
+compiling its pinned POO dependency. Reusing that package store completed
+the standard Core build with exit 0 under the same guard. Gerbil then
+generated the Yuanxu package manifest from the clean Lab Core checkout.
+CI now checks the Lab revision, the Core gitlink and the absence of Core
+worktree changes before registering Lab. The same checks accepted a
+locked clean checkout and detected the different revision and staged
+changes in the POO Flow development checkout.
+
+The development link and package tag are separate. In the isolated
+store, =gxpkg link= followed by =gxpkg build= produced a manifest from
+the correct detached Core checkout. Parser then requested the
+=v0.1.0= dependency tag. Without tag metadata, Gerbil v0.19 read the
+empty branch name of the detached checkout and failed in
+=pkg-tag-incompatible?=. The ordinary tagged update command also failed
+on its tagged package lookup. A package-managed checkout of the same
+release, bound with the =pkg-update= API used by Lab's existing
+prefetch entry, produced the tag metadata. The subsequent dependency
+install reached the same 600-second guard during Parser's Org grammar
+artifact generation.
+
+Lab's default =build.ss spec= returned an empty target list. A selected
+=ai-agentic-context= projection first failed on the former Yuanxu
+prelude namespace in a nested package declaration. After aligning the
+Module and Scenario package preludes with the release, the same
+projection exited successfully and listed the five Context targets.
+This checks target selection. Compilation of the selected targets and
+AITIA downstream qualification remain open.
+
+The resumed package build reached Orgize after Parser's grammar
+generation. Orgize's compiled interface probe reported
+=COMPILED-INTERFACE-ABI-OK= with the bridge runtime available. The
+subsequent parser staging also needs the OpenSSL, zlib, and SQLite
+=pkg-config= inputs. After providing all three dependencies through
+=pkg-config= and using the Lab Darwin compiler environment, the Orgize
+build reported =ORG-PARSER-STAGE OK= and exited 0. The ASCENT package
+build also exited 0 with that compiler environment. The GHQ Lab
+checkout registered through Gerbil's package manager and its default
+build exited successfully. These were resumed builds.
+
+The commit-semantics consumer could not run against the previous
+package store because it lacked release-namespace interfaces and Lab's
+durable journal. A focused run against the release-aligned store
+returned 137 under the existing 60-second guard without emitting a
+test result. The same guard outside the sandbox reached the test
+module marker and returned 137 before its first Case. A separate
+ASCENT API import reproduced slow loading in isolation. A process
+sample recorded 126 of 191 main-thread samples in Gambit's dynamic
+load call, including Darwin loader image notification. The source
+reader accepted the revised Scheme files. Running the same focused
+GxTest suite through the built ASCENT development executable under
+the same 60-second and 512 MiB limits reached the Cases. Its first
+run exposed a fixture where the same path supplied both engineering
+and language evidence. The expected Open rows now include both
+=missing-reference= and =conflicting-language-source=. The corrected
+suite reported =MODULE-OK=, =HARNESS-OK= and final =OK= and exited 0.
+The standard GxTest invocation and joint validation remain Open.
+
+AITIA's build projection found that a successful default Lab package
+build leaves its Temporal Causality libraries uncompiled. The consumer
+CI now invokes Lab's existing =just build-library= before running
+AITIA. The first local library build found retired Yuanxu Module IDs
+in OpenTofu's required publications. The declaration and its downstream
+controls now use the released IDs. The full library build is a separate
+gate from the default package build.
+
+The next library attempt resolved those IDs and rejected the retired
+=module/build= projection in Nix. Nix and OpenTofu now use their existing
+Gerbil type imports to reach their contract libraries. OpenTofu keeps
+its configured external package projection. The full Lab library and
+AITIA consumer still require verification.
+
+The Yuanxu alignment is published on Lab PR 34. A subsequent Lab library
+attempt reached Gerbil Make and showed that a foreign Module target needs
+Yuanxu's compiler source view. Lab's development entry now runs the
+combined selection and library projection inside the existing Yuanxu
+compiler-input extent. In AITIA, the operations and linked Scheme program
+are retained package entrypoints. The build and linked staging use the
+same declaration for these targets, and SDLC no longer supplies a retired
+=module/build= projection. Linked staging passes the exact admitted target
+list to Gerbil Make inside Yuanxu's compiler-input extent. A focused Make
+spec invocation returned both retained entries and exited 0. The full
+admission, compile and linked readback remain separate gates.
+
+Lab PR 34 also contains the compiler source view fix. That build reached
+the foreign JSON Schema source and stopped on a =fold-right= import
+unavailable in Gerbil v0.19. Yuanxu PR 22 now uses the Gerbil Core list
+bindings. All seven affected sources compiled, and the focused JSON
+Schema control preserved value and diagnostic order. A publication
+diagnostic using the release dependency store still reported heap
+overflow. The corrected Yuanxu dependency cohort and the full Lab
+library build remain Open.
+
+Lab PR 34's Linux ABI job failed before executing its tests. Bazel 9
+rejected an unmatched root Scheme glob in =dev:sources=. Lab now
+declares the package manifest and existing Testing sources. A locked
+Bazel query resolved those files. The replacement head's ABI test run
+is a separate gate.
+
+The License contract job identified a missing SPDX copyright line in
+the existing Context scope test. Lab completed the header and its local
+license check passed. Remote status is tracked on Lab PR 34.
+
+Lab's development test entry exports the existing build projection
+and source-admission suites through =dev.ss=. The =just test-dev=
+recipe ran =gerbil test dev.ss= with the existing 120-second and
+2 GiB limits and reported =MODULE-OK=, =HARNESS-OK= and final =OK=
+with exit 0. The Lab production library remains a prerequisite for
+AITIA's independent consumer validation.
+
+AITIA's =gerbil test dev.ss= exercises the source projection and formal
+methods consumer through the standard development entry. With the Lab
+checkout ahead of its compiled library, Assurance selected the source of
+=monotonic-clock=, and the interpreter refused its =C-declare=.
+Keeping the same Lab checkout and placing the compiled clock before the
+source reproduced the normal consumer path. The development test reported
+=MODULE-OK=, =HARNESS-OK= and final =OK=, then exited naturally in
+80.98 seconds within the existing 120-second and 1 GiB limits. CI now
+uses the installed Lab library before source-only test support. The
+development recipe also rejects a failing harness report when Gerbil
+returns zero. This local control qualifies the loading boundary. A hosted
+cold install with the pinned Lab library remains open.
+
+The shared CI entry =just check-quint= completed all 23 model checks and
+both temporal progress controls. The lifecycle safety model exhausted
+19,042 distinct states, and the control without fairness produced the
+expected delivery counterexample. The four focused TypeScript suites
+passed all 20 Cases. The Lean libraries built and the axiom audit found
+no =sorryAx= in the exported laws. These are model and proof results.
+The compiled Scheme action-witness replay passed all sixteen actions and
+seven fault traces. The separate full robustness run hit the unchanged
+12-second silence guard before the harness, including on a retry with
+compiled workers. The retained failure batches passed individually.
+See [[file:../../dev/proof/quint/README.org][lifecycle replay coverage]] for
+the distinct model, correspondence and robustness results.
+
+The current AITIA JJ test passed its unit Case and all nine workspace
+Cases with the existing 120-second guard. These exercised real JJ
+records, ambiguous review bookmarks, stale cuts and remote leases,
+divergent unpublished work, and an unresolved recovery without a push
+acknowledgement. Linked Scheme review and commit readback are separate
+gates. The two-suite Scheme consumer attempt stopped while importing
+Lab Governance's compiled objects. After using the Gerbil Core list
+bindings in the AITIA commit path, the focused semantics suite again
+reported =MODULE-OK=, =HARNESS-OK= and final =OK= and exited 0 with the
+ASCENT development executable under the existing 60-second and 512 MiB
+limits. The linked consumer and revision GQL readback remain Open.
+
+JJ now opens the workspace once to observe the declared engineering and
+language source paths. It checks the operation before and after the batch,
+uses one byte budget and returns path-specific read failures for the review.
+The workspace Case read recorded text despite a dirty working copy, kept
+a missing path and an exhausted budget visible, and rejected the whole
+batch when the operation changed. The standard JJ test command again
+passed its unit Case and all nine workspace Cases.
+Both the initial and incremental linked Rust checks using an earlier
+compiled Scheme manifest reached the 120-second guard during the build.
+They supply no linked acceptance for the current Scheme inputs.
+
+A source headline with two =ENGINEERING_ID= properties cannot support a
+reference. Orgize rejects the duplicate property during Element
+projection. Scheme leaves that reference unresolved and ASCENT retains
+the corresponding Open item. The focused test passed through ASCENT's
+development executable in the normal Darwin environment under the
+existing 60-second and 512 MiB limits. The sandboxed attempt reached
+the same guard before completing the suite.
+
+ASCENT distinguishes conflicting scope declarations from an unaffected
+scope. Two declarations for one scope can agree after path order and
+duplicate entries are normalized. Different path sets keep the proposal
+Open and omit that scope from the affected-scope relation. The focused
+Scheme suite passed both controls under the same guard. The linked
+context projection exposes the conflicting scope names for review.
+The existing OpenSysML test also passed with the updated model and
+recorded JJ inputs.
+The linked commit fixture now requires the context to report the
+scope conflict and the reference conflict independently, with no
+prepared attempt. That linked fixture awaits the current program build.
+
+The scope assessment now retains the supporting changed paths for each
+admitted scope and lists paths outside all admitted scopes. A focused
+Scheme replay passed the mixed-scope and conflicting-declaration controls
+under the 60-second and 512 MiB limits. Using the recorded naming declaration
+and all 23 changed paths from the local PR 2 candidate, the same assessment
+returned 14 paths for =gitops= and nine unscoped paths. The unscoped paths
+include CI configuration, verification sources and the Python build entry.
+The rebuilt CLI reproduced the same coverage through =jj commit preview
+--applied=, matched the recorded description byte for byte, and preserved
+the JJ operation. The complete commit-semantics test invocation reached
+the module marker without completing under its existing guard.
+
+The POO revision declared by Yuanxu PR 22 built successfully under the
+existing 600-second guard. The first Yuanxu attempt identified a missing
+POO package manifest. Gerbil then registered and built the linked POO
+checkout. Yuanxu built successfully against the registered dependency
+under the same 600-second guard. The subsequent Lab library control
+uses those POO and Yuanxu products first on its load path and the
+already-built Parser, Orgize and ASCENT products for the other libraries.
+This control does not qualify a fresh install of the full dependency set.
+Its library specification subprocess returned. Before Make emitted any
+compilation output, a parent-process sample recorded 143 of 144 main-thread
+samples in dynamic loading, including 142 in Darwin's segment mapping
+path at =fcntl=. The build then reached the existing 600-second guard,
+exited 137 and left no compiled Lab interfaces in the output.
+
+Outside the sandbox the same library control advanced to a concrete
+compiler import failure. A release-built =module-prelude.ssi= requested
+a declaration export that was unavailable in the mixed load path.
+The next build uses one isolated package store for POO, Yuanxu,
+Parser, the Scheme bridge, Orgize, and ASCENT. The mixed run exited 70.
+Yuanxu and Parser built successfully in the isolated store under
+the existing per-package guard.
+The Scheme bridge also built successfully in that store. Orgize
+completed document and inline grammar generation.
+
+*** Policy source lineage at the applied revision
+
+Evidence readback resolves the recorded project configuration and asks
+JJ for the regular files named by its engineering and language source
+declarations. JJ reads the selected revision's tree, so an unchanged
+source still has a =has_policy_source= edge. Missing paths produce no
+edge. The edge records file availability. ORG Contract and ASCENT
+still determine which claims the file supports.
+
+An applied archive must supply a proposal. Scheme reconstructs the title
+from the applied tree's recorded ORG sources and changed paths. The
+projection requires that title to equal the first line read back from
+JJ. Rust uses the live proposal shape to decode archived proposals.
+A missing proposal or a proposal with a supplied host source field
+is rejected before projection. The =engineeringReference= GQL selection follows
+=names_engineering_item= and =declared_in= from the revision to the
+engineering ID, stable Element ID and source path. A recovery receipt
+without a proposal has no engineering reference row. This query
+validates the title and its source. It carries no action authority.
+
+An applied archive also requires a commit policy selected by the
+recorded revision. The linked regression writes a JJ description in
+a project without that policy and submits an archive containing a
+proposal. The CLI refuses it with status 1 and empty standard output.
+Receipt-only recovery still reads the description from JJ and returns
+no engineering reference. The dedicated regression passed in 6.08
+seconds. An earlier combined run reached the existing 120-second
+guard before it completed. The final linked suite ran the new case
+independently of the SysML model fixture and passed all eight enabled
+cases in 87.92 seconds under the same guard. The compiled project
+declaration remained opt-in. This run reused the local staged Scheme
+archive and exercised the local OpenSysML service.
+
+The applied-archive regression removes the proposal from a valid
+apply response. Evidence readback refuses the modified archive with
+status 1 and no standard output. The same linked suite verifies that
+receipt-only recovery still reads the actual revision and that a
+commit with SysML parsing disabled can be applied and read back.
+Attaching a SysML report to that commit remains a refusal. All seven
+enabled linked cases passed in 47.66 seconds under the existing
+120-second guard, using the staged Scheme archive and the local
+OpenSysML service.
+
+The linked archive regression inserted a forged source field into an
+otherwise valid archived proposal and verified refusal before GQL
+projection. It also exercised the existing changed-summary and
+receipt-only controls. The first joint run reached the original
+120-second execution guard. The same linked binary completed all seven
+enabled cases on the repeat in 108.34 seconds. The separate compiled
+declaration case was not run in this invocation.
+
+A local linked run on the applied 31-path candidate resolved
+=RFC-0007= to =lambda-aitia-commit-engineering= in this document.
+Changing only the archived proposal's summary returned status 1 with
+no stdout. The receipt-only recovery returned an empty engineering
+reference selection. The focused Scheme query suite passed and exited
+normally under its existing guard. All seven enabled linked integration
+cases passed in 53.82 seconds under the 120-second guard, including a
+local push and readback after the engineering source was rebound. The
+linked run used previously compiled dependencies, the classic macOS
+linker and a local OpenSysML service. The embedded project declaration
+case remains separately gated.
+
+The JJ suite passed its unit Case and all nine workspace Cases. The
+historical source control read the recorded regular file after the
+working copy changed to a directory and omitted an absent path. A
+Scheme graph control confirmed that one file can carry both config and
+policy-source edges without a duplicate node. The =review-lineage-test.ss=
+suite passed through =gerbil test= under the existing 512 MiB and
+60-second limits. When the change, config and policy source describe
+one path, the projection checks the recorded file identity and executable
+bit before creating the shared node. The suite rejects a previous file
+version, an executable-bit mismatch, a deleted path, a conflicting
+config observation, a symlink, and duplicate policy-source rows.
+The OpenSysML test accepted the updated lineage model and rejected its
+invalid input control under the existing 120-second guard. The linked
+GQL fixture checks the policy-source path and its changed state. Its
+execution remains Open pending the current linked build.
+
+*** Required graph selection for revision queries
+
+Lab Query publishes the existing bounded Scheme graph selector through
+its Query module. AITIA declares the revision-specific paths and consumes
+that selector for inventory, project configuration, policy sources and
+model evidence. The linked Rust fixtures require executed rows and an
+empty model selection when the parse archive is absent. The results
+retain partial coverage and carry no action authority.
+The Lab selector tests and AITIA revision-query tests passed using the
+Lab source checkout and installed Scheme dependencies. The AITIA tests
+checked revision refusal, unchanged policy sources and empty results
+for missing reports. Lab PR 34 now contains the selector, and AITIA's
+package declaration selects that revision. The package build and linked
+Rust fixtures against that revision remain Open.
+The full Scheme commit-semantics command exited 137 under its existing
+60-second guard in both the sandbox and the host, before a Harness
+receipt. The standalone JJ suite completed its unit test and all nine
+workspace tests under its existing 120-second guard.
+
+In the isolated Yuanxu PR 22 dependency build, Orgize first reached the
+600-second guard during compilation. An incremental retry reached the
+compiled-interface ABI check and exited 70: Gerbil attempted to expand
+the generated =values~0.scm= instead of loading the compiled object.
+The timed-out build had left its interface and generated Scheme files
+without a corresponding object. That run did not publish Orgize, ASCENT,
+or Lab. The package clean and rebuild use the existing guards.
+The clean completed successfully and the next Orgize build restarted
+from generated grammar products. A separate build against the existing
+release dependencies sampled Lab's specification subprocess before Make
+started. The main thread was predominantly scanning and marking the
+Gambit heap. This locates the work before compilation but does not yet
+identify the allocation source.
+
+The clean Orgize run produced the object files missing in the previous
+attempt. It reached dynamic module resolution in the compiled-interface
+check and returned 124 under the existing 600-second package guard. The
+Lab full-library run returned 137 while still in specification expansion.
+The focused Lab Query compilation produced both the selector and config
+objects. AITIA's revision Query suite completed with those compiled
+interfaces first on the load path, using the source checkout for the
+rest of Lab. This qualifies the consumer call to the compiled selector.
+The full package build and linked Rust replay remain Open.
+
+The lineage projection also checks a recorded project configuration file
+against the change inventory when there is no policy-source observation
+for that path. The combined lineage and Query suites rejected a stale
+configuration version, a deleted configuration path and an entry with
+missing executable metadata. Both suites completed under the existing
+60-second and 512 MiB limits. OpenSysML accepted the revised model and
+rejected the invalid-input control under the existing 120-second guard.
+
+The =verifiedReports= selection follows the revision's verified report
+edges, including the Git configuration audit of the commit object, tree
+and parents. The report's method identifies the matching entry in
+=observations=. The configuration file selection separately lists the
+recorded project inputs. The focused Scheme Query suite passed against
+the compiled Lab selector and confirmed that a missing archive yields no
+verified rows. A linked fixture requires both selected JJ reports.
+
+Program staging now prepends its compiled AITIA products to the dependency
+load path used by the enclosing build. This retains the existing package
+selection when the AITIA output is separate from the dependency store.
+The previous staging entry compiled AITIA successfully in that layout,
+then failed to resolve the Scheme bridge's =program-build= module in its
+child. The corrected entry resolved the bridge and reached the static
+link closure. The reused release store lacks static products for Yuanxu's
+=init-syntax= and =body-inclusion= modules despite having their dynamic
+interfaces. Compiling the first module from that exact release in a
+separate output directory produced its static file and advanced the
+closure to the second missing product. This diagnoses the reused store;
+the mixed-cohort staging run did not produce a program manifest.
+
+The Rust archive contract now requires the AITIA lineage and Query modules
+and the Lab graph selector. Under the existing 120-second guard, the
+linked Cargo check rejected the previously staged manifest because it
+lacked the required Query module. The current Scheme compilation produced
+the three modules' static inputs. The positive linked check still requires
+the complete dependency closure.
+
+When a trusted project declaration is selected, staging uses Yuanxu's
+source admission to check its bytes around compilation and manifest
+generation. A missing declared file is rejected before compilation and
+produces no program manifest. The linked runtime still checks the recorded
+declaration against the exact bytes embedded in the program.
+Staging serializes writers through Yuanxu's output lock. The Scheme
+bridge writes its manifest in the link output directory, and AITIA
+publishes it to Cargo's input path after the final source checks. The
+missing-declaration control seeded a previous manifest, then confirmed
+that the failed staging attempt left no manifest at Cargo's input path.
+
+The isolated release rebuild first refused a missing POO package
+registration. With the existing POO registration available in the
+isolated package store, standard Gerbil build regenerated both of the
+missing Yuanxu static files and exited successfully under its existing
+600-second guard. A closure diagnostic reused the compiled AITIA objects
+with those rebuilt products and generated a manifest with 793 module
+entries. The AITIA lineage, revision Query and Lab graph selector each
+appeared once. The diagnostic uses an earlier Lab library with the focused
+compiled selector products, so it does not qualify the locked Lab build.
+The standard staging run sampled in Darwin's =dlopen= segment mapping.
+A later inspection showed that it had moved from a Yuanxu Funflow object
+to an Orgize parser object. The run reached its existing 600-second guard,
+exited 137, and left no published manifest.
+
+The diagnostic manifest linked both Rust test targets. The joint replay
+completed the archive-identity, CLI and Assurance cases before the
+120-second guard. The reviewed-push case also reached the guard when
+run alone, after reaching =commit prepare=. The separate linked SysML
+case reached applied evidence readback and exposed a GitOps Scope
+Contract that still declared six lineage arguments. The host sends seven
+including the policy-source observations. The Scope Contract now declares
+that seventh list, and the Scheme Query case exercises the validated
+Scope instead of calling the implementation directly. The case emitted
+its success markers. The corrected Scope was recompiled and linked using
+the diagnostic dependency cohort. With that binary, the CLI read back an
+already applied local PR 2 candidate with 77 changed paths. GQL returned
+77 inventory rows, the three verified JJ and OpenSysML reports, the
+recorded SysML file, and both policy sources. The missing-report control
+on a separate applied revision returned the verified configuration audit
+and omitted the missing change inventory. The broader linked SysML
+suite reached its 120-second guard. These readbacks qualify the corrected
+Scope on recorded revisions. The current candidate's full replay and
+locked dependency build remain Open.
+
+The corrected diagnostic binary also previewed the current working
+changes in an isolated JJ repository. The snapshot excludes the two
+staged edits already in the shared index and includes the unstaged
+GitOps import. JJ recorded 133 changed paths. ASCENT admitted the RFC
+reference and affected GitOps scope, and OpenSysML parsed the one
+affected model. Scheme rendered the English proposal with both NASA
+evidence rows and the model result. The local snapshot had no review
+remote, so the empty Open list describes this snapshot only. A proposal
+substituting =SWE-084= for the engineering reference was refused with
+=missing-reference= and no attempt. The preview did not apply a commit.
+
+On the same isolated candidate, =prepare= reproduced the exact preview
+description. Recovery reported the prepared attempt as unresolved, and
+modifying the narration after preview was refused without a new attempt.
+The visible JJ operation was identical before and after these checks.
+
+A second local workspace recorded the same candidate tree against the
+published bookmark of PR 2. The GitHub provider resolved the PR and its
+=main= target. It reported the published head's failed Native admission
+and linked delivery check with =onCandidate=false=. ASCENT projected
+=gitops.pull-request-checks= into Open. Scheme rendered that disclosure
+alongside the two NASA evidence items and the recorded OpenSysML result.
+The provider-linked preview produced no attempt or remote update.
+
+The isolated 133-path candidate was subsequently applied through AITIA.
+The actual JJ description matched the reviewed preview byte for byte.
+Recovery reported the attempt as applied, and revision GQL returned all
+133 inventory rows, both JJ reports and the OpenSysML report with no
+missing report. A second isolated workspace recorded the same tree and
+reproduced the same description before pushing through =aitia jj git push=
+to a local bare repository. The remote bookmark pointed to the applied
+commit, its description matched the preview byte for byte, and push
+recovery reported =acknowledged=. The GitHub-associated candidate was
+used only for review. The exact locked-dependency build and the complete
+joint replay remain Open.
+
+The same applied candidate rejected a substituted Git tree in the archived
+configuration audit before emitting GQL results. Replaying the acknowledged
+push request was refused because its description rewrite was no longer
+the current operation. The local operation and remote bookmark were
+unchanged. A readback with only the recovery record returned the actual
+commit description and its policy sources. All three report archives were
+listed as missing, and the verified report and model queries had no rows.
+That readback also preserved the visible JJ operation.
+
+The published PR 2 delivery job stopped during Orgize compilation in
+dependency installation. The job returned 124 at the 600-second guard,
+before AITIA staging or linked tests ran. The diagnostic local replay and
+that published-head result cover different execution paths.
+
+Timing on the diagnostic linked binary showed 0.20 seconds for JJ
+observation, 9.11 seconds for the project manifest, and 34.17 seconds
+for one commit context invocation. A later comparison on a local copy
+completed commit context in 11.99 seconds with the full RFC and 8.03
+seconds with a short document retaining the same Org identity. Both
+returned the same engineering reference and passed the model check.
+The timing varies across invocations. Sampling the manifest path showed
+Scheme execution and Gambit GC inside the linked runtime extent.
+
+The engineering reference check now reuses the uniqueness result from
+Org Contract and inspects the matching headline in the existing graph
+records. This removes the second query index construction while retaining
+the document-wide uniqueness and same-headline requirements. The runtime
+effect of this change still needs a linked rebuild and measurement.
+The changed Scheme module compiled successfully. The complete semantics
+suite reached its 60-second guard before reporting a verdict, both from
+source and with the separately compiled module on the load path.
+
+The local source gate reached the commit semantics and revision-query
+suite verdicts once it used the Lab Query products with bounded Scheme
+graph selection. An older Lab Query product reported a missing
+=.select-scheme-graph= method in the revision-query Cases. The complete
+gate remained Open under the existing 512 MiB heap and 60-second guard.
+The gate now invokes =gerbil test= directly, and the tests reuse an
+evaluation result when checking multiple fields of the same input.
+Draft review also reads headline properties from the graph already
+supplied to Org Contract. The Contract continues to check each required
+property, and the headline scan continues to reject extra properties
+in the reserved evidence fields.
+After that change, a focused source run reached the commit-evidence
+suite under the same guard and exited 137 before its verdict.
+
+A focused replay of the compiled Evidence module and test interface
+completed all thirteen Cases and exited normally under the same
+512 MiB heap and 60-second execution guard. This includes the NASA
+narration Case with current, forged and stale evidence. Compilation
+completed under its separate 120-second guard. A source replay with
+Case-level output reached the execution guard before the Harness
+started. The compiled replay therefore qualifies the assertions and
+process exit for those products. All seven compiled GitOps and project
+configuration test modules then passed together in 44.45 seconds with
+the same heap and execution guard. The test runner reported seven
+=MODULE-OK= receipts, =HARNESS-OK= and final =OK=, then exited zero.
+This local replay used the Lab Query products with bounded graph
+selection alongside the existing dependency products. Qualification
+of the source entry, the locked installation and the linked runtime
+measurement remain Open.
+
+The standard linked staging entry compiled the current AITIA sources and
+published an AOT manifest with 793 modules, including commit evidence.
+The first local attempts stopped at the bridge's =pkg-config= lookup
+and then at the missing Yuanxu =init-syntax= static product. Staging
+completed with the system OpenSSL, zlib and SQLite packages visible to
+=pkg-config= and the rebuilt Yuanxu release products on the dependency
+load path. This qualifies local staging for that dependency set.
+
+Cargo linked the staged program using the system macOS linker and SDK
+after the default linker failed to resolve =libiconv=. In the restricted
+environment the commit fixture could not apply its own sandbox and pytest
+could not open its local socket. With those host capabilities available,
+all five enabled linked integration tests passed in 99.08 seconds.
+They exercised the recorded Assurance profile, signed admission,
+commit readback and local JJ push with Scheme compilers excluded.
+The compiled project declaration test was ignored because this program
+did not embed that qualification input. The joint command then reached
+its original 120-second guard while running the OpenSysML integration
+test. The same linked OpenSysML test passed independently in 39.84
+seconds, including valid and invalid recorded models, changed operations,
+unaffected paths, model removal and oversized input.
+
+The linked gate now includes the existing OpenSysML test in the same
+Cargo test harness as the commit and Assurance tests. Cargo can run the
+independent temporary-workspace cases together. The standalone OpenSysML
+entry still uses the same test source. All six enabled cases passed
+together in 76.46 seconds under the unchanged 120-second guard. The
+compiled project declaration case uses a separate program with the
+qualification declaration embedded. Its current-build replay passed in
+11.10 seconds under the same execution guard and the macOS process
+restrictions. The linked CLI accepted the recorded declaration and JSON
+overlay, ignored an unrecorded edit, rejected a recorded replacement or
+removal without evaluating replacement code, and accepted the restored
+declaration without the overlay.
+
+The current PR 2 Rust workspace job reported ASP Rust's
+=RUST-MOD-R002= on the 1,033-line JJ workspace test file. The three push
+and recovery tests now live in its push submodule. All nine existing JJ
+integration tests passed after the move, and the workspace ASP policy
+test accepted the result without a rule change. The complete local
+Rust workspace gate subsequently passed formatting, Clippy and the
+workspace tests under the existing guards with Rust 1.99. The
+separate frozen-source Python replay and the recorded JJ evidence
+replay also passed, including Scheme verification of the generated
+evidence. The rebuilt Rust CLI also ran the Gerbil-generated Quint
+driver. All five commit evidence Cases passed and a deliberately false
+assertion preserved the Quint diagnostic and exit status 1 through Rust.
+These runs qualify the current local candidate. The linked Rust library
+suite separately passed all 18 enabled tests. The transport controls
+refused a changed provider check at the same PR head, a retargeted PR
+with the same remote lease, and an unreviewed destination. The provider
+controls rejected incomplete, stale, or ambiguous observations. The
+two Python tests excluded by the default suite passed via the separate
+frozen-source and recorded JJ replay entries.
+
+The macOS release wheel initially installed and then exited with SIGILL
+during =OrgEditReview= construction. The packaged Mach-O load commands
+extended eight bytes into =__text= after wheel repair rewrote dylib paths.
+The Python extension now reserves header space when linking for macOS.
+The rebuilt wheel left 7,160 bytes between the load commands and the
+first instruction. The existing installed-wheel gate then exited zero
+within its 60-second guard, including frozen Python replay, ORG edit
+validation and linked Scheme calls.
+
+The candidate with per-assessment ORG graph reuse was also packaged
+from its staged Scheme program using the locked Rust release profile.
+The macOS arm64 ABI3 wheel installed in a fresh environment and the
+existing 60-second consumer gate emitted
+=AITIA-INSTALLED-RUST-WHEEL-OK=. Its malformed Org contract input
+returned the expected integer-field refusal.
+
+The current local candidate also built a locked macOS arm64 ABI3
+release wheel from its previously staged Scheme program using
+Maturin 1.16.0. The exact wheel installed in a fresh environment
+and emitted =AITIA-INSTALLED-RUST-WHEEL-OK= under the existing
+60-second smoke guard. The smoke exercised the linked Scheme
+operations and retained the invalid expectation and integer
+refusals. This run reused locally available Gerbil dependencies.
+
+On the same published head, the Native job failed during installation
+when Orgize's C binding imported =gerbil-scheme-rust/scheme/runtime=.
+The selected Orgize manifest declares Parser and Yuanxu. Orgize's
+standalone preparation builds the Cargo-selected bridge's Scheme
+modules before compiling Orgize. Lab's dependency installation calls
+the Orgize package build directly. Locally, the bridge selected by
+AITIA's Cargo lock built in a fresh output, its required exports
+loaded, and the affected Orgize C binding compiled using those
+products and the system SDK. This verifies the missing input at the
+binding boundary. The ordinary cold-install entry still needs to
+receive that input through the producer's build contract.
+An isolated Orgize build experiment selected the Parser, Elements and
+Contract roots through Yuanxu for the ordinary Scheme package. The
+resulting specification retained the Element source interface and
+Contract evaluator and contained no C binding targets. The explicit
+FFI specification retained the C binding and the event tape. A separate
+consumer loaded installed Scheme products without the bridge on its load
+path, parsed an Org document and executed the Contract evaluator.
+The AITIA commit semantics source suite also passed all eighteen Cases
+in this Scheme-only dependency view within its existing 60-second and
+512 MiB execution limits. These consumer checks used installed Orgize
+products. The Orgize source-build experiment has its own acceptance.
+The experimental ordinary =gerbil build= generated and compiled the
+Fold package and completed under the existing 600-second and 2 GiB
+limits with installed Parser and Yuanxu dependencies. The resulting
+output contained neither the Scheme bridge nor Orgize C binding
+products. From that output, an Org Contract requiring the exact
+engineering ID admitted a matching document and rejected a different
+ID. This qualifies the isolated Scheme package build and its consumer.
+The build split was then applied to an isolated checkout of the current
+Orgize PR branch. Its existing native preparation and isolated parser
+build recipes select the FFI path explicitly. The ordinary projection
+retained the Contract evaluator and excluded C bindings. The FFI
+build generated and compiled the Fold package, then returned 124
+under the producer's existing 900-second macOS guard before publishing
+the program manifest. The producer's =just ci-build-program= then
+compiled the Cargo-selected bridge and passed the compiled tape ABI
+probe. Its first staging attempt stopped at the missing Yuanxu
+=init-syntax= static product. With the static products built from the
+same Yuanxu release available in the local package output, the same
+recipe exited zero under its existing guards. It published a 439-module
+manifest and passed the producer's source and module checks. This run
+reused compiled dependencies. AITIA then passed all eighteen commit
+semantics Cases against the rebuilt Orgize libraries in a load path
+that excluded the bridge, under the existing 60-second guard and
+512 MiB heap. A second compiled AITIA run passed commit semantics,
+commit evidence and revision Query together against the rebuilt Orgize
+libraries, with three module receipts and natural exit zero.
+
+The producer's unchanged =ci-scheme-test= returned 124 before the
+Harness started. A diagnostic with the compiled suite entry and the
+same idle guard produced all 237 Case and 19 Suite receipts, followed
+by final =OK=. The child then exceeded the five-second output guard
+before natural exit. Compiling all suite inputs separately did not
+qualify the full gate either. The compiled negative control did return
+42, emitted its expected failed check and omitted the success marker.
+The producer regression remains Open. The producer change remains
+local and unpinned.
+
+Orgize PR 18 advanced while Lab's published package declaration retained
+the same Orgize revision. The newer Orgize head retains the same ordinary
+build entry and package declaration as the pinned version. The proposed
+build split applied cleanly to the newer head. A fresh Orgize output with
+existing Parser and Yuanxu products reached Elements and Contract compilation
+through =gxpkg build=, then returned 124 at the unchanged 600-second guard.
+An incremental continuation through the same package entry completed.
+Its outputs included the Contract evaluator and excluded both the Scheme
+bridge and the C event tape interface. With Lab's compiled support present,
+all seven AITIA GitOps and project configuration modules passed against
+that Orgize output, with final =OK= and natural exit. The fresh-output
+timeout and the full locked cold-install obligation remain open.
+
+A fresh Orgize output based on the published PR 18 head with the
+same local build split completed =gxpkg build= under the 600-second
+guard and 2 GiB heap. It used previously installed Parser, Yuanxu
+and POO products. The output included the Contract evaluator, with
+the bridge and C event-tape interface absent. The AITIA source-runner
+diagnostic stopped after 13 Cases. Using the current compiled AITIA
+products against this Orgize output, all 19 commit-semantics Cases
+passed with natural exit under 512 MiB and 60 seconds. The producer
+patch and downstream lock update remain unpublished.
+
+The same Orgize output then passed all seven AITIA GitOps and
+ProjectConfig modules under the same 512 MiB and 60-second limits.
+The isolated load path exposed the compiled AITIA, Orgize, ASCENT
+and Lab products and the Yuanxu preludes those Lab products import.
+None of its roots exposed the Scheme bridge. The run completed with
+seven module markers, harness completion and final =OK=. This covers
+PR association, review admission and revision Query consumption
+through the Scheme package boundary.
+
+A guarded replay of the original source entry subsequently reached all
+237 Case and 19 Suite receipts, =MODULE-OK=, =HARNESS-OK= and final
+=OK=. Read-only sampling during the silent interval captured Gambit's
+=___cleanup_dyn_module= in =dlclose=, with dyld spending most of the
+sample in =notifyDebuggerUnload= and Mach notification work. The
+existing idle guard returned 124. This identifies the sampled
+post-Harness delay in Darwin module unload. Earlier attempts also
+timed out before the Harness, so this sample does not account for
+every observed failure.
+AITIA CI uses the pinned Lab release installer and its Gerbil package
+entrypoints. It checks the Core gitlink before building and registers
+Lab through Gerbil so AITIA can consume the generated package manifest.
+Before dependency installation the Linux runner supplies Gerbil with
+the available CPU count capped by the existing 2 GiB per worker policy.
+The 600-second guards for dependency installation and Lab package
+registration signal the process group. Local controls verified CPU-bound
+and memory-bound worker allocation, child termination, and exit 124.
+The Scheme job calls =just check-scheme=. Its development suite enters
+through =gerbil test dev.ss= with the existing heap and time limits.
+Workflow lint and the recipe expansion passed. The local development
+test initially stopped at import because the available store lacked Lab's
+=modules/proof/interface= output. A run using existing compiled Lab
+products emitted =MODULE-OK=, =HARNESS-OK= and final =OK=, then returned
+124 without natural exit under the same 120-second guard. The hosted
+cold install remains Open.
+
+A subsequent guarded =just test-dev= run with existing Lab products
+captured a read-only sample immediately after final =OK=. All 2,585
+main-thread samples were in Gambit dynamic module cleanup and dyld
+=dlclose=. Of these, 2,311 were in =notifyDebuggerUnload=. This run
+exited naturally with status zero. A second run without sampling passed
+with all markers and natural exit in 28.37 seconds under the same
+120-second guard and 1 GiB launcher heap. These passes qualify the
+local run with existing products. The earlier timeout still demonstrates
+intermittent Darwin teardown latency.
+
+On the published PR 2 head, Lean and Quint passed. The linked delivery
+job failed with exit 70 while building the locked Orgize package. Its
+ordinary Scheme build imported =gerbil-scheme-rust/scheme/runtime= and
+the module was unavailable. The Rust workspace job independently
+failed ASP source-responsibility for the 1,033-line JJ integration test.
+[[https://github.com/tao3k/lambda-aitia/actions/runs/43392283485][Published CI run]]
+The current local workspace passed formatting, locked Clippy and the
+locked workspace tests, including the ASP policy gate. The Clippy
+stage took 24.36 seconds and the test build took 80 seconds under their
+original guards. A separate =just test-jj-observation= run executed
+all nine JJ integration cases, including rejected stale leases, retained
+local bookmark work and unresolved push recovery. The cases took
+2.91 seconds after compilation. These macOS checks used the installed
+Apple SDK and Rust 1.99.
+
+A read-only recheck of the published PRs confirmed that Lab PR 34 still
+declares the same Orgize dependency as the Lab revision in AITIA.
+Orgize PR 18 qualifies its linked program by staging the Scheme bridge
+from its Cargo dependency before building that program. Its Gerbil
+package declaration omits the bridge, while its ordinary build still
+compiles the bridge-backed parser. Updating the inherited lock to
+these producer heads would carry the same package-entry mismatch.
+The producer build boundary and the locked downstream cold install
+remain open.
+
+The workspace split the push Cases into their own module. The focused
+ASP workspace policy test then passed locally under the 120-second
+guard with the system macOS linker. The linked commit test now delegates
+its revision readback and archive controls to the archive test module.
+The compiled ASP policy scanned the current sources and passed in
+3.50 seconds. A separate guarded Cargo invocation spent its budget
+compiling the policy dependencies and returned 124 before test execution.
+The linked test target rebuilt after the extraction. Both the complete
+linked rerun and the focused reviewed-push rerun reached their unchanged
+120-second guard without a complete result. The earlier linked pass
+predates this test reorganization.
+
+The Scheme policy suite now checks exact refusal reasons for a PR or
+NASA identifier substituted for the engineering reference, a scope
+outside the changed paths, and an unsupported type. The compiled
+commit-semantics suite passed with module and harness markers and
+natural exit under 512 MiB and 60 seconds. The linked test retains a
+PR identifier substitution and an edited narration refusal alongside
+the unchanged transport and recovery controls. The commit-evidence
+suite adds an ORG text edit with the old review context and a refreshed
+positive control. Its current compiled run returned 137 before a
+passing module marker. The new linked build finished six of seven
+enabled cases, then returned 124. The reviewed-push case also reached
+120 seconds in isolation, with the local remote still at its base.
+The combined regression remained open at that point. A later process
+trace showed the child commands advancing through prepare, push,
+evidence readback and recovery. That focused run passed in 83.37
+seconds. Apply now uses JJ's exact workspace, operation and commit
+comparison before entering Scheme, with the same comparison retained
+when reopening the prepared rewrite. The old association attempt
+returned a stale-cut diagnostic without a receipt or workspace change.
+After rebuilding, all seven enabled linked cases passed in 78.49
+seconds under the same 120-second guard, and all 18 enabled library
+cases passed. The compiled Scheme evidence and semantics suites later
+passed together under the 512 MiB heap and 60-second guard. All 33 cases
+completed, with module and harness markers and natural exit. This
+includes refusal after an ORG text edit and admission after refreshing
+the review context. Scheme now requires renderable narration before
+evaluating the draft Org Contract. An earlier mixed load path selected
+a stale title module without =scope-paths=. Placing the current linked
+build products ahead of the older fixture resolved that mismatch.
+A sampled run showed POO evaluation before the first completion
+marker and later exited normally. It does not establish the cause of
+the preceding exit 137. Locked cold installation remains open.
+
+The standard staging entry rebuilt the current Scheme sources using
+installed Lab products and pkg-config libraries. Its 793-module
+program linked successfully. All seven enabled integration cases
+passed in 117.20 seconds under the unchanged 120-second guard.
+The project-specific compiled declaration remains a separate opt-in
+case. This rebuild reused installed dependencies.
+
+The rebuilt CLI also read the previously recorded PR 2 candidate
+through =aitia jj commit evidence <revision> --gql=. The resulting
+description matched the actual Git commit body and apply receipt byte
+for byte. The query returned the same 23 changed paths as the original
+inventory and verified =jj.recorded-change=, =jj.configuration-audit=
+and =sysml.parse=. It retained the recorded project JSON, the unchanged
+language document and the changed engineering RFC as queryable sources.
+The archived checks have no missing reports. Dependency coverage remains
+unknown and the query conveys no action authority.
+
+The initial readback completed before the checkout's generated Rust
+output disappeared. A subsequent Cargo build reused the staged Scheme
+sources in an isolated output. On the same recorded candidate, applied
+preview reproduced the written description and reported the old
+review context as stale. A second read-only preview with the refreshed
+context confirmed that both the description and context matched. The JJ
+operation was identical before and after both calls. GitHub associated
+the candidate with PR 2 and =gitops.pull-request-checks= stayed Open.
+The published PR 2 checks still show passing Lean and Quint jobs and
+failing Rust workspace and linked delivery jobs. Two subsequent Orgize
+main commits changed parser and Contract performance code. Their
+ordinary build entry still invokes the bridge probe. The pinned cold
+install remains open.
+
+A separate local replay recorded the full 31-path worktree patch at
+the published PR 2 base. Its GitOps scope accounted for 20 paths and
+the assessment disclosed 11 paths outside configured scopes. Context,
+preview, prepare, apply and revision GQL succeeded before push to a
+private bare Git repository through JJ. The remote commit body matched
+the apply receipt and the GQL readback byte for byte. Commit recovery
+reported =applied= and push recovery reported =acknowledged=. GQL
+returned all 31 changed paths, both JJ reports and the OpenSysML
+report, with no missing report and unknown dependency coverage. The
+local route had no applicable PR disclosure. This replay includes the
+working-tree patch as a whole, including concurrent edits, and carries
+no approval to publish it to GitHub. Replaying the original push after
+publication was refused because its description rewrite was no longer
+current. Recovery returned the original acknowledgement. Forging the
+recorded description was refused, and selecting another bookmark
+returned =unresolved= with no receipt. All four calls preserved the
+current JJ operation and the local test remote bookmark.
+
+Orgize PR 18 has merged. The published main snapshot still runs the
+bridge probe from the ordinary build entry. The locally qualified Orgize build split remains
+unpublished. The simplified workflow has yet to run on GitHub.
+A subsequent read-only check of [[https://github.com/tao3k/agentic-ai-lab/pull/34][Lab PR 34]]
+found the same Orgize pin and incomplete producer qualification.
+The current Orgize main entry still invokes the bridge probe during
+ordinary package compilation. This upstream check does not establish
+an available replacement for the locked cold-install path.
+
+The build split also applied cleanly to the latest published Orgize
+main tree. After restoring the existing dependency registrations and
+Parser products, the ordinary Gerbil package build completed from
+empty Orgize outputs under the 600-second guard and 2 GiB process heap.
+The output exposed the Org Contract evaluator and omitted both the
+Scheme Rust bridge and C event-tape interface. The AITIA evidence
+consumer reached its module marker and returned 137 before completion
+under the original 60-second and 512 MiB limits. This qualifies the
+producer build with installed prerequisites. Consumer acceptance,
+publication of the producer change and the pinned install remain open.
+
+A sampled rerun on the same Orgize products completed the evidence
+assertions and emitted module, harness and final success markers.
+The process still reached the 60-second guard and returned 124.
+During startup, two main-thread samples showed 559 of 874 and 844 of
+876 observations in =dlopen=, with most in =notifyDebuggerLoad=.
+A later sample showed active POO evaluation and garbage collection.
+The samples do not establish where the process was after final =OK=,
+or why the preceding run returned 137. A standalone build of the
+same suite linked against the new Orgize static inputs reached the
+600-second build guard without producing an executable. A later
+post-success sampling attempt reached the 60-second guard before
+final =OK= and returned 137. The test fixture now evaluates a single
+preview for each general rendering check and keeps explicit admission
+checks for stale and refreshed ORG text. Compiling the new fixture
+against the previously qualified prerequisites and executing it with
+the latest isolated Orgize products produced module and harness
+success markers, final =OK= and natural exit zero within the original
+512 MiB and 60-second bounds. The earlier failures still record local
+timing variability. The published dependency chain has yet to adopt
+the producer build split.
+
+The same build split applied cleanly to the current Orgize main source
+in an isolated checkout. The first run from empty Orgize outputs reached
+Elements and Contract compilation before the 600-second guard ended it.
+The failure wrapper then hit a reserved shell variable, so that invocation
+did not preserve the child exit code. An incremental continuation under
+the same guard and 2 GiB heap, using the host's available worker count,
+passed =gxpkg build=. Its output included the Contract evaluator, with
+the Scheme Rust bridge and C event-tape interface absent. The AITIA
+consumer against those outputs completed five module checks and then
+returned 137 at the commit-evidence module under the existing 60-second
+and 512 MiB guard. The producer changes remain local, and the current
+cold-install and full consumer checks remain Open.
+
+A consumer replay resolved the Contract evaluator and Elements source
+interface from the rebuilt Orgize package. The first diagnostic omitted
+Parser runtime products. Gerbil emitted =ERROR HARNESS= while returning
+zero. With those products restored and no other Orgize root on the
+explicit load path, the standard source entry emitted seven
+=MODULE-OK= markers, =HARNESS-OK= and final =OK=, then exited naturally.
+Subsequent repeats reached the same time guard. One stopped at
+commit-evidence and another emitted no Harness marker. This qualifies
+a local pass and leaves reproducibility under the guard Open.
+
+The Scheme CI entry now includes the same two test directories through
+=test-commit-semantics=. The recipe preserves the Gerbil process status
+and also checks success and failure markers. Local controls verified
+acceptance of a successful run, refusal of a zero-exit Harness error
+and propagation of exit 137. The 60-second and 512 MiB limits remain
+the same.
+
+The local aggregate now uses the same =check-scheme= entry as CI.
+The Just execution plan includes the development and commit engineering
+suites, one Scheme package build for that stage, and one execution of
+each retirement, bindings and integration suite. Standalone integration
+and formal entries retain their respective checks. This verifies recipe
+selection, while execution against a locked cold install remains Open.
+
+A further source run under the same guard returned 137 before the
+Harness marker. A read-only sample from the same process near startup
+put 1,440 of 1,718 main-thread samples in Gambit's dynamic load and
+dyld =dlopen=, including 1,386 in =notifyDebuggerLoad=. A later sample
+showed POO execution, runtime table work and GC marking. This records
+startup and evaluation costs for that run. The post-OK cleanup sample
+from =dev.ss= describes a separate phase.
+
+The commit-semantics gate now streams Gerbil output and still requires
+both the success markers and a natural zero exit. The launcher controls
+accepted a successful transcript, rejected a transcript with a Case error
+despite zero exit, and preserved status 137 and its module marker.
+A focused run of the compiled commit-evidence suite using the local
+Orgize build split emitted =MODULE-OK=, =HARNESS-OK= and final =OK=,
+then returned 124 under the original 60-second guard and 512 MiB heap.
+The assertions completed in that run. Process exit remains Open.
+The complete source gate with streamed output finished four of its seven
+modules before exit 137. The last marker was the start of
+=commit-semantics-test.ss=, after both ProjectConfig suites, revision
+query and review lineage had reported =MODULE-OK=. The run produced no
+Harness verdict. These are separate failures before and after assertions.
+
+The title suite now evaluates candidates that share the same recorded cut,
+policy, and observations in a single ASCENT assessment. Each PR or SWE
+substitute and each malformed proposal still has its own expected Open row.
+The description case also reuses its baseline preview for the equality
+check. The focused source suite emitted =MODULE-OK=, =HARNESS-OK= and final
+=OK= with the local Orgize products, then returned 124 under the same
+60-second guard and 512 MiB heap. This confirms the assertions and leaves
+the process exit Open for that invocation. The subsequent combined
+=just test-commit-semantics= source run completed all seven modules,
+emitted =HARNESS-OK= and final =OK=, and exited naturally with status zero
+under the same limits. It reused installed Lab products and the local
+Orgize build split. Locked cold installation and hosted CI remain Open.
+
+The current 31-path patch was reconstructed byte for byte on the
+published PR 2 head in a separate JJ workspace. With the OpenSysML
+service unavailable, the changed SysML model produced a blocking
+=sysml.parse= obligation. A draft that disclosed it rendered an Open
+section without yielding an admitted description. With the same
+candidate and an OpenSysML service on loopback, context, preview, prepare
+and apply completed. Prepare left the visible JJ operation unchanged.
+The review, actual commit, local Git remote and revision GQL returned
+the same description bytes. The GQL readback returned all 31 paths,
+both JJ reports and the OpenSysML report, with no missing reports and
+unknown dependency coverage. A stale review context was refused before
+the local remote bookmark advanced. With the reviewed context, JJ
+advanced that bookmark to the applied revision. Recovery returned
+=applied= for the commit and =acknowledged= for the push.
+
+This replay used the previously linked CLI and the current worktree
+patch, including concurrent edits. It exercised a local remote and
+carries no GitHub publication approval. The current published PR 2
+head still has two passing jobs, Lean and Quint, and two failed jobs,
+Rust workspace and linked delivery.
+
+The local Rust rebuild reached the integration linker after selecting
+the installed Apple SDK. The default Apple linker crashed with a bus
+error. A diagnostic relink using the system classic linker produced the
+integration binary. The macOS compiled-program test exposed a separate
+path mismatch: its sandbox allowed Cargo's path spelling while Seatbelt
+matched the resolved executable. The test now resolves the executable
+before authorizing and invoking it. A direct control confirmed that
+the resolved executable starts and an unrelated executable is denied.
+The subsequent linked integration run passed six enabled cases,
+including signed commit and SysML. The compiler-isolated review and
+push case was still running when the 120-second guard returned 124.
+The embedded project declaration case remained separately opt-in.
+The local candidate replay and this integration gate record separate
+results.
+
+Per-command observations separated fast input rejection from review work.
+In the first timed run, malformed proposals and a stale prepared cut
+returned in under 130 milliseconds. The successful apply took 6.51
+seconds. Applied evidence and GQL reads took 5.50 and 6.38 seconds.
+The two recovery reads projected the same recovered revision and took
+4.66 and 5.41 seconds. The test now checks the recovered evidence and
+its GQL relations from one response. The separate plain and GQL reads
+of the applied commit still check that enabling the query preserves the
+underlying evidence. The guard remains 120 seconds. The rerun completed
+the combined recovery read and the stale archived-input refusal before
+the guard returned 124. Context and preview took 10.27 and 14.45 seconds
+in that run, compared with 2.83 and 2.49 seconds in the first timed run.
+These are process-level observations. They do not isolate Scheme setup,
+evaluation, or cleanup.
+
+The linked integration now takes its initial applied evidence from
+the GQL response. It compares the same evidence, after removing the
+query projection, against a plain read after a later operation
+changes the project configuration. That comparison checks query
+parity and historical stability with one fewer CLI start. The run
+with this test change and the earlier Scheme archive passed all
+seven enabled cases in 81.33 seconds under the 120-second guard.
+
+A diagnostic AOT build timed initialization, the application operation
+and ordinary bridge cleanup separately on the recorded 31-path
+candidate. In the first three preview runs, initialization took
+1.57–2.31 seconds and the operation took 3.16–3.62 seconds. The operation
+includes JJ and OpenSysML observations, Scheme configuration and
+assessment, and projection of the response. The three revision GQL
+operations took 0.16–0.55 seconds after initialization. Cleanup was
+below 0.23 milliseconds in all six invocations. These measurements
+separate linked process startup from the earlier dynamic Gerbil test
+unload observations.
+
+A diagnostic build using the bridge's single-processor initializer
+returned byte-identical previews and GQL results. Its initialization
+took 4.67–7.97 seconds. Three repeats with the unchanged default build
+also returned identical results. During that interval, initialization
+took 5.44–8.39 seconds and the preview operations took 11.97–15.70
+seconds. Cleanup stayed below 0.32 milliseconds with the default
+initializer. Host variation prevents attributing the difference to
+processor selection. The production initializer and the test guards
+retain their existing policy. The diagnostic instrumentation was removed
+after collecting these measurements.
+
+The next diagnostic separated host observations from the linked
+assessment on the same 31-path candidate. Configuration took
+483–644 milliseconds, changes and external checks took 37–140
+milliseconds, and the source reads and JJ checks took 7–10 milliseconds.
+Across three further previews, mapping the request into Scheme took
+0.83–21.11 milliseconds, Scheme evaluation took 13.60–21.52 seconds,
+and mapping the result took 0.27–2.13 milliseconds. Each preview
+matched the previous response byte for byte.
+
+On the RFC source, a diagnostic using the existing Orgize graph and
+Contract measured 10.11 seconds for the document-wide unique-ID
+assertion. The projected view retains the document root and every ID
+property, including document-level IDs, and is used only for that
+assertion. It keeps record identity and the document-wide scope.
+The full parsed graph still supplies the engineering ID and the
+owning headline. The isolated projection took 92 milliseconds to
+construct and 83 milliseconds to evaluate the same Contract. These
+are separate runs on a variable host and do not measure the revised
+linked preview end to end. A second isolated run admitted the RFC and
+refused the same ID duplicated in the document-level property drawer.
+The updated Scheme module and regression suite compiled. Both the
+source and compiled title-suite invocations returned 137 before a
+Harness verdict under the original 60-second guard and 512 MiB heap.
+Full Scheme and linked acceptance for this change remain Open.
+
+A same-host diagnostic compared the existing linked Marlin debug
+binary with the previous linked AITIA dev build. The first execution
+of a copied executable took 2.29 seconds for Marlin's pre-UI exit
+and 2.23 seconds for AITIA's help response. Two repeats on each
+copy took 35–65 milliseconds for Marlin and 73–101 milliseconds for
+AITIA. These commands exit before opening the Scheme VM. With a
+PTY and the linked Marlin binary, two first frames arrived at 1.13
+seconds and 525 milliseconds. Marlin's cumulative VM-ready markers
+were 440 and 143 milliseconds. Subtracting its configuration
+markers gives 408 and 143 milliseconds from configuration to VM
+ready. These runs were diagnostics alongside ongoing build work.
+
+Both linked entries use the same Gerbil Scheme Rust revision and
+call =GerbilRuntime::initialize_program=. Their staged programs differ.
+The inspected Marlin manifest has 909 rows, including 637 deferred
+rows. The earlier AITIA manifest has 793 rows, including 210
+deferred rows. Counting rows without the deferred flag leaves 119
+non-system rows in Marlin and 422 in AITIA. In these manifests,
+Marlin packages ASCENT, Parser and Orgize Fold as deferred modules.
+AITIA links those modules without the deferred flag. The bridge
+passes these flags to Gambit's incremental linker. This identifies
+a difference in the startup graph. It does not measure how much
+time any one module or dependency contributes.
+The AITIA Scheme program imports the shared operations module. That
+module directly imports the Orgize Contract evaluator and the Lab
+Context provider and journal. Marlin stages the runtime imports from
+its Yuanxu Make projection. For AITIA, a startup qualification must
+compare the first real policy call as well as VM readiness. A faster
+VM start alone would miss work moved into that first call. The
+qualification uses the same recorded candidate and checks the rendered
+description, evidence and revision query against the earlier result.
+The AITIA measurements above establish two separate costs to
+qualify: linked VM initialization and the Scheme review operation.
+The ORG ID projection addresses one part of the latter. The two
+projects also lock different Lab revisions. Of 437 comparable module
+source files present in both manifests, 260 differ in bytes,
+including the POO object module and the bridge's Scheme runtime
+module. The comparison does not isolate any one of these differences.
+Two read-only =project-manifest= runs on the prior AITIA dev build
+recorded 2.13 and 2.91 seconds of VM initialization, followed by 349
+and 114 milliseconds for the operation. Ordinary VM cleanup took
+less than 0.08 milliseconds. In the second run, 219 of 493 main-thread
+samples were in Gambit's movable-object scan, with 127 in array
+marking. The sample also included Gerbil hash, MOP and POO calls.
+This locates part of the cost inside VM initialization before the
+project-manifest operation. It does not identify which module
+initializer allocated the scanned objects. The comparison used
+each project's existing lock and build profile.
+
+A local diagnostic relink with the ORG ID projection and the
+available Scheme dependency products completed three previews on the
+same 31-path candidate in 6.11, 2.67 and 2.11 seconds. The associated
+revision GQL reads took 2.26, 1.92 and 1.14 seconds. All six processes
+exited normally within the existing guard. The description, model
+check and evidence matched the prior observations. Only the preview
+review context changed, as it binds the linked program archive.
+The rebuilt archive also used different Orgize products, so these
+process timings cannot isolate the effect of the ID projection. This
+diagnostic used compiled dependency products from prior local runs
+and the classic macOS linker. The clean build, release latency and
+complete linked integration gate remain Open.
+
+The Scheme transport now imports the Lab Context Query provider as
+a compiler template. On the first Context operation that needs it,
+Yuanxu resolves the linked exports and initializes the registered
+dependency closure in the existing VM. The same provider implements
+publication, query, checkpoint and restore. Commit commands do not
+need to initialize it. The standard AOT staging entry completed
+with 379 eager non-system rows and 252 deferred rows, compared with
+421 eager non-system rows and 210 deferred rows in the preceding
+diagnostic rebuild. Both manifests have 792 rows.
+
+Three previews on the recorded candidate took 8.90, 2.41 and 2.71
+seconds. The matching revision GQL reads took 1.84, 2.13 and 1.61
+seconds. The description and model-check result matched the preceding
+build, as did the revision GQL responses. The preview review context
+changed with the archive. Paired project-manifest runs returned
+identical output. The eager-provider build took 1.90, 1.47 and 1.59
+seconds, and the deferred-provider build took 1.60, 2.17 and 1.31
+seconds. This sample does not establish an end-to-end speedup.
+The linked Agent input test passed in 13.77 seconds, including
+live Context operations, checkpoint rejection and restart restore.
+These runs used dev-profile binaries and local compiled dependencies.
+The linked integration run completed five tests, including the
+durable signed-approval case. The existing 120-second guard returned
+124 while the compiler-isolated review/push and SysML cases were
+still running. This run leaves the combined gate Open.
+
+The linked Release diagnostic on the same recorded 31-path candidate
+ran three fresh processes per command, with the supported local
+OpenSysML service already available. Help took 230, 20 and 20
+milliseconds. Project configuration took 4.55, 3.20 and 9.28 seconds.
+Full preview took 5.85, 7.46 and 10.86 seconds, with 1.69–1.74 seconds
+of user CPU time. Every preview completed the model check and returned
+the same response byte for byte. The service reported 0–20 milliseconds
+for parsing. The earlier run of this same Release executable returned
+the identical response in 3.27, 1.66 and 1.88 seconds. The wall-clock
+variation does not identify its cause. These are local diagnostics on
+an existing Release artifact, and the startup and preview latency
+obligations remain Open.
+
+Marlin's recorded Release startup trace reached VM ready in 61–115
+milliseconds and first frame in 153–288 milliseconds from its Rust
+startup marker. The same-file second launch reached the workbench in
+209 milliseconds from process launch. A fresh executable copy took
+3.29 seconds to reach the workbench. The inspected Marlin manifest
+contains 122 eager non-system modules and 672 deferred modules.
+The AITIA Release diagnostic archive contains 379 eager non-system
+modules and 252 deferred modules. These manifests come from their
+respective local build cohorts.
+
+The startup graph should initialize the Scheme entry and the modules
+required by the selected command. Yuanxu resolves deferred compiled
+roles inside the same linked VM. Project configuration must retain
+its declaration admission and must not activate commit review or
+journal execution as a side effect. Preview must still evaluate the
+applicable ASCENT rules and ORG Contracts and admit the recorded
+OpenSysML observation. Qualification measures process launch, VM
+ready, first command result and ordinary exit, and checks preview,
+Evidence and revision GQL parity on the recorded candidate. A separate
+timing for the first policy call detects work shifted from startup
+into that call.
+
+A staging experiment deferred the transport's direct journal and ORG
+Contract evaluator imports. The generated manifest still marked both
+modules eager. The GitOps publication still imported commit admission
+and evidence, and those paths reached the same dependencies. Moving the
+deferred calls into GitOps Config also failed the Yuanxu compiler's
+declared-template check in its generated Config role. Both experiments
+were reverted. The remaining work is to separate the command dependency
+closures at the Module publication boundary and qualify them through
+the generated manifest and actual linked commands.
+
+GitOps admission and the Scheme transport now request the Lab durable
+journal through Yuanxu's compiled role projection. The staged AOT
+manifest marks the journal, its Scheme wire codec and the SQLite
+modules as deferred. The GitOps scope still publishes the same
+approval, revocation, consumption and recovery functions. Their
+journal keys and encoding remain the same. The focused Scheme
+admission suite passed with the existing guard. This change moves
+journal initialization out of preview startup. The linked macOS suite
+passed seven enabled cases in 61.56 seconds under the existing
+120-second guard. This includes signed approval, local push and
+recovery, revision readback, and the affected SysML model. The compiled
+project declaration remains a separate opt-in case. The local link
+used the classic macOS linker after the default linker failed with a
+bus error.
+
+A paired Release run rebuilt both staged programs with the same Rust
+sources, locked dependencies and classic macOS linker. On the recorded
+31-path candidate, the eager journal program returned previews in
+1,681, 1,782 and 1,797 ms. The deferred journal program took 1,971,
+2,354 and 1,773 ms. All six commands exited normally. The project
+manifest outputs and complete preview results matched across binaries
+except for the review context, which identifies the linked archive.
+All model checks passed and the JJ operation heads stayed unchanged.
+Both programs used the same local OpenSysML service and local remote.
+The first help invocation for each freshly copied executable took
+1,961 and 2,218 ms. Subsequent help invocations took 18 to 38 ms.
+These measurements leave the preview latency target Open. Deferring
+the journal removes startup dependencies, but the paired sample does
+not establish a preview speedup.
+
+A separate macOS Release diagnostic used the recorded PR 2 candidate,
+the same executable path and three fresh processes per command. Help
+took 110, 10 and 20 ms. Preview took 3,990, 3,190 and 2,940 ms, with
+1,530–1,590 ms of user CPU time. All three preview responses matched
+byte for byte. PR 2 was identified, the affected model check passed,
+and the PR checks remained Open for the candidate. The local
+OpenSysML service reported 0–19 ms for parsing. A 14,454 ms preview
+was observed separately during the concurrent linked integration suite.
+The isolated diagnostic did not reproduce that tail or measure its cause.
+
+The startup comparison with Marlin should track the eager module
+closure and measure process entry, VM readiness, first operation and
+ordinary exit. The preview breakdown should additionally time the JJ
+cut and source reads, configuration evaluation, provider requests, and
+ASCENT and ORG review evaluation. This separates the local latency
+target from live provider latency while preserving the same policy
+result, evidence and Open items.
+The aggregate Scheme commit suite previously exited with status 137
+during =commit-semantics-test.ss=. The watchdog diagnostic confirmed
+TERM at 60 seconds and KILL after its three-second grace period.
+A later run printed all seven module completion markers but still
+returned 124. The test now submits all seven stale cut variations
+in one assessment and checks the admitted reference rows directly.
+The 72- and 73-character title candidates also share one assessment.
+The complete =just test-commit-semantics= run then passed all seven
+modules and exited normally under the same 60-second guard and
+512 MiB heap cap. The outer recipe took 60.34 seconds including
+launcher setup and output checks, leaving little timing margin.
+
+Before starting Scheme, the evidence command now refuses an archive
+method the host cannot emit and a claimed SysML observation whose
+paths or success status disagree with the recorded JJ change. Scheme
+still determines which supported methods the project selected and
+whether SysML evidence applies. Push refuses a local-description
+approval and malformed review context before starting the review.
+A well-formed context still requires recomputing the current
+assessment and verifying the destination and written description.
+
+On the same recorded candidate, an unknown archive method took
+1.77 seconds before this change and 50 milliseconds after it. An
+out-of-scope SysML archive took 1.68 seconds before and 20
+milliseconds after. Both commands returned status 1 with the same
+diagnostics and empty standard output. The next combined linked
+run finished in 93.41 seconds under the unchanged guard. Six tests
+passed, including compiler-isolated review, local push and recovery.
+The SysML case failed in =aitia check= with an interrupted transport
+system call. One separately enabled case remained ignored.
+The same SysML test passed in 50.43 seconds when pointed at a
+single local OpenSysML service through the SDK's supported address
+configuration. That run exercised recorded sources, malformed
+models, the input budget, and historical report readback. It does
+not establish that the SDK's private-service path is reliable.
+With that same supported service configuration the combined
+suite passed all seven enabled tests in 61.78 seconds under the
+original guard. The embedded project declaration test remained
+opt-in. The local push fixture rejected the signed approval and
+malformed context, rejected a stale digest with valid syntax,
+then pushed the refreshed review to its local remote and
+recovered the recorded result.
+
+The separate local install of the currently pinned Lab dependencies
+failed first on the host linker resolving =_memset= in POO. With the
+system SDK and compiler search path it passed that point, then returned
+124 during POO compilation under the original 600-second guard and
+2 GiB per-process heap. These two installation results remain Open.
+
+Using the rebuilt binary, an isolated 136-path candidate derived from
+the current PR 2 changes passed context, preview, prepare, apply and
+recovery. Preparation preserved the current operation. An altered
+narration with the previous review context was refused before producing
+an attempt. The applied commit and the bookmark in a local bare
+repository both returned the reviewed description byte for byte.
+Commit recovery reported =applied= and push recovery reported
+=acknowledged=. A repeated push request was refused after the review
+origin stopped being the current description rewrite. The local
+operation and remote bookmark stayed at their observed values.
+
+Revision GQL read back 136 changed-file rows and verified
+=jj.recorded-change=, =jj.configuration-audit= and =sysml.parse= with
+no missing report. The local remote yielded no provider-associated
+Open item. PR 2's published-head checks have their own observation
+above. This candidate was published only to the local test remote.
+
+After the PR check inventory admission change, the rebuilt linked program
+passed all six enabled integration Cases in 52.44 seconds under the
+120-second execution guard. The separately embedded declaration Case then
+passed in 8.26 seconds with the same guard and the current linked code. It
+accepted the recorded Scheme declaration with its JSON overlay, ignored an
+unrecorded edit, refused recorded replacement and removal, and accepted the
+restored declaration without the overlay. An isolated nine-path follow-up
+based on PR 2's published
+head then ran context, preview, prepare, apply, revision query and local
+push. It used =RFC-0007= for the engineering reference and =SWE-083= and
+=SWE-084= for the evidence obligations. The description matched both the JJ
+commit and the local remote byte for byte. Recovery reported =applied= and
+=acknowledged=, and the stale draft and repeated push were refused. Revision
+GQL returned nine changed-file rows and the three verified JJ and OpenSysML
+reports with no missing report. The local route had no applicable PR
+disclosure. When OpenSysML could not acquire its host lock, the model
+obligation remained Open and preview was refused. Hosted cold installation
+and a new PR 2 CI run remain open.
+
+The same nine-path follow-up also ran against the real GitHub review route.
+JJ resolved the published bookmark and AITIA observed PR 2 targeting
+=main=. Two of the four completed checks on the published head failed.
+ASCENT disclosed =gitops.pull-request-checks= in Open, with no blocking
+row, while the candidate separately supplied the JJ and OpenSysML reports.
+Preview refused the draft with the Open narration removed. The complete
+preview and prepare descriptions matched byte for byte and the JJ operation
+stayed unchanged. This GitHub observation was read-only.
+
+With the empty-inventory rule linked into the current binary, all six
+enabled integration Cases passed in 60.79 seconds under the existing
+120-second guard. The fourteen-path candidate then passed prepare,
+apply, recovery and local JJ transport. Its reviewed description matched
+the recorded commit and bare remote byte for byte. The revision query
+returned fourteen change rows and the verified JJ inventory, configuration
+audit and OpenSysML reports. The changed narration and the repeated push
+were refused. A separate read-only replay against the live PR 2 route
+produced the same preview and prepare text, including the two published
+check failures in Open. The JJ operation remained unchanged.
+
+AITIA's Make handoff now scopes the load path to the actual source
+directory selected by Yuanxu, including its compiler source view
+when present. The standard =meta= command still reports =spec=,
+=compile=, and =clean=.
+
+The OpenSysML SDK accepted the updated model and the recorded JJ inputs
+in the standard 120-second test. The test passed with its real local
+service. A prior sandboxed attempt could not bind the loopback socket.
+
+The frozen pytest control passed.
+The first ADR-0008 attempt in the restricted execution environment
+returned a failed child process. With loopback available, the unchanged
+Rust producer passed and the Scheme consumer reported =MODULE-OK=,
+=HARNESS-OK= and final =OK= before its existing guard. This fixture
+qualifies recorded execution admission for ADR-0008. The commit flow
+separately evaluates the two NASA checks selected by AITIA's project
+declaration and the OpenSysML check applicable to the recorded changes.
+
+*** Binding review to the write
+
+The previous push implementation replaced the supplied review context with a
+fresh context before re-rendering. A local-remote regression proved that a
+retired context could therefore push successfully. Correct prose readback did
+not establish that the actual proposal and rules were the reviewed ones. The
+first repair refused a retired context, but a changed rationale still passed:
+the semantic context had omitted the proposal fields.
+
+The semantic context now binds every proposed field, including rationale and
+language. =aitia jj commit preview= is explicitly read-only preview: it may issue a
+fresh context for a newly proposed intent. The preview context binds the
+assessment, canonical title, exact body and exact ORG review material.
+=aitia jj commit= supplies discovery and assessment input for drafting;
+its context cannot stand in for the preview. =aitia jj commit prepare= and
+=aitia jj commit apply= require the exact preview context. A change to prose or to ORG
+requires another preview, even if the new ORG passes the same Contract.
+A caller cannot inject the internal preview flag into a draft. Source
+admission and missing/conflicting-obligation
+checks apply equally to preview; preview grants no write authority.
+
+At push, JJ observes the original cut of the exact currently applied
+description-only transition. It verifies the original/result operations,
+unchanged tree, parents, change identity and other view state, and independently
+audits the original Git object. That typed observation is anchored to the
+current operation; it is not an Agent-provided historical cut. Rust reads the
+identical immutable tree at the current anchor. Scheme re-evaluates the original
+review context under the current compiled program. Push never renews it.
+The existing backend still checks the current cut, actual description, remote
+lease and ancestry before transport.
+
+Scheme also binds signed approval intent to both the prepared rewrite and the
+exact review context. A newly previewed rationale with identical prose cannot
+spend the older grant. The journal's existing key addresses remain unchanged so
+recorded revocations, spent approvals and recovery history stay visible. This
+adds no alternate signer, transport or Governance engine.
+
+Prepare binds the exact typed proposal to the JJ operation. Apply
+checks that binding alongside the Scheme review context. Revision
+evidence readback verifies the recorded operation before accepting
+the archive's proposal, so replacing the rationale invalidates the
+archive even when its title and body are unchanged. Scheme still
+resolves the engineering item and checks the title against the
+recorded project and ORG sources. Receipt-only recovery can establish
+the recorded rewrite. Its engineering reference remains unresolved.
+
+The applied archive must also carry the original Scheme review
+context recorded by the same JJ operation. A missing or substituted
+context is refused even when the proposal and description still
+match. This checks historical identity. Current authorization is
+evaluated separately before a push. The linked macOS run passed
+eight cases in 61.87 seconds under the existing 120-second guard,
+including both context rejection controls, genuine revision GQL
+readback, receipt recovery and local push. The project declaration
+case was opt-in for this run.
+
+An isolated copy of the recorded nine-path PR 2 candidate exercised
+the updated linked CLI with live PR observation and local OpenSysML.
+Context, preview, prepare and apply completed. Preview, prepare and
+apply agreed on the description. Revision evidence returned the
+actual Git commit message byte for byte and GQL resolved all nine
+changed paths, RFC 0007's ORG element and all three checks. GitHub
+checks still described the published ancestor, so the description
+retained that Open item. Stale prepare, omission of the Open item,
+and substitution of the applied archive context were all refused.
+Receipt-only recovery confirmed the local rewrite, returned the
+three missing reports and left the engineering reference unresolved.
+This run used an existing staged Scheme program and did not push PR 2.
+
+The JJ suite passed 12 tests. The linked macOS suite passed eight
+tests in 67.46 seconds under the existing 120-second guard. The
+compiled project declaration case remains opt-in. The suite refused
+changes to the summary and rationale in the applied archive, retained
+the SysML byte-limit rejection, and exercised local push and receipt
+recovery. The Rust rebuild used the existing linked Scheme products.
+Locked cold installation and hosted CI remain Open.
+
+The separate AOT project declaration case passed in 44.21 seconds
+under the same 120-second test guard. It used the current Rust code
+and the staged Scheme declaration. The macOS process restrictions
+remained active. The case exercised the JSON overlay, refusal of a
+changed or removed declaration, prepare and apply, and unchanged
+revision GQL after a recorded source replacement. The default Darwin
+linker failed with a bus error during the redundant CLI build for
+the test target. The test and its CLI were linked with the classic
+linker.
+
+The published PR 2 head was checked separately. Lean and Quint
+passed. The Rust workspace job reported =RUST-MOD-R002= on the JJ
+workspace integration test. Linked delivery exited 70 during Orgize
+expansion of =bindings/c/orgize-parser.ss= because
+=:gerbil-scheme-rust/scheme/runtime= was unavailable. Lab PR 34 still
+selects the same Orgize package
+as the AITIA lock. The current published Orgize main entry still
+loads the Scheme bridge during the ordinary build while its package
+declaration lists Parser and Yuanxu. The locally verified Orgize
+build split has no published dependency revision in this chain.
+The current local checkout passed the same ASP Rust policy test
+after the JJ integration tests were split.
+
+The linked signed-approval case exercised an expired approval, a revoked
+approval, a changed operator policy revision and a separately prepared
+intent with identical commit prose. Each reached the write-admission
+boundary and was refused without advancing the JJ operation. The original
+current approval applied once. Revoking it after application left the
+recorded attempt recoverable without renewing authority. Five linked CLI
+cases passed in 62.99 seconds and the OpenSysML case passed in 31.41 seconds
+under the original joint 120-second guard.
+
+The updated Scheme suite passed all five modules under the existing limit.
+The isolated candidate rebuilt AITIA through the standard staging entry and
+passed all five linked cases in 25.15 seconds within the original 120-second
+guard. Changing the body or ORG after preview yields no prepared attempt.
+Changing ORG after apply also refuses push and leaves the local remote
+unchanged; the exact reviewed draft still pushes and reads back correctly.
+OpenSysML accepted the updated model. These gates used the existing
+dependency pool and do not establish a new cold install.
+
+The final owned candidate contains 46 changed paths. Its complete Scheme
+consumer directories passed all 30 Cases and exited naturally under 512M and
+60 seconds. The standard staging entry emitted all 90 AITIA units. The final
+combined Rust build enabled the linked program and SysML together: four linked
+Cases passed, the original Provider Case remained ignored, the ASP gate passed,
+and the real OpenSysML SDK/model/CLI Case passed with twelve symbol lookups.
+The separate JJ owner gate passed one unit and seven integration Cases.
+These results do not replace locked-install or remote-CI qualification.
+
+*** Failure propagation and host I/O
+
+During the new admission test, a lexical variable matching a POO slot name
+created a CyclicSlot. Renaming that lexical value fixed the self-reference;
+no POO or Module System policy was bypassed. The failed observation exposed a
+second validation issue: the standard test function returned a failing status,
+but the recipe discarded it. The recipe now raises on the returned nonzero
+status after the standard runner finishes. An intentional failing Case naturally
+returns nonzero, while the complete positive directories return zero with all
+Module/Harness markers. There is no forced exit or replacement test framework.
+
+The combined SysML CLI initially failed with an interrupted HTTP transport
+while the external SDK ran inside the Scheme-owner scope. SDK transport now
+runs on a scoped Rust host worker and is joined before returning. It carries
+no VM references and does not create another VM, mask signals, retry a model
+operation or relax a deadline. The corresponding full model/CLI Case passed
+with its malformed-source and stale-cut controls intact. This verifies the host
+boundary change in that consumer; it does not identify every possible source
+of interrupted system calls or prove external transport cannot fail.
+
+*** Producer alignment and inherited installation
+
+ASCENT PR 1 publishes the direct Core Module-value consumer. Candidate exposes
+receipt readers alongside its constructors and evidence operations, retaining
+nominal type isolation. Its independent Library consumer passed all three Cases,
+including changed-source rejection and historical-snapshot acceptance. The
+standard build and complete 179-module Source suite passed locally with natural
+exit and unchanged resource guards. The producer fixes were normally pushed;
+these local results do not establish downstream locked-install acceptance.
+
+The complete CI Source gate later timed out with 94 of 95 batches complete and
+candidate-flow unfinished, without an assertion failure. Its detected four-core
+capacity had been overridden with twelve workers. A normal producer follow-up
+removes that override while retaining all modules, isolation, 2G child heap and
+both 180-second guards. The new head's runtime CI remains the acceptance gate. That CI completed seventeen
+batches but rejected the source-import test's expectation for the remaining
+batch. Its expected baseline had omitted the existing bounded refinement, which
+only coincided with the actual batches at twelve workers. An independent bound
+of =ceil(n / workers²)= now defines the expected refinement, retaining exact
+inventory, order, isolation, batch-count, width and runtime-option checks.
+The complete source-import Suite passed with four workers and machine-derived
+capacity under the original 2G/180-second guards, and the test-only correction
+was normally pushed. Production dispatch is unchanged; latest-head CI is still
+required for the complete source gate.
+
+Parser's earlier standard build passed against the preceding Core API. Its first
+source-Contract command printed all three Module markers and final OK but timed
+out before natural exit. Identical diagnostic runs exited normally, including
+a measured 15.07-second run; this does not prove the first timeout's cause.
+A separate failed-import control exposed a zero command status. Checking the
+standard GxTest return value made failures reject naturally, and a deliberately
+failed assertion returned nonzero. No forced exit was introduced.
+
+The Module consumer also exposed a prepared-helper handoff gap. Its proposed
+repair uses the existing test-support owner and init file projection, keeping
+single-file and complete-run budgets separate. Rebuilding was refused first
+for four unissued runtime objects, which were preserved before standard clean.
+Restoring the earlier publication then rejected a missing compiler interface.
+The actual Make spec includes that unit. No object was copied in and no approval
+was edited or removed; those failed runs remain unqualified evidence.
+
+Core PR 19 has now published a newer API: init exposes ordinary Make lists and
+the old build-dispatch wrapper is removed. Parser alignment therefore consumes
+that new list directly through standard =defbuild-script= and the public Core
+prelude. The temporary dispatch adapter is removed. Dependency installation in
+the current Parser package workspace passed through standard Gerbil package
+management. Parser build preparation then refused its retired =module/build=
+records. Seven declarations have since been converted to ordinary Make values.
+An inventory comparison retains all sixty original native entry sources without
+omissions or duplicate targets. Thirty-four package-level public facades retain
+their native identities in the package script; confined Module roots and ABI
+options remain with their Module owners. This source inventory check does not
+prove compilation or semantic equivalence. Build preparation subsequently
+refused an unbound role Contract identifier. The Interfaces had resolved POO's
+ordinary definition macro instead of the public Module declaration macro.
+Selecting that existing declaration import resolved the roles centrally; no
+per-Interface Types imports or loading adapter were added. Standard build passed.
+
+Independent consumption then exposed a missing installed language prelude and
+its macro dependencies. The existing prelude retains its public identity. The
+package's public entries now use Core's public =package-library-spec= to follow
+native imports, excluding targets already declared by Modules. This adds no
+scanner or second target authority. After the declared development dependency
+was installed, the complete three-module source-Contract command passed and
+exited naturally under its original 1G/120-second guard. The selected test
+publication and remaining Module consumers are being verified separately. The preceding publication failures are historical controls,
+not proof that this new producer revision has the same defect or fixes it.
+A subsequent Core head also updates POO. The package manager reported the old
+fixed-tag conflict. Its explicit update moved both source checkouts and tag
+metadata, then failed in a tagged-package path lookup; that failure remains
+recorded. Standard dependency installation completed the matching
+source revisions successfully. No uninstall, SDK modification or manual tag edit was used.
+
+Parser consumer qualification, Orgize/Lab constraint alignment and AITIA's locked
+installation remain Open. AITIA retains one inherited Lab dependency; no second
+loader, temporary SDK or compatibility fallback has been added. PR 2 remains
+unsubmitted and unpushed pending review of its complete description.
+
+ASCENT's complete 179-module Source gate passed on the batch-oracle follow-up
+in 131 seconds under the original 180-second limit. The producer job still
+failed an independent linker-environment test, so that Source success is not
+whole-CI acceptance. The linker control now compiles, links and executes a real
+C program under the configured interpreter environment while checking that an
+inherited fake linker is not used. It no longer mistakes PATH lookup for the
+compiler's actual selection. Linux uses the same compiler search boundary as
+Darwin; the caller's program search path is preserved. All three independent
+Source consumers passed locally with their original subprocess budgets, and
+the fix was normally pushed to the existing producer PR. Latest-head CI and
+the remaining performance/oracle failures stay separate Open obligations.
+
+The full Parser helper publication built successfully on the aligned packages.
+The first single-file consumer still projected the full test roster and exhausted
+its unchanged 1G parent heap. The support owner now accepts the selected files
+for both build and execution, using the same init file-source projection. It
+retains the full-roster default for complete runs. The exact wrapper publication
+and consumer passed with natural exit under 1G/120 seconds; source and loading
+consumers remain under verification. No larger heap or runtime deadline was used.
+
+ASCENT's later compiled DSL run completed fourteen declared modules, while the
+recipe still required fifteen. History shows that the artifact Suite had already
+been removed by the producer refactor. This mismatch remains Open; this round
+has neither lowered the count nor invented a replacement Case. The macOS
+compiler-input control likewise referenced a deleted build helper. Its fixture
+now names the actual init compiler input, preserving the same change/invalidation
+control. That check passed locally, but the complete module retained two other
+compiler-cost attribution failures. Those results are not a full module pass,
+and this test-only correction has not been published.
+
+The selected source consumer first reached its original 120-second outer guard
+without harness output. Its subsequent direct diagnostic and same-owner diagnostic
+both completed naturally, but no blocked stack was captured. Those diagnostics
+do not erase the first timeout or establish a repaired cause. The selected loading
+publication and consumer then passed naturally with the same heap and guards.
+Cold reliability remains Open rather than inferred from the successful diagnostics. A failing assertion
+in a test that imports Parser's public test support was published through the
+same exact selection. The test harness reported the failed check and returned
+nonzero through the support owner under the unchanged guard. The earlier
+ownerless diagnostic had failed in publication before it reached any assertion;
+it is not evidence of failure propagation.
+
+The two local compiler-cost attribution failures above used macOS Python 3.9,
+which is below Workbench's declared Python 3.10 minimum. A retained compiler
+observation contains both successful producer and native-helper records; the
+unsupported interpreter supplies process-relative monotonic clock origins, so
+cross-process publication ordering cannot be established from them. A direct
+parent/child clock control reproduced that distinction. With supported Python
+3.13, the complete 29-test compiler-cost module passed unchanged, including both
+attribution controls and the init-input invalidation correction. No observer,
+allocation assertion, workload, heap or deadline was changed. The two-line fixture
+correction is a separate producer commit; its exact-head CI remains independent
+of local acceptance. The compiled DSL inventory mismatch and performance gate
+remain Open, and the downstream inherited cohort is not yet qualified. Inspection
+of the published Lab PR package declaration confirmed that it still selects the
+older ASCENT and Parser inputs. Publishing a producer correction alone does not
+change the installed AITIA cohort. The AITIA dependency lock remains unchanged
+until a matching Lab selection is validated.
+
+
+The first complete Parser runtime diagnostic returned nonzero after 187 module
+completion markers. Nine failed Cases shared one missing prerequisite: the
+qualification process child. This invocation ran the runtime recipe without
+its qualification build. It is retained as a failed diagnostic, not an
+acceptance run. The existing qualification build owns the child executable. The build produced it successfully.
+The process admission suite then passed with host process topology available,
+including idle, total and closed-output deadline Cases. An earlier sandboxed
+invocation could not run the required =ps= query and is retained separately.
+The prepared full run did not start. After the FFI prerequisites rebuilt,
+standard Make emitted additional object generations for two test helpers.
+Yuanxu refused publication of those generations. An independent empty-output
+diagnostic failed at recovery: the installation's existing approval still
+referenced the archived issuance record. The output was restored to its
+original location without changing the approval. Both refusals are retained;
+neither is a runtime test timeout or a qualification pass.
+
+ASCENT's new producer CI completed with failed Scheme and Python gates. The
+Python job installed the producer wheel, then failed the independent Workbench
+suite: OpenSysML was absent, Gerbil activation did not carry into the test step,
+and the frozen inventory omitted additive obligations from three existing
+models. The pending correction uses the locked design dependencies, activates
+Gerbil in the test step, and points the build controls at the existing build
+entry. An exact inventory comparison passed with every earlier obligation
+retained. The full local Python check remains Open: the locked dependency
+install timed out at PyPI. The macOS job passed all 29 compiler-cost cases and
+the two reference-cache cases before a profile test attempted to import the
+retired build entry. The corrected study reads the existing Module projection
+once and passes only the selected study targets to standard Make. Its local
+control passed inside the original deadline: the reference adopted the
+production compiler options, the production objects remained unchanged, and
+an unchanged repeat reused the reference objects. The guarded Lean check
+passed using the unchanged locked LeanPOO dependency; the Scheme profile
+block matches its Lean source literal.
+
+The preceding ASCENT CI head failed the Linux semantic deadline and the
+table-expression performance recipe. The locally verified profile and
+inventory corrections were pushed to the existing ASCENT PR. Its new CI
+results are a separate gate. On the new head the complete Linux source gate
+again returned 124 under its existing deadline, after 146 distinct module
+completion markers. The Linux performance job completed the table-expression
+measurement but rejected its result against the existing budget; these results do
+not qualify the inherited cohort. The independent Python job dependency fix
+remains local until its locked install can be exercised. The inherited Lab
+and AITIA locks have not been promoted.
+
+The local =just test= run at the current ASCENT PR head used its declared
+Core revision. All 179 Scheme test modules completed and the command exited
+normally. The test phase took 230 seconds with the recipe's existing startup
+and inactivity guards. CI additionally imposes a 180-second wall clock limit;
+the local result qualifies Scheme behavior under the local recipe only. The
+Linux log had completed 14 of 18 started batches when the limit expired; the
+longest completed batch took 164 seconds. On
+the same PR head the Python consumer log confirms missing OpenSysML and =gxi=
+in the Workbench test step. The aggregate runtime and oracle result reflects
+the failed constituent gates; it is not an independent runtime failure.

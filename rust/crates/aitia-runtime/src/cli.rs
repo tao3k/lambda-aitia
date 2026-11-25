@@ -14,17 +14,32 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+const CHECK_SYSML_PARSE: &str = "sysml.parse";
+const CHECK_ASSURANCE_REPLAY: &str = "assurance.replay";
+
 #[derive(serde::Deserialize)]
 pub(super) struct ProjectConfiguration {
     manifest: serde_json::Value,
-    checks: Vec<ProjectCheck>,
+    checks: Vec<String>,
     replay: Option<ReplayPlan>,
     pub(super) commit: Option<serde_json::Value>,
 }
 
 impl ProjectConfiguration {
+    pub(super) fn has_check(&self, check_id: &str) -> bool {
+        self.checks.iter().any(|check| check == check_id)
+    }
+
     pub(super) fn model_check_enabled(&self) -> bool {
-        self.checks.contains(&ProjectCheck::SysmlParse)
+        self.has_check(CHECK_SYSML_PARSE)
+    }
+
+    fn unsupported_checks(&self) -> Vec<&str> {
+        self.checks
+            .iter()
+            .map(String::as_str)
+            .filter(|check| !matches!(*check, CHECK_SYSML_PARSE | CHECK_ASSURANCE_REPLAY))
+            .collect()
     }
 }
 
@@ -41,14 +56,6 @@ struct ReplayCase {
     obligation: String,
     selector: String,
     expected: String,
-}
-
-#[derive(serde::Deserialize, PartialEq, Eq)]
-enum ProjectCheck {
-    #[serde(rename = "sysml.parse")]
-    SysmlParse,
-    #[serde(rename = "assurance.replay")]
-    AssuranceReplay,
 }
 
 /// Run the process CLI and return its application-level diagnostic.
@@ -113,7 +120,7 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
         }
         let (cut, configuration) = recorded_project(Path::new("."))?;
-        let sysml = if configuration.checks.contains(&ProjectCheck::SysmlParse) {
+        let sysml = if configuration.has_check(CHECK_SYSML_PARSE) {
             recorded_sysml_paths(&cut)?
         } else {
             Vec::new()
@@ -125,18 +132,51 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
     if command == Some("quint-check") {
-        let (Some(driver), Some(quint), Some(model), None) =
-            (args.next(), args.next(), args.next(), args.next())
-        else {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into());
+        let rest: Vec<_> = args.collect();
+        let (json_output, positional) = match rest.as_slice() {
+            [flag, driver, quint, model] if flag == "--json" => (true, (driver, quint, model)),
+            [driver, quint, model] => (false, (driver, quint, model)),
+            _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into()),
         };
+        let driver = fs::canonicalize(positional.0)?;
+        let quint = fs::canonicalize(positional.1)?;
+        let model = fs::canonicalize(positional.2)?;
+        let driver_before = crate::source_tree::sha256(&fs::read(&driver)?);
+        let model_before = crate::source_tree::sha256(&fs::read(&model)?);
         let status = Command::new("timeout")
             .args(["--signal=TERM", "--kill-after=3s", "60s", "node"])
-            .arg(fs::canonicalize(driver)?)
-            .arg(fs::canonicalize(quint)?)
-            .arg(fs::canonicalize(model)?)
+            .arg(&driver)
+            .arg(&quint)
+            .arg(&model)
             .stdin(Stdio::null())
             .status()?;
+        let driver_after = crate::source_tree::sha256(&fs::read(&driver)?);
+        let model_after = crate::source_tree::sha256(&fs::read(&model)?);
+        let source_unchanged = driver_before == driver_after && model_before == model_after;
+        if json_output {
+            let verdict = if !source_unchanged {
+                "source-mutated"
+            } else if status.success() {
+                "passed"
+            } else {
+                "failed"
+            };
+            let observation = serde_json::json!({
+                "schema": "lambda-aitia.execution-observation.v1",
+                "tool": "quint",
+                "driverSha256": driver_before,
+                "modelPath": model,
+                "modelSha256": model_before,
+                "sourceUnchanged": source_unchanged,
+                "exitCode": status.code(),
+                "verdict": verdict,
+                "releaseAuthorized": false,
+            });
+            writeln!(io::stdout().lock(), "{observation}")?;
+        }
+        if !source_unchanged {
+            return Err(io::Error::other("Quint inputs changed during verification").into());
+        }
         if !status.success() {
             return Err(io::Error::other(format!("Quint execution failed: {status}")).into());
         }
@@ -603,23 +643,28 @@ fn check_recorded_project(
     program: &AitiaProgram<'_>,
 ) -> Result<(serde_json::Value, bool), Box<dyn std::error::Error>> {
     let (cut, configuration) = resolve_recorded_project(program, Path::new("."))?;
-    let sysml = if configuration.checks.contains(&ProjectCheck::SysmlParse) {
+    let unsupported: Vec<String> = configuration
+        .unsupported_checks()
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+    let sysml = if configuration.has_check(CHECK_SYSML_PARSE) {
         check_sysml(&cut)?
     } else {
         serde_json::Value::Null
     };
     let mut checks = serde_json::json!({ "sysml": sysml });
-    let mut matched = true;
-    if configuration
-        .checks
-        .contains(&ProjectCheck::AssuranceReplay)
-    {
+    let mut matched = unsupported.is_empty();
+    if !unsupported.is_empty() {
+        checks["unsupported"] = serde_json::json!(unsupported);
+    }
+    if configuration.has_check(CHECK_ASSURANCE_REPLAY) {
         let plan = configuration
             .replay
             .ok_or_else(|| io::Error::other("Missing replay plan"))?;
         let (report, replay_matched) = check_assurance_replay(program, &cut, &plan)?;
         checks["assurance"] = report;
-        matched = replay_matched;
+        matched &= replay_matched;
     }
     Ok((serde_json::json!({ "cut": cut, "checks": checks }), matched))
 }

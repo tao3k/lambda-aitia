@@ -3,23 +3,12 @@
 
 //! Own the linked Scheme runtime and route calls through its owner thread.
 
+use crate::AitiaProgram;
 use gerbil_scheme::NativeError;
 use std::sync::mpsc::{self, SyncSender};
 use std::thread::{self, JoinHandle};
 
-type Response = Result<String, NativeError>;
-
-enum Operation {
-    FlowGraph,
-    GitOpsEvaluate,
-    OrgContractEvaluate,
-}
-
-struct Request {
-    operation: Operation,
-    payload: String,
-    reply: SyncSender<Response>,
-}
+type Task = Box<dyn FnOnce(&AitiaProgram<'_>) + Send + 'static>;
 
 /// Errors at the Rust session boundary.
 #[derive(Debug)]
@@ -44,9 +33,9 @@ impl std::fmt::Display for SessionError {
 impl std::error::Error for SessionError {}
 
 /// Reuses one bridge-owned runtime on its own thread. Requests rendezvous with
-/// the owner, and only Rust-owned strings cross threads.
+/// the owner, and only Rust-owned values cross threads.
 pub struct AitiaSession {
-    sender: Option<SyncSender<Request>>,
+    sender: Option<SyncSender<Task>>,
     owner: Option<JoinHandle<Result<(), NativeError>>>,
 }
 
@@ -57,7 +46,7 @@ impl AitiaSession {
     ///
     /// Returns an error if the thread or Scheme runtime could not start.
     pub fn start() -> Result<Self, SessionError> {
-        let (sender, requests) = mpsc::sync_channel::<Request>(0);
+        let (sender, requests) = mpsc::sync_channel::<Task>(0);
         let (ready, initialized) = mpsc::sync_channel(0);
         let owner = thread::Builder::new()
             .name("aitia-scheme-owner".into())
@@ -66,15 +55,8 @@ impl AitiaSession {
                     if ready.send(()).is_err() {
                         return Ok(());
                     }
-                    for request in requests {
-                        let response = match request.operation {
-                            Operation::FlowGraph => program.flow_graph(&request.payload),
-                            Operation::GitOpsEvaluate => program.gitops_evaluate(&request.payload),
-                            Operation::OrgContractEvaluate => {
-                                program.org_contract_evaluate(&request.payload)
-                            }
-                        };
-                        let _ = request.reply.send(response);
+                    for task in requests {
+                        task(&program);
                     }
                     Ok(())
                 })
@@ -91,13 +73,36 @@ impl AitiaSession {
         Ok(session)
     }
 
+    /// Execute an operation against the live linked Scheme program on its owner
+    /// thread without re-initializing the Gambit runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns `SessionError::OwnerStopped` if the session has closed or failed.
+    pub fn execute<T, F>(&self, operation: F) -> Result<T, SessionError>
+    where
+        T: Send + 'static,
+        F: FnOnce(&AitiaProgram<'_>) -> T + Send + 'static,
+    {
+        let (reply, response) = mpsc::sync_channel(0);
+        let task: Task = Box::new(move |program| {
+            let _ = reply.send(operation(program));
+        });
+        self.sender
+            .as_ref()
+            .ok_or(SessionError::OwnerStopped)?
+            .send(task)
+            .map_err(|_| SessionError::OwnerStopped)?;
+        response.recv().map_err(|_| SessionError::OwnerStopped)
+    }
+
     /// Read the published SDLC graph.
     ///
     /// # Errors
     ///
     /// Returns an operation or owner failure.
     pub fn flow_graph(&self, payload: String) -> Result<String, SessionError> {
-        self.call(Operation::FlowGraph, payload)
+        self.call_string(move |program| program.flow_graph(&payload))
     }
 
     /// Evaluate a GitOps change using the published Scenario.
@@ -106,7 +111,7 @@ impl AitiaSession {
     ///
     /// Returns an operation or owner failure.
     pub fn gitops_evaluate(&self, payload: String) -> Result<String, SessionError> {
-        self.call(Operation::GitOpsEvaluate, payload)
+        self.call_string(move |program| program.gitops_evaluate(&payload))
     }
 
     /// Evaluate an Orgize Contract over supplied Element facts.
@@ -115,7 +120,25 @@ impl AitiaSession {
     ///
     /// Returns an operation or owner failure.
     pub fn org_contract_evaluate(&self, payload: String) -> Result<String, SessionError> {
-        self.call(Operation::OrgContractEvaluate, payload)
+        self.call_string(move |program| program.org_contract_evaluate(&payload))
+    }
+
+    /// Validate a recorded project configuration envelope through the Yuanxu Contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn project_config_validate(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.project_config_validate(&payload))
+    }
+
+    /// Project an evidence lineage graph (and optional GQL query selection) over verified JJ facts.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn evidence_lineage(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.evidence_lineage(&payload))
     }
 
     /// End the session and wait for Scheme cleanup.
@@ -127,21 +150,11 @@ impl AitiaSession {
         self.join()
     }
 
-    fn call(&self, operation: Operation, payload: String) -> Result<String, SessionError> {
-        let (reply, response) = mpsc::sync_channel(0);
-        self.sender
-            .as_ref()
-            .ok_or(SessionError::OwnerStopped)?
-            .send(Request {
-                operation,
-                payload,
-                reply,
-            })
-            .map_err(|_| SessionError::OwnerStopped)?;
-        response
-            .recv()
-            .map_err(|_| SessionError::OwnerStopped)?
-            .map_err(SessionError::Scheme)
+    fn call_string<F>(&self, operation: F) -> Result<String, SessionError>
+    where
+        F: FnOnce(&AitiaProgram<'_>) -> Result<String, NativeError> + Send + 'static,
+    {
+        self.execute(operation)?.map_err(SessionError::Scheme)
     }
 
     fn join(&mut self) -> Result<(), SessionError> {

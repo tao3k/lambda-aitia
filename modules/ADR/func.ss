@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o .ref)
+(import (only-in :clan/poo/object .get .o)
         (only-in :clan/poo/type validate)
         "types.ss")
 
@@ -11,45 +11,51 @@
         ADR-status-transition? ADR-transition ADR-supersede
         ADR-canonical ADR-assurance-projector)
 
-(def (ADR-link relation-value target-value)
-  (validate
-   ADRLink
-   (.o (:: @ (.ref ADRLink 'proto))
-       relation: relation-value target: target-value)))
+(def (ADR-link relation target)
+  (validate ADRLink
+    (.o (:: @ (.get ADRLink proto))
+        (relation := relation)
+        (target := target))))
 
-(def (ADR-option identity-value title-value description-value
-                 disposition-value pros-value cons-value)
-  (validate
-   ADROption
-   (.o (:: @ (.ref ADROption 'proto))
-       identity: identity-value title: title-value
-       description: description-value disposition: disposition-value
-       pros: pros-value cons: cons-value)))
+(def (ADR-option identity title description disposition pros cons)
+  (validate ADROption
+    (.o (:: @ (.get ADROption proto))
+        (identity := identity)
+        (title := title)
+        (description := description)
+        (disposition := disposition)
+        (pros := pros)
+        (cons := cons))))
 
-(def (ADR-consequence sentiment-value statement-value)
-  (validate
-   ADRConsequence
-   (.o (:: @ (.ref ADRConsequence 'proto))
-       sentiment: sentiment-value statement: statement-value)))
+(def (ADR-consequence sentiment statement)
+  (validate ADRConsequence
+    (.o (:: @ (.get ADRConsequence proto))
+        (sentiment := sentiment)
+        (statement := statement))))
 
-(def (ADR-record identity-value title-value status-value date-value
-                 revision-value context-value decision-value
-                 drivers-value options-value consequences-value
-                 confirmation-value decision-makers-value consulted-value
-                 informed-value links-value)
+(def (ADR-record identity title status date revision context decision
+                 drivers options consequences confirmation
+                 decision-makers consulted informed links)
   (let ((record
-         (validate
-          ADRRecord
-          (.o (:: @ (.ref ADRRecord 'proto))
-              identity: identity-value title: title-value status: status-value
-              date: date-value revision: revision-value context: context-value
-              decision: decision-value decision-drivers: drivers-value
-              considered-options: options-value consequences: consequences-value
-              confirmation: confirmation-value
-              decision-makers: decision-makers-value consulted: consulted-value
-              informed: informed-value links: links-value))))
+         (validate ADRRecord
+           (.o (:: @ (.get ADRRecord proto))
+               (identity := identity)
+               (title := title)
+               (status := status)
+               (date := date)
+               (revision := revision)
+               (context := context)
+               (decision := decision)
+               (decision-drivers := drivers)
+               (considered-options := options)
+               (consequences := consequences)
+               (confirmation := confirmation)
+               (decision-makers := decision-makers)
+               (consulted := consulted)
+               (informed := informed)
+               (links := links)))))
     (unless (ADR-record-valid? record)
-      (error "invalid ADR decision record" identity-value status-value))
+      (error "invalid ADR decision record" identity status))
     record))
 
 (def (ADR-status-transition? current-status next-status)
@@ -59,92 +65,93 @@
     ((deprecated) (eq? next-status 'superseded))
     (else #f)))
 
-(def (copy-record record status-value date-value revision-value links-value)
+(def (copy-record record status date revision links)
   (ADR-record
-   (.ref record 'identity) (.ref record 'title) status-value date-value
-   revision-value (.ref record 'context) (.ref record 'decision)
-   (.ref record 'decision-drivers) (.ref record 'considered-options)
-   (.ref record 'consequences) (.ref record 'confirmation)
-   (.ref record 'decision-makers) (.ref record 'consulted)
-   (.ref record 'informed) links-value))
+   (.get record identity) (.get record title) status date revision
+   (.get record context) (.get record decision)
+   (.get record decision-drivers) (.get record considered-options)
+   (.get record consequences) (.get record confirmation)
+   (.get record decision-makers) (.get record consulted)
+   (.get record informed) links))
 
 ;;; A transition always creates another value and revision.  It never rewrites
 ;;; the predecessor object or treats Git history as implicit semantic state.
 (def (ADR-transition record next-status next-date next-revision next-links)
   (unless (ADR-record-valid? record) (error "invalid ADR predecessor"))
-  (unless (ADR-status-transition? (.ref record 'status) next-status)
-    (error "invalid ADR status transition" (.ref record 'status) next-status))
-  (when (string=? (.ref record 'revision) next-revision)
+  (unless (ADR-status-transition? (.get record status) next-status)
+    (error "invalid ADR status transition" (.get record status) next-status))
+  (when (string=? (.get record revision) next-revision)
     (error "ADR transition requires a new revision" next-revision))
   (copy-record record next-status next-date next-revision next-links))
 
 (def (add-link record relation target)
-  (let ((candidate (ADR-link relation target)))
+  (let ((candidate (ADR-link relation target))
+        (existing (.get record links)))
     (if (member (cons relation target)
                 (map (lambda (link)
-                       (cons (.ref link 'relation) (.ref link 'target)))
-                     (.ref record 'links)))
-      (.ref record 'links)
-      (append (.ref record 'links) (list candidate)))))
+                       (cons (.get link relation) (.get link target)))
+                     existing))
+      existing
+      (append existing (list candidate)))))
 
 ;;; Supersession is one operation producing both immutable sides of the link.
 ;;; The replacement must already be an accepted ADR; acceptance itself remains
 ;;; a distinct review decision.
-(def (ADR-supersede predecessor replacement date-value
+(def (ADR-supersede predecessor replacement date
                     predecessor-revision replacement-revision)
   (unless (and (ADR-record-valid? predecessor)
                (ADR-record-valid? replacement)
-               (eq? (.ref replacement 'status) 'accepted))
+               (eq? (.get replacement status) 'accepted))
     (error "ADR supersession requires valid predecessor and accepted replacement"))
-  (when (string=? (.ref predecessor 'identity) (.ref replacement 'identity))
-    (error "ADR cannot supersede itself" (.ref predecessor 'identity)))
-  (when (string=? (.ref replacement 'revision) replacement-revision)
+  (when (string=? (.get predecessor identity) (.get replacement identity))
+    (error "ADR cannot supersede itself" (.get predecessor identity)))
+  (when (string=? (.get replacement revision) replacement-revision)
     (error "ADR supersession requires a new replacement revision"
            replacement-revision))
   (values
    (ADR-transition
-    predecessor 'superseded date-value predecessor-revision
-    (add-link predecessor 'superseded-by (.ref replacement 'identity)))
+    predecessor 'superseded date predecessor-revision
+    (add-link predecessor 'superseded-by (.get replacement identity)))
    (copy-record
-    replacement 'accepted date-value replacement-revision
-    (add-link replacement 'supersedes (.ref predecessor 'identity)))))
+    replacement 'accepted date replacement-revision
+    (add-link replacement 'supersedes (.get predecessor identity)))))
 
 (def (option-canonical option)
-  (list (.ref option 'identity) (.ref option 'title)
-        (.ref option 'description) (.ref option 'disposition)
-        (.ref option 'pros) (.ref option 'cons)))
+  (list (.get option identity) (.get option title)
+        (.get option description) (.get option disposition)
+        (.get option pros) (.get option cons)))
 (def (consequence-canonical consequence)
-  (list (.ref consequence 'sentiment) (.ref consequence 'statement)))
+  (list (.get consequence sentiment) (.get consequence statement)))
 (def (link-canonical link)
-  (list (.ref link 'relation) (.ref link 'target)))
+  (list (.get link relation) (.get link target)))
 
 (def (ADR-canonical record)
   (unless (ADR-record-valid? record) (error "invalid ADR record"))
   (list 'lambda-aitia.ADR-record
-        (.ref record 'identity) (.ref record 'title) (.ref record 'status)
-        (.ref record 'date) (.ref record 'revision) (.ref record 'context)
-        (.ref record 'decision) (.ref record 'decision-drivers)
-        (map option-canonical (.ref record 'considered-options))
-        (map consequence-canonical (.ref record 'consequences))
-        (.ref record 'confirmation) (.ref record 'decision-makers)
-        (.ref record 'consulted) (.ref record 'informed)
-        (map link-canonical (.ref record 'links))))
+        (.get record identity) (.get record title) (.get record status)
+        (.get record date) (.get record revision) (.get record context)
+        (.get record decision) (.get record decision-drivers)
+        (map option-canonical (.get record considered-options))
+        (map consequence-canonical (.get record consequences))
+        (.get record confirmation) (.get record decision-makers)
+        (.get record consulted) (.get record informed)
+        (map link-canonical (.get record links))))
 
 ;;; An ADR is rationale and choice history.  Its assurance projection is never
 ;;; supported solely because the ADR is accepted, and therefore grants no
 ;;; effect authority.  Evidence admission may support a separate decision.
 (def ((ADR-assurance-projector assurance-decision assurance-canonical-digest) record)
   (let ((state
-         (case (.ref record 'status)
+         (case (.get record status)
            ((deprecated superseded) 'stale)
            ((rejected) 'not-applicable)
            (else 'unknown))))
     (assurance-decision
-     (string-append "ADR/" (.ref record 'identity))
-     (.ref record 'revision)
+     (string-append "ADR/" (.get record identity))
+     (.get record revision)
      state
      (assurance-canonical-digest (ADR-canonical record))
-     subject: (.ref record 'identity)
+     subject: (.get record identity)
      snapshot: "unbound"
      policy: "ADR-selection-only"
      authority: "unadmitted"

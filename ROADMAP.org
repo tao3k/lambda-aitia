@@ -593,3 +593,35 @@ job-executor claim. Known-fault replay is not novel bug discovery. Full Specula
 CLI lifecycle mapping, new checker implementations and MRR integration are not
 required deliverables in this queue. Phase 4/6/7 closure still requires actual
 Host and Runtime receipts rather than a documentation or Recipe-only milestone.
+
+* Engineering checkpoint (2026-11-25)
+
+Completed locally across M1-M5 (without claiming deployed Cedar authority or
+remote hosted CI pass until pushed and observed):
+
+- *Yuanxu & zero-loadpath AOT closure*: =gerbil.pkg= dropped =prelude:=,
+  =t/= migrated to =t/yanxu/= + =t/library/= + =t/integration/= + =t/harness/=,
+  and upstream =gerbil-scheme-rust= (=6727dfb7=) fixed deferred =__load-module=
+  topological initialization so linked =aitia= binaries run with zero
+  =GERBIL_LOADPATH= under macOS Seatbelt.
+- *CI & cohort hardening*: fixed =justfile= =GERBIL_BUILD_CORES= fallback for
+  non-Gerbil Lean/Quint runners, fixed =ci.yml= =$GERBIL_PATH/pkg= creation and
+  =gerbil-scheme-rust= =Cargo.lock= lockstep staging, added idempotent
+  =stage-rust-program= cleanup and =check-rust-zero-loadpath=.
+- *Transport & session decoupling*: extracted =ReplayProfile= POO values in
+  =modules/assurance/replay-assessment.ss=, split 876-line =bindings/operations.ss=
+  into 5 domain transport modules + facade, replaced raw alist schema in
+  =modules/project-config/types.ss= with POO descriptor projection, replaced
+  closed Rust =ProjectCheck= enum with open string dispatch, and unified
+  =AitiaSession::execute= across Rust and =aitia-python=.
+- *ADR/Domain GQL & structured Quint observation*: added =DecisionRecord= and
+  =Domain= lineage + GQL queries (=related-decisions=, =affected-domains=) in
+  =modules/gitops/review-{lineage,query}.ss=, and added =aitia quint-check --json=
+  with pre/post SHA-256 input mutation detection.
+- *Style-44 refactoring & DE generalization*: refactored =ADR=, =formal-methods=,
+  =gitops/func=, =project-config/func=, and =assurance/objects= onto Style 44
+  (=.get=, =:=, declarative =validated-assurance-object=), archived RFC 0007's
+  chronological logbook to =docs/receipts/2026-11-25-rfc-0007-historical-logbook.org=,
+  and added =t/integration/de-project-composition-test.ss= verifying acyclic
+  DE POO profile injection, framework/user-project isolation, and cross-language
+  FFI composition obligations.

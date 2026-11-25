@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .ref .slot? .cc compute-precedence-list! object?)
+(import (only-in :clan/poo/object .get .ref .slot? .cc compute-precedence-list! object?)
         (only-in :clan/poo/type define-type Type. element? Record)
         :std/list/list
         (only-in :tao3k/agentic-ai-lab/modules/governance/types
@@ -57,7 +57,7 @@
   (.cc (apply Record (apply append fields)) identity: identity))
 (def (ADR-type-member? descriptor value)
   (and (object? value)
-       (memq (.ref descriptor 'proto) (compute-precedence-list! value))
+       (memq (.get descriptor proto) (compute-precedence-list! value))
        (element? descriptor value)
        #t))
 
@@ -125,39 +125,39 @@
   (length=? input-values
             (delete-duplicates/hash input-values key: projection)))
 (def (link-key link)
-  (cons (.ref link 'relation) (.ref link 'target)))
+  (cons (.get link relation) (.get link target)))
 (def (links-contain? record relation)
-  (any (lambda (link) (eq? (.ref link 'relation) relation))
-       (.ref record 'links)))
+  (any (lambda (link) (eq? (.get link relation) relation))
+       (.get record links)))
 (def (chosen-option-count record)
   (length
    (filter (lambda (option)
-             (eq? (.ref option 'disposition) 'chosen))
-           (.ref record 'considered-options))))
+             (eq? (.get option disposition) 'chosen))
+           (.get record considered-options))))
 (def (no-self-links? record)
   (every (lambda (link)
-           (not (string=? (.ref record 'identity) (.ref link 'target))))
-         (.ref record 'links)))
+           (not (string=? (.get record identity) (.get link target))))
+         (.get record links)))
 
 ;;; Structural validity is nominal; semantic validity also enforces the MADR
 ;;; decision core and lifecycle constraints used by Aitia.
 (def (ADR-record-valid? record)
   (and (ADR-record? record)
-       (pair? (.ref record 'decision-drivers))
-       (pair? (.ref record 'considered-options))
-       (unique-by? (lambda (option) (.ref option 'identity))
-                   (.ref record 'considered-options))
-       (unique-by? link-key (.ref record 'links))
+       (pair? (.get record decision-drivers))
+       (pair? (.get record considered-options))
+       (unique-by? (lambda (option) (.get option identity))
+                   (.get record considered-options))
+       (unique-by? link-key (.get record links))
        (no-self-links? record)
-       (let ((status (.ref record 'status))
+       (let ((status (.get record status))
              (chosen (chosen-option-count record)))
          (case status
            ((proposed) (<= chosen 1))
            ((rejected) (= chosen 0))
            ((accepted deprecated)
             (and (= chosen 1)
-                 (pair? (.ref record 'consequences))
-                 (pair? (.ref record 'decision-makers))))
+                 (pair? (.get record consequences))
+                 (pair? (.get record decision-makers))))
            ((superseded)
             (and (= chosen 1)
                  (pair? (.ref record 'consequences))

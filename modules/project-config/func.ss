@@ -31,12 +31,12 @@
 
 ;; Both Scheme declarations and decoded JSON pass the same Yuanxu Contract.
 (def (resolve-project-config defaults declaration)
-  (let* ((declared-value (config-value declaration))
+  (let* ((normalized (config-value declaration))
          (artifact (force project-config-contract))
-         (validation (.call JsonSchemaScope validate artifact declared-value)))
+         (validation (.call JsonSchemaScope validate artifact normalized)))
     (and (yuanxu-json-schema-object-contract-validation-valid? validation)
          (let* ((effective (make-hash-table))
-                (declared (hash->list declared-value)))
+                (declared (hash->list normalized)))
            (for-each (lambda (key) (hash-put! effective key (config-value (.ref defaults key))))
                      (.all-slots defaults))
            (for-each (lambda (row) (hash-put! effective (car row) (cdr row))) declared)

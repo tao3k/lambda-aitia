@@ -38,6 +38,14 @@ impl PythonSession {
         self.call(py, request, AitiaSession::org_contract_evaluate)
     }
 
+    fn project_config_validate(&self, py: Python<'_>, request: String) -> PyResult<String> {
+        self.call(py, request, AitiaSession::project_config_validate)
+    }
+
+    fn evidence_lineage(&self, py: Python<'_>, request: String) -> PyResult<String> {
+        self.call(py, request, AitiaSession::evidence_lineage)
+    }
+
     fn close(&self, py: Python<'_>) -> PyResult<()> {
         py.detach(|| {
             let mut session = self

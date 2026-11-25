@@ -68,4 +68,51 @@
           (check-equal? (.ref missing 'action-authority?) #f)
           (check (number? (string-contains (.ref missing 'gql) "missing_report")) => #t))
         (check-equal? (.ref (.ref result 'model-evidence) 'rows) '())
-        (check-equal? (.ref (.ref result 'model-evidence) 'complete?) #f)))))
+        (check-equal? (.ref (.ref result 'model-evidence) 'complete?) #f)))
+    (test-case "projects related ADRs including superseded decisions and affected domains into GQL"
+      (let* ((entry (hash ("kind" "file") ("id" "recorded") ("executable" #f)))
+             (changed (hash ("path" "modules/gitops/review-lineage.ss") ("before" #f) ("after" entry)))
+             (rfc-source (hash ("path" "docs/rfcs/0007.org") ("entry" entry)))
+             (adr-accepted (hash ("path" "docs/adrs/0009.org") ("entry" entry)))
+             (adr-old (hash ("path" "docs/adrs/0006.org") ("entry" entry)))
+             (scope (validate GitOpsScopeContract Config))
+             (graph ((.get scope review-lineage)
+                     "rev-adr" (list changed) '() '("jj.recorded-change") '() '()
+                     (list rfc-source adr-accepted adr-old)
+                     (.o engineering-id: "RFC-0007" source: "docs/rfcs/0007.org" element: "commit-eng")
+                     adr-references:
+                     (list (.o identity: "ADR-0009" revision: "r2" status: 'accepted
+                               relation: 'implements-rfc source: "docs/adrs/0009.org")
+                           (.o identity: "ADR-0006" revision: "r1" status: 'superseded
+                               relation: 'refines-rfc source: "docs/adrs/0006.org"))
+                     affected-domains:
+                     (list (.o domain: "gitops" owner-module: "lambda-aitia/modules/gitops"
+                               paths: '("modules/gitops/review-lineage.ss")))))
+             (result ((.get scope review-query) graph "rev-adr"))
+             (decisions (.get result related-decisions))
+             (domains (.get result affected-domains)))
+        (check-equal? (.get decisions action-authority?) #f)
+        (check-equal? (length (.get decisions rows)) 2)
+        (check (and (member '("ADR-0009" "r2" "accepted" "implements-rfc" "docs/adrs/0009.org")
+                            (.get decisions rows)) #t) => #t)
+        (check (and (member '("ADR-0006" "r1" "superseded" "refines-rfc" "docs/adrs/0006.org")
+                            (.get decisions rows)) #t) => #t)
+        (check (number? (string-contains (.get decisions gql) "relates_decision")) => #t)
+        (check-equal? (.get domains action-authority?) #f)
+        (check-equal? (.get domains rows)
+                      '(("gitops" "lambda-aitia/modules/gitops" "modules/gitops/review-lineage.ss")))
+        (check (number? (string-contains (.get domains gql) "owned_by_domain")) => #t)
+        (check-exception
+         ((.get scope review-lineage)
+          "rev-adr" (list changed) '() '() '() '() (list rfc-source) #f
+          adr-references:
+          (list (.o identity: "ADR-9999" revision: "r1" status: 'accepted
+                    relation: 'implements-rfc source: "docs/adrs/unobserved.org")))
+         Error?)
+        (check-exception
+         ((.get scope review-lineage)
+          "rev-adr" (list changed) '() '() '() '() '() #f
+          affected-domains:
+          (list (.o domain: "gitops" owner-module: "lambda-aitia/modules/gitops"
+                    paths: '("modules/unrelated.ss"))))
+         Error?)))))

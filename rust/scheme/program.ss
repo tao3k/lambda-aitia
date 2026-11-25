@@ -39,13 +39,13 @@
      request lambda-aitia/bindings/operations#aitia-context-operation))
   (c-define (commit-journal request) (int64) int64 "aitia_program_commit_journal" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/operations#aitia-commit-journal-payload))
+     request lambda-aitia/bindings/commit-transport#aitia-commit-journal-payload))
   (c-define (nasa-draft request) (int64) int64 "aitia_program_nasa_draft" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/operations#aitia-nasa-draft-payload))
+     request lambda-aitia/bindings/commit-transport#aitia-nasa-draft-payload))
   (c-define (evidence-lineage request) (int64) int64 "aitia_program_evidence_lineage" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/operations#aitia-evidence-lineage-payload))
+     request lambda-aitia/bindings/commit-transport#aitia-evidence-lineage-payload))
   (c-define (project-config-validate request) (int64) int64 "aitia_program_project_config_validate" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
      request lambda-aitia/bindings/operations#aitia-project-config-validate-payload)))
