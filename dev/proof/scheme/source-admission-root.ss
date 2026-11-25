@@ -5,6 +5,6 @@
 ;;; -*- Gerbil -*-
 ;;; Prepared import root for the SDLC source-admission proof.
 (import :lambda-aitia/modules/sdlc/standards/interface)
-(include "../../../t/sdlc/support/inventories.ss")
+(include "../../../t/support/sdlc/inventories.ss")
 (export sdlc-test-fixtures-loaded?)
 (def sdlc-test-fixtures-loaded? #t)

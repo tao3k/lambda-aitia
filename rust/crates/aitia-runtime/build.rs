@@ -35,6 +35,7 @@ fn main() {
             out_dir: &out,
         },
         ProgramArchiveContract {
+            max_modules: std::num::NonZeroUsize::new(1024).unwrap(),
             required_modules: &[
                 "gerbil-scheme-rust/scheme/runtime",
                 "lambda-aitia/init",

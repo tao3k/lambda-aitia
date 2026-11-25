@@ -3,7 +3,7 @@
 
 (import :std/test :std/error
         (only-in :gerbil/core string-prefix? string-contains)
-        (only-in :clan/poo/object .get .o .cc)
+        (only-in :clan/poo/object .get .o .cc .ref)
         (only-in "../commit-evidence.ss"
                  gitops-commit-evidence gitops-commit-model-assessment
                  gitops-nasa-draft-requirements

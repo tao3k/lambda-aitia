@@ -6,7 +6,7 @@
         (only-in :clan/poo/object .get .ref)
         (only-in :std/source this-source-file)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
-        (only-in "../../../init.ss" lambda-aitia.init.exports))
+        (only-in :lambda-aitia/init lambda-aitia.init.exports))
 (export retirement-binding-test)
 
 (def retirement (.get lambda-aitia.init.exports scenarios job-retirement-contract))

@@ -3,9 +3,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .get .o .ref .slot? object?)
-        "../types.ss"
-        "../objects.ss"
-        "../func.ss"
+        :lambda-aitia/modules/sdlc/types
+        :lambda-aitia/modules/sdlc/objects
+        :lambda-aitia/modules/sdlc/func
         "nasa-7150-2d-profile.ss"
         (only-in :gerbil/runtime/hash list->hash-table-string))
 (export (import: "nasa-7150-2d-profile.ss")

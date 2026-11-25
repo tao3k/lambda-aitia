@@ -5,7 +5,7 @@
 ;;; NPR 7150.2D project/institution baseline policy construction.
 (import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref)
-        "../types.ss"
+        :lambda-aitia/modules/sdlc/types
         "nasa-7150-2d.ss"
         :std/list/list)
 

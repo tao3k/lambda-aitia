@@ -5,9 +5,10 @@
 ;;; Legacy module-selection projection is standard-free. The NASA Standard is
 ;;; selected through its own typed nasa/sdlc Module Profile, not an SDLC flag.
 (import (only-in :clan/poo/object .o .get)
+        (rename-in (only-in "../assurance/config.ss" Config) (Config Assurance))
         "types.ss" "objects.ss" "func.ss" "review.ss" "impact.ss"
         "design.ss" "implementation.ss" "verification.ss")
-(export make-sdlc-scope)
+(export make-sdlc-scope SdlcScope)
 
 (def accepts-standard? standard-profile?)
 
@@ -36,3 +37,5 @@
       design-implementation-review: (.get implementation review)
       design-guarantee-support-review:
       (make-sdlc-guarantee-support-review assurance digest implementation)))
+
+(def SdlcScope (make-sdlc-scope Assurance))

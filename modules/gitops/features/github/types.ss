@@ -3,8 +3,7 @@
 
 
 (import (only-in :clan/poo/object .cc)
-        (only-in :clan/poo/type Function)
-        (only-in :clan/poo/type False Or Record)
+        (only-in :clan/poo/type Function False Or Record)
         (only-in :clan/poo/number UInt)
         (only-in "../../types.ss" GitOpsChange GitOpsEvent NonEmptyString))
 (export GitHubFeatureContract)

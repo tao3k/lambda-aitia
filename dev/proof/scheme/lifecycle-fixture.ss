@@ -6,7 +6,7 @@
 ;;; token / reservation APIs. It never imports model expected states.
 ;;; Configured local runtime callbacks are controls, not a native Cedar proof.
 (import
-        (only-in "../../../modules/assurance/effect-host.ss"
+        (only-in :lambda-aitia/modules/assurance/effect-host
                  assurance-effect-host
                  assurance-effect-host-authorize!
                  assurance-effect-host-deliver!
@@ -14,7 +14,7 @@
                  assurance-effect-host-grant-current?
                  assurance-effect-host-reserve!
                  assurance-effect-host-revoke!)
-        (only-in "../../../modules/assurance/cedar-preflight.ss"
+        (only-in :lambda-aitia/modules/assurance/cedar-preflight
                  assurance-host-cedar-request)
         (only-in :std/test check)
         (only-in :clan/poo/object .get .o .ref)

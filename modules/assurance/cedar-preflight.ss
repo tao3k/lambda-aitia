@@ -7,7 +7,7 @@
                  agentic-ai-lab-cedar-runtime-handoff?
                  agentic-ai-lab-cedar-authorization-request
                  agentic-ai-lab-cedar-authorization-request?)
-        (only-in "func.ss" assurance-canonical-digest)
+        (only-in :lambda-aitia/modules/assurance/func assurance-canonical-digest)
         (only-in :lambda-aitia/modules/assurance/host assurance-host-current-preflight-binding
                  assurance-host-decision-preflight-current?
                  assurance-host-governance-source))

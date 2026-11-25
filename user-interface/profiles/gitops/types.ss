@@ -3,8 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .cc)
-        (only-in :clan/poo/type Object)
-        (only-in :clan/poo/type Record))
+        (only-in :clan/poo/type Object Record))
 (export ScopeContract)
 
 (def ScopeContract

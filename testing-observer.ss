@@ -74,8 +74,8 @@
 
 (def (run-observed-files label test-files)
   (emit-selection label (length test-files))
-  (if (and (equal? label "t/sdlc")
-           (every (lambda (path) (string-prefix? "./t/sdlc/unit/" path)) test-files))
+  (if (and (equal? label "t/yanxu/modules/sdlc")
+           (every (lambda (path) (string-prefix? "./t/yanxu/modules/sdlc/" path)) test-files))
     (let (testing (lambda-aitia-sdlc-unit-testing-interface test-files))
       (testing-interface-run-test-files!
        testing (lambda-aitia-sdlc-unit-test-order testing test-files)))

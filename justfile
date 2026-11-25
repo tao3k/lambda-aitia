@@ -59,12 +59,15 @@ stage-rust-program program="aitia-program":
     set -euo pipefail
     export AITIA_PROGRAM_OUTPUT={{ quote(build_root + "/" + program) }}
     {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 600s gxi -e '
-      (import (only-in "./build.ss" aitia-build-projection aitia-make)
+      (import (only-in "./init.ss" lambda-aitia.init.exports)
+              (only-in :std/make make)
               (only-in :clan/poo/object .get .call)
               (only-in :std/misc/process run-process/batch)
               (only-in :tao3k/yuanxu/module-system/source/admission
                        module-source-read module-source-admit-current!)
-              (only-in :tao3k/yuanxu/module-system/building/products call-with-selected-output-lock)
+              (only-in :tao3k/yuanxu/module-system/building/source-package call-with-build-input-path)
+              (only-in :tao3k/yuanxu/module-system/building/products
+                       call-with-selected-output-lock current-build-source-directory)
               (only-in :tao3k/yuanxu/module-system/building/artifacts admit-build-artifact-publication!))
       (def output (getenv "AITIA_PROGRAM_OUTPUT"))
       (def products (path-expand "lib" output))
@@ -83,11 +86,18 @@ stage-rust-program program="aitia-program":
               (quote ())))
         (def (admit-declaration!)
           (module-source-admit-current! declaration-inputs "project declaration changed during staging"))
-        (def projection (aitia-build-projection))
+        (def projection (.get lambda-aitia.init.exports build))
         (.call projection .compile products
           (lambda ()
+            (def root (or (current-build-source-directory) (.get projection source-root)))
             (dynamic-wind admit-declaration!
-              (lambda () (aitia-make (.get projection std-make-spec) "compile"))
+              (lambda ()
+                (call-with-build-input-path products
+                  (lambda ()
+                    (make (.get projection std-make-spec)
+                      srcdir: root libdir: products
+                      optimize: (cond-expand (darwin #f) (else #t))))
+                  make-source: root))
               admit-declaration!)))
         (def graph (.get projection build-graph))
         (def (admit-stage-inputs!)
@@ -103,7 +113,7 @@ stage-rust-program program="aitia-program":
                 (string-append "AITIA_PROGRAM_OUTPUT=" stage)
                 (string-append "GERBIL_LOADPATH=" products ":" dependency-path)
                 (path-expand "bin/gxi" (gerbil-home)) "-e"
-                "(import (only-in :gerbil/expander core-resolve-library-module-path) :gerbil-scheme-rust/scheme/program-build) (gerbil-rs-stage-program (core-resolve-library-module-path (quote :lambda-aitia/rust/scheme/program)) (getenv \"AITIA_PROGRAM_OUTPUT\"))")))
+                "(import (only-in :gerbil/expander core-resolve-library-module-path import-module current-expander-compiling?) :gerbil-scheme-rust/scheme/program-build) (let (entry (core-resolve-library-module-path (quote :lambda-aitia/rust/scheme/program))) (parameterize ((current-expander-compiling? #t)) (import-module entry)) (gerbil-rs-stage-program entry (getenv \"AITIA_PROGRAM_OUTPUT\")))")))
           admit-stage-inputs!)
         (rename-file staged-manifest manifest))
       (call-with-selected-output-lock output stage-program!)'
@@ -161,24 +171,37 @@ test-dev:
     grep -Fxq 'OK' "$output"
     ! grep -Eq 'ERROR (CASE|CHECK|MODULE|HARNESS)|Heap overflow|Stack overflow' "$output"
 
-# Run one Aitia-owned Scheme test module.
+# Verify the Yuanxu t/yanxu/ Loader test layout contract.
+[group('test')]
+test-layout:
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 60s gerbil {{ gerbil_test_runtime_options }} interactive t/harness/run-aitia-tests.ss {{ gerbil_test_runtime_options }} 60s t/integration/loader-ownership-test.ss
+
+# Run the complete Aitia Scheme test roster (t/yanxu/, t/library/, t/integration/) in bounded batches.
+[group('test')]
+[positional-arguments]
+test-root *paths: test-layout
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 600s gerbil {{ gerbil_test_runtime_options }} interactive t/harness/run-aitia-tests.ss {{ gerbil_test_runtime_options }} 120s "$@"
+
+# Run one Aitia-owned Scheme test suite (resolving t/yanxu/modules/, t/yanxu/, t/library/, or t/).
 [group('test')]
 test-scheme module="sdlc":
     #!/usr/bin/env bash
     set -euo pipefail
     module={{ quote(module) }}
-    test -d "t/$module"
-    # Bound four child heaps at 2 GiB each, plus the 1 GiB launcher.
-    if [[ "$module" == sdlc ]] &&
-       ! [[ "$GERBIL_BUILD_CORES" =~ ^[1-4]$ ]]; then
-      export GERBIL_BUILD_CORES=4
-    fi
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gxi -:max-heap=1G ./run-test.ss "t/$module"
+    target=""
+    for candidate in "t/yanxu/modules/$module" "t/yanxu/$module" "t/library/$module" "t/$module"; do
+      if [[ -d "$candidate" ]] && compgen -G "$candidate/*-test.ss" >/dev/null; then
+        target="$candidate"
+        break
+      fi
+    done
+    test -n "$target" || { echo "unknown test module: $module" >&2; exit 64; }
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 240s gerbil {{ gerbil_test_runtime_options }} interactive t/harness/run-aitia-tests.ss {{ gerbil_test_runtime_options }} 120s "$target"
 
 # Run the tests published by a selected Yuanxu Module.
 [group('test')]
 test-module module:
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gxi -:max-heap=1G ./run-module-test.ss {{ quote(module) }}
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=1G interactive t/harness/run-aitia-tests.ss {{ gerbil_test_runtime_options }} 120s "--module={{ module }}"
 
 # Exercise the complete affected test directories with Gerbil's standard runner.
 [group('test')]
@@ -197,8 +220,20 @@ test-commit-semantics path="":
 
 # Run one exact Aitia-owned Scheme test.
 [group('test')]
-test-scheme-atomic module="sdlc" test_file="unit/nasa-certification-test.ss":
-    just _test-scheme-file "t/{{ module }}/{{ test_file }}"
+test-scheme-atomic module="sdlc" test_file="nasa-certification-test.ss":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    module={{ quote(module) }}
+    test_file={{ quote(test_file) }}
+    target=""
+    for candidate in "t/yanxu/modules/$module/$test_file" "t/yanxu/$module/$test_file" "t/library/$module/$test_file" "t/$module/$test_file"; do
+      if [[ -f "$candidate" ]]; then
+        target="$candidate"
+        break
+      fi
+    done
+    test -n "$target" || { echo "unknown test file: $module/$test_file" >&2; exit 64; }
+    just _test-scheme-file "$target"
 
 [group('test')]
 test-proof-scheme test_file:
@@ -206,7 +241,7 @@ test-proof-scheme test_file:
 
 _test-scheme-file path:
     test -f {{ quote(path) }}
-    GERBIL_BUILD_VERBOSE=1 {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gxi -:max-heap=1G ./run-test.ss {{ quote(path) }}
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 120s gerbil {{ gerbil_test_runtime_options }} interactive t/harness/run-aitia-tests.ss {{ gerbil_test_runtime_options }} 120s {{ quote(path) }}
 
 # Build and execute Aitia's SDLC plus GitOps composition case.
 [group('check')]
@@ -222,6 +257,7 @@ _test-integration:
 check-semantic:
     just test-proof-scheme source-admission-test.ss
     just build-scheme
+    just test-layout
     just test-scheme assurance
     just test-scheme ADR
     just test-scheme sdlc
@@ -230,7 +266,9 @@ check-semantic:
     just test-scheme gitops
     just test-module lambda-aitia/modules/gitops/interface
     just test-module project-config
+    just test-scheme scenarios/aitia
     just test-scheme modules
+    just test-scheme testing
 
 # Reuse the package built by check-semantic for development and integration tests.
 [group('check')]

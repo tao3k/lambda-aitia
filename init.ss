@@ -3,8 +3,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Product-owned selection. More Modules join here as their consumer migration closes.
+(import :tao3k/yuanxu/module-system/selection/init-syntax)
 (yuanxu!
-  :load-modules "./modules" mode: explicit
+  :build-roots ("bindings/operations" "rust/scheme/program")
+  :load-modules "./modules" mode: explicit :test-dir "./t"
   (assurance)
   (ADR)
   (formal-methods)
@@ -12,11 +14,11 @@
   (project-config)
   (nasa-7150-2d-catalog)
   (sdlc)
-  :load-modules "./user-interface/profiles" mode: explicit mount: Profiles
+  :load-modules "./user-interface/profiles" mode: explicit mount: Profiles :test-dir "./t"
   (delivery @ "./user-interface/profiles/gitops")
   (nasa-7150-2d @ "./user-interface/profiles/nasa")
   (software-engineering)
-  :load-modules "./user-interface/scenarios" mode: explicit mount: scenarios
+  :load-modules "./user-interface/scenarios" mode: explicit mount: scenarios :test-dir "./t"
   (github-gitops)
   (aitia)
   (job-executor-retirement)

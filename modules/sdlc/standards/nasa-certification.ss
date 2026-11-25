@@ -7,7 +7,7 @@
 (import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
         :tao3k/yuanxu/contribution/verification
-        "../types.ss"
+        :lambda-aitia/modules/sdlc/types
         (only-in "nasa-7150-2d-profile.ss" Nasa7150_2D)
         :std/list/list
         :std/list/list

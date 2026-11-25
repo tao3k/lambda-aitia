@@ -5,8 +5,8 @@
 ;;; Deterministic local checks over authenticated inventory projections.
 (import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .o .ref)
-        "../types.ss"
-        "../func.ss"
+        :lambda-aitia/modules/sdlc/types
+        :lambda-aitia/modules/sdlc/func
         "nasa-7150-2d.ss"
         "nasa-review.ss"
         :std/list/list)

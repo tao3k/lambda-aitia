@@ -4,8 +4,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref .slot? .cc compute-precedence-list! object?)
-        (only-in :clan/poo/type define-type Type. element?)
-        (only-in :clan/poo/type Record)
+        (only-in :clan/poo/type define-type Type. element? Record)
         :std/list/list)
 
 (export AssuranceScopeContract assurance-text? assurance-digest?

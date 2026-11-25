@@ -2,8 +2,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .get .o)
-        (only-in :clan/poo/type element?)
-        (only-in :clan/poo/type Record)
+        (only-in :clan/poo/type element? Record)
         (only-in :clan/poo/number UInt)
         (for-template :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
         (only-in :tao3k/yuanxu/module-system/source/compiled-role compiled-role-values)

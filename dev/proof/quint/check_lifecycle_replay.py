@@ -39,7 +39,7 @@ SOURCE_CUT = ("dev/proof/quint/AssuranceLifecycle.qnt", "dev/proof/quint/EffectA
               "dev/proof/quint/test_lifecycle_replay.py",
               "dev/proof/quint/process_runner.py", "justfile", "build.ss", "gerbil.pkg", "init.ss",
               "testing-interface.ss", "testing-observer.ss", "run-test.ss",
-              "t/modules/unit/testing-resource-test.ss",
+              "t/library/testing/testing-resource-test.ss",
               "modules/assurance/config.ss", "modules/assurance/interface.ss",
               "modules/assurance/host.ss", "modules/assurance/cedar-preflight.ss",
               "modules/assurance/effect-host.ss",
@@ -50,7 +50,7 @@ SOURCE_CUT = ("dev/proof/quint/AssuranceLifecycle.qnt", "dev/proof/quint/EffectA
               "modules/assurance/input-correspondence.ss",
               "modules/assurance/observed-support.ss", "modules/assurance/replay-assessment.ss",
               "dev/proof/scheme/lifecycle-fixture.ss",
-              "dev/proof/scheme/lifecycle-replay-test.ss", "t/assurance/unit/lifecycle-boundary-test.ss")
+              "dev/proof/scheme/lifecycle-replay-test.ss", "t/yanxu/modules/assurance/lifecycle-boundary-test.ss")
 
 
 def source_hashes():

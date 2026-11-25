@@ -1,12 +1,12 @@
+;;; -*- Gerbil -*-
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
-;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; -*- Gerbil -*-
-;; Initialize Config under the publication reader before recording scope support.
-(import "config.ss")
+(import (only-in :clan/poo/object .def .o)
+        (only-in "./types.ss" GitOpsScopeContract)
+        (only-in "./config.ss" Config))
+(export GitOps)
 
-(import (only-in :clan/poo/object .def))
 (.def GitOps
   identity: 'gitops
   tags: '(software-engineering gitops)

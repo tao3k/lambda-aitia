@@ -5,8 +5,8 @@
 ;;; Source-bound review across every catalog requirement. No authority execution.
 (import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
-        "../types.ss"
-        "../objects.ss"
+        :lambda-aitia/modules/sdlc/types
+        :lambda-aitia/modules/sdlc/objects
         "nasa-7150-2d.ss"
         :std/list/list)
 (export nasa-requirement-criteria nasa-criterion-evidence nasa-assess-project

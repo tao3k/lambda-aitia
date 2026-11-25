@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o)
+(import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list
         (only-in :clan/poo/type validate)

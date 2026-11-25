@@ -12,7 +12,7 @@
         :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/objects
         (only-in "../../../modules/assurance/cedar-delivery.ss" assurance-open-cedar-delivery)
         (only-in "../../../modules/assurance/cedar-preflight.ss" assurance-host-cedar-source-admission)
-        (only-in "../../../t/assurance/unit/decision-preflight-test.ss" make-cedar-delivery-fixture))
+        (only-in "../../../t/yanxu/modules/assurance/decision-preflight-test.ss" make-cedar-delivery-fixture))
 (export cedar-delivery-test make-cedar-restart-suite)
 
 (def (open-cedar-delivery host executable endpoint artifact snapshot deliver

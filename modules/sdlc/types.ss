@@ -2,8 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/type Any Function Type. element?)
-        (only-in :clan/poo/type Record)
+(import (only-in :clan/poo/type Any Function Type. element? Record)
         (only-in :clan/poo/object .o .cc .ref .slot? object? compute-precedence-list!)
 
         (only-in :tao3k/agentic-ai-lab/modules/governance/types

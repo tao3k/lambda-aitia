@@ -48,8 +48,8 @@
              '(source-bound-content-verification revision-and-scope-verification)
              '(structured-inventory-verification source-bound-content-verification))
            regression-suite: (if (eq? validator-value 'source-bound-criterion-review)
-                               "t/sdlc/unit/nasa-review-test.ss"
-                               "t/sdlc/unit/nasa-structured-test.ss"))))
+                               "t/yanxu/modules/sdlc/nasa-review-test.ss"
+                               "t/yanxu/modules/sdlc/nasa-structured-test.ss"))))
    (.get Nasa7150_2D requirements)))
 
 (def (nasa-implementation-summary)
