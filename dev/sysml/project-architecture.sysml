@@ -33,7 +33,7 @@ package AitiaProjectArchitecture {
             ".github/workflows",
             "dev/sysml",
             "docs/rfcs",
-            "t/library/bindings",
+            "t/library",
             "t/yanxu/modules/workflow",
             "gerbil.pkg",
             "justfile"

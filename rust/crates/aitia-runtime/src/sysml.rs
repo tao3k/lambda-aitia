@@ -256,6 +256,82 @@ pub(crate) fn project_revision_scopes(
     project_model_scopes(|| revision_documents(directory, revision, &sources))
 }
 
+#[cfg(feature = "linked-program")]
+pub(crate) fn observe_commit_sysml_and_scopes(
+    cut: &WorkspaceCut,
+    affected_paths: &[String],
+) -> (Option<serde_json::Value>, Vec<SysmlScopeProjection>) {
+    let all_paths = aitia_jj::recorded_sysml_paths(cut).unwrap_or_default();
+    if affected_paths.is_empty() && all_paths.is_empty() {
+        return (None, Vec::new());
+    }
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                let connection = match Connection::connect() {
+                    Ok(connection) => connection,
+                    Err(error) => {
+                        let model = (!affected_paths.is_empty()).then(|| {
+                            serde_json::json!({
+                                "paths": affected_paths,
+                                "status": "open",
+                                "detail": error.to_string(),
+                            })
+                        });
+                        return (model, Vec::new());
+                    }
+                };
+                let same_set = !affected_paths.is_empty() && affected_paths == all_paths.as_slice();
+                let mut scopes = Vec::new();
+                let model = if !affected_paths.is_empty() {
+                    match recorded_documents(cut, affected_paths).and_then(|docs| {
+                        parse_sysml(&connection, docs).map_err(RecordedSysmlError::Model)
+                    }) {
+                        Ok(parsed) => {
+                            if same_set {
+                                scopes = extract_declared_scopes(&parsed).unwrap_or_default();
+                            }
+                            Some(serde_json::json!({
+                                "paths": affected_paths,
+                                "status": "passed",
+                                "report": {
+                                    "documents": parsed.documents(),
+                                    "modelHash": parsed.hash(),
+                                },
+                            }))
+                        }
+                        Err(error) => Some(serde_json::json!({
+                            "paths": affected_paths,
+                            "status": "open",
+                            "detail": error.to_string(),
+                        })),
+                    }
+                } else {
+                    None
+                };
+                if !same_set && !all_paths.is_empty() {
+                    if let Ok(parsed) = recorded_documents(cut, &all_paths).and_then(|docs| {
+                        parse_sysml(&connection, docs).map_err(RecordedSysmlError::Model)
+                    }) {
+                        scopes = extract_declared_scopes(&parsed).unwrap_or_default();
+                    }
+                }
+                (model, scopes)
+            })
+            .join()
+    })
+    .unwrap_or_else(|_| {
+        let model = (!affected_paths.is_empty()).then(|| {
+            serde_json::json!({
+                "paths": affected_paths,
+                "status": "open",
+                "detail": "SysML host worker panicked",
+            })
+        });
+        (model, Vec::new())
+    })
+}
+
 fn load_documents(
     sources: &[String],
     read: impl FnOnce(&[&str]) -> Result<Vec<Vec<u8>>, JjObservationError>,

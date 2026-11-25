@@ -16,6 +16,8 @@ mod cli;
 #[cfg(feature = "linked-program")]
 mod cli_commit;
 #[cfg(feature = "linked-program")]
+mod cli_flow;
+#[cfg(feature = "linked-program")]
 mod review_provider;
 #[cfg(feature = "linked-program")]
 #[doc(hidden)]

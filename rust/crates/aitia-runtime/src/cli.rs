@@ -68,7 +68,7 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         let arguments: Vec<_> = args.collect();
         let words: Option<Vec<_>> = arguments.iter().map(|word| word.to_str()).collect();
         let words = words.ok_or_else(|| io::Error::other("flow arguments must be UTF-8"))?;
-        return run_flow(words.as_slice());
+        return crate::cli_flow::run_flow(words.as_slice());
     }
     if command == Some("jj") {
         let arguments: Vec<_> = args.collect();
@@ -224,99 +224,6 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
-    const USAGE: &str =
-        "usage: aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]";
-    match operation {
-        ["--help" | "-h"] => {
-            writeln!(io::stdout().lock(), "{USAGE}")?;
-            Ok(())
-        }
-        ["reconcile"] => {
-            let request = read_request()?;
-            let response = with_linked_program(|program| program.workflow_reconcile(&request))?;
-            writeln!(io::stdout().lock(), "{response}")?;
-            Ok(())
-        }
-        ["gitops"] | ["gitops", "--proposal-stdin"] => {
-            let overlay: Option<serde_json::Value> = if operation.len() == 2 {
-                Some(serde_json::from_str(&read_request()?)?)
-            } else {
-                None
-            };
-            let observed =
-                observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
-            let response = with_linked_program(|program| {
-                Ok(reconcile_recorded_gitops_flow(
-                    &program,
-                    observed,
-                    overlay.as_ref(),
-                ))
-            })??;
-            writeln!(io::stdout().lock(), "{response}")?;
-            Ok(())
-        }
-        _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
-    }
-}
-
-fn reconcile_recorded_gitops_flow(
-    program: &AitiaProgram<'_>,
-    observed: (WorkspaceCut, aitia_jj::RecordedProjectSources),
-    overlay: Option<&serde_json::Value>,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let (cut, project_sources) = observed;
-    let source = recorded_configuration_input(&project_sources)?;
-    let (_, projection) = program.resolve_project_config(&source)?;
-    let configuration = decode_configuration_projection(&projection)?;
-    let policy = configuration
-        .commit
-        .as_ref()
-        .ok_or_else(|| io::Error::other("No commit profile in the recorded project"))?;
-    let project = policy["project"]
-        .as_str()
-        .ok_or_else(|| io::Error::other("No recorded commit project"))?;
-    let changes = recorded_changes(&cut)?;
-    let requested_paths = review_source_paths(policy)?;
-    let mut sources = Vec::new();
-    for (path, result) in
-        observe_recorded_sources(&cut, &requested_paths, usize::try_from(MAX_REQUEST_BYTES)?)?
-    {
-        if let Ok(text) = result {
-            sources.push(serde_json::json!({"path": path, "text": text}));
-        }
-    }
-    let paths: Vec<&str> = changes.iter().map(|change| change.path.as_str()).collect();
-    let sysml_scopes = observe_sysml_scopes(&cut, configuration.model_check_enabled());
-    let naming = merge_sysml_scopes(&policy["naming"], &sysml_scopes);
-    let mut request = serde_json::json!({
-        "project": project,
-        "cut": cli_commit::review_cut_value(&cut),
-        "naming": naming,
-        "sources": sources,
-        "paths": paths,
-        "proposals": [],
-        "observations": [],
-        "approvalLive": false,
-        "reconcile": true,
-    });
-    if let Some(extra) = overlay {
-        for field in [
-            "proposals",
-            "proposal",
-            "observations",
-            "approvalLive",
-            "reconcile",
-        ] {
-            if let Some(value) = extra.get(field) {
-                request[field] = value.clone();
-            }
-        }
-    }
-    let payload = serde_json::to_string(&request)?;
-    Ok(program.workflow_reconcile(&payload)?)
-}
-
 fn run_jj_commit(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
     const USAGE: &str = "usage: aitia jj commit [preview|prepare|apply|decision|recover]\n       Without an operation, print the read-only commit context.\n       aitia jj commit preview --applied < reviewed-attempt.json\n       aitia jj commit evidence <revision> [--gql] < applied-or-recovered.json";
     if let ["evidence", revision, options @ ..] = operation {
@@ -453,7 +360,7 @@ fn run_jj_commit(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn read_request() -> Result<String, io::Error> {
+pub(super) fn read_request() -> Result<String, io::Error> {
     // The existing transport admits at most 4 MiB. Read one extra byte to
     // distinguish an oversized request from one that exactly fills the limit.
     let mut request = String::new();
@@ -567,12 +474,11 @@ pub(super) fn nasa_commit_report(
     };
     let (model, sysml_scopes, (bookmarks, provider)) = std::thread::scope(|scope| {
         let provider = scope.spawn(|| observe_commit_provider(&cut));
-        let model = if model_paths.is_empty() {
-            None
-        } else {
-            Some(observe_commit_sysml(&cut, &model_paths))
-        };
-        let sysml_scopes = observe_sysml_scopes(&cut, configuration.model_check_enabled());
+        let (model, sysml_scopes) = crate::cli_flow::observe_commit_sysml_and_scopes(
+            &cut,
+            &model_paths,
+            configuration.model_check_enabled(),
+        );
         let provider = provider
             .join()
             .map_err(|_| io::Error::other("PR observation worker panicked"))??;
@@ -687,49 +593,6 @@ impl Write for RequestSize {
 }
 
 #[cfg(feature = "sysml")]
-fn observe_sysml_scopes(cut: &WorkspaceCut, enabled: bool) -> Vec<serde_json::Value> {
-    if !enabled {
-        return Vec::new();
-    }
-    match crate::sysml::project_recorded_scopes(cut) {
-        Ok(scopes) => scopes
-            .into_iter()
-            .map(|scope| {
-                serde_json::json!({
-                    "name": scope.name,
-                    "paths": scope.paths,
-                    "elementId": scope.element_id,
-                })
-            })
-            .collect(),
-        // Fail closed: an unparseable or oversized SysML model contributes zero scopes.
-        Err(_) => Vec::new(),
-    }
-}
-
-#[cfg(not(feature = "sysml"))]
-fn observe_sysml_scopes(_cut: &WorkspaceCut, _enabled: bool) -> Vec<serde_json::Value> {
-    Vec::new()
-}
-
-pub(super) fn merge_sysml_scopes(
-    naming: &serde_json::Value,
-    sysml_scopes: &[serde_json::Value],
-) -> serde_json::Value {
-    let mut merged = naming.clone();
-    let mut combined = merged
-        .get("scopes")
-        .and_then(serde_json::Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-    combined.extend(sysml_scopes.iter().cloned());
-    if let Some(object) = merged.as_object_mut() {
-        object.insert("scopes".to_owned(), serde_json::Value::Array(combined));
-    }
-    merged
-}
-
-#[cfg(feature = "sysml")]
 fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let sources = recorded_sysml_paths(cut)?;
     if sources.is_empty() {
@@ -740,7 +603,8 @@ fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::err
     parse_sysml_sources(cut, &sources)
 }
 
-fn observe_commit_sysml(cut: &WorkspaceCut, paths: &[String]) -> serde_json::Value {
+#[cfg(not(feature = "sysml"))]
+pub(super) fn observe_commit_sysml(cut: &WorkspaceCut, paths: &[String]) -> serde_json::Value {
     match parse_sysml_sources(cut, paths) {
         Ok(report) => serde_json::json!({"paths": paths, "status": "passed", "report": report}),
         Err(error) => {
@@ -896,7 +760,7 @@ pub(super) fn validate_project_manifest(
     )
 }
 
-fn recorded_configuration_input(
+pub(super) fn recorded_configuration_input(
     sources: &aitia_jj::RecordedProjectSources,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let source = serde_json::to_string(sources)?;
@@ -908,7 +772,7 @@ fn recorded_configuration_input(
     Ok(source)
 }
 
-fn decode_configuration_projection(
+pub(super) fn decode_configuration_projection(
     effective: &str,
 ) -> Result<ProjectConfiguration, Box<dyn std::error::Error>> {
     if effective == "false" {

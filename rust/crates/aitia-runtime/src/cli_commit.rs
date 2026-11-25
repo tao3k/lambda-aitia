@@ -621,7 +621,7 @@ fn verified_evidence(
             configuration.model_check_enabled(),
         );
         graph["engineeringReview"] = json!({
-            "naming": super::cli::merge_sysml_scopes(&policy["naming"], &sysml_scopes),
+            "naming": super::cli_flow::merge_sysml_scopes(&policy["naming"], &sysml_scopes),
             "project": policy["project"],
             "cut": expected_cut,
             "title": description.lines().next(),
