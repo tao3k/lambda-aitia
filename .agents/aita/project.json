@@ -43,6 +43,8 @@
               "paths": [
                 "modules/gitops",
                 "modules/project-config",
+                "rust/Cargo.toml",
+                "rust/Cargo.lock",
                 "rust/crates/aitia-jj",
                 "rust/crates/aitia-runtime",
                 "bindings",
