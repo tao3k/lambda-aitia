@@ -2,10 +2,10 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def)
+        (rename-in (only-in "../../../modules/gitops/config.ss" Config) (Config GitOps)))
 (.def Published
   identity: 'delivery
-  core: (.o requires: (.o GitOps: (.o module-id: 'lambda-aitia/modules/gitops/interface))
-            scope-contract: ScopeContract
+  core: (.o scope-contract: ScopeContract
             exports: (make-delivery-profile-scope GitOps))
   features: (.o))

@@ -10,7 +10,7 @@
                  assurance-host-cedar-request-current?)
         :std/test :std/error
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/objects
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/objects
                  agentic-ai-lab-cedar-runtime-handoff
                  agentic-ai-lab-cedar-authorization-request?
                  agentic-ai-lab-cedar-authorization-request->runtime)

@@ -3,11 +3,10 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def)
+        (rename-in (only-in "../../profiles/software-engineering/config.ss" Config) (Config Project)))
 (.def Published
   identity: 'aitia
-  core: (.o requires:
-            (.o Project: (.o module-id: 'lambda-aitia/user-interface/profiles/software-engineering/interface))
-            scope-contract: ScopeContract
+  core: (.o scope-contract: ScopeContract
             exports: (make-aitia-scope Project))
   features: (.o))

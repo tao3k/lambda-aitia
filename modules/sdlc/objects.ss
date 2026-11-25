@@ -2,9 +2,9 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .o .ref)
-        (only-in :agentic-ai-lab/modules/governance/objects
+        (only-in :tao3k/agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.)
         "types.ss")
 (export StandardProfile. SdlcProfile)

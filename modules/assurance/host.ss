@@ -10,7 +10,7 @@
         (only-in :std/crypto/random random-bytes)
         (only-in :std/list/list find every filter filter-map delete-duplicates/hash)
         (only-in :std/hash/misc hash-remove!)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-adapter yuanxu-verify
                  yuanxu-verification-valid?

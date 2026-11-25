@@ -12,11 +12,11 @@
   (project-config)
   (nasa-7150-2d-catalog)
   (sdlc)
-  :load-modules "./user-interface/profiles" mode: explicit rename: Profiles
+  :load-modules "./user-interface/profiles" mode: explicit mount: Profiles
   (delivery @ "./user-interface/profiles/gitops")
   (nasa-7150-2d @ "./user-interface/profiles/nasa")
   (software-engineering)
-  :load-modules "./user-interface/scenarios" mode: explicit rename: scenarios
+  :load-modules "./user-interface/scenarios" mode: explicit mount: scenarios
   (github-gitops)
   (aitia)
   (job-executor-retirement)

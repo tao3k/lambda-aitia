@@ -6,7 +6,7 @@
         (only-in :std/encoding/json JSONReadOptions string->json)
         (only-in :clan/poo/object .ref)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
-        (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider
+        (only-in :tao3k/agentic-ai-lab/modules/ai-agentic-context/query-provider
                  context-query-host context-org-source context-org-query
                  context-query-source! context-query-execute context-query-withdraw!)
         (rename-in (only-in "../../../modules/assurance/context-delivery.ss"

@@ -3,26 +3,26 @@
 
 ;;; Opt-in CLOS crossing; the evaluation semantics belong to the admitted Scope.
 (import (only-in :clan/poo/object .o .get)
-        (only-in :clan/poo/clos
-                 poo-clos-generic-protocol poo-clos-method-bundle poo-clos-method
-                 poo-clos-class-specializer poo-clos-any-specializer))
+        (only-in :clan/poo/mop
+                 clos-generic-protocol clos-method-bundle clos-method
+                 clos-class-specializer clos-any-specializer))
 (export GitOpsEvaluation)
 
 (def (make-default-methods protocol gitops evaluator-class)
   (let (evaluate (.get gitops evaluate))
-    (poo-clos-method-bundle
+    (clos-method-bundle
      'GitOpsDefaultEvaluationMethods protocol
      (list
-      (poo-clos-method
+      (clos-method
        'gitops/default-evaluation
-       (list (poo-clos-class-specializer evaluator-class)
-             (poo-clos-any-specializer) (poo-clos-any-specializer)
-             (poo-clos-any-specializer))
+       (list (clos-class-specializer evaluator-class)
+             (clos-any-specializer) (clos-any-specializer)
+             (clos-any-specializer))
        (lambda (_frame _evaluator composition change checks)
          (evaluate composition change checks)))))))
 
 (def GitOpsEvaluation
   (.o (:: self)
-      protocol: (poo-clos-generic-protocol 'gitops/evaluate)
+      protocol: (clos-generic-protocol 'gitops/evaluate)
       default-methods: (lambda (gitops evaluator-class)
                          (make-default-methods (.get self protocol) gitops evaluator-class))))

@@ -12,7 +12,7 @@
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  sources-lock-freeze
                  write-sources-lock-module)
-        (only-in :agentic-ai-lab/modules/standards/interface
+        (only-in :tao3k/agentic-ai-lab/modules/standards/interface
                  agentic-ai-lab-standard-digest
                  agentic-ai-lab-standard-materialization-receipt-valid?
                  agentic-ai-lab-standard-resolution-receipt-bundle

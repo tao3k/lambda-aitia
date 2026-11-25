@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .get)
-        (only-in :agentic-ai-lab/modules/proof/interface agentic-ai-lab-proof-module)
+        (only-in :tao3k/agentic-ai-lab/modules/proof/interface agentic-ai-lab-proof-module)
         "types.ss" "func.ss" "objects.ss")
 (export Config)
 

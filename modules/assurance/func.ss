@@ -13,7 +13,7 @@
                  yuanxu-graph-loop-analysis-receipt
                  yuanxu-graph-reachable-ids
                  yuanxu-graph-topological-order)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         "types.ss"
         (only-in "invalidation-projection.ss"
                  assurance-invalidation-analysis assurance-invalidation-graph)

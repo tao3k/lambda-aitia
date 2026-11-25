@@ -6,10 +6,10 @@
         (only-in :clan/poo/object .o .call .ref .get)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :std/io/tempfile call-with-temporary-directory)
-        (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
                  journal-open journal-close! journal-verify! journal-cut!)
         (only-in :std/encoding/json string->json JSONReadOptions)
-        :agentic-ai-lab/modules/authorization/providers/cedar/objects
+        :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/objects
         (only-in "../../../modules/assurance/cedar-delivery.ss" assurance-open-cedar-delivery)
         (only-in "../../../modules/assurance/cedar-preflight.ss" assurance-host-cedar-source-admission)
         (only-in "../../../t/assurance/unit/decision-preflight-test.ss" make-cedar-delivery-fixture))

@@ -6,8 +6,8 @@
 (import (for-syntax
           (only-in :tao3k/yuanxu/module-system/source/admission module-source-read
                    module-source-admit-current!))
-        (for-template :agentic-ai-lab/modules/ai-agentic-context/query-provider
-                      :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
+        (for-template :tao3k/agentic-ai-lab/modules/ai-agentic-context/query-provider
+                      :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
         (only-in :tao3k/yuanxu/module-system/source/compiled-role compiled-role-values)
         (only-in :std/encoding/hex hex-decode)
         (only-in :std/list/list find)
@@ -466,7 +466,7 @@
       parents: (json-list row "parents")))
 
 (def (linked-journal-operations)
-  (compiled-role-values 'agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+  (compiled-role-values 'tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
     '(journal-pack journal-unpack journal-open journal-close!)))
 
 ;; This export consumes facts produced by the Rust checker. The CLI never
@@ -790,7 +790,7 @@
 (def (linked-context-query-provider)
   ;; The Context provider is part of the linked program. Yuanxu initializes
   ;; its compiled dependency closure when a Context operation needs it.
-  (compiled-role-values 'agentic-ai-lab/modules/ai-agentic-context/query-provider
+  (compiled-role-values 'tao3k/agentic-ai-lab/modules/ai-agentic-context/query-provider
     '(context-query-host context-org-source context-org-query
       context-query-current-source context-query-source!
       context-query-withdraw! context-query-execute

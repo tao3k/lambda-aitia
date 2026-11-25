@@ -9,7 +9,7 @@
         (only-in :clan/poo/object .o .ref)
         (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-adapter yuanxu-verify)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :lambda-aitia/init lambda-aitia.init.exports)
         (only-in :clan/poo/object .get))
 
 (export assurance-kernel-test)

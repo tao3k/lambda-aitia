@@ -8,7 +8,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         (only-in :std/list/list find every)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         (only-in :tao3k/yuanxu/contribution/verification
                  yuanxu-verification-valid?)
         (only-in "func.ss"

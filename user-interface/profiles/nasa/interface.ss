@@ -2,11 +2,12 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def)
+        (rename-in (only-in "../../../modules/assurance/config.ss" Config) (Config Assurance))
+        (only-in "../../../modules/sdlc/config.ss" make-sdlc-scope)
+        (rename-in (only-in "../../../modules/nasa-7150-2d-catalog/config.ss" Config) (Config Catalog)))
 (.def Published
   identity: 'nasa-7150-2d
-  core: (.o requires: (.o Sdlc: (.o module-id: 'lambda-aitia/modules/sdlc/interface)
-                        Catalog: (.o module-id: 'lambda-aitia/modules/nasa-7150-2d-catalog/interface))
-            scope-contract: ScopeContract
-            exports: (make-nasa-profile-scope Sdlc Catalog))
+  core: (.o scope-contract: ScopeContract
+            exports: (make-nasa-profile-scope (make-sdlc-scope Assurance) Catalog))
   features: (.o))

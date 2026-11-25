@@ -87,7 +87,7 @@ stage-rust-program program="aitia-program":
         (.call projection .compile products
           (lambda ()
             (dynamic-wind admit-declaration!
-              (lambda () (aitia-make (.get projection spec) "compile"))
+              (lambda () (aitia-make (.get projection std-make-spec) "compile"))
               admit-declaration!)))
         (def graph (.get projection build-graph))
         (def (admit-stage-inputs!)

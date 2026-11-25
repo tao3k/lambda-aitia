@@ -2,7 +2,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def)
+        "types.ss"
+        "objects.ss")
+(export Feature)
 
 (.def Feature
   refine: enable-github

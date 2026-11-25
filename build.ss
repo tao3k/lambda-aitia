@@ -44,7 +44,7 @@
 
 (def (build-package arguments)
   (def projection (aitia-build-projection))
-  (def (make-targets) (apply aitia-make (.get projection spec) arguments))
+  (def (make-targets) (apply aitia-make (.get projection std-make-spec) arguments))
   (match arguments
     (["clean"] (.call projection .with-clean-outputs make-targets))
     (["spec"] (make-targets))

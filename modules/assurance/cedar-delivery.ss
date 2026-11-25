@@ -5,11 +5,11 @@
 (import (only-in :clan/poo/object .o .ref .call .slot? object?)
         (only-in :std/encoding/hex hex-decode)
         (only-in "types.ss" assurance-digest?)
-        (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
                  journal-get journal-receive! journal-begin! journal-put!
                  journal-commit! journal-abort!)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/runtime-port
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/runtime-port
                  agentic-ai-lab-cedar-runtime-port))
 (export assurance-open-cedar-delivery)
 

@@ -2,7 +2,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .cc)
-        (only-in :clan/poo/mop Any Function)
+        (only-in :clan/poo/type Any Function)
         (only-in :clan/poo/type Record String))
 (export ProjectConfigScopeContract project-config-schema)
 

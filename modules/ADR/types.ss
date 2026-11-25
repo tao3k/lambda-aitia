@@ -4,10 +4,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref .slot? .cc compute-precedence-list! object?)
-        (only-in :clan/poo/mop define-type Type. element?)
+        (only-in :clan/poo/type define-type Type. element?)
         (only-in :clan/poo/type Record)
         :std/list/list
-        (only-in :agentic-ai-lab/modules/governance/types
+        (only-in :tao3k/agentic-ai-lab/modules/governance/types
                  agentic-ai-lab-governance-profile?))
 
 (export ADR-profile?

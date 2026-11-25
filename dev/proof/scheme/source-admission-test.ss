@@ -11,7 +11,7 @@
         (only-in :asp-gerbil-scheme/testing-source-admission-api
                  testing-interface-prepared-source-admission-suite)
         (only-in :std/test check)
-        (only-in :agentic-ai-lab/dev/modules/testing/source-admission
+        (only-in :tao3k/agentic-ai-lab/t/fixtures/testing/source-admission
                  agentic-ai-lab-source-admission-observability-profile-prototype
                  agentic-ai-lab-observe-source-admission!
                  agentic-ai-lab-source-admission)

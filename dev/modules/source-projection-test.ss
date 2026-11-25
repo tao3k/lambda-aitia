@@ -54,12 +54,20 @@
           (check-equal? (eq? again (car scopes)) #t)
           (check-equal? (hash-ref repeated '(calls scope-factory) 0) 0))))
     (test-case "GitOps is constructed only when demanded"
-      (let-values (((scope counters)
+      (let-values (((scope leaf-counters)
                     (call-with-module-source-operation-measurement
                      (lambda ()
                        (.get (.get lambda-aitia.init.exports modules) gitops))
                      accounting?: #f)))
-        (check-equal? (hash-ref counters '(calls scope-factory) 0) 1)
-        (check-equal? (hash-ref counters
-                         '(calls (scope-factory lambda-aitia/modules/gitops/interface)) 0) 1)
-        (check-equal? (procedure? (.get scope evaluate)) #t)))))
+        ;; GitOps owns a tests/ tree, so its leaf handle stays lazy until a
+        ;; business slot is demanded.
+        (check-equal? (hash-ref leaf-counters '(calls scope-factory) 0) 0)
+        (let-values (((evaluate counters)
+                      (call-with-module-source-operation-measurement
+                       (lambda ()
+                         (.get scope evaluate))
+                       accounting?: #f)))
+          (check-equal? (hash-ref counters '(calls scope-factory) 0) 1)
+          (check-equal? (hash-ref counters
+                           '(calls (scope-factory lambda-aitia/modules/gitops/interface)) 0) 1)
+          (check-equal? (procedure? evaluate) #t))))))

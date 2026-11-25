@@ -2,10 +2,10 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .get .o)
-        (only-in :clan/poo/mop element?)
+        (only-in :clan/poo/type element?)
         (only-in :clan/poo/type Record)
         (only-in :clan/poo/number UInt)
-        (for-template :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
+        (for-template :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal)
         (only-in :tao3k/yuanxu/module-system/source/compiled-role compiled-role-values)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "types.ss" NonEmptyString))
@@ -18,7 +18,7 @@
           policy-revision: [NonEmptyString] not-before: [UInt] expires-at: [UInt]))
 
 (def (commit-journal-operations)
-  (compiled-role-values 'agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+  (compiled-role-values 'tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
     '(journal-pack journal-get journal-put! journal-receive!
       journal-begin! journal-commit! journal-abort!)))
 

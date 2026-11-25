@@ -4,7 +4,7 @@
 (import :std/test :std/error
         (only-in :std/io/tempfile call-with-temporary-directory)
         (only-in :clan/poo/object .o .get .cc)
-        (only-in :agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/durable-journal
                  journal-open journal-close! journal-cut! journal-verify!)
         (only-in "../commit-admission.ss"
                  gitops-commit-intent gitops-record-commit-approval!

@@ -4,7 +4,7 @@
 
 ;;; NPR 7150.2D compliance dossier and independently verified authority decision.
 ;;; This module never impersonates NASA, authenticates a signer, or authorizes release.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
         :tao3k/yuanxu/contribution/verification
         "../types.ss"

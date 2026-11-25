@@ -2,7 +2,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .get .ref)
-        (only-in :clan/poo/mop element?)
+        (only-in :clan/poo/type element?)
         (only-in :gerbil/core string-prefix?)
         (only-in :std/list/list append-map delete-duplicates/hash)
         (only-in :std/error Error? Error-message)

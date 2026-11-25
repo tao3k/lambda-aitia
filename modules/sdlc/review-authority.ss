@@ -7,7 +7,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Native SDLC authority review. Technical success and authority are separate.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         :clan/poo/object :std/list/list
         :tao3k/yuanxu/contribution/verification
         "types.ss")

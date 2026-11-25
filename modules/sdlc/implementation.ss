@@ -4,7 +4,7 @@
 
 ;;; An inert, snapshot-bound design-to-source declaration. Source currentness
 ;;; is checked against Assurance; semantic conformance is not inferred.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list

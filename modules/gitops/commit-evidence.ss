@@ -6,7 +6,7 @@
         (only-in :std/list/list append-map delete-duplicates/hash find)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :clan/poo/object .get .o .cc .ref .slot?)
-        (only-in :clan/poo/mop element?)
+        (only-in :clan/poo/type element?)
         (only-in :gerbil-ascent/program/syntax ascent)
         (only-in :gerbil-ascent/program/api gerbil-ascent-evaluate-program)
         (only-in :orgize/languages/org/modules/org-elements/source-interface

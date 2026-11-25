@@ -13,10 +13,7 @@
                  testing-interface-map-profile
                  testing-interface-max-heap-mib-for
                  testing-test-selector)
-        :std/list/list
-        (only-in :agentic-ai-lab/dev/modules/testing/testing-extension
-                 make-agentic-ai-lab-testing-observability-profile
-                 agentic-ai-lab-testing-observability-extension))
+        :std/list/list)
 
 (export +lambda-aitia-testing-interface+
         lambda-aitia-sdlc-unit-testing-interface
@@ -39,7 +36,7 @@
 ;;; profile; no Aitia test is allowed to inherit an unbounded Gambit heap.
 (def +lambda-aitia-large-memory-selectors+
   (map (lambda (fragment) (testing-test-selector 'contains fragment))
-       '("nasa-" "sdlc-trace-test.ss" "source-admission-test.ss")))
+       '("nasa-" "sdlc-test.ss" "sdlc-trace-test.ss" "source-admission-test.ss")))
 
 (def +lambda-aitia-bounded-testing-interface+
   (foldl
@@ -52,14 +49,11 @@
    +lambda-aitia-large-memory-selectors+))
 
 (def (observed-testing-interface testing)
-  (agentic-ai-lab-testing-observability-extension
-   (foldl
-    (lambda (selector receiver)
-      (testing-interface-map-profile receiver selector +testing-serial-resource-profile+))
-    testing
-    (list +lambda-aitia-source-admission-selector+ +lambda-aitia-module-test-selector+))
-   (make-agentic-ai-lab-testing-observability-profile
-    'lambda-aitia/testing 5)))
+  (foldl
+   (lambda (selector receiver)
+     (testing-interface-map-profile receiver selector +testing-serial-resource-profile+))
+   testing
+   (list +lambda-aitia-source-admission-selector+ +lambda-aitia-module-test-selector+)))
 
 (def +lambda-aitia-testing-interface+
   (observed-testing-interface

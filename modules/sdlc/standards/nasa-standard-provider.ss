@@ -12,7 +12,7 @@
         (only-in :std/misc/ports read-all-as-string)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  require-source-lock-payload)
-        (only-in :agentic-ai-lab/modules/standards/interface
+        (only-in :tao3k/agentic-ai-lab/modules/standards/interface
                  AgenticAILabStandardValidationProvider.
                  agentic-ai-lab-standard-artifact
                  agentic-ai-lab-standard-artifact-ref

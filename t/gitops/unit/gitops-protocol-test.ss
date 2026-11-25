@@ -4,10 +4,10 @@
 
 (import :std/test
         (only-in :clan/poo/object .cc .ref .get .o)
-        (only-in :clan/poo/mop element?)
-        :clan/poo/clos
+        (only-in :clan/poo/type element?)
+        :clan/poo/mop
         "../../../user-interface/adapters/gitops-evaluation.ss"
-        (only-in "../../../init.ss" lambda-aitia.init.exports))
+        (only-in :lambda-aitia/init lambda-aitia.init.exports))
 (export gitops-protocol-test)
 
 (def gitops (.get (.get lambda-aitia.init.exports modules) gitops))
@@ -15,14 +15,14 @@
 (def gitops-profile? (.get gitops profile?))
 (def gitops-profile-matches? (.get gitops matches?))
 (def GitOpsEvaluationProtocol (.get GitOpsEvaluation protocol))
-(def GitOpsEvaluator (poo-clos-class 'gitops/test-base-evaluator))
+(def GitOpsEvaluator (clos-class 'gitops/test-base-evaluator))
 (.defclass TestGitOpsEvaluator (GitOpsEvaluator) ())
 (def TestGitOpsMethod
-  (poo-clos-method
+  (clos-method
    'gitops/test-evaluation
-   (list (poo-clos-class-specializer TestGitOpsEvaluator)
-         (poo-clos-any-specializer) (poo-clos-any-specializer)
-         (poo-clos-any-specializer))
+   (list (clos-class-specializer TestGitOpsEvaluator)
+         (clos-any-specializer) (clos-any-specializer)
+         (clos-any-specializer))
    (lambda (_frame _evaluator _composition _change _checks)
      'specialized-evaluation)))
 (.defmethod-bundle TestGitOpsMethods GitOpsEvaluationProtocol TestGitOpsMethod)
@@ -57,17 +57,17 @@
                                  "other" "other" #f))
          #t)))
     (test-case "CLOS class specialization composes through a checked bundle"
-      (let ((generic (poo-clos-generic-function
+      (let ((generic (clos-generic-function
                       'gitops/test-generic 4
                       protocol: GitOpsEvaluationProtocol))
-            (evaluator (poo-clos-make-instance TestGitOpsEvaluator)))
-        (poo-clos-compose-method-bundle generic
+            (evaluator (clos-make-instance TestGitOpsEvaluator)))
+        (clos-compose-method-bundle generic
           ((.get GitOpsEvaluation default-methods) gitops GitOpsEvaluator))
-        (poo-clos-compose-method-bundle generic TestGitOpsMethods)
+        (clos-compose-method-bundle generic TestGitOpsMethods)
         (check-equal? (element? ClosMethodBundle TestGitOpsMethods) #t)
-        (check-equal? (poo-clos-call generic evaluator #f #f '())
+        (check-equal? (clos-call generic evaluator #f #f '())
                       'specialized-evaluation)
-        (let (decision (poo-clos-call generic (poo-clos-make-instance GitOpsEvaluator)
+        (let (decision (clos-call generic (clos-make-instance GitOpsEvaluator)
                           (.o profiles: '())
                           (gitops-change 'github 'push "owner/repo" "r2" "develop" "develop" #f)
                           '()))

@@ -42,7 +42,7 @@ fn main() {
                 "lambda-aitia/rust/scheme/program",
                 "lambda-aitia/modules/gitops/review-lineage",
                 "lambda-aitia/modules/gitops/review-query",
-                "agentic-ai-lab/modules/query/scheme-graph",
+                "tao3k/agentic-ai-lab/modules/query/scheme-graph",
                 "orgize/languages/org/modules/org-elements/values",
                 "orgize/languages/org/modules/org-contract/values",
                 "orgize/languages/org/modules/org-contract/evaluation",

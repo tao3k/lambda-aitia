@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/error Error?)
         (only-in :clan/poo/object .ref .get)
-        (only-in "../../../init.ss"
+        (only-in :lambda-aitia/init
                  lambda-aitia.init.exports))
 
 (export ADR-module-test)

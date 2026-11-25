@@ -6,11 +6,10 @@
 ;; Initialize Config under the publication reader before recording scope support.
 (import "config.ss")
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def))
 (.def GitOps
   identity: 'gitops
   tags: '(software-engineering gitops)
-  core: (.o requires: (.o)
-            scope-contract: GitOpsScopeContract
+  core: (.o scope-contract: GitOpsScopeContract
             exports: Config)
   features: '(github))

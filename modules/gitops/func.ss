@@ -4,7 +4,8 @@
 
 ;;; -*- Gerbil -*-
 (import (only-in :clan/poo/object .ref .slot?)
-        (only-in :clan/poo/mop .new validate .defgeneric)
+        (only-in :clan/poo/mop .new .defgeneric)
+        (only-in :clan/poo/type validate)
         :std/list/list
         (only-in :tao3k/yuanxu/utilities/algorithms
                  yuanxu-make-value-index yuanxu-value-index-put!

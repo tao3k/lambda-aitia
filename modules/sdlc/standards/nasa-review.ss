@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Source-bound review across every catalog requirement. No authority execution.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
         "../types.ss"
         "../objects.ss"

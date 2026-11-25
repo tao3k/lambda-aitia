@@ -1,10 +1,12 @@
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :tao3k/yuanxu/module-system/source/declaration .def))
+(import (only-in :clan/poo/object .def)
+        (rename-in (only-in "../../../modules/assurance/config.ss" Config) (Config Assurance))
+        (only-in "../../../modules/sdlc/config.ss" make-sdlc-scope))
 (.def Published
   identity: 'job-retirement-contract
-  core: (.o requires: (.o Sdlc: (.o module-id: 'lambda-aitia/modules/sdlc/interface))
-            scope-contract: ScopeContract
-            exports: (make-job-retirement-scope Sdlc))
+  core: (.o scope-contract: ScopeContract
+            exports: (make-job-retirement-scope (make-sdlc-scope Assurance)))
   features: (.o))

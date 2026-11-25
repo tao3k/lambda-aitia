@@ -5,7 +5,7 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .get .o .ref)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         (only-in "../../modules/gitops/config.ss" Config)
         (only-in "../../modules/gitops/types.ss" GitOpsScopeContract)
         (only-in "../../modules/gitops/features/github/objects.ss" enable-github)

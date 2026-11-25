@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .o .ref .slot? .alist object?)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/objects
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/objects
                  agentic-ai-lab-cedar-runtime-handoff?
                  agentic-ai-lab-cedar-authorization-request
                  agentic-ai-lab-cedar-authorization-request?)

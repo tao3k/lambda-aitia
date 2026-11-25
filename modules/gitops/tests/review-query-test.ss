@@ -3,7 +3,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .get .ref .o)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         (only-in :gerbil/core list-sort string-contains)
         (only-in "../review-lineage.ss" gitops-review-lineage)
         (only-in "../review-query.ss" gitops-review-query)

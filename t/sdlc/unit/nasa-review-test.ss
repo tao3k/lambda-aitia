@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .o .ref .get)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :lambda-aitia/init lambda-aitia.init.exports)
         "../../../modules/sdlc/objects.ss"
         "../../../modules/sdlc/standards/nasa-7150-2d.ss"
         "../../../modules/sdlc/standards/nasa-review.ss"

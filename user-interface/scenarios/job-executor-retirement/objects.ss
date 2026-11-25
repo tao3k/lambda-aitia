@@ -5,7 +5,7 @@
 ;;; Algorithms and receipt authority stay with Agentic AI Lab's public owners.
 (import (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-node yuanxu-graph-edge)
-        (only-in :agentic-ai-lab/modules/temporal-causality/interface
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-temporal-observation agentic-ai-lab-causal-event
                  agentic-ai-lab-causal-event-graph))
 

@@ -6,9 +6,9 @@
         (only-in :std/encoding/json JSONReadOptions json->string string->json)
         (only-in :clan/poo/object .ref)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
-        (only-in :agentic-ai-lab/modules/temporal-causality/runtime/monotonic-clock
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/runtime/monotonic-clock
                  monotonic-seconds)
-        (only-in :agentic-ai-lab/modules/ai-agentic-context/query-provider
+        (only-in :tao3k/agentic-ai-lab/modules/ai-agentic-context/query-provider
                  context-query-export context-query-current? context-query-lineage)
         (only-in :orgize/languages/org/modules/org-elements/source-interface
                  org-source-element-graph org-source-element-field)

@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; Pure lifecycle decisions consume receipts from an explicit trusted boundary.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref .slot? object?)
         :tao3k/yuanxu/contribution/verification
         "../types.ss"

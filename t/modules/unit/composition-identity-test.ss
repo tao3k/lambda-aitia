@@ -3,7 +3,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/mop element?)
+(import (only-in :clan/poo/type element?)
         (only-in :std/test check-equal? test-case test-suite)
         (only-in :clan/poo/object .ref .get)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/scenario Scenario)
@@ -13,9 +13,9 @@
                  yuanxu-user-module-selection-key)
         (only-in :tao3k/yuanxu/profile-composition/user-profile
                  yuanxu-user-profile-modules)
-        (only-in :agentic-ai-lab/modules/proof/interface
+        (only-in :tao3k/agentic-ai-lab/modules/proof/interface
                  agentic-ai-lab-proof-module?)
-        (only-in "../../../init.ss" lambda-aitia.init.exports))
+        (only-in :lambda-aitia/init lambda-aitia.init.exports))
 
 (export lambda-aitia-composition-identity-test)
 

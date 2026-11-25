@@ -19,9 +19,9 @@
         (only-in :std/test check)
         (only-in :clan/poo/object .get .o .ref)
         (only-in :lambda-aitia/modules/assurance/config Config)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/decision
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/decision
                  agentic-ai-lab-cedar-decision)
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/objects
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/objects
                  agentic-ai-lab-cedar-runtime-handoff))
 (export make-lifecycle-fixture lifecycle-action! lifecycle-state
         lifecycle-get lifecycle-set! lifecycle-cut check-lifecycle-traces!)

@@ -6,7 +6,7 @@
 (import :std/test
         (only-in :std/list/list find)
         (only-in :clan/poo/object .o .ref)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :lambda-aitia/init lambda-aitia.init.exports)
         (only-in :clan/poo/object .get)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
                  source-lock-payload-digest))

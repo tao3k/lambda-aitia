@@ -3,8 +3,8 @@
 
 (import (only-in :clan/poo/object .o .ref)
         (only-in :tao3k/yuanxu/graph/types yuanxu-graph-id yuanxu-graph-nodes yuanxu-graph-node-id)
-        (only-in :agentic-ai-lab/modules/query/config AgenticAILabQueryModule.)
-        (only-in :agentic-ai-lab/modules/query/objects
+        (only-in :tao3k/agentic-ai-lab/modules/query/config AgenticAILabQueryModule.)
+        (only-in :tao3k/agentic-ai-lab/modules/query/objects
                  AgenticAILabQuery. AgenticAILabSchemeGqlQueryLanguage.
                  AgenticAILabGqlQueryProgram. GraphSyntaxNode. GraphSyntaxStep. GraphSyntaxPath.
                  GraphSyntaxEquals. GraphSyntaxLiteral. GraphSyntaxProperty. GraphSyntaxProjection.

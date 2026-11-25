@@ -2,7 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in "../../../init.ss" lambda-aitia.init.exports)
+(import (only-in :lambda-aitia/init lambda-aitia.init.exports)
         :std/test :std/error
         (only-in :clan/poo/object .get .o .ref)
         (only-in :tao3k/yuanxu/contribution/objects admit-contributions)

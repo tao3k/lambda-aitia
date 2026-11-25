@@ -3,7 +3,7 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; NPR 7150.2D project/institution baseline policy construction.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .get .o .ref)
         "../types.ss"
         "nasa-7150-2d.ss"

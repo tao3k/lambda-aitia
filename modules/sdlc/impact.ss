@@ -9,7 +9,7 @@
         :gerbil/core
         (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
-        (only-in :agentic-ai-lab/modules/temporal-causality/funs
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/funs
                  agentic-ai-lab-structural-impact-analyze))
 (export sdlc-change-impact)
 (def (same-snapshot? value project)

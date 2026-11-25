@@ -5,7 +5,7 @@
 (import (only-in :clan/poo/object .o .ref)
         (only-in :tao3k/yuanxu/graph/types
                  yuanxu-graph yuanxu-graph-edge yuanxu-graph-node)
-        (only-in :agentic-ai-lab/modules/governance/funs
+        (only-in :tao3k/agentic-ai-lab/modules/governance/funs
                  agentic-ai-lab-governance-contribution)
         :std/list/list)
 (import "types.ss")

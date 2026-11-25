@@ -4,9 +4,9 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .cc)
-        (only-in :clan/poo/mop Any Bool Function element?)
+        (only-in :clan/poo/type Any Bool Function element?)
         (only-in :clan/poo/type Record Symbol List Exactly True False)
-        (only-in :agentic-ai-lab/modules/proof/interface AgenticAILabProofModule))
+        (only-in :tao3k/agentic-ai-lab/modules/proof/interface AgenticAILabProofModule))
 
 (export FormalMethodProvider FormalMethodsScopeContract aitia-formal-method-provider?)
 

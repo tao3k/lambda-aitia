@@ -10,8 +10,8 @@
         (only-in :std/hash/misc hash-remove!)
         (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in "cedar-preflight.ss" assurance-host-cedar-request-current?)
-        :agentic-ai-lab/modules/governance/policy/authorized-effect-token
-        (only-in :agentic-ai-lab/modules/authorization/providers/cedar/decision
+        :tao3k/agentic-ai-lab/modules/governance/policy/authorized-effect-token
+        (only-in :tao3k/agentic-ai-lab/modules/authorization/providers/cedar/decision
                  agentic-ai-lab-cedar-decision-permit?
                  agentic-ai-lab-cedar-decision->semantic-root
                  agentic-ai-lab-cedar-decision->authorized-effect-token))

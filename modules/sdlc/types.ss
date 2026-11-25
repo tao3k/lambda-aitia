@@ -2,11 +2,11 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/mop Any Function Type. element?)
+(import (only-in :clan/poo/type Any Function Type. element?)
         (only-in :clan/poo/type Record)
         (only-in :clan/poo/object .o .cc .ref .slot? object? compute-precedence-list!)
 
-        (only-in :agentic-ai-lab/modules/governance/types
+        (only-in :tao3k/agentic-ai-lab/modules/governance/types
                  agentic-ai-lab-governance-profile?)
         :std/list/list)
 (export SdlcScopeContract sdlc-record-type sdlc-record-field sdlc-record?

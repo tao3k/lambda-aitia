@@ -4,7 +4,7 @@
         (only-in :clan/poo/object .o .get .ref)
         (only-in :tao3k/yuanxu/module-system/source/admission
                  call-with-module-source-operation-measurement)
-        (only-in :agentic-ai-lab/modules/proof/interface agentic-ai-lab-proof-module?)
+        (only-in :tao3k/agentic-ai-lab/modules/proof/interface agentic-ai-lab-proof-module?)
         (only-in "../../init.ss" lambda-aitia.init.exports))
 (export formal-methods-test)
 

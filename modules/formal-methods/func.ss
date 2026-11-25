@@ -4,7 +4,8 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 (import (only-in :clan/poo/object .ref)
-        (only-in :clan/poo/mop .new validate)
+        (only-in :clan/poo/mop .new)
+        (only-in :clan/poo/type validate)
         "types.ss")
 
 (export aitia-formal-method-provider aitia-formal-method-provider-engines)

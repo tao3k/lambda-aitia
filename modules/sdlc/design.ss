@@ -4,7 +4,7 @@
 
 ;;; Aitia owns software-design meaning; Agentic AI Lab owns graph traversal and
 ;;; runtime authority. This is an inert declaration-level replacement check.
-(import (only-in :clan/poo/mop validate)
+(import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .o .ref)
         (only-in :gerbil/core list-sort)
         :std/list/list

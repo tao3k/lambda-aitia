@@ -4,7 +4,7 @@
 (import :std/test
         (only-in :std/encoding/json read-json)
         (only-in :clan/poo/object .get .o .cc)
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         (only-in "./jj-evidence-fixture.ss" fixture-cut evidence-fields observation-source)
         (only-in "../../../modules/gitops/config.ss" Config)
         (only-in "../../../modules/gitops/types.ss" GitOpsScopeContract))

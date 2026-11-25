@@ -4,10 +4,10 @@
 (import :std/test
         (only-in :clan/poo/object .get .ref)
         (only-in :tao3k/yuanxu/graph/types yuanxu-graph-id)
-        (only-in :agentic-ai-lab/modules/temporal-causality/interface
+        (only-in :tao3k/agentic-ai-lab/modules/temporal-causality/interface
                  agentic-ai-lab-structural-impact-analyze
                  agentic-ai-lab-causal-cut agentic-ai-lab-temporal-causal-classify)
-        (only-in "../../../init.ss" lambda-aitia.init.exports))
+        (only-in :lambda-aitia/init lambda-aitia.init.exports))
 
 (export job-retirement-impact-test)
 

@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .o)
         (only-in :gerbil/core list-sort)
         :std/list/list
-        (only-in :clan/poo/mop validate)
+        (only-in :clan/poo/type validate)
         "types.ss")
 
 (export AssurancePolicy assurance-artifact assurance-claim assurance-assumption

@@ -4,7 +4,7 @@
 
 (import :std/test :std/error
         (only-in :clan/poo/object .get .ref)
-        (only-in "../../../init.ss" lambda-aitia.init.exports)
+        (only-in :lambda-aitia/init lambda-aitia.init.exports)
 )
 
 (def sdlc (.get lambda-aitia.init.exports modules sdlc))
