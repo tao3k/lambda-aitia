@@ -287,10 +287,12 @@ fn reconcile_recorded_gitops_flow(
         }
     }
     let paths: Vec<&str> = changes.iter().map(|change| change.path.as_str()).collect();
+    let sysml_scopes = observe_sysml_scopes(&cut, configuration.model_check_enabled());
+    let naming = merge_sysml_scopes(&policy["naming"], &sysml_scopes);
     let mut request = serde_json::json!({
         "project": project,
         "cut": cli_commit::review_cut_value(&cut),
-        "naming": policy["naming"],
+        "naming": naming,
         "sources": sources,
         "paths": paths,
         "proposals": [],
@@ -563,20 +565,19 @@ pub(super) fn nasa_commit_report(
     } else {
         Vec::new()
     };
-    let (model, (bookmarks, provider)) = if model_paths.is_empty() {
-        (None, observe_commit_provider(&cut)?)
-    } else {
-        // Both observations read the recorded cut. Scheme stays on its owner
-        // thread and receives the facts only after both host calls finish.
-        std::thread::scope(|scope| {
-            let provider = scope.spawn(|| observe_commit_provider(&cut));
-            let model = observe_commit_sysml(&cut, &model_paths);
-            let provider = provider
-                .join()
-                .map_err(|_| io::Error::other("PR observation worker panicked"))??;
-            Ok::<_, Box<dyn std::error::Error>>((Some(model), provider))
-        })?
-    };
+    let (model, sysml_scopes, (bookmarks, provider)) = std::thread::scope(|scope| {
+        let provider = scope.spawn(|| observe_commit_provider(&cut));
+        let model = if model_paths.is_empty() {
+            None
+        } else {
+            Some(observe_commit_sysml(&cut, &model_paths))
+        };
+        let sysml_scopes = observe_sysml_scopes(&cut, configuration.model_check_enabled());
+        let provider = provider
+            .join()
+            .map_err(|_| io::Error::other("PR observation worker panicked"))??;
+        Ok::<_, Box<dyn std::error::Error>>((model, sysml_scopes, provider))
+    })?;
     let requested_paths = review_source_paths(policy)?;
     let mut sources = Vec::new();
     let mut source_errors = Vec::new();
@@ -637,6 +638,7 @@ pub(super) fn nasa_commit_report(
         "providerBookmarks": bookmarks,
         "providerReview": provider,
         "modelCheck": model,
+        "sysmlScopes": sysml_scopes,
     });
     if let Some(draft) = draft {
         request["draft"] = serde_json::to_value(draft)?;
@@ -682,6 +684,49 @@ impl Write for RequestSize {
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
+}
+
+#[cfg(feature = "sysml")]
+fn observe_sysml_scopes(cut: &WorkspaceCut, enabled: bool) -> Vec<serde_json::Value> {
+    if !enabled {
+        return Vec::new();
+    }
+    match crate::sysml::project_recorded_scopes(cut) {
+        Ok(scopes) => scopes
+            .into_iter()
+            .map(|scope| {
+                serde_json::json!({
+                    "name": scope.name,
+                    "paths": scope.paths,
+                    "elementId": scope.element_id,
+                })
+            })
+            .collect(),
+        // Fail closed: an unparseable or oversized SysML model contributes zero scopes.
+        Err(_) => Vec::new(),
+    }
+}
+
+#[cfg(not(feature = "sysml"))]
+fn observe_sysml_scopes(_cut: &WorkspaceCut, _enabled: bool) -> Vec<serde_json::Value> {
+    Vec::new()
+}
+
+pub(super) fn merge_sysml_scopes(
+    naming: &serde_json::Value,
+    sysml_scopes: &[serde_json::Value],
+) -> serde_json::Value {
+    let mut merged = naming.clone();
+    let mut combined = merged
+        .get("scopes")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    combined.extend(sysml_scopes.iter().cloned());
+    if let Some(object) = merged.as_object_mut() {
+        object.insert("scopes".to_owned(), serde_json::Value::Array(combined));
+    }
+    merged
 }
 
 #[cfg(feature = "sysml")]

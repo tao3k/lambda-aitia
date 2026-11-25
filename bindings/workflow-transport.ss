@@ -14,6 +14,10 @@
 
 (export aitia-workflow-reconcile-payload)
 
+(def (optional-workflow-list input field)
+  (let ((rows (or (hash-get input field) '())))
+    (if (vector? rows) (vector->list rows) rows)))
+
 (def (json-workflow-naming input)
   (.o project-key: (json-required input "projectKey")
       primary-language: (hash-get input "primaryLanguage")
@@ -22,7 +26,7 @@
       scopes: (map (lambda (row)
                      (.o name: (json-required row "name")
                          paths: (json-list row "paths")))
-                   (json-list input "scopes"))
+                   (optional-workflow-list input "scopes"))
       references: (map (lambda (row)
                          (.o identity: (json-required row "identity")
                              source: (json-required row "source")

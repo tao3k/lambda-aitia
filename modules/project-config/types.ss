@@ -42,7 +42,7 @@
         element: (schema-string))))
 
 (def commit-naming-schema
-  (schema-object '("projectKey" "types" "scopes" "references" "languageSources")
+  (schema-object '("projectKey" "types" "references" "languageSources")
     (.o projectKey: (schema-string)
         primaryLanguage: (schema-string)
         languageSources: (schema-array (schema-string))

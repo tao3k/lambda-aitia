@@ -16,14 +16,26 @@
         aitia-commit-journal-payload
         aitia-nasa-draft-payload)
 
-(def (json-commit-naming input (key values))
+(def (optional-json-list object field)
+  (let (value (hash-get object field))
+    (cond
+     ((not value) '())
+     ((list? value) value)
+     ((vector? value) (vector->list value))
+     (else (error "Aitia input field must be an array" field)))))
+
+(def (json-commit-scope row (key values))
+  (.o name: (hash-ref row (key 'name))
+      paths: (json-list row (key 'paths))))
+
+(def (json-commit-naming input (key values) (extra-scopes '()))
   (.o project-key: (hash-ref input (key 'projectKey))
       primary-language: (hash-get input (key 'primaryLanguage))
       language-sources: (json-list input (key 'languageSources))
       types: (json-list input (key 'types))
-      scopes: (map (lambda (row)
-                     (.o name: (hash-ref row (key 'name)) paths: (json-list row (key 'paths))))
-                   (json-list input (key 'scopes)))
+      scopes: (append (map (lambda (row) (json-commit-scope row key))
+                           (optional-json-list input (key 'scopes)))
+                      extra-scopes)
       references: (map (lambda (row)
                          (.o identity: (hash-ref row (key 'identity))
                              source: (hash-ref row (key 'source))
@@ -272,7 +284,10 @@
                      (.o (execution := execution) source: (to-receipt execution))))
                  (json-list input "checks")))
            (draft (hash-get input "draft"))
-           (naming (json-commit-naming (hash-ref selection 'naming)))
+           (sysml-scopes
+            (map (lambda (row) (json-commit-scope row symbol->string))
+                 (optional-json-list input "sysmlScopes")))
+           (naming (json-commit-naming (hash-ref selection 'naming) values sysml-scopes))
            (proposals (if draft (list (json-commit-proposal (json-required draft "proposal"))) '()))
            (sources (recorded-commit-sources input cut))
            (semantics ((.get gitops commit-semantics) naming cut sources

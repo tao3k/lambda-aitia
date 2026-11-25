@@ -62,4 +62,7 @@ pub use source_tree::{FrozenSourceFile, FrozenWorkspace, capture_source_tree, de
 #[cfg(feature = "sysml")]
 mod sysml;
 #[cfg(feature = "sysml")]
-pub use sysml::{RecordedSysmlError, parse_recorded_sysml, parse_sysml};
+pub use sysml::{
+    RecordedSysmlError, SysmlScopeProjection, extract_declared_scopes, parse_recorded_sysml,
+    parse_sysml,
+};

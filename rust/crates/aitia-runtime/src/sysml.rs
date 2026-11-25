@@ -6,7 +6,102 @@
 use aitia_jj::{JjObservationError, WorkspaceCut, read_recorded_files};
 use std::{fmt, io};
 
-use opensysml::{Connection, Error, Model, SourceDocument, SourcesOptions};
+use opensysml::{Connection, Error, Model, SourceDocument, SourcesOptions, Symbol, Value};
+
+/// Architectural commit scope projected from a parsed SysML v2 `CommitScope` part.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SysmlScopeProjection {
+    pub name: String,
+    pub paths: Vec<String>,
+    pub element_id: String,
+}
+
+fn collect_text_values(value: &Value, out: &mut Vec<String>) {
+    match value {
+        Value::Text(text) if !text.is_empty() => out.push(text.clone()),
+        Value::Sequence(items) => {
+            for item in items {
+                collect_text_values(item, out);
+            }
+        }
+        Value::Set(set) => {
+            for item in set.elements() {
+                collect_text_values(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_scope_candidates(
+    symbol: &Symbol,
+    depth: usize,
+    candidates: &mut Vec<String>,
+) -> Result<(), Error> {
+    if depth > 4 {
+        return Ok(());
+    }
+    let children = symbol.children()?;
+    let has_scope_name = children.iter().any(|child| child.name() == "scopeName");
+    let has_owned_paths = children.iter().any(|child| child.name() == "ownedPaths");
+    if has_scope_name && has_owned_paths && symbol.kind().to_ascii_lowercase().contains("part") {
+        candidates.push(symbol.id().to_owned());
+        return Ok(());
+    }
+    for child in children {
+        collect_scope_candidates(&child, depth + 1, candidates)?;
+    }
+    Ok(())
+}
+
+/// Project declared `CommitScope` parts (`scopeName` + `ownedPaths`) from a parsed SysML v2 model.
+///
+/// # Errors
+/// Fails if OpenSysML symbol traversal or instantiation fails.
+pub fn extract_declared_scopes(model: &Model) -> Result<Vec<SysmlScopeProjection>, Error> {
+    let mut candidates = Vec::new();
+    for root in model.roots() {
+        collect_scope_candidates(root, 0, &mut candidates)?;
+    }
+    let mut scopes = Vec::new();
+    for fqn in candidates {
+        let instantiation = model.instantiate(&fqn)?;
+        for instance in instantiation.instances() {
+            let Some(name_feature) = instance.feature("scopeName") else {
+                continue;
+            };
+            let Some(Value::Text(name)) = name_feature.value() else {
+                continue;
+            };
+            let Some(paths_feature) = instance.feature("ownedPaths") else {
+                continue;
+            };
+            let mut paths = Vec::new();
+            for value in paths_feature.values() {
+                collect_text_values(value, &mut paths);
+            }
+            if paths.is_empty()
+                && let Some(value) = paths_feature.value()
+            {
+                collect_text_values(value, &mut paths);
+            }
+            if !name.is_empty() && !paths.is_empty() {
+                scopes.push(SysmlScopeProjection {
+                    name: name.clone(),
+                    paths,
+                    element_id: fqn.clone(),
+                });
+                break;
+            }
+        }
+    }
+    scopes.sort_by(|left, right| {
+        left.name
+            .cmp(&right.name)
+            .then_with(|| left.element_id.cmp(&right.element_id))
+    });
+    Ok(scopes)
+}
 
 /// Parse captured source contents under their project-relative document names.
 /// The caller owns the connection and binds these inputs to the observed cut.
@@ -114,6 +209,51 @@ pub(crate) fn parse_model_report(
     })
     .map_err(|_| io::Error::other("SysML host worker panicked"))?;
     Ok(report?)
+}
+
+#[cfg(feature = "linked-program")]
+pub(crate) fn project_model_scopes(
+    load: impl FnOnce() -> Result<Vec<(String, String)>, RecordedSysmlError> + Send,
+) -> Result<Vec<SysmlScopeProjection>, Box<dyn std::error::Error>> {
+    let scopes = std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                let documents = load()?;
+                if documents.is_empty() {
+                    return Ok::<_, RecordedSysmlError>(Vec::new());
+                }
+                let connection = Connection::connect().map_err(RecordedSysmlError::Model)?;
+                let model =
+                    parse_sysml(&connection, documents).map_err(RecordedSysmlError::Model)?;
+                extract_declared_scopes(&model).map_err(RecordedSysmlError::Model)
+            })
+            .join()
+    })
+    .map_err(|_| io::Error::other("SysML scope worker panicked"))?;
+    Ok(scopes?)
+}
+
+#[cfg(feature = "linked-program")]
+pub(crate) fn project_recorded_scopes(
+    cut: &WorkspaceCut,
+) -> Result<Vec<SysmlScopeProjection>, Box<dyn std::error::Error>> {
+    let sources = aitia_jj::recorded_sysml_paths(cut)?;
+    if sources.is_empty() {
+        return Ok(Vec::new());
+    }
+    project_model_scopes(|| recorded_documents(cut, &sources))
+}
+
+#[cfg(feature = "linked-program")]
+pub(crate) fn project_revision_scopes(
+    directory: &std::path::Path,
+    revision: &str,
+) -> Result<Vec<SysmlScopeProjection>, Box<dyn std::error::Error>> {
+    let sources = aitia_jj::recorded_revision_sysml_paths(directory, revision)?;
+    if sources.is_empty() {
+        return Ok(Vec::new());
+    }
+    project_model_scopes(|| revision_documents(directory, revision, &sources))
 }
 
 fn load_documents(

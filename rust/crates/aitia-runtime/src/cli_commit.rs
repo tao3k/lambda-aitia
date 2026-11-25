@@ -615,8 +615,13 @@ fn verified_evidence(
                     .map(|text| json!({"path": path, "text": text}))
             })
             .collect::<Vec<_>>();
+        let sysml_scopes = observe_revision_sysml_scopes(
+            facts.original.workspace_root(),
+            revision,
+            configuration.model_check_enabled(),
+        );
         graph["engineeringReview"] = json!({
-            "naming": policy["naming"],
+            "naming": super::cli::merge_sysml_scopes(&policy["naming"], &sysml_scopes),
             "project": policy["project"],
             "cut": expected_cut,
             "title": description.lines().next(),
@@ -640,6 +645,39 @@ fn verified_evidence(
         "missingReports": missing,
         "lineage": serde_json::from_str::<Value>(&lineage)?,
     }))
+}
+
+#[cfg(feature = "sysml")]
+fn observe_revision_sysml_scopes(
+    directory: &std::path::Path,
+    revision: &str,
+    enabled: bool,
+) -> Vec<Value> {
+    if !enabled {
+        return Vec::new();
+    }
+    match crate::sysml::project_revision_scopes(directory, revision) {
+        Ok(scopes) => scopes
+            .into_iter()
+            .map(|scope| {
+                json!({
+                    "name": scope.name,
+                    "paths": scope.paths,
+                    "elementId": scope.element_id,
+                })
+            })
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+#[cfg(not(feature = "sysml"))]
+fn observe_revision_sysml_scopes(
+    _directory: &std::path::Path,
+    _revision: &str,
+    _enabled: bool,
+) -> Vec<Value> {
+    Vec::new()
 }
 
 #[cfg(feature = "sysml")]

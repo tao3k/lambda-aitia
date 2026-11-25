@@ -11,7 +11,7 @@ pub use workspace::{
     RecordedSource, RecordedTreeEntry, WorkspaceCut, audit_recorded_configuration,
     git_project_root, observe_project_sources, observe_recorded_sources, observe_workspace,
     read_recorded_file, read_recorded_files, read_revision_files, recorded_changes,
-    recorded_revision_source_entries, recorded_sysml_paths,
+    recorded_revision_source_entries, recorded_revision_sysml_paths, recorded_sysml_paths,
 };
 
 #[cfg(all(test, feature = "real-jj"))]

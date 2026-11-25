@@ -1,13 +1,51 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-use aitia_runtime::{RecordedSysmlError, parse_recorded_sysml, parse_sysml};
+use aitia_runtime::{
+    RecordedSysmlError, extract_declared_scopes, parse_recorded_sysml, parse_sysml,
+};
 use opensysml::Connection;
 use std::path::Path;
 use std::process::Command;
 
 const NAME: &str = "dev/sysml/aitia-commit.sysml";
 const SOURCE: &str = include_str!("../../../../../dev/sysml/aitia-commit.sysml");
+const ARCH_NAME: &str = "dev/sysml/project-architecture.sysml";
+const ARCH_SOURCE: &str = include_str!("../../../../../dev/sysml/project-architecture.sysml");
+
+#[test]
+fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn std::error::Error>>
+{
+    let connection = Connection::connect()?;
+    let model = parse_sysml(
+        &connection,
+        [
+            (NAME.into(), SOURCE.into()),
+            (ARCH_NAME.into(), ARCH_SOURCE.into()),
+        ],
+    )?;
+    let scopes = extract_declared_scopes(&model)?;
+    let names: Vec<&str> = scopes.iter().map(|s| s.name.as_str()).collect();
+    assert_eq!(names, ["gitops", "sysml", "workflow"]);
+    let gitops = scopes
+        .iter()
+        .find(|s| s.name == "gitops")
+        .ok_or("missing gitops scope")?;
+    assert_eq!(gitops.element_id, "AitiaProjectArchitecture::gitopsScope");
+    assert!(gitops.paths.iter().any(|p| p == "modules/workflow"));
+    assert!(gitops.paths.iter().any(|p| p == "dev/sysml"));
+    let sysml = scopes
+        .iter()
+        .find(|s| s.name == "sysml")
+        .ok_or("missing sysml scope")?;
+    assert!(
+        sysml
+            .paths
+            .iter()
+            .any(|p| p == "rust/crates/aitia-runtime/src/sysml.rs")
+    );
+    Ok(())
+}
 
 #[test]
 fn resolves_the_commit_case_and_refuses_invalid_input() -> Result<(), Box<dyn std::error::Error>> {

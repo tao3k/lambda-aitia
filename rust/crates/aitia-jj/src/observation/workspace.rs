@@ -282,6 +282,27 @@ async fn optional_text_at_commit(
     Ok(Some(content))
 }
 
+async fn collect_commit_sysml_paths(
+    commit: &jj_lib::commit::Commit,
+) -> Result<Vec<String>, JjObservationError> {
+    let mut entries = commit.tree().entries();
+    let mut paths = Vec::new();
+    while let Some((path, value)) = entries.next().await {
+        let value = value.map_err(repository_error)?;
+        let path = path.as_internal_file_string();
+        if path.ends_with(".sysml") {
+            if !matches!(value.as_resolved(), Some(Some(TreeValue::File { .. }))) {
+                return Err(JjObservationError::Output(format!(
+                    "recorded SysML path must be a regular file: {path}"
+                )));
+            }
+            paths.push(path.to_owned());
+        }
+    }
+    paths.sort_unstable();
+    Ok(paths)
+}
+
 /// Discover recorded regular SysML documents in stable project-relative order.
 ///
 /// # Errors
@@ -291,24 +312,23 @@ pub fn recorded_sysml_paths(cut: &WorkspaceCut) -> Result<Vec<String>, JjObserva
     block_on(async {
         require_current(&workspace, cut).await?;
         let commit = recorded_commit(&workspace, cut)?;
-        let mut entries = commit.tree().entries();
-        let mut paths = Vec::new();
-        while let Some((path, value)) = entries.next().await {
-            let value = value.map_err(repository_error)?;
-            let path = path.as_internal_file_string();
-            if path.ends_with(".sysml") {
-                if !matches!(value.as_resolved(), Some(Some(TreeValue::File { .. }))) {
-                    return Err(JjObservationError::Output(format!(
-                        "recorded SysML path must be a regular file: {path}"
-                    )));
-                }
-                paths.push(path.to_owned());
-            }
-        }
+        let paths = collect_commit_sysml_paths(&commit).await?;
         require_current(&workspace, cut).await?;
-        paths.sort_unstable();
         Ok(paths)
     })
+}
+
+/// Discover regular SysML documents recorded at a historical revision in stable order.
+///
+/// # Errors
+/// Refuses unknown revisions or non-regular SysML tree entries.
+pub fn recorded_revision_sysml_paths(
+    directory: &Path,
+    revision: &str,
+) -> Result<Vec<String>, JjObservationError> {
+    let workspace = open_project_workspace(directory)?;
+    let commit = revision_commit(&workspace, revision)?;
+    block_on(collect_commit_sysml_paths(&commit))
 }
 
 /// Git object identities observed independently of JJ's workspace view.

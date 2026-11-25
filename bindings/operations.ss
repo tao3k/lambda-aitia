@@ -197,11 +197,12 @@
           (checks (hash-ref selection 'checks))
           (naming (hash-ref selection 'naming)))))
 
-(defsyntax (compiled-project-declaration stx)
+(defsyntax (compiled-project-declaration-resolver stx)
   (syntax-case stx ()
     ((_ context)
      (let (input (getenv "AITIA_PROJECT_DECLARATION" #f))
-       (if (not input) #'#f
+       (if (not input)
+           #'(lambda (_scope _declaration _manifest fallback) (fallback))
            (let* ((text (module-source-read input))
                   (value
                    (call-with-input-string text
@@ -213,22 +214,23 @@
              (module-source-admit-current! (list (cons input text)) "project declaration changed")
              (with-syntax ((source (datum->syntax #'context text))
                            (expression (datum->syntax #'context value)))
-               #'(cons source (lambda () expression)))))))))
+               #'(lambda (scope declaration manifest _fallback)
+                   (unless (and (string? declaration) (string=? declaration source))
+                     (error "recorded project.ss differs from the compiled declaration"))
+                   ((.get scope extend) expression (if (string? manifest) manifest "{}"))))))))))
 
-(def +compiled-project-declaration+ (compiled-project-declaration .o))
+(def +compiled-project-declaration-resolver+ (compiled-project-declaration-resolver .o))
 
 (def (resolve-recorded-project-config scope sources)
   (let ((declaration (hash-get sources "declaration"))
-        (manifest (hash-get sources "manifest"))
-        (compiled +compiled-project-declaration+))
-    (cond
-     (compiled
-      (unless (and (string? declaration) (string=? declaration (car compiled)))
-        (error "recorded project.ss differs from the compiled declaration"))
-      ((.get scope extend) ((cdr compiled)) (if (string? manifest) manifest "{}")))
-     ((string? declaration) (error "recorded project.ss requires a compiled declaration"))
-     ((string? manifest) ((.get scope decode) manifest))
-     (else (error "no recorded project configuration")))))
+        (manifest (hash-get sources "manifest")))
+    (+compiled-project-declaration-resolver+
+     scope declaration manifest
+     (lambda ()
+       (cond
+        ((string? declaration) (error "recorded project.ss requires a compiled declaration"))
+        ((string? manifest) ((.get scope decode) manifest))
+        (else (error "no recorded project configuration")))))))
 
 (def (project-replay-plan service)
   (let* ((profile-name (hash-ref service 'profile))
