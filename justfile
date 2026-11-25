@@ -36,6 +36,7 @@ test-project-sysml: stage-rust-program
 
 [group('rust')]
 test-jj-observation:
+    cargo test --locked --manifest-path rust/Cargo.toml -p aitia-jj --features real-jj --lib --test workspace_cut --no-run
     timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-jj --features real-jj --lib --test workspace_cut
 
 [group('check')]

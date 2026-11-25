@@ -212,6 +212,9 @@ jobs:
             ~/.cargo/git
             rust/target
           key: ${{ runner.os }}-${{ runner.arch }}-aitia-linked-${{ hashFiles('rust/Cargo.lock', 'rust/**/Cargo.toml') }}-${{ steps.lab.outputs.revision }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-aitia-linked-
+            ${{ runner.os }}-${{ runner.arch }}-aitia-workspace-
 
       - name: Install the verified JJ executable
         run: |
