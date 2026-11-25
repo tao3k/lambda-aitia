@@ -562,7 +562,12 @@ fn verified_evidence(
         if !model_applies {
             return Err(io::Error::other("Archived SysML observation is out of scope").into());
         }
-        let actual = reproduce_sysml_report(revision, &model_paths)?;
+        let actual = crate::HostCapabilityRegistry::default_linked().dispatch_json(
+            "sysml.parse-revision",
+            crate::HostEffectClass::HostRead,
+            &json!({ "directory": ".", "revision": revision, "paths": model_paths }),
+            None,
+        )?;
         if actual["documents"] != json!(model_paths) || archived_model["report"] != actual {
             return Err(io::Error::other("Archived SysML report rejected").into());
         }
@@ -615,11 +620,16 @@ fn verified_evidence(
                     .map(|text| json!({"path": path, "text": text}))
             })
             .collect::<Vec<_>>();
-        let sysml_scopes = observe_revision_sysml_scopes(
-            facts.original.workspace_root(),
-            revision,
-            configuration.model_check_enabled(),
-        );
+        let sysml_scopes = crate::HostCapabilityRegistry::default_linked().dispatch_json(
+            "sysml.revision-scopes",
+            crate::HostEffectClass::HostRead,
+            &json!({
+                "directory": facts.original.workspace_root().to_string_lossy(),
+                "revision": revision,
+                "enabled": configuration.model_check_enabled(),
+            }),
+            None,
+        )?;
         graph["engineeringReview"] = json!({
             "naming": policy["naming"],
             "sysmlScopes": sysml_scopes,
@@ -646,51 +656,6 @@ fn verified_evidence(
         "missingReports": missing,
         "lineage": serde_json::from_str::<Value>(&lineage)?,
     }))
-}
-
-#[cfg(feature = "sysml")]
-fn observe_revision_sysml_scopes(
-    directory: &std::path::Path,
-    revision: &str,
-    enabled: bool,
-) -> Vec<Value> {
-    if !enabled {
-        return Vec::new();
-    }
-    match crate::sysml::project_revision_scopes(directory, revision) {
-        Ok(scopes) => scopes
-            .into_iter()
-            .map(|scope| {
-                json!({
-                    "name": scope.name,
-                    "paths": scope.paths,
-                    "elementId": scope.element_id,
-                })
-            })
-            .collect(),
-        Err(_) => Vec::new(),
-    }
-}
-
-#[cfg(not(feature = "sysml"))]
-fn observe_revision_sysml_scopes(
-    _directory: &std::path::Path,
-    _revision: &str,
-    _enabled: bool,
-) -> Vec<Value> {
-    Vec::new()
-}
-
-#[cfg(feature = "sysml")]
-fn reproduce_sysml_report(revision: &str, paths: &[String]) -> Result<Value> {
-    crate::sysml::parse_model_report(|| {
-        crate::sysml::revision_documents(std::path::Path::new("."), revision, paths)
-    })
-}
-
-#[cfg(not(feature = "sysml"))]
-fn reproduce_sysml_report(_revision: &str, _paths: &[String]) -> Result<Value> {
-    Err(io::Error::other("SysML evidence verification is unavailable in this build").into())
 }
 
 pub(super) fn recover_push(input: &str, remote: &str, bookmark: &str) -> Result<Value> {

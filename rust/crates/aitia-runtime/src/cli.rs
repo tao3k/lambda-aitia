@@ -474,11 +474,19 @@ pub(super) fn nasa_commit_report(
     };
     let (model, sysml_scopes, (bookmarks, provider)) = std::thread::scope(|scope| {
         let provider = scope.spawn(|| observe_commit_provider(&cut));
-        let (model, sysml_scopes) = crate::cli_flow::observe_commit_sysml_and_scopes(
-            &cut,
-            &model_paths,
-            configuration.model_check_enabled(),
-        );
+        let sysml_obs = crate::HostCapabilityRegistry::default_linked().dispatch_json(
+            "sysml.parse-workspace",
+            crate::HostEffectClass::HostRead,
+            &serde_json::json!({
+                "directory": cut.workspace_root().to_string_lossy(),
+                "mode": "commit",
+                "paths": model_paths,
+                "enabled": configuration.model_check_enabled(),
+            }),
+            None,
+        )?;
+        let model = (!sysml_obs["model"].is_null()).then(|| sysml_obs["model"].clone());
+        let sysml_scopes = sysml_obs["scopes"].clone();
         let provider = provider
             .join()
             .map_err(|_| io::Error::other("PR observation worker panicked"))??;
@@ -592,57 +600,12 @@ impl Write for RequestSize {
     }
 }
 
-#[cfg(feature = "sysml")]
-fn check_sysml(cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let sources = recorded_sysml_paths(cut)?;
-    if sources.is_empty() {
-        return Err(
-            io::Error::new(io::ErrorKind::InvalidInput, "no recorded SysML documents").into(),
-        );
-    }
-    parse_sysml_sources(cut, &sources)
-}
-
-#[cfg(not(feature = "sysml"))]
-pub(super) fn observe_commit_sysml(cut: &WorkspaceCut, paths: &[String]) -> serde_json::Value {
-    match parse_sysml_sources(cut, paths) {
-        Ok(report) => serde_json::json!({"paths": paths, "status": "passed", "report": report}),
-        Err(error) => {
-            serde_json::json!({"paths": paths, "status": "open", "detail": error.to_string()})
-        }
-    }
-}
-
 pub(super) fn affected_sysml_paths(changes: &[aitia_jj::RecordedPathChange]) -> Vec<String> {
     changes
         .iter()
         .filter(|change| change.path.ends_with(".sysml"))
         .map(|change| change.path.clone())
         .collect()
-}
-
-#[cfg(feature = "sysml")]
-fn parse_sysml_sources(
-    cut: &WorkspaceCut,
-    sources: &[String],
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    crate::sysml::parse_model_report(|| crate::sysml::recorded_documents(cut, sources))
-}
-
-#[cfg(not(feature = "sysml"))]
-fn check_sysml(_cut: &WorkspaceCut) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    parse_sysml_sources(_cut, &[])
-}
-
-#[cfg(not(feature = "sysml"))]
-fn parse_sysml_sources(
-    _cut: &WorkspaceCut,
-    _sources: &[String],
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    Err(io::Error::other(
-        "SysML parsing is enabled in project configuration but unavailable in this build",
-    )
-    .into())
 }
 
 fn check_recorded_project(
@@ -655,7 +618,16 @@ fn check_recorded_project(
         .map(str::to_owned)
         .collect();
     let sysml = if configuration.has_check(CHECK_SYSML_PARSE) {
-        check_sysml(&cut)?
+        crate::HostCapabilityRegistry::default_linked().dispatch_json(
+            "sysml.parse-workspace",
+            crate::HostEffectClass::HostRead,
+            &serde_json::json!({
+                "directory": cut.workspace_root().to_string_lossy(),
+                "mode": "check",
+                "enabled": true,
+            }),
+            None,
+        )?
     } else {
         serde_json::Value::Null
     };

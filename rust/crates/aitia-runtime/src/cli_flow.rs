@@ -6,20 +6,42 @@
 
 use crate::{
     AitiaProgram, CapabilityFrame, CapabilityId, HostCapabilityRegistry, HostEffectClass,
-    MAX_REQUEST_BYTES, cli, cli_commit, with_linked_program,
+    MAX_REQUEST_BYTES, cli, with_linked_program,
 };
-use aitia_jj::{WorkspaceCut, observe_project_sources, observe_recorded_sources, recorded_changes};
+use aitia_jj::{WorkspaceCut, observe_project_sources};
 use std::{
     io::{self, Write},
     path::Path,
 };
 
 pub(super) fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
-    const USAGE: &str =
-        "usage: aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]";
+    const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]";
     match operation {
         ["--help" | "-h"] => {
             writeln!(io::stdout().lock(), "{USAGE}")?;
+            Ok(())
+        }
+        ["capabilities"] => {
+            let descriptors: Vec<serde_json::Value> = HostCapabilityRegistry::default_linked()
+                .descriptors()
+                .into_iter()
+                .map(|(capability, effect_class)| {
+                    let effect = match effect_class {
+                        HostEffectClass::HostRead => "host-read",
+                        HostEffectClass::FencedEffect => "fenced-effect",
+                    };
+                    serde_json::json!({ "capability": capability, "effectClass": effect })
+                })
+                .collect();
+            writeln!(
+                io::stdout().lock(),
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "schema": "lambda-aitia.host-capabilities.v1",
+                    "capabilities": descriptors,
+                    "actionAuthorized": false,
+                }))?
+            )?;
             Ok(())
         }
         ["reconcile"] => {
@@ -66,36 +88,40 @@ fn reconcile_recorded_gitops_flow(
     let project = policy["project"]
         .as_str()
         .ok_or_else(|| io::Error::other("No recorded commit project"))?;
-    let changes = recorded_changes(&cut)?;
     let requested_paths = cli::review_source_paths(policy)?;
-    let mut sources = Vec::new();
-    for (path, result) in
-        observe_recorded_sources(&cut, &requested_paths, usize::try_from(MAX_REQUEST_BYTES)?)?
-    {
-        if let Ok(text) = result {
-            sources.push(serde_json::json!({"path": path, "text": text}));
-        }
-    }
-    let paths: Vec<&str> = changes.iter().map(|change| change.path.as_str()).collect();
+    let directory = cut.workspace_root().to_string_lossy().into_owned();
     let registry = HostCapabilityRegistry::default_linked();
-    let scope_receipt = registry.dispatch(&CapabilityFrame {
-        capability: CapabilityId::new("sysml.project-scopes"),
-        effect_class: HostEffectClass::HostRead,
-        payload: serde_json::json!({
-            "directory": cut.workspace_root().to_string_lossy(),
-            "enabled": configuration.model_check_enabled(),
-        })
-        .to_string(),
-        fence_token: None,
-    })?;
-    let sysml_scopes: serde_json::Value = serde_json::from_str(&scope_receipt.payload)?;
+    let receipts = registry.dispatch_batch(&[
+        CapabilityFrame {
+            capability: CapabilityId::new("gitops.jj.observe-cut"),
+            effect_class: HostEffectClass::HostRead,
+            payload: serde_json::json!({
+                "directory": directory,
+                "requestedPaths": requested_paths,
+            })
+            .to_string(),
+            fence_token: None,
+        },
+        CapabilityFrame {
+            capability: CapabilityId::new("sysml.project-scopes"),
+            effect_class: HostEffectClass::HostRead,
+            payload: serde_json::json!({
+                "directory": directory,
+                "enabled": configuration.model_check_enabled(),
+            })
+            .to_string(),
+            fence_token: None,
+        },
+    ])?;
+    let jj_obs: serde_json::Value = serde_json::from_str(&receipts[0].payload)?;
+    let sysml_scopes: serde_json::Value = serde_json::from_str(&receipts[1].payload)?;
     let mut request = serde_json::json!({
         "project": project,
-        "cut": cli_commit::review_cut_value(&cut),
+        "cut": jj_obs["cut"],
         "naming": policy["naming"],
         "sysmlScopes": sysml_scopes,
-        "sources": sources,
-        "paths": paths,
+        "sources": jj_obs["sources"],
+        "paths": jj_obs["paths"],
         "proposals": [],
         "observations": [],
         "approvalLive": false,
@@ -116,41 +142,4 @@ fn reconcile_recorded_gitops_flow(
     }
     let payload = serde_json::to_string(&request)?;
     Ok(program.workflow_reconcile(&payload)?)
-}
-
-#[cfg(feature = "sysml")]
-pub(super) fn observe_commit_sysml_and_scopes(
-    cut: &WorkspaceCut,
-    affected_paths: &[String],
-    enabled: bool,
-) -> (Option<serde_json::Value>, Vec<serde_json::Value>) {
-    if !enabled {
-        return (None, Vec::new());
-    }
-    let (model, scopes) = crate::sysml::observe_commit_sysml_and_scopes(cut, affected_paths);
-    let projected = scopes
-        .into_iter()
-        .map(|scope| {
-            serde_json::json!({
-                "name": scope.name,
-                "paths": scope.paths,
-                "elementId": scope.element_id,
-            })
-        })
-        .collect();
-    (model, projected)
-}
-
-#[cfg(not(feature = "sysml"))]
-pub(super) fn observe_commit_sysml_and_scopes(
-    cut: &WorkspaceCut,
-    affected_paths: &[String],
-    enabled: bool,
-) -> (Option<serde_json::Value>, Vec<serde_json::Value>) {
-    if !enabled {
-        return (None, Vec::new());
-    }
-    let model =
-        (!affected_paths.is_empty()).then(|| cli::observe_commit_sysml(cut, affected_paths));
-    (model, Vec::new())
 }

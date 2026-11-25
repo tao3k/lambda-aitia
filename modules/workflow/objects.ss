@@ -10,6 +10,7 @@
 
 (export AitiaWorkflowDomain.
         GitOpsCommitWorkflowDomain.
+        SdlcLifecycleWorkflowDomain.
         ChoiceFlowPlan.)
 
 (.def AitiaWorkflowDomain.
@@ -31,6 +32,17 @@
   synthesis-hole-id: "hole:gitops-commit-narration-or-scope"
   human-gate-obligation: "gitops.commit-review-approved"
   fenced-effect-obligation: "gitops.commit-applied")
+
+(.def (SdlcLifecycleWorkflowDomain. @ AitiaWorkflowDomain.)
+  domain-id: 'aitia/sdlc-lifecycle
+  obligation-ids: '("sdlc.requirements-traced"
+                    "sdlc.design-alternatives-assessed"
+                    "sdlc.verification-observed"
+                    "sdlc.retirement-impact-audited"
+                    "sdlc.release-approved")
+  synthesis-hole-id: "hole:sdlc-competing-design-or-retirement"
+  human-gate-obligation: "sdlc.release-approved"
+  fenced-effect-obligation: "sdlc.release-published")
 
 ;;; Declarative POO prototype for Finite-Choice -> Typed FunFlow routing
 ;;; (the Coproduct/ArrowChoice dual of FunFlow's Product `flow-fanout`).

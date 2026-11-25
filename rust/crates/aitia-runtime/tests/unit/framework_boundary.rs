@@ -34,9 +34,9 @@ const ALLOWED_TOP_LEVEL_SRC_FILES: &[&str] = &[
 // As workflows migrate to Scheme FunFlow + HostCapabilityRegistry, lower these
 // ceilings rather than raising them.
 const CLI_LINE_CEILINGS: &[(&str, usize)] = &[
-    ("cli.rs", 860),
-    ("cli_commit.rs", 880),
-    ("cli_flow.rs", 160),
+    ("cli.rs", 820),
+    ("cli_commit.rs", 845),
+    ("cli_flow.rs", 150),
 ];
 
 #[test]
@@ -210,4 +210,43 @@ fn host_capability_registry_enforces_fenced_effects_and_zero_authority() {
         })
         .expect("fenced capability executes with fence token");
     assert!(!with_token.action_authorized);
+
+    // Batch dispatch validates EVERY frame before executing any capability (fail-closed)
+    let bad_batch = registry.dispatch_batch(&[
+        CapabilityFrame {
+            capability: CapabilityId::new("jj.read-test"),
+            effect_class: HostEffectClass::HostRead,
+            payload: "{}".to_owned(),
+            fence_token: None,
+        },
+        CapabilityFrame {
+            capability: CapabilityId::new("jj.fenced-test"),
+            effect_class: HostEffectClass::FencedEffect,
+            payload: "{}".to_owned(),
+            fence_token: None,
+        },
+    ]);
+    assert!(matches!(
+        bad_batch,
+        Err(CapabilityError::MissingFenceToken(_))
+    ));
+
+    let good_batch = registry
+        .dispatch_batch(&[
+            CapabilityFrame {
+                capability: CapabilityId::new("jj.read-test"),
+                effect_class: HostEffectClass::HostRead,
+                payload: "{\"n\":1}".to_owned(),
+                fence_token: None,
+            },
+            CapabilityFrame {
+                capability: CapabilityId::new("jj.fenced-test"),
+                effect_class: HostEffectClass::FencedEffect,
+                payload: "{}".to_owned(),
+                fence_token: Some("tok-1".to_owned()),
+            },
+        ])
+        .expect("valid batch succeeds with zero authority");
+    assert_eq!(good_batch.len(), 2);
+    assert!(good_batch.iter().all(|receipt| !receipt.action_authorized));
 }

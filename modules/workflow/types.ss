@@ -177,6 +177,7 @@
 (def WorkflowScopeContract
   (.cc (Record domain-prototype: [WorkflowDomainProfileType]
                gitops-commit-domain: [WorkflowDomainProfileType]
+               sdlc-lifecycle-domain: [WorkflowDomainProfileType]
                choice-flow-plan-prototype: [ChoiceFlowPlanType]
                profiles: [Object]
                domain?: [WorkflowObjectPredicate]
@@ -223,6 +224,15 @@
                           keywords: (list (cons 'approval-live?: Bool)
                                           (cons 'candidate-offers: ChoiceOptionSymbolList)
                                           (cons 'forbidden-scopes: ChoiceOptionSymbolList)
+                                          (cons 'state-budget: UInt)))]
+               solve-sdlc-choices:
+               [(Function (list ChoiceSolutionType)
+                          (list (Or Symbol NonEmptyString) ChoiceOptionSymbolList)
+                          keywords: (list (cons 'verified?: Bool)
+                                          (cons 'retirement-clear?: Bool)
+                                          (cons 'approval-live?: Bool)
+                                          (cons 'refuted-designs: ChoiceOptionSymbolList)
+                                          (cons 'required-design: (Or False Symbol NonEmptyString))
                                           (cons 'state-budget: UInt)))]
                choice-flow-plan:
                [(Function (list ChoiceFlowPlanType)

@@ -309,12 +309,13 @@ pub(crate) fn observe_commit_sysml_and_scopes(
                 } else {
                     None
                 };
-                if !same_set && !all_paths.is_empty() {
-                    if let Ok(parsed) = recorded_documents(cut, &all_paths).and_then(|docs| {
+                if !same_set
+                    && !all_paths.is_empty()
+                    && let Ok(parsed) = recorded_documents(cut, &all_paths).and_then(|docs| {
                         parse_sysml(&connection, docs).map_err(RecordedSysmlError::Model)
-                    }) {
-                        scopes = extract_declared_scopes(&parsed).unwrap_or_default();
-                    }
+                    })
+                {
+                    scopes = extract_declared_scopes(&parsed).unwrap_or_default();
                 }
                 (model, scopes)
             })

@@ -24,6 +24,7 @@ package AitiaProjectArchitecture {
             "modules/workflow",
             "rust/Cargo.toml",
             "rust/Cargo.lock",
+            "rust/workspace.just",
             "rust/crates/aitia-jj",
             "rust/crates/aitia-runtime",
             "rust/crates/aitia-python",
@@ -60,5 +61,36 @@ package AitiaProjectArchitecture {
             "rust/crates/aitia-runtime/src/sysml.rs",
             "rust/crates/aitia-runtime/tests/integration/sysml_model.rs"
         );
+    }
+
+    part def HostCapabilitySpec {
+        doc /* Rust HostCapabilityRegistry boundary aligned with FunFlow EffectClass. */
+        attribute capabilityId : String;
+        attribute effectClass : String;
+    }
+
+    part jjObserveCutCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.observe-cut";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part sysmlProjectScopesCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "sysml.project-scopes";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part sysmlRevisionScopesCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "sysml.revision-scopes";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part sysmlParseRevisionCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "sysml.parse-revision";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part sysmlParseWorkspaceCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "sysml.parse-workspace";
+        attribute :>> effectClass = "host-read";
     }
 }

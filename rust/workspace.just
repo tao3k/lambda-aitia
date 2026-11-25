@@ -6,6 +6,7 @@
 # The workspace test includes the development-only ASP gate.
 [group('rust')]
 test-rust-workspace:
+    cargo test --locked --workspace --lib --tests --manifest-path rust/Cargo.toml --no-run
     timeout --signal=TERM --kill-after=5s 120s cargo test --locked --workspace --lib --tests --manifest-path rust/Cargo.toml
 
 [group('rust')]

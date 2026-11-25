@@ -10,6 +10,7 @@
 (export Config
         GitOpsCommitCaseProfile.
         UnscopedScopeAuditCaseProfile.
+        SdlcLifecycleCaseProfile.
         WorkflowCaseProfiles.)
 
 ;;; Role: `config.ss` owns Profile & Case DAG/Flow composition via pure POO
@@ -30,13 +31,25 @@
   default-max-branches: 4
   allow-fenced-in-competition?: #f)
 
+(.def (SdlcLifecycleCaseProfile. @ SdlcLifecycleWorkflowDomain.)
+  case-id: 'aitia/case/sdlc-lifecycle
+  choice-key: 'design-decision
+  state-budget: 32
+  allow-fenced-in-competition?: #f
+  choice-plan-prototype: ChoiceFlowPlan.
+  solve-choices: workflow-solve-sdlc-choices
+  build-choice-plan: workflow-choice-flow-plan
+  execute-plan: workflow-execute-choice-worlds)
+
 (.def WorkflowCaseProfiles.
   gitops-commit: GitOpsCommitCaseProfile.
-  unscoped-scope-audit: UnscopedScopeAuditCaseProfile.)
+  unscoped-scope-audit: UnscopedScopeAuditCaseProfile.
+  sdlc-lifecycle: SdlcLifecycleCaseProfile.)
 
 (def Config
   (.o domain-prototype: AitiaWorkflowDomain.
       gitops-commit-domain: GitOpsCommitWorkflowDomain.
+      sdlc-lifecycle-domain: SdlcLifecycleWorkflowDomain.
       choice-flow-plan-prototype: ChoiceFlowPlan.
       profiles: WorkflowCaseProfiles.
       domain?: workflow-domain-profile?
@@ -51,6 +64,7 @@
       competing-branches: workflow-competing-branches
       raw-tool-call: workflow-raw-tool-call
       solve-gitops-choices: workflow-solve-gitops-choices
+      solve-sdlc-choices: workflow-solve-sdlc-choices
       choice-flow-plan: workflow-choice-flow-plan
       execute-choice-worlds: workflow-execute-choice-worlds
       gitops-commit-graph: workflow-gitops-commit-graph

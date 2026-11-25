@@ -50,6 +50,7 @@
         (only-in "../gitops/commit-evidence.ss" gitops-commit-evidence)
         (only-in "./choice.ss"
                  workflow-solve-gitops-choices
+                 workflow-solve-sdlc-choices
                  workflow-choice-hypotheses
                  workflow-choice-flow-plan
                  workflow-execute-choice-worlds)
@@ -69,6 +70,7 @@
         workflow-competing-branches
         workflow-raw-tool-call
         workflow-solve-gitops-choices
+        workflow-solve-sdlc-choices
         workflow-choice-flow-plan
         workflow-execute-choice-worlds
         workflow-gitops-commit-graph

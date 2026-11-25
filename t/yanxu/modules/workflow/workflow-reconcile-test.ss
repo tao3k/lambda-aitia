@@ -371,5 +371,100 @@
               (w1 (cadr (.get exec worlds))))
           (check-equal? (.get w0 cas-hits) 0)
           (check-equal? (.get w1 cas-hits) 1)
+          (check (string? (.get w0 dag-digest)) => #t)
           (check-equal? (.get (car (.get w0 fenced-blocked-tasks)) reason)
-                        'fenced-effect-blocked-in-competing-worlds))))))
+                        'fenced-effect-blocked-in-competing-worlds))))
+
+    (test-case "8. ChoiceFlowPlan pre-execution FunFlow DAG Tarjan SCC check rejects cycles fail-closed with 0 executions"
+      (let* ((g-clean ((.get wf gitops-commit-graph)
+                       test-naming test-cut test-sources '("justfile") (list valid-proposal)
+                       approval-live?: #f))
+             (choice-sol (.get g-clean choice-solution))
+             (runner ((.get wf make-pure-runner)))
+             (req-type (.get wf patch-request-type))
+             (ev-type (.get wf patch-evidence-type))
+             (ran-calls (box 0))
+             ;; Mutual evidence cycle: task-a requires ev:b, task-b requires ev:a -> Tarjan SCC cycle!
+             (task-a ((.get wf pure-task-node)
+                      "task:cycle-a" "SWE-083" "ev:cycle-a" 'cycle-a
+                      req-type ev-type
+                      (lambda (req)
+                        (set-box! ran-calls (+ 1 (unbox ran-calls)))
+                        (.o (kind := 'synthesized-patch) (action := 'a) (targets := '())))
+                      (.o (action := 'a) (targets := '()))
+                      required-evidence-ids: '("ev:cycle-b")
+                      effect-class: 'pure-cas))
+             (task-b ((.get wf pure-task-node)
+                      "task:cycle-b" "SWE-084" "ev:cycle-b" 'cycle-b
+                      req-type ev-type
+                      (lambda (req)
+                        (set-box! ran-calls (+ 1 (unbox ran-calls)))
+                        (.o (kind := 'synthesized-patch) (action := 'b) (targets := '())))
+                      (.o (action := 'b) (targets := '()))
+                      required-evidence-ids: '("ev:cycle-a")
+                      effect-class: 'pure-cas))
+             (cyclic-plan
+              ((.get wf choice-flow-plan)
+               (.o (gitops := (list task-a task-b)))
+               choice-key: 'scope-decision))
+             (res ((.get wf execute-choice-worlds) choice-sol runner cyclic-plan)))
+        (check-equal? (.get res admitted?) #f)
+        (check-equal? (.get res reason) 'funflow-dag-cycle-detected)
+        (check-equal? (.get res total-executions) 0)
+        (check-equal? (unbox ran-calls) 0)))
+
+    (test-case "9. SdlcLifecycleCaseProfile solves competing design and RFC 0004 retirement choices with provenance and shared CAS"
+      (let* ((sdlc-prof (.get wf profiles sdlc-lifecycle))
+             (sol ((.get sdlc-prof solve-choices)
+                   "change:rfc-0004-retire"
+                   '(design-event-sourced design-direct-cutover design-legacy-keep)
+                   verified?: #t
+                   retirement-clear?: #t
+                   approval-live?: #f
+                   refuted-designs: '(design-legacy-keep)))
+             (worlds (.get sol worlds))
+             (designs (map (lambda (w) (.get w design-decision)) worlds))
+             (runner ((.get wf make-pure-runner)))
+             (req-type (.get wf patch-request-type))
+             (ev-type (.get wf patch-evidence-type))
+             (shared-calls (box 0))
+             (shared-audit
+              ((.get wf pure-task-node)
+               "task:sdlc-retirement-audit" "sdlc.retirement-impact-audited" "ev:retirement-audit"
+               'sdlc-retirement-audit req-type ev-type
+               (lambda (req)
+                 (set-box! shared-calls (+ 1 (unbox shared-calls)))
+                 (.o (kind := 'synthesized-patch) (action := (.get req action)) (targets := '())))
+               (.o (action := 'audit-retirement) (targets := '()))
+               effect-class: 'pure-cas))
+             (make-design-check
+              (lambda (d)
+                ((.get wf pure-task-node)
+                 (string-append "task:check:" (symbol->string d))
+                 "sdlc.design-alternatives-assessed"
+                 (string-append "ev:check:" (symbol->string d))
+                 d req-type ev-type
+                 (lambda (req)
+                   (.o (kind := 'synthesized-patch) (action := (.get req action)) (targets := '())))
+                 (.o (action := d) (targets := '()))
+                 effect-class: 'pure-cas)))
+             (plan ((.get sdlc-prof build-choice-plan)
+                    (.o (design-event-sourced := (list (make-design-check 'design-event-sourced)))
+                        (design-direct-cutover := (list (make-design-check 'design-direct-cutover))))
+                    choice-key: (.get sdlc-prof choice-key)
+                    shared-prefix: (list shared-audit)))
+             (exec ((.get sdlc-prof execute-plan) sol runner plan approval-live?: #f)))
+        (check-equal? (.get sdlc-prof case-id) 'aitia/case/sdlc-lifecycle)
+        ;; Refuted design pruned; 2 surviving competing designs with provenance!
+        (check-equal? (.get sol choice-status) 'competing-worlds)
+        (check-equal? (.get sol world-count) 2)
+        (check (and (member 'design-event-sourced designs) #t) => #t)
+        (check (and (member 'design-direct-cutover designs) #t) => #t)
+        (check-equal? (member 'design-legacy-keep designs) #f)
+        (check (pair? (.get (car worlds) design-provenance)) => #t)
+        ;; Shared retirement audit runs ONCE across both competing design worlds!
+        (check-equal? (.get exec admitted?) #t)
+        (check-equal? (unbox shared-calls) 1)
+        (check-equal? (.get exec total-cas-hits) 1)
+        (check-equal? (.get exec total-executions) 3)
+        (check-equal? (.get exec action-authorized?) #f)))))

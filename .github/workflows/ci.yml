@@ -141,8 +141,6 @@ jobs:
         with:
           path: agentic-ai-lab/.gerbil
           key: lambda-aitia-gerbil-deps-v5-${{ runner.os }}-${{ runner.arch }}-${{ steps.lab.outputs.revision }}
-          restore-keys: |
-            lambda-aitia-gerbil-deps-v5-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Lab and Core dependencies
         if: steps.gerbil-package-cache.outputs.cache-hit != 'true'
