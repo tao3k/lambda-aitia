@@ -14,6 +14,7 @@
   (project-config)
   (nasa-7150-2d-catalog)
   (sdlc)
+  (workflow)
   :load-modules "./user-interface/profiles" mode: explicit mount: Profiles :test-dir "./t"
   (delivery @ "./user-interface/profiles/gitops")
   (nasa-7150-2d @ "./user-interface/profiles/nasa")

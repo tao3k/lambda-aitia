@@ -46,6 +46,10 @@ impl PythonSession {
         self.call(py, request, AitiaSession::evidence_lineage)
     }
 
+    fn workflow_reconcile(&self, py: Python<'_>, request: String) -> PyResult<String> {
+        self.call(py, request, AitiaSession::workflow_reconcile)
+    }
+
     fn close(&self, py: Python<'_>) -> PyResult<()> {
         py.detach(|| {
             let mut session = self

@@ -269,6 +269,7 @@ check-semantic:
     just test-scheme gitops
     just test-module lambda-aitia/modules/gitops/interface
     just test-module project-config
+    just test-scheme workflow
     just test-scheme scenarios/aitia
     just test-scheme modules
     just test-scheme testing
@@ -443,6 +444,9 @@ check-rust-zero-loadpath: build-rust-cli
     grep -Fq '"releaseAuthorized":false' <<< "$out"
     manifest="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" project-manifest)"
     grep -Fq '"schemaVersion":1' <<< "$manifest"
+    flow_out="$(env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "$cli" flow gitops)"
+    grep -Fq '"schema":"lambda-aitia.workflow-reconcile.v1"' <<< "$flow_out"
+    grep -Fq '"actionAuthorized":false' <<< "$flow_out"
 
 # Qualify the linked program, Quint consumer and the exact wheel built here.
 [group('check')]

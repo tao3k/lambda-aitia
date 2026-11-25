@@ -173,9 +173,11 @@ jobs:
           gerbil env gerbil pkg link github.com/tao3k/agentic-ai-lab "$PWD"
           # Gerbil emits the package manifest consumed by AITIA's build.
           timeout --signal=TERM --kill-after=5s 1200s gerbil pkg build github.com/tao3k/agentic-ai-lab
-          # Compile declared Core module prerequisites before build-testing (upstream fix in Lab bc00c85c).
+          # Compile declared Core module prerequisites and only the test fixture Lambda Aitia imports.
           gerbil env gxi -e '(import (only-in :clan/poo/object .call) (only-in :std/make make) (only-in "./init.ss" tao3k/agentic-ai-lab.init.exports)) (.call tao3k/agentic-ai-lab.init.exports .compile-selection (quote (YuanxuModules/json-schema)) (quote ()) (lambda (targets target-root) (make targets srcdir: target-root)) package-roots?: #t)'
-          gerbil env just build-library deps-dev build-testing
+          gerbil env just build-library deps-dev
+          GERBIL_PATH="$PWD/dev/.gerbil" GERBIL_LOADPATH="$PWD/.gerbil/lib:$PWD/dev/.gerbil/lib" gxpkg build github.com/tao3k/asp-gerbil-scheme
+          gerbil env just build-test-support t/fixtures/testing/source-admission.ss
           printf 'GERBIL_LOADPATH=%s:%s/.gerbil/lib:%s:%s/dev/.gerbil/lib\n' \
             "$GITHUB_WORKSPACE" "$PWD" "$PWD" "$PWD" >> "$GITHUB_ENV"
 

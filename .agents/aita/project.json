@@ -43,15 +43,19 @@
               "paths": [
                 "modules/gitops",
                 "modules/project-config",
+                "modules/workflow",
                 "rust/Cargo.toml",
                 "rust/Cargo.lock",
                 "rust/crates/aitia-jj",
                 "rust/crates/aitia-runtime",
+                "rust/crates/aitia-python",
+                "rust/scheme",
                 "bindings",
                 ".agents/aita",
                 ".github/workflows",
                 "dev/sysml",
                 "docs/rfcs",
+                "t/yanxu/modules/workflow",
                 "justfile"
               ]
             }
@@ -61,6 +65,11 @@
               "identity": "RFC-0007",
               "source": "docs/rfcs/0007-source-bound-commit-engineering.org",
               "element": "lambda-aitia-commit-engineering"
+            },
+            {
+              "identity": "RFC-0008",
+              "source": "docs/rfcs/0008-ascent-obligation-funflow-dag.org",
+              "element": "ascent-obligation-funflow"
             }
           ],
           "languageSources": [

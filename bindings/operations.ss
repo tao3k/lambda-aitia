@@ -24,7 +24,8 @@
                  yuanxu-graph-edge-from yuanxu-graph-edge-to yuanxu-graph-edge-kind)
         (only-in "../init.ss" lambda-aitia.init.exports)
         "transport-common.ss"
-        "commit-transport.ss")
+        "commit-transport.ss"
+        "workflow-transport.ss")
 
 (export +aitia-max-input-bytes+
         aitia-sdlc-flow-graph-payload
@@ -37,7 +38,8 @@
         aitia-pytest-assess-payload
         aitia-context-operation
         aitia-nasa-draft-payload
-        aitia-commit-journal-payload)
+        aitia-commit-journal-payload
+        aitia-workflow-reconcile-payload)
 
 (def +aitia-decision-schema+ "lambda-aitia.gitops-decision")
 

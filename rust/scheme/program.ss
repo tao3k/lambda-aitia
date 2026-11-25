@@ -8,7 +8,7 @@
                  aitia-evidence-lineage-payload
                  aitia-agent-input-check-payload aitia-agent-input-assess-payload
                  aitia-pytest-assess-payload aitia-context-operation aitia-nasa-draft-payload
-                 aitia-commit-journal-payload))
+                 aitia-commit-journal-payload aitia-workflow-reconcile-payload))
 (export main)
 
 ;; All operations and their Module bindings are already compiled into this
@@ -48,4 +48,7 @@
      request lambda-aitia/bindings/commit-transport#aitia-evidence-lineage-payload))
   (c-define (project-config-validate request) (int64) int64 "aitia_program_project_config_validate" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/operations#aitia-project-config-validate-payload)))
+     request lambda-aitia/bindings/operations#aitia-project-config-validate-payload))
+  (c-define (workflow-reconcile request) (int64) int64 "aitia_program_workflow_reconcile" "extern"
+    (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
+     request lambda-aitia/bindings/workflow-transport#aitia-workflow-reconcile-payload)))

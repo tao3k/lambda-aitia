@@ -141,6 +141,15 @@ impl AitiaSession {
         self.call_string(move |program| program.evidence_lineage(&payload))
     }
 
+    /// Reconcile a GitOps/SDLC ObligationGraph through native ASCENT and FunFlow CAS DAG.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn workflow_reconcile(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.workflow_reconcile(&payload))
+    }
+
     /// End the session and wait for Scheme cleanup.
     ///
     /// # Errors

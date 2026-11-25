@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0008: Native ASCENT Obligation Reconciliation and FunFlow CAS DAGs for Lambda Aitia
+#+startup: overview
+
+* Summary
+:PROPERTIES:
+:ID: ascent-obligation-funflow
+:ENGINEERING_ID: RFC-0008
+:END:
+
+Command-line interfaces (`aitia jj commit [preview|prepare|apply|decision|recover|evidence]`) are
+designed for human memory and linear terminal interaction. For LLM agents operating over stateful
+GitOps and SDLC lifecycles, manually orchestrating 8--10 imperative subcommands is brittle, wastes
+context window, and conflates deterministic observation/verification with bounded epistemic synthesis
+and irreversible effects.
+
+This RFC brings Agentic AI Lab's maintained =modules/funflow= (three-state =EffectClass.= CAS DAG,
+Bernstein disjoint-footprint parallelism, crash-resumable skip planning, =GovernedFunflowRunner.=)
+and =modules/graph-engine= (Post-ReAct =ObligationGraph.=, native =gerbil-ascent= fixed-point
+reconciler, typed =SynthesisHole.= oracle admission, and bitemporal premise retraction) directly
+into =lambda-aitia= via a new Yuanxu module =:lambda-aitia/modules/workflow=.
+
+* Architectural Principle: Zero Custom Workflow DSL
+
+In accordance with =core/module-system/design/44-current-project-programming-style.org= and
+=AGENTS.md=, =lambda-aitia= MUST NOT invent a parallel workflow macro DSL or shadow interpreter
+that hides or duplicates native =gerbil-ascent= or =gerbil-poo=:
+
+1. *Reasoning and Frontier Plane*: Native =gerbil-ascent= Datalog/Lattice programs
+   (=ascent= / =relational-program=), reused directly from =modules/gitops/commit-semantics.ss=,
+   =modules/gitops/commit-evidence.ss=, and =agentic-ai-lab/modules/graph-engine/ascent-reconciler.ss=.
+2. *Object and Extension Plane*: Native =gerbil-poo= prototypes and pure constructors
+   (=Obligation.=, =Hypothesis.=, =EvidenceFact.=, =DeterministicTaskNode.=, =SynthesisHole.=,
+   =ObligationGraph.=, =AitiaWorkflowDomain.=, =GitOpsCommitWorkflowDomain.=). DE and user projects
+   extend domains through ordinary POO prototype composition (=:: @=), never a custom DSL.
+3. *Execution and Effect-Fence Plane*: =agentic-ai-lab/modules/funflow= (=PureCAS.=,
+   =VerifiedEpistemic.=, =FencedEffect.=, =ParallelFrontierStrategy.=, =GovernedFunflowRunner.=).
+4. *Wire / Agent Projection Plane*: Thin, pure JSON/Schema projections over admitted POO facts for
+   Rust =AitiaSession= and LLM callers (=reconcile= / =submit_patch= / =submit_decision=).
+
+* Controlled Divergence Under Graph Constraints
+
+Static workflows (Airflow / YAML pipelines) hardcode a fixed edge list =A -> B -> C= and fail
+whenever an unexpected scope gap, competing architectural alternative, or counter-evidence arises.
+Instead, =lambda-aitia/modules/workflow= separates:
+
+1. *Strict Deterministic-First Precedence (=0= LLM calls)*: ASCENT derives transitive
+   =obligation_unsatisfied(?o)= and dispatches all =ready_deterministic_task(?t)= nodes through
+   =plan-funflow-c4-frontier= (Bernstein disjoint read/write footprints, =subagents-spawned = 0=,
+   and CAS fingerprint reuse) before exposing any synthesis hole.
+2. *Typed Synthesis Holes (Controlled Divergence)*: Only when deterministic FunFlow work is
+   exhausted and obligations remain open does ASCENT expose =candidate_synthesis_hole(?h)= keyed
+   by =(hole-id, premise-digest)= for relational loop immunity.
+3. *Graph-Constrained Proposals Only*: Raw single-step ReAct tool calls are rejected fail-closed
+   (=raw-single-step-tool-call-forbidden=). An agent may submit only:
+   - =TypedFunflowDagPatch.=: dynamically synthesized FunFlow sub-DAG nodes validated by Tarjan
+     SCC acyclicity, Bernstein footprints, =EffectClass.=, and sandbox/MCP/CaMeL/MindGuard gates.
+   - =BoundedCompetingBranches.=: bounded POO branches evaluated against EVERY active hypothesis,
+     preserving contradictions, defeaters, and open questions (=open-competition=) without
+     collapsing to a greedy next step or inferring likelihood from missing-claim counts.
+4. *Effect Authority Fence*: Neither ASCENT derivations nor oracle proposals ever grant execution
+   authority (=action-authorized?: #f=). =FencedEffect.= transitions (e.g. =jj commit apply=,
+   =jj git push=) remain blocked on human/governance decisions (=blocked-on-human=) until an
+   authenticated decision is committed to =modules/gitops/commit-admission.ss='s durable journal.
+5. *Selective Bitemporal Premise Retraction*: When the workspace cut changes,
+   =obligation-graph-apply-event= retracts only affected premise lineages and preserves unaffected
+   CAS evidence.
+
+* Negative Contracts (Required Executable Gates)
+
+- A raw single-step ReAct tool call proposal is rejected (=raw-single-step-tool-call-forbidden=).
+- No synthesis hole is exposed while any deterministic FunFlow task is ready (=total-llm-calls = 0=).
+- Repeated reconciliation on unchanged premises calls an oracle at most once per
+  =(hole-id, premise-digest)= and terminates at =quiescent-fixed-point=.
+- Competing hypotheses (e.g. unscoped path registration vs. scope separation) remain unrefuted
+  (=open-competition=) unless live counter-evidence refutes one; model fit grants zero authority.
+- =FencedEffect.= commit application remains =blocked-on-human= while signed approval is absent.
+- Workspace cut retraction invalidates dependent commit evidence without discarding unrelated facts.
+
+* Phased Delivery
+
+- *Slice 1 (Current)*: =modules/workflow= Yuanxu 5-role POO module + =GitOpsCommitWorkflowDomain.=
+  bridging real =gitops-commit-semantics= / =gitops-commit-evidence= to Lab's =ObligationGraph=,
+  =ascent-reconciler=, =dag-frontier-scheduler=, and =synthesis-oracle=, verified in
+  =t/yanxu/modules/workflow/workflow-reconcile-test.ss=.
+- *Slice 2*: =SdlcLifecycleWorkflowDomain.= linking requirements, competing design alternatives,
+  verification evidence, and job-executor retirement impact trajectories (RFC 0004).
+- *Slice 3*: Rust =AitiaSession= / CLI / Python frontier projection (=flow reconcile=,
+  =flow submit-patch=, =flow submit-decision=) compiled into the zero-=GERBIL_LOADPATH= binary.

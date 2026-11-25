@@ -63,7 +63,13 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let command = args.next();
     let command = command.as_deref().and_then(std::ffi::OsStr::to_str);
-    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia jj commit\n       aitia jj commit preview < draft.json\n       aitia jj commit prepare < draft.json\n       aitia jj commit decision < signed.json\n       aitia jj commit apply < approved.json\n       aitia jj commit recover < approval.json\n       aitia jj commit evidence <revision> [--gql] < applied-or-recovered.json\n       aitia jj git push [--remote origin] --bookmark name < approved.json\n       aitia jj git push --recover [--remote origin] --bookmark name < attempt.json";
+    let usage = "usage: aitia <flow-graph|gitops-evaluate|org-contract-evaluate> < request.json\n       aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]\n       aitia init [directory]\n       aitia jj-observe <directory>\n       aitia project-manifest\n       aitia quint-check [--json] <generated-driver.js> <quint> <model.qnt>\n       aitia check\n       aitia jj commit\n       aitia jj commit preview < draft.json\n       aitia jj commit prepare < draft.json\n       aitia jj commit decision < signed.json\n       aitia jj commit apply < approved.json\n       aitia jj commit recover < approval.json\n       aitia jj commit evidence <revision> [--gql] < applied-or-recovered.json\n       aitia jj git push [--remote origin] --bookmark name < approved.json\n       aitia jj git push --recover [--remote origin] --bookmark name < attempt.json";
+    if command == Some("flow") {
+        let arguments: Vec<_> = args.collect();
+        let words: Option<Vec<_>> = arguments.iter().map(|word| word.to_str()).collect();
+        let words = words.ok_or_else(|| io::Error::other("flow arguments must be UTF-8"))?;
+        return run_flow(words.as_slice());
+    }
     if command == Some("jj") {
         let arguments: Vec<_> = args.collect();
         let words: Option<Vec<_>> = arguments.iter().map(|word| word.to_str()).collect();
@@ -216,6 +222,97 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     let response = with_linked_program(|program| operation(&program, &request))?;
     writeln!(io::stdout().lock(), "{response}")?;
     Ok(())
+}
+
+fn run_flow(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
+    const USAGE: &str =
+        "usage: aitia flow reconcile < request.json\n       aitia flow gitops [--proposal-stdin]";
+    match operation {
+        ["--help" | "-h"] => {
+            writeln!(io::stdout().lock(), "{USAGE}")?;
+            Ok(())
+        }
+        ["reconcile"] => {
+            let request = read_request()?;
+            let response = with_linked_program(|program| program.workflow_reconcile(&request))?;
+            writeln!(io::stdout().lock(), "{response}")?;
+            Ok(())
+        }
+        ["gitops"] | ["gitops", "--proposal-stdin"] => {
+            let overlay: Option<serde_json::Value> = if operation.len() == 2 {
+                Some(serde_json::from_str(&read_request()?)?)
+            } else {
+                None
+            };
+            let observed =
+                observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
+            let response = with_linked_program(|program| {
+                Ok(reconcile_recorded_gitops_flow(
+                    &program,
+                    observed,
+                    overlay.as_ref(),
+                ))
+            })??;
+            writeln!(io::stdout().lock(), "{response}")?;
+            Ok(())
+        }
+        _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+    }
+}
+
+fn reconcile_recorded_gitops_flow(
+    program: &AitiaProgram<'_>,
+    observed: (WorkspaceCut, aitia_jj::RecordedProjectSources),
+    overlay: Option<&serde_json::Value>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let (cut, project_sources) = observed;
+    let source = recorded_configuration_input(&project_sources)?;
+    let (_, projection) = program.resolve_project_config(&source)?;
+    let configuration = decode_configuration_projection(&projection)?;
+    let policy = configuration
+        .commit
+        .as_ref()
+        .ok_or_else(|| io::Error::other("No commit profile in the recorded project"))?;
+    let project = policy["project"]
+        .as_str()
+        .ok_or_else(|| io::Error::other("No recorded commit project"))?;
+    let changes = recorded_changes(&cut)?;
+    let requested_paths = review_source_paths(policy)?;
+    let mut sources = Vec::new();
+    for (path, result) in
+        observe_recorded_sources(&cut, &requested_paths, usize::try_from(MAX_REQUEST_BYTES)?)?
+    {
+        if let Ok(text) = result {
+            sources.push(serde_json::json!({"path": path, "text": text}));
+        }
+    }
+    let paths: Vec<&str> = changes.iter().map(|change| change.path.as_str()).collect();
+    let mut request = serde_json::json!({
+        "project": project,
+        "cut": cli_commit::review_cut_value(&cut),
+        "naming": policy["naming"],
+        "sources": sources,
+        "paths": paths,
+        "proposals": [],
+        "observations": [],
+        "approvalLive": false,
+        "reconcile": true,
+    });
+    if let Some(extra) = overlay {
+        for field in [
+            "proposals",
+            "proposal",
+            "observations",
+            "approvalLive",
+            "reconcile",
+        ] {
+            if let Some(value) = extra.get(field) {
+                request[field] = value.clone();
+            }
+        }
+    }
+    let payload = serde_json::to_string(&request)?;
+    Ok(program.workflow_reconcile(&payload)?)
 }
 
 fn run_jj_commit(operation: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
