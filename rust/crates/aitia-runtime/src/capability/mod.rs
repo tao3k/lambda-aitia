@@ -4,6 +4,8 @@
 //! Thin Rust Host Capability Frame Mapper boundary.
 
 #[cfg(feature = "linked-program")]
+mod interface;
+#[cfg(feature = "linked-program")]
 mod jj;
 #[cfg(feature = "linked-program")]
 mod python;

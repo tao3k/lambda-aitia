@@ -30,4 +30,41 @@ theorem withdrawnGrantCannotBeAdmitted {before after : Bool} :
   intro admission
   cases admission.1
 
+/-- Bazel Skyframe two-level Early Cutoff: upstream commit advanced, interface digest unchanged. -/
+def EarlyCutoff (expectedCommit actualCommit expectedIface actualIface : Nat) : Prop :=
+  expectedCommit ≠ actualCommit ∧ expectedIface = actualIface
+
+/-- Bazel Bzlmod / IOHK CHaP transitive diamond coherence between two peer pins on a shared ancestor. -/
+def DiamondCoherent (pinLeft pinRight : Nat) : Prop :=
+  pinLeft = pinRight
+
+/-- Wave dependency barrier: downstream fenced effects require upstream quiescence. -/
+def DownstreamEffectAllowed (upstreamQuiescent : Bool) : Prop :=
+  upstreamQuiescent = true
+
+theorem earlyCutoffRequiresUnchangedInterface
+    {expectedCommit actualCommit expectedIface actualIface : Nat}
+    (h : EarlyCutoff expectedCommit actualCommit expectedIface actualIface) :
+    expectedIface = actualIface :=
+  h.2
+
+theorem interfaceChangePreventsEarlyCutoff
+    {expectedCommit actualCommit expectedIface actualIface : Nat}
+    (hDiff : expectedIface ≠ actualIface) :
+    ¬ EarlyCutoff expectedCommit actualCommit expectedIface actualIface := by
+  intro hCutoff
+  exact hDiff hCutoff.2
+
+theorem diamondConflictBlocksConsumerClosure
+    {pinLeft pinRight : Nat}
+    (hConflict : pinLeft ≠ pinRight) :
+    ¬ DiamondCoherent pinLeft pinRight := by
+  intro hCoherent
+  exact hConflict hCoherent
+
+theorem waveBarrierPreventsPrematureDownstreamEffect :
+    ¬ DownstreamEffectAllowed false := by
+  intro hAllowed
+  cases hAllowed
+
 end LambdaAitiaProof.Modules.GitOps

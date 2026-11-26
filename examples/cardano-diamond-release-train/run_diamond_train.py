@@ -207,25 +207,50 @@ def main() -> None:
             repo_dir = root / rid
             remote_dir = root / "remotes" / f"{rid}.git"
             init_repo(jj_bin, env, repo_dir, remote_dir, proj, key, scope, code_file)
+            if rid == "protocol-base":
+                (repo_dir / "include").mkdir(parents=True, exist_ok=True)
+                (repo_dir / "include" / "protocol.h").write_text(
+                    "/* Public ABI header v1 */\ntypedef unsigned long long slot_t;\n"
+                )
+                proj_path = repo_dir / ".agents" / "aita" / "project.json"
+                proj_cfg = json.loads(proj_path.read_text())
+                proj_cfg["programs"]["jj"]["settings"]["naming"]["scopes"][0]["paths"].append("include")
+                proj_path.write_text(json.dumps(proj_cfg, indent=2))
+                run_jj(jj_bin, env, repo_dir, "describe", "-m", "Add public protocol ABI header")
             remotes[rid] = remote_dir
             drafts[rid] = preview_draft(aitia_bin, env, repo_dir, f"{key}-RFC-9", scope, summary)
 
         ws_sysml = root / "workspace.sysml"
         shutil.copy2(sysml_template, ws_sysml)
 
-        # Scenario A: Bazel Skyframe Early Cutoff (protocol-base commit drifted, interfaceDigest unchanged)
+        # Scenario A: REAL Content-Addressed Source-File Early Cutoff (`interface.project-digest`)
+        # Step A1: Observe protocol-base's real SHA-256 interfaceDigest via SysML `interfacePaths`.
+        probe_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml)],
+                cwd=root,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        base_summary = next(r for r in probe_doc["repos"] if r["repoId"] == "protocol-base")
+        real_iface_digest = base_summary["interfaceDigest"]
+        assert real_iface_digest.startswith("sha256:"), real_iface_digest
+
+        # Step A2: Downstream peers pinned an older protocol-base commit but the SAME real SHA-256 ABI -> Early Cutoff!
         cutoff_overlay = {
             "repos": [
-                {"repoId": "protocol-base", "interfaceDigest": "abi:protocol-v1"},
                 {
                     "repoId": "ledger-core",
                     "pinnedUpstreamCommits": {"protocol-base": "0000000000000000000000000000000000000000"},
-                    "pinnedUpstreamInterfaces": {"protocol-base": "abi:protocol-v1"},
+                    "pinnedUpstreamInterfaces": {"protocol-base": real_iface_digest},
                 },
                 {
                     "repoId": "network-mux",
                     "pinnedUpstreamCommits": {"protocol-base": "0000000000000000000000000000000000000000"},
-                    "pinnedUpstreamInterfaces": {"protocol-base": "abi:protocol-v1"},
+                    "pinnedUpstreamInterfaces": {"protocol-base": real_iface_digest},
                 },
             ]
         }
@@ -242,15 +267,39 @@ def main() -> None:
         )
         assert cutoff_doc["waves"] == [["protocol-base"], ["ledger-core", "network-mux"], ["node-runner"]]
         assert len(cutoff_doc["earlyCutoffs"]) == 2
+        assert cutoff_doc["earlyCutoffs"][0]["interfaceDigest"] == real_iface_digest
         assert cutoff_doc["pinDrifts"] == []
         assert cutoff_doc["actionAuthorized"] is False
 
-        # Scenario B: Bazel Bzlmod / IOHK CHaP Diamond Conflict (Wave 1 peers disagree on protocol-base ABI)
+        # Scenario B1: Stale ABI digest triggers `need-agent-synthesis` with structured `agentHandoff` envelope
+        drift_overlay = {
+            "repos": [
+                {"repoId": "ledger-core", "pinnedUpstreamInterfaces": {"protocol-base": "sha256:stale-abi"}},
+                {"repoId": "network-mux", "pinnedUpstreamInterfaces": {"protocol-base": "sha256:stale-abi"}},
+            ]
+        }
+        drift_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(drift_overlay),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        assert drift_doc["state"] == "need-agent-synthesis"
+        assert drift_doc["escalationReason"] == "cross-repo-pin-drift"
+        assert drift_doc["agentHandoff"]["schema"] == "lambda-aitia.agent-synthesis-handoff.v1"
+        assert drift_doc["agentHandoff"]["actionAuthorized"] is False
+        assert "execute-fenced-effect" in drift_doc["agentHandoff"]["forbiddenActions"]
+
+        # Scenario B2: Bazel Bzlmod / IOHK CHaP Diamond Conflict (Wave 1 peers disagree on protocol-base ABI)
         conflict_overlay = {
             "repos": [
-                {"repoId": "protocol-base", "interfaceDigest": "abi:protocol-v2"},
-                {"repoId": "ledger-core", "pinnedUpstreamInterfaces": {"protocol-base": "abi:protocol-v2"}},
-                {"repoId": "network-mux", "pinnedUpstreamInterfaces": {"protocol-base": "abi:protocol-v1"}},
+                {"repoId": "ledger-core", "pinnedUpstreamInterfaces": {"protocol-base": real_iface_digest}},
+                {"repoId": "network-mux", "pinnedUpstreamInterfaces": {"protocol-base": "sha256:stale-abi"}},
             ]
         }
         conflict_doc = json.loads(
@@ -270,12 +319,14 @@ def main() -> None:
         assert conflict_doc["diamondConflicts"][0]["upstreamRepo"] == "protocol-base"
         assert conflict_doc["actionAuthorized"] is False
 
-        # Scenario C: 3-Wave Diamond Cascading Fenced Commit + Push across ALL 4 Real JJ Repos!
+        # Scenario C: 3-Wave Cascading Fenced Commit + Push + Durable Crash-Recovery Checkpoint Ledger!
+        checkpoint_file = root / "diamond-train.checkpoint.json"
         cascade_overlay = {
+            "checkpointPath": str(checkpoint_file),
             "repos": [
                 {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
                 for rid, *_ in specs
-            ]
+            ],
         }
         exec_doc = json.loads(
             subprocess.run(
@@ -291,6 +342,7 @@ def main() -> None:
         assert exec_doc["state"] == "quiescent"
         assert exec_doc["actionAuthorized"] is False
         assert exec_doc["waves"] == [["protocol-base"], ["ledger-core", "network-mux"], ["node-runner"]]
+        assert exec_doc["checkpoint"]["persistedReceiptCount"] > 0
         lineages = exec_doc["repoEvidenceLineages"]
         verified_heads: dict[str, str] = {}
         for rid, *_ in specs:
@@ -306,14 +358,32 @@ def main() -> None:
             assert remote_head == rev, f"{rid}: remote {remote_head} != {rev}"
             verified_heads[rid] = rev
 
+        # Crash-recovery idempotent resume: re-running against the persisted checkpoint skips already-applied waves
+        resume_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "submit-decision", "--workspace", str(ws_sysml), "--execute-fenced"],
+                cwd=root,
+                env=env,
+                input=json.dumps(cascade_overlay),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        assert resume_doc["state"] == "quiescent"
+        assert resume_doc["checkpoint"]["resumedReceiptCount"] == exec_doc["checkpoint"]["persistedReceiptCount"]
+
     print(
         json.dumps(
             {
                 "case": "cardano-diamond-release-train",
                 "waves": exec_doc["waves"],
+                "realInterfaceDigest": real_iface_digest,
                 "scenarioA_earlyCutoffs": len(cutoff_doc["earlyCutoffs"]),
-                "scenarioB_diamondConflict": conflict_doc["escalationReason"],
+                "scenarioB1_agentHandoff": drift_doc["agentHandoff"]["schema"],
+                "scenarioB2_diamondConflict": conflict_doc["escalationReason"],
                 "scenarioC_finalState": exec_doc["state"],
+                "scenarioC_resumedReceipts": resume_doc["checkpoint"]["resumedReceiptCount"],
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

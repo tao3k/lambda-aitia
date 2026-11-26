@@ -5,7 +5,7 @@
 
 mod common;
 mod evidence;
-mod governance;
+pub(crate) mod governance;
 mod push;
 mod review;
 

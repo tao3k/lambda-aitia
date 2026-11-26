@@ -340,6 +340,7 @@ impl HostCapabilityRegistry {
     pub fn default_linked() -> Self {
         let mut registry = Self::new();
         super::review::register(&mut registry);
+        super::interface::register(&mut registry);
         super::jj::register(&mut registry);
         super::python::register(&mut registry);
         super::sysml::register(&mut registry);

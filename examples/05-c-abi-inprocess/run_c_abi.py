@@ -72,7 +72,7 @@ def main() -> None:
     st, caps_json = take_buf(lib.aitia_host_capabilities())
     assert st == 0, caps_json
     caps = json.loads(caps_json)
-    assert len(caps["capabilities"]) == 12
+    assert len(caps["capabilities"]) == 13
     assert caps["actionAuthorized"] is False
 
     err_buf = AitiaBuffer()

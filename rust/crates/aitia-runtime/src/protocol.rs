@@ -239,16 +239,49 @@ pub fn drive_multi_repo_protocol(
         .entry("receipts".to_owned())
         .or_insert_with(|| json!({}));
 
-    let archived_reviews = hydrate_multi_repo_entries(program, root_obj, execute_fenced)?;
+    let verified_decision = match root_obj.get("humanDecision").cloned() {
+        Some(raw) if !raw.is_null() => Some(commit::governance::verify_signed_human_decision(&raw)?),
+        _ => None,
+    };
+    let checkpoint_path = root_obj
+        .get("checkpointPath")
+        .and_then(Value::as_str)
+        .map(PathBuf::from);
+    let (resumed_receipt_count, mut applied_decisions) = match checkpoint_path.as_deref() {
+        Some(path) => load_multi_repo_checkpoint(path, root_obj)?,
+        None => (0usize, Vec::new()),
+    };
+    if let Some(decision) = verified_decision.as_ref()
+        && let Some(did) = decision["decisionId"].as_str()
+    {
+        if applied_decisions.iter().any(|existing| existing == did) {
+            return Err(io::Error::other(format!(
+                "Signed human decision `{did}` was already applied in checkpoint"
+            ))
+            .into());
+        }
+        applied_decisions.push(did.to_owned());
+    }
+    if resumed_receipt_count > 0 {
+        mark_applied_repos_for_reconcile(&mut state);
+    }
+
+    let archived_reviews = hydrate_multi_repo_entries(
+        program,
+        state
+            .as_object_mut()
+            .ok_or_else(|| io::Error::other("multi-repo state must be a JSON object"))?,
+        execute_fenced,
+    )?;
     let repo_count = state["repos"].as_array().map_or(1, Vec::len);
     let registry = HostCapabilityRegistry::default_linked();
     let max_rounds = MAX_PROTOCOL_ROUNDS.max(repo_count.saturating_mul(4).saturating_add(4));
     for _ in 0..max_rounds {
         let req = serde_json::to_string(&state)?;
         let mut step: Value = serde_json::from_str(&program.workflow_protocol_step(&req)?)?;
-        let state_name = step["state"].as_str();
-        let should_dispatch = state_name == Some("need-host-frames")
-            || (execute_fenced && state_name == Some("need-fenced-frames"));
+        let state_name = step["state"].as_str().map(str::to_owned);
+        let should_dispatch = state_name.as_deref() == Some("need-host-frames")
+            || (execute_fenced && state_name.as_deref() == Some("need-fenced-frames"));
         if !should_dispatch {
             if execute_fenced {
                 attach_multi_repo_evidence_lineages(
@@ -257,6 +290,24 @@ pub fn drive_multi_repo_protocol(
                     &state["receipts"],
                     archived_reviews,
                 )?;
+            }
+            if let Some(decision) = verified_decision {
+                step["verifiedHumanDecision"] = decision;
+            }
+            if let Some(path) = checkpoint_path.as_deref() {
+                let persisted = persist_multi_repo_checkpoint(
+                    path,
+                    &state["receipts"],
+                    &applied_decisions,
+                    state_name.as_deref().unwrap_or("unknown"),
+                )?;
+                step["checkpoint"] = json!({
+                    "schema": "lambda-aitia.multi-repo-checkpoint.v1",
+                    "path": path.to_string_lossy(),
+                    "resumedReceiptCount": resumed_receipt_count,
+                    "persistedReceiptCount": persisted,
+                    "appliedDecisions": applied_decisions,
+                });
             }
             return Ok(step);
         }
@@ -269,9 +320,89 @@ pub fn drive_multi_repo_protocol(
         for (key, payload) in registry.dispatch_protocol_frames(raw_frames)? {
             map.insert(key, payload);
         }
+        if let Some(path) = checkpoint_path.as_deref() {
+            let _ = persist_multi_repo_checkpoint(
+                path,
+                &state["receipts"],
+                &applied_decisions,
+                state_name.as_deref().unwrap_or("in-progress"),
+            )?;
+        }
         mark_applied_repos_for_reconcile(&mut state);
     }
     Err(io::Error::other("multi-repo workflow protocol exceeded host frame round budget").into())
+}
+
+fn load_multi_repo_checkpoint(
+    path: &Path,
+    root_obj: &mut serde_json::Map<String, Value>,
+) -> Result<(usize, Vec<String>), Box<dyn std::error::Error>> {
+    if let Ok(meta) = std::fs::symlink_metadata(path) {
+        if !meta.file_type().is_file() {
+            return Err(io::Error::other("Multi-repo checkpoint path must be a regular file").into());
+        }
+    } else {
+        return Ok((0, Vec::new()));
+    }
+    let parsed: Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    if parsed.get("schema").and_then(Value::as_str) != Some("lambda-aitia.multi-repo-checkpoint.v1")
+    {
+        return Err(io::Error::other("Unsupported multi-repo checkpoint schema").into());
+    }
+    let mut resumed = 0usize;
+    if let (Some(saved), Some(target)) = (
+        parsed.get("completedReceipts").and_then(Value::as_object),
+        root_obj.get_mut("receipts").and_then(Value::as_object_mut),
+    ) {
+        for (key, value) in saved {
+            if !target.contains_key(key) {
+                target.insert(key.clone(), value.clone());
+                resumed += 1;
+            }
+        }
+    }
+    let decisions = parsed
+        .get("appliedDecisions")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok((resumed, decisions))
+}
+
+fn persist_multi_repo_checkpoint(
+    path: &Path,
+    receipts: &Value,
+    applied_decisions: &[String],
+    last_state: &str,
+) -> Result<usize, Box<dyn std::error::Error>> {
+    if let Ok(meta) = std::fs::symlink_metadata(path)
+        && !meta.file_type().is_file()
+    {
+        return Err(io::Error::other("Multi-repo checkpoint path must be a regular file").into());
+    }
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let count = receipts.as_object().map_or(0, serde_json::Map::len);
+    let doc = json!({
+        "schema": "lambda-aitia.multi-repo-checkpoint.v1",
+        "lastState": last_state,
+        "completedReceipts": receipts,
+        "appliedDecisions": applied_decisions,
+        "actionAuthorized": false,
+    });
+    let tmp = path.with_extension("checkpoint.tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(&doc)?)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(count)
 }
 
 fn hydrate_multi_repo_entries(
@@ -280,6 +411,10 @@ fn hydrate_multi_repo_entries(
     execute_fenced: bool,
 ) -> Result<BTreeMap<String, (PathBuf, Value)>, Box<dyn std::error::Error>> {
     let mut archived_reviews = BTreeMap::new();
+    let receipts_snapshot = root_obj
+        .get("receipts")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
     let Some(repos) = root_obj.get_mut("repos").and_then(Value::as_array_mut) else {
         return Ok(archived_reviews);
     };
@@ -287,9 +422,18 @@ fn hydrate_multi_repo_entries(
         let Some(repo_obj) = repo.as_object_mut() else {
             continue;
         };
+        let already_applied = repo_obj
+            .get("repoId")
+            .and_then(Value::as_str)
+            .is_some_and(|rid| {
+                receipts_snapshot
+                    .get(format!("repo:{rid}:gitops.jj.apply-description"))
+                    .is_some_and(|v| !v.is_null())
+            });
         let needs_hydrate = repo_obj.get("naming").is_none()
             || repo_obj.get("requestedPaths").is_none()
             || (execute_fenced
+                && !already_applied
                 && repo_obj.get("draft").is_some()
                 && repo_obj.get("fencedCommitSpec").is_none());
         if !needs_hydrate {
@@ -334,6 +478,7 @@ fn hydrate_multi_repo_entries(
             }
         }
         if execute_fenced
+            && !already_applied
             && repo_obj.get("draft").is_some()
             && repo_obj.get("fencedCommitSpec").is_none()
         {
@@ -352,6 +497,17 @@ fn hydrate_multi_repo_entries(
             if let Some(rid) = repo_obj.get("repoId").and_then(Value::as_str) {
                 archived_reviews.insert(rid.to_owned(), (dir_path, review_report));
             }
+        } else if already_applied
+            && repo_obj
+                .get("proposals")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+            && let Some(prop) = repo_obj
+                .get("draft")
+                .and_then(|d| d.get("proposal"))
+                .cloned()
+        {
+            repo_obj.insert("proposals".to_owned(), json!([prop]));
         }
     }
     Ok(archived_reviews)

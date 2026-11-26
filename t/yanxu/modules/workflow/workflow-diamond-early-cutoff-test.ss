@@ -127,4 +127,18 @@
         (check-equal? (length (.ref s-diamond-conflict 'diamond-conflicts)) 1)
         (check-equal? (.ref (car (.ref s-diamond-conflict 'diamond-conflicts)) 'consumer-repo) "node-runner")
         (check-equal? (.ref (car (.ref s-diamond-conflict 'diamond-conflicts)) 'upstream-repo) "protocol-base")
-        (check-equal? (.get s-diamond-conflict action-authorized?) #f)))))
+        (check-equal? (.get s-diamond-conflict action-authorized?) #f)))
+
+    (test-case "2. Content-addressed interface.project-digest HostRead probe emission and receipt consumption"
+      (let* ((s-probe
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos :=
+                    (list (.o (repo-id := "protocol-base")
+                              (directory := "/tmp/protocol-base")
+                              (depends-on := '())
+                              (interface-paths := '("include/protocol.h"))))))))
+             (caps (map (lambda (f) (.get f capability)) (.get s-probe frames))))
+        (check-equal? (.get s-probe state) 'need-host-frames)
+        (check (and (member "interface.project-digest" caps) #t) => #t)
+        (check-equal? (.get s-probe action-authorized?) #f)))))

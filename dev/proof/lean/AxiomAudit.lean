@@ -32,3 +32,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.sameExpectedHeadCannotPublishTwice
 #print axioms GitOps.consumedGrantCannotBeAdmittedAgain
 #print axioms GitOps.withdrawnGrantCannotBeAdmitted
+#print axioms GitOps.earlyCutoffRequiresUnchangedInterface
+#print axioms GitOps.interfaceChangePreventsEarlyCutoff
+#print axioms GitOps.diamondConflictBlocksConsumerClosure
+#print axioms GitOps.waveBarrierPreventsPrematureDownstreamEffect

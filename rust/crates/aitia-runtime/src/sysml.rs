@@ -4,7 +4,7 @@
 //! Parse SysML documents captured at a recorded JJ workspace cut.
 
 use aitia_jj::{JjObservationError, WorkspaceCut, read_recorded_files};
-use std::{fmt, io};
+use std::{collections::BTreeMap, fmt, io};
 
 use opensysml::{Connection, Error, Model, SourceDocument, SourcesOptions, Symbol, Value};
 
@@ -33,6 +33,8 @@ pub struct SysmlWorkspaceRepo {
     pub profile: Option<String>,
     pub push_remote: Option<String>,
     pub push_bookmark: Option<String>,
+    pub interface_paths: Vec<String>,
+    pub pinned_upstream_interfaces: BTreeMap<String, String>,
     pub element_id: String,
 }
 
@@ -246,6 +248,37 @@ pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorksp
                     collect_text_values(value, &mut depends_on);
                 }
             }
+            let mut interface_paths = Vec::new();
+            if let Some(iface_feature) = instance.feature("interfacePaths") {
+                for value in iface_feature.values() {
+                    collect_text_values(value, &mut interface_paths);
+                }
+                if interface_paths.is_empty()
+                    && let Some(value) = iface_feature.value()
+                {
+                    collect_text_values(value, &mut interface_paths);
+                }
+            }
+            let mut raw_pins = Vec::new();
+            if let Some(pin_feature) = instance.feature("pinnedUpstreamInterfaces") {
+                for value in pin_feature.values() {
+                    collect_text_values(value, &mut raw_pins);
+                }
+                if raw_pins.is_empty()
+                    && let Some(value) = pin_feature.value()
+                {
+                    collect_text_values(value, &mut raw_pins);
+                }
+            }
+            let mut pinned_upstream_interfaces = BTreeMap::new();
+            for entry in raw_pins {
+                if let Some((up, digest)) = entry.split_once('=')
+                    && !up.is_empty()
+                    && !digest.is_empty()
+                {
+                    pinned_upstream_interfaces.insert(up.to_owned(), digest.to_owned());
+                }
+            }
             repos.push(SysmlWorkspaceRepo {
                 repo_id,
                 directory,
@@ -253,6 +286,8 @@ pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorksp
                 profile: optional_text_feature(instance, "profile"),
                 push_remote: optional_text_feature(instance, "pushRemote"),
                 push_bookmark: optional_text_feature(instance, "pushBookmark"),
+                interface_paths,
+                pinned_upstream_interfaces,
                 element_id: fqn.clone(),
             });
             break;
@@ -312,6 +347,18 @@ pub(crate) fn project_workspace_manifest_from_sysml(
                 obj.insert(
                     "pushTarget".to_owned(),
                     serde_json::json!({ "remote": remote, "bookmark": bookmark }),
+                );
+            }
+            if !repo.interface_paths.is_empty() {
+                obj.insert(
+                    "interfacePaths".to_owned(),
+                    serde_json::json!(repo.interface_paths),
+                );
+            }
+            if !repo.pinned_upstream_interfaces.is_empty() {
+                obj.insert(
+                    "pinnedUpstreamInterfaces".to_owned(),
+                    serde_json::json!(repo.pinned_upstream_interfaces),
                 );
             }
             serde_json::Value::Object(obj)

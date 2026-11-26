@@ -34,6 +34,7 @@ package AitiaProjectArchitecture {
             "bindings",
             ".agents/aita",
             ".github/workflows",
+            "dev/proof",
             "dev/qualification",
             "dev/sysml",
             "docs/rfcs",
@@ -145,6 +146,11 @@ package AitiaProjectArchitecture {
         attribute :>> effectClass = "host-read";
     }
 
+    part interfaceProjectDigestCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "interface.project-digest";
+        attribute :>> effectClass = "host-read";
+    }
+
     part def WorkspaceRepo {
         doc /* Declarative multi-repository GitOps topology node projected directly by
              * the standalone Rust `aitia` binary into Scheme FunFlow wave scheduling. */
@@ -154,5 +160,7 @@ package AitiaProjectArchitecture {
         attribute profile : String;
         attribute pushRemote : String;
         attribute pushBookmark : String;
+        attribute interfacePaths : String[0..*];
+        attribute pinnedUpstreamInterfaces : String[0..*];
     }
 }

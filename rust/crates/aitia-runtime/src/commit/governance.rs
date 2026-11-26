@@ -185,6 +185,67 @@ pub(crate) fn attach_revision(cut: &WorkspaceCut, report: &mut Value) -> Result<
     Ok(())
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct WorkflowHumanDecisionEnvelope {
+    message: String,
+    public_key: String,
+    signature: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct WorkflowHumanDecisionPayload {
+    kind: String,
+    decision_id: String,
+    approver: String,
+    intent: String,
+    resolution: Value,
+    not_before: u64,
+    expires_at: u64,
+}
+
+/// Cryptographically verify a signed Ed25519 human decision envelope for workflow escalation gates.
+///
+/// Enforces exact Ed25519 signature verification, schema tag `"aitia.workflow.human-decision.v1"`,
+/// non-empty identity/approver/intent fields, and wall-clock validity window (`notBefore <= now <= expiresAt`).
+/// Never grants execution authority (`actionAuthorized: false`).
+pub(crate) fn verify_signed_human_decision(raw: &Value) -> Result<Value> {
+    let envelope: WorkflowHumanDecisionEnvelope = serde_json::from_value(raw.clone())?;
+    let pubkey = hex::<32>(&envelope.public_key)?;
+    let sig = hex::<64>(&envelope.signature)?;
+    ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, pubkey)
+        .verify(envelope.message.as_bytes(), &sig)
+        .map_err(|_| err("Signed human decision Ed25519 signature rejected"))?;
+    let payload: WorkflowHumanDecisionPayload = serde_json::from_str(&envelope.message)?;
+    if payload.kind != "aitia.workflow.human-decision.v1" {
+        return Err(err("Unsupported signed human decision kind"));
+    }
+    if payload.decision_id.trim().is_empty()
+        || payload.approver.trim().is_empty()
+        || payload.intent.trim().is_empty()
+    {
+        return Err(err("Signed human decision missing required identity fields"));
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| err("System clock before UNIX epoch"))?
+        .as_secs();
+    if now < payload.not_before || now > payload.expires_at {
+        return Err(err("Signed human decision outside validity window"));
+    }
+    Ok(json!({
+        "verified": true,
+        "decisionId": payload.decision_id,
+        "approver": payload.approver,
+        "intent": payload.intent,
+        "resolution": payload.resolution,
+        "publicKey": envelope.public_key,
+        "messageDigest": crate::source_tree::sha256(envelope.message.as_bytes()),
+        "actionAuthorized": false,
+    }))
+}
+
 pub(crate) fn record(
     program: &AitiaProgram<'_>,
     cut: &WorkspaceCut,

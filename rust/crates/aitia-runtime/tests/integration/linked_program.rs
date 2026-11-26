@@ -174,7 +174,7 @@ fn compiled_project_declaration_requires_its_recorded_source() {
         preview["review"]["description"]
             .as_str()
             .unwrap()
-            .starts_with("AITIA-WORK-1 fix(gitops): Review the recorded declaration\n")
+            .starts_with("fix(gitops): Review the recorded declaration (WORK-1)\n")
     );
     draft["context"] = preview["review"]["context"].clone();
     let prepared = commit::json_output(run(&["jj", "commit", "prepare"], Some(&draft)));

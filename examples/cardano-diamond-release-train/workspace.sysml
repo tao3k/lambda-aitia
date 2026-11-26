@@ -16,6 +16,8 @@ package CardanoDiamondReleaseTrain {
         attribute profile : String;
         attribute pushRemote : String;
         attribute pushBookmark : String;
+        attribute interfacePaths : String[0..*];
+        attribute pinnedUpstreamInterfaces : String[0..*];
     }
 
     part protocolBase : WorkspaceRepo {
@@ -24,6 +26,7 @@ package CardanoDiamondReleaseTrain {
         attribute :>> profile = "lambda-aitia/sdlc";
         attribute :>> pushRemote = "origin";
         attribute :>> pushBookmark = "reviewed";
+        attribute :>> interfacePaths = ("include/protocol.h");
     }
 
     part ledgerCore : WorkspaceRepo {

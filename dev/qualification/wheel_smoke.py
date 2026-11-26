@@ -32,7 +32,8 @@ assert "gitops.jj.push-reviewed" in cap_names
 assert "gitops.jj.prepare-description" in cap_names
 assert "gitops.jj.apply-description" in cap_names
 assert "python.observe-pytest" in cap_names
-assert len(cap_names) == 12
+assert "interface.project-digest" in cap_names
+assert len(cap_names) == 13
 
 # Fail-closed check: dispatching a fenced-effect frame without a fenceToken MUST raise RuntimeError
 try:
@@ -642,8 +643,9 @@ assert st == 0, text
 caps = json.loads(text)
 assert caps["actionAuthorized"] is False
 cap_ids = {c["capability"] for c in caps["capabilities"]}
-assert len(cap_ids) == 12
+assert len(cap_ids) == 13
 assert "python.observe-pytest" in cap_ids
+assert "interface.project-digest" in cap_ids
 assert "gitops.jj.push-reviewed" in cap_ids
 
 bad_frame = json.dumps([{"capability": "gitops.jj.apply-description", "effectClass": "fenced-effect", "payload": {}}]).encode()
