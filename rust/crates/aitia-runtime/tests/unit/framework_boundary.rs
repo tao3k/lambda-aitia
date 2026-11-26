@@ -3,26 +3,29 @@
 
 //! Executable architectural boundary gate for `aitia-runtime`.
 //!
-//! Enforces the thin Rust Host Capability Frame Mapper design so future agents
-//! keep higher-order workflow orchestration, scope merging, and semantic policy
-//! in Scheme (POO + ASCENT + FunFlow) and SysML v2 rather than growing bespoke
-//! imperative pipelines in Rust.
+//! Enforces:
+//! 1. Thin CLI adapter layer (`src/cli/` contains ONLY argument parsing & I/O, never domain logic).
+//! 2. Flat Host Capability Frame Mapper (`src/capability/`) with bidirectional Rust ↔ SysML parity.
+//! 3. Zero scope merging or naming-policy mutation in Rust (Scheme owns semantics).
 
 use aitia_runtime::{
     CapabilityError, CapabilityFrame, CapabilityId, HostCapability, HostCapabilityRegistry,
     HostEffectClass, HostReceipt,
 };
-use std::{collections::BTreeSet, fs, path::Path};
+use std::{
+    collections::BTreeSet,
+    fs,
+    path::{Path, PathBuf},
+};
 
 const ALLOWED_TOP_LEVEL_SRC_FILES: &[&str] = &[
-    "capability.rs",
-    "cli.rs",
-    "cli_commit.rs",
-    "cli_flow.rs",
+    "checks.rs",
     "lib.rs",
     "limits.rs",
     "org_edit.rs",
     "program.rs",
+    "project.rs",
+    "protocol.rs",
     "pytest.rs",
     "review_provider.rs",
     "session.rs",
@@ -30,67 +33,111 @@ const ALLOWED_TOP_LEVEL_SRC_FILES: &[&str] = &[
     "sysml.rs",
 ];
 
-// Monotonic shrinkage ratchet for legacy imperative CLI orchestration files.
-// As workflows migrate to Scheme FunFlow + HostCapabilityRegistry, lower these
-// ceilings rather than raising them.
+const ALLOWED_SRC_SUBDIRS: &[&str] = &["bin", "capability", "cli", "commit", "linked"];
+
+// Strict thin-CLI line ceilings: CLI files only parse args, read stdin, call runtime
+// library modules, and print stdout. Domain/orchestration logic belongs in core modules.
 const CLI_LINE_CEILINGS: &[(&str, usize)] = &[
-    ("cli.rs", 820),
-    ("cli_commit.rs", 845),
-    ("cli_flow.rs", 160),
+    ("cli/mod.rs", 20),
+    ("cli/dispatch.rs", 150),
+    ("cli/flow.rs", 75),
+    ("cli/jj.rs", 100),
 ];
+
+fn collect_rs_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    for entry in fs::read_dir(dir).expect("read rust source dir") {
+        let path = entry.expect("dir entry").path();
+        if path.is_dir() {
+            collect_rs_files(&path, out);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+            out.push(path);
+        }
+    }
+}
 
 #[test]
 fn rust_runtime_stays_within_approved_host_frame_mapper_topology() {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let src_dir = manifest_dir.join("src");
-    let allowed: BTreeSet<&str> = ALLOWED_TOP_LEVEL_SRC_FILES.iter().copied().collect();
+    let src_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let allowed_files: BTreeSet<&str> = ALLOWED_TOP_LEVEL_SRC_FILES.iter().copied().collect();
+    let allowed_dirs: BTreeSet<&str> = ALLOWED_SRC_SUBDIRS.iter().copied().collect();
 
-    let mut actual = BTreeSet::new();
+    let mut actual_dirs = BTreeSet::new();
     for entry in fs::read_dir(&src_dir).expect("read aitia-runtime/src") {
-        let entry = entry.expect("read dir entry");
-        let path = entry.path();
-        if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("rs") {
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .expect("utf-8 rust filename")
-                .to_owned();
+        let path = entry.expect("read dir entry").path();
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .expect("utf-8 filename")
+            .to_owned();
+        if path.is_dir() {
             assert!(
-                allowed.contains(name.as_str()),
-                "Unapproved module `src/{name}` in aitia-runtime: add new host effects as a \
-                 `HostCapability` in `src/capability.rs` and keep higher-order workflows in Scheme POO/ASCENT/FunFlow."
+                allowed_dirs.contains(name.as_str()),
+                "Unapproved directory `src/{name}` in aitia-runtime."
             );
-            actual.insert(name);
+            actual_dirs.insert(name);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+            assert!(
+                allowed_files.contains(name.as_str()),
+                "Unapproved module `src/{name}` in aitia-runtime: add new host effects under \
+                 `src/capability/` and keep higher-order workflows in Scheme POO/ASCENT/FunFlow."
+            );
         }
     }
     assert!(
-        actual.contains("capability.rs"),
-        "aitia-runtime must preserve src/capability.rs as the HostCapabilityRegistry boundary"
+        actual_dirs.contains("capability") && actual_dirs.contains("cli"),
+        "aitia-runtime must preserve src/capability/ and thin src/cli/ boundaries"
     );
 }
 
 #[test]
-fn legacy_imperative_cli_files_obey_monotonic_shrinkage_ratchet() {
+fn cli_layer_is_strictly_thin_and_contains_no_domain_logic() {
     let src_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     for &(file, ceiling) in CLI_LINE_CEILINGS {
         let text = fs::read_to_string(src_dir.join(file)).expect("read cli source file");
         let lines = text.lines().count();
         assert!(
             lines <= ceiling,
-            "src/{file} grew to {lines} lines (ceiling {ceiling}): do not add new imperative \
-             orchestration in Rust CLI files; author workflows in Scheme FunFlow and dispatch via HostCapabilityRegistry."
+            "src/{file} grew to {lines} lines (ceiling {ceiling}): keep CLI files strictly thin; \
+             place implementation logic in core runtime modules or Scheme."
         );
+    }
+
+    let forbidden_in_cli = [
+        "ring::signature",
+        "struct Governance",
+        "drive_scheme_protocol",
+        "observe_recorded_sources",
+        "audit_recorded_configuration",
+        "run_recorded_pytest",
+        "reopen_reviewed_description",
+        "push_reviewed_description",
+    ];
+    let mut cli_files = Vec::new();
+    collect_rs_files(&src_dir.join("cli"), &mut cli_files);
+    assert!(!cli_files.is_empty(), "src/cli/ must exist");
+    for path in cli_files {
+        let text = fs::read_to_string(&path).expect("read cli file");
+        for forbidden in forbidden_in_cli {
+            assert!(
+                !text.contains(forbidden),
+                "{} contains domain implementation `{forbidden}`; move implementation out of src/cli/.",
+                path.display()
+            );
+        }
     }
 }
 
 #[test]
 fn rust_does_not_mutate_scheme_naming_policy_or_merge_scopes() {
     let src_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    for file in ["cli.rs", "cli_commit.rs", "cli_flow.rs", "sysml.rs"] {
-        let text = fs::read_to_string(src_dir.join(file)).expect("read runtime source file");
+    let mut files = Vec::new();
+    collect_rs_files(&src_dir, &mut files);
+    for path in files {
+        let text = fs::read_to_string(&path).expect("read runtime source file");
         assert!(
             !text.contains("merge_sysml_scopes"),
-            "src/{file} must not merge SysML scopes into Scheme naming policy in Rust; forward raw `sysmlScopes` receipts to Scheme."
+            "{} must not merge SysML scopes into Scheme naming policy in Rust; forward raw `sysmlScopes` receipts to Scheme.",
+            path.display()
         );
     }
 }
@@ -120,19 +167,24 @@ fn sysml_v2_owns_project_commit_scopes_not_project_json() {
         "dev/sysml/project-architecture.sysml must declare `part def HostCapabilitySpec`"
     );
 
-    // Bidirectional parity gate: EVERY HostCapability registered in src/capability.rs
+    // Bidirectional parity gate: EVERY HostCapability registered under src/capability/
     // must be declared as a HostCapabilitySpec in dev/sysml/project-architecture.sysml,
     // and vice versa (0 undocumented or shadow host capabilities).
-    let capability_rs =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/capability.rs"))
-            .expect("read src/capability.rs");
+    let mut cap_files = Vec::new();
+    collect_rs_files(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src/capability"),
+        &mut cap_files,
+    );
     let mut rust_caps = BTreeSet::new();
-    let lines: Vec<&str> = capability_rs.lines().collect();
-    for window in lines.windows(2) {
-        if window[0].contains("fn capability_id(&self) -> &'static str") {
-            let trimmed = window[1].trim();
-            if let Some(id) = trimmed.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
-                rust_caps.insert(id.to_owned());
+    for path in cap_files {
+        let text = fs::read_to_string(&path).expect("read capability source");
+        let lines: Vec<&str> = text.lines().collect();
+        for window in lines.windows(2) {
+            if window[0].contains("fn capability_id(&self) -> &'static str") {
+                let trimmed = window[1].trim();
+                if let Some(id) = trimmed.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+                    rust_caps.insert(id.to_owned());
+                }
             }
         }
     }
@@ -146,7 +198,7 @@ fn sysml_v2_owns_project_commit_scopes_not_project_json() {
     }
     assert!(
         !rust_caps.is_empty(),
-        "src/capability.rs must register at least one HostCapability"
+        "src/capability/ must register at least one HostCapability"
     );
     assert_eq!(
         rust_caps, sysml_caps,

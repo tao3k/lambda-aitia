@@ -75,6 +75,26 @@ package AitiaProjectArchitecture {
         attribute :>> effectClass = "host-read";
     }
 
+    part jjPrepareDescriptionCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.prepare-description";
+        attribute :>> effectClass = "fenced-effect";
+    }
+
+    part jjApplyDescriptionCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.apply-description";
+        attribute :>> effectClass = "fenced-effect";
+    }
+
+    part jjReconcileDescriptionCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.reconcile-description";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part jjRecoverPushCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.recover-push";
+        attribute :>> effectClass = "host-read";
+    }
+
     part githubObservePrCapability : HostCapabilitySpec {
         attribute :>> capabilityId = "gitops.github.observe-pr";
         attribute :>> effectClass = "host-read";

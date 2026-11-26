@@ -1,0 +1,22 @@
+// SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+// SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+//! GitOps commit review, signed governance, archived evidence verification, and reviewed push.
+
+mod common;
+mod evidence;
+mod governance;
+mod push;
+mod review;
+
+pub(crate) use common::{
+    CommitOutcome, Result, check_execution_identity, description, dispatch_capability, err,
+    execute_commit_action, execute_decision_or_recover, project_id, proposal_binding,
+    review_context, review_cut_value, review_input_digest,
+};
+pub(crate) use evidence::evidence;
+pub(crate) use governance::{
+    Apply, CommitRecovery, apply, attach_revision, prepare, record, recover, recover_attempt,
+};
+pub(crate) use push::{push, recover_push};
+pub(crate) use review::{CommitNarration, CommitProposal, nasa_commit_report};

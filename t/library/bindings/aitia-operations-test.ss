@@ -199,7 +199,26 @@
                      (approvalLive #t)
                      (reconcile #t))))
              (step4 (read-aitia-json (aitia-workflow-protocol-step-payload req4)))
-             (rec4 (hash-get step4 "reconciliation")))
+             (rec4 (hash-get step4 "reconciliation"))
+             (req5
+              (json->string
+               (hash (caseId "aitia/case/gitops-commit")
+                     (project "lambda-aitia")
+                     (directory ".")
+                     (naming base-naming)
+                     (receipts receipts2)
+                     (proposals (vector (hash (identity "AITIA-RFC-0008")
+                                              (reference "RFC-0008")
+                                              (language "en")
+                                              (languageSource "README.md")
+                                              (type "feat")
+                                              (scope "gitops")
+                                              (summary "Add 4-state protocol")
+                                              (rationale "Scheme drives host frames"))))
+                     (approvalLive #t)
+                     (reconcile #f))))
+             (step5 (read-aitia-json (aitia-workflow-protocol-step-payload req5)))
+             (frames5 (hash-get step5 "frames")))
         ;; Round 1: Scheme requests missing host-read frames with zero authority
         (check (hash-get step1 "schema") => "lambda-aitia.workflow-protocol-step.v1")
         (check (hash-get step1 "state") => "need-host-frames")
@@ -213,11 +232,17 @@
         (check (hash-get rec2 "choiceStatus") => "unique-deduction")
         (check (hash-get rec2 "choiceWorldCount") => 1)
         (check (hash-get step2 "actionAuthorized") => #f)
-        ;; Round 2 (with approval): reaches quiescent fixed point with zero authority
+        ;; Round 2 (with approval + reconcile): reaches quiescent fixed point with zero authority
         (check (hash-get step3 "state") => "quiescent")
         (check (hash-get step3 "actionAuthorized") => #f)
         ;; Round 2 (human decision forbids sole scope): fails closed to unsatisfiable!
         (check (hash-get rec4 "choiceStatus") => "unsatisfiable")
         (check (hash-get rec4 "choiceWorldCount") => 0)
-        (check (hash-get step4 "actionAuthorized") => #f)))
+        (check (hash-get step4 "actionAuthorized") => #f)
+        ;; Round 2 (approved unique world before apply): emits fenced-effect frame with zero authority!
+        (check (hash-get step5 "state") => "need-fenced-frames")
+        (check (length frames5) => 1)
+        (check (hash-get (car frames5) "capability") => "gitops.jj.apply-description")
+        (check (hash-get (car frames5) "effectClass") => "fenced-effect")
+        (check (hash-get step5 "actionAuthorized") => #f)))
     ))

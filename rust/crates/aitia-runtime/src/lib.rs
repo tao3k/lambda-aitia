@@ -18,16 +18,22 @@ mod limits;
 use limits::MAX_REQUEST_BYTES;
 
 #[cfg(feature = "linked-program")]
+mod checks;
+#[cfg(feature = "linked-program")]
 mod cli;
 #[cfg(feature = "linked-program")]
-mod cli_commit;
+mod commit;
 #[cfg(feature = "linked-program")]
-mod cli_flow;
+mod project;
+#[cfg(feature = "linked-program")]
+mod protocol;
 #[cfg(feature = "linked-program")]
 mod review_provider;
 #[cfg(feature = "linked-program")]
 #[doc(hidden)]
 pub use cli::run_cli;
+#[cfg(feature = "linked-program")]
+pub use protocol::{DEFAULT_WORKFLOW_CASE, drive_scheme_protocol, execute_project_protocol};
 
 #[cfg(feature = "linked-program")]
 mod program;

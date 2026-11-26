@@ -54,7 +54,11 @@ fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn 
         cap_pairs,
         [
             ("gitops.github.observe-pr", "host-read"),
+            ("gitops.jj.apply-description", "fenced-effect"),
             ("gitops.jj.observe-cut", "host-read"),
+            ("gitops.jj.prepare-description", "fenced-effect"),
+            ("gitops.jj.reconcile-description", "host-read"),
+            ("gitops.jj.recover-push", "host-read"),
             ("sysml.parse-revision", "host-read"),
             ("sysml.parse-workspace", "host-read"),
             ("sysml.project-scopes", "host-read"),

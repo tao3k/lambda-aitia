@@ -229,6 +229,8 @@
       (hash-put! out 'requestedPaths (list->vector (.ref payload 'requested-paths))))
     (when (.slot? payload 'enabled)
       (hash-put! out 'enabled (.ref payload 'enabled)))
+    (when (.slot? payload 'commit)
+      (hash-put! out 'commit (.ref payload 'commit)))
     out))
 
 (def (host-frame->json frame)
