@@ -694,13 +694,28 @@ finally:
     assert rc == 0, f"aitia_session_close failed: {take_buf(close_err)}"
 """
 
+_aitia_mod_path = Path(_aitia_mod.__file__)
+if _aitia_mod_path.name == "__init__.py":
+    _native = getattr(_aitia_mod, "lambda_aitia_rust", None)
+    if _native is not None and getattr(_native, "__file__", None):
+        _aitia_cdylib = _native.__file__
+    else:
+        _cands = sorted(
+            p for p in _aitia_mod_path.parent.iterdir()
+            if p.suffix in (".so", ".dylib", ".pyd")
+        )
+        assert _cands, f"No native cdylib found next to {_aitia_mod_path}"
+        _aitia_cdylib = str(_cands[0])
+else:
+    _aitia_cdylib = str(_aitia_mod_path)
+
 c_abi_env = {
     k: v
     for k, v in os.environ.items()
     if k not in ("GERBIL_LOADPATH", "GERBIL_PATH", "GERBIL_HOME")
 }
 subprocess.run(
-    [sys.executable, "-c", c_abi_script, _aitia_mod.__file__],
+    [sys.executable, "-c", c_abi_script, _aitia_cdylib],
     env=c_abi_env,
     check=True,
 )
