@@ -486,4 +486,126 @@
         (check-equal? (.get sec-done profile) "lambda-aitia/sdlc/open-security")
         (check-equal? (.get sec-done action-authorized?) #f)
         (check-equal? (.get nasa-open state) 'need-agent-synthesis)
-        (check-equal? (length (.get nasa-open repair-tasks)) 3)))))
+        (check-equal? (length (.get nasa-open repair-tasks)) 3)))
+
+    (test-case "7. Multi-Repo GitOps: topological waves, cycle rejection, cross-repo pin-drift decay, and staged convergence"
+      (let* ((core-cut
+              (.o project: "tao3k/core"
+                  workspace: "default"
+                  change: "core1111"
+                  operation: "op-core-1"
+                  commit: "core-sha-new-222"
+                  tree: "tree-core"
+                  parents: '("core-sha-old-111")))
+             (app-cut
+              (.o project: "tao3k/app"
+                  workspace: "default"
+                  change: "app2222"
+                  operation: "op-app-1"
+                  commit: "app-sha-111"
+                  tree: "tree-app"
+                  parents: '("app-sha-000")))
+             (core-sources
+              (list (.o path: "README.org" text: "* Core\nEnglish project readme.\n" cut: core-cut)
+                    (.o path: "docs/rfcs/0008-ascent-obligation-funflow-dag.org"
+                        text: "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n"
+                        cut: core-cut)))
+             (app-sources
+              (list (.o path: "README.org" text: "* App\nEnglish project readme.\n" cut: app-cut)
+                    (.o path: "docs/rfcs/0008-ascent-obligation-funflow-dag.org"
+                        text: "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n"
+                        cut: app-cut)))
+             ;; A. Dependency cycle fails closed to need-human-decision (dependency-cycle)
+             (s-cycle
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "a") (depends-on := '("b")))
+                                   (.o (repo-id := "b") (depends-on := '("a"))))))))
+             ;; B. Unknown upstream dependency fails closed
+             (s-unknown
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "app") (depends-on := '("missing-upstream"))))))))
+             ;; C. Missing HostRead receipts fan out across ALL repos with repo-qualified receiptKeys
+             (s-probe
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "core") (directory := "/tmp/core") (depends-on := '()))
+                                   (.o (repo-id := "app") (directory := "/tmp/app") (depends-on := '("core"))))))))
+             ;; D. Cross-repo pin drift: app pins core-sha-old-111 while core is at core-sha-new-222 -> localized repairTask!
+             (s-drift
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "core")
+                                       (directory := "/tmp/core")
+                                       (depends-on := '())
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())))
+                                       (naming := test-naming) (cut := core-cut) (sources := core-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #t))
+                                   (.o (repo-id := "app")
+                                       (directory := "/tmp/app")
+                                       (depends-on := '("core"))
+                                       (pinned-upstream-commits := '(("core" . "core-sha-old-111")))
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())))
+                                       (naming := test-naming) (cut := app-cut) (sources := app-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #t)))))))
+             ;; E. Aligned pins, Wave 0 (core) ready for fenced apply while Wave 1 (app) stays blocked-on-upstream!
+             (s-wave0
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "core")
+                                       (directory := "/tmp/core")
+                                       (depends-on := '())
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())))
+                                       (naming := test-naming) (cut := core-cut) (sources := core-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #f))
+                                   (.o (repo-id := "app")
+                                       (directory := "/tmp/app")
+                                       (depends-on := '("core"))
+                                       (pinned-upstream-commits := '(("core" . "core-sha-new-222")))
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())))
+                                       (naming := test-naming) (cut := app-cut) (sources := app-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #f)))))))
+             ;; F. Both Wave 0 and Wave 1 quiescent -> global quiescent!
+             (s-done
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos := (list (.o (repo-id := "core")
+                                       (directory := "/tmp/core")
+                                       (depends-on := '())
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())
+                                                        (jj-apply-description := (hash ("resulting_commit" "core-sha-new-222")))))
+                                       (naming := test-naming) (cut := core-cut) (sources := core-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #t))
+                                   (.o (repo-id := "app")
+                                       (directory := "/tmp/app")
+                                       (depends-on := '("core"))
+                                       (pinned-upstream-commits := '(("core" . "core-sha-new-222")))
+                                       (receipts := (.o (jj-observe-cut := #t) (sysml-project-scopes := '())
+                                                        (jj-apply-description := (hash ("resulting_commit" "app-sha-222")))))
+                                       (naming := test-naming) (cut := app-cut) (sources := app-sources)
+                                       (paths := '("justfile")) (proposals := (list valid-proposal))
+                                       (approval-live? := #t) (reconcile? := #t))))))))
+        (check-equal? (.get s-cycle state) 'need-human-decision)
+        (check-equal? (.get s-cycle escalation-reason) 'dependency-cycle)
+        (check-equal? (.get s-unknown state) 'need-human-decision)
+        (check-equal? (.get s-unknown escalation-reason) 'unknown-repo-dependency)
+        (check-equal? (.get s-probe state) 'need-host-frames)
+        (check-equal? (.ref s-probe 'waves) '(("core") ("app")))
+        (check-equal? (length (.get s-probe frames)) 4)
+        (check-equal? (.get s-drift state) 'need-agent-synthesis)
+        (check-equal? (.get s-drift escalation-reason) 'cross-repo-pin-drift)
+        (check-equal? (length (.get s-drift repair-tasks)) 1)
+        (check-equal? (.get (car (.get s-drift repair-tasks)) recompute-scope) 'cross-repo-pin-drift)
+        (check-equal? (.get (car (.get s-drift repair-tasks)) preserved-supported-obligations) '("core"))
+        (check-equal? (.get s-wave0 state) 'need-fenced-frames)
+        ;; Only Wave 0 ("core") emits a fenced frame; Wave 1 ("app") MUST remain blocked on upstream!
+        (check-equal? (length (.get s-wave0 frames)) 1)
+        (check-equal? (.ref (car (.get s-wave0 frames)) 'repo-id) "core")
+        (check-equal? (.get s-done state) 'quiescent)
+        (check-equal? (.get s-done action-authorized?) #f)))))

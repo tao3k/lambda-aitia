@@ -10,7 +10,43 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from lambda_aitia_rust import OrgEdit, OrgEditReview, Session, capture_source_tree, run_frozen_pytest
+from lambda_aitia_rust import (
+    OrgEdit,
+    OrgEditReview,
+    Session,
+    capture_source_tree,
+    dispatch_host_frames,
+    host_capabilities,
+    run_frozen_pytest,
+)
+
+caps = json.loads(host_capabilities())
+assert caps["schema"] == "lambda-aitia.host-capabilities.v1"
+assert caps["actionAuthorized"] is False
+cap_names = {entry["capability"] for entry in caps["capabilities"]}
+assert "gitops.jj.push-reviewed" in cap_names
+assert "gitops.jj.prepare-description" in cap_names
+assert "gitops.jj.apply-description" in cap_names
+assert len(cap_names) == 11
+
+# Fail-closed check: dispatching a fenced-effect frame without a fenceToken MUST raise RuntimeError
+try:
+    dispatch_host_frames(
+        json.dumps(
+            [
+                {
+                    "capability": "gitops.jj.push-reviewed",
+                    "effectClass": "fenced-effect",
+                    "receiptKey": "gitops.jj.push-reviewed",
+                    "payload": {},
+                }
+            ]
+        )
+    )
+except RuntimeError:
+    pass
+else:
+    raise AssertionError("dispatch_host_frames accepted an unfenced FencedEffect frame")
 
 
 with TemporaryDirectory() as directory:
@@ -288,6 +324,151 @@ try:
     assert step2["reconciliation"]["choiceStatus"] == "unique-deduction"
     assert step2["reconciliation"]["choiceWorldCount"] == 1
     assert step2["actionAuthorized"] is False
+
+    # Multi-profile SDLC lifecycle protocol from Python Session
+    sdlc_step = json.loads(
+        session.workflow_protocol_step(
+            json.dumps(
+                {
+                    "caseId": "aitia/case/sdlc-lifecycle",
+                    "project": "lambda-aitia",
+                    "profile": "lambda-aitia/sdlc/open-security",
+                    "changeId": "change:wheel-sec-1",
+                    "designAlternatives": ["design-zero-trust"],
+                    "verified": True,
+                    "observedObligations": ["sec.sbom-provenance"],
+                    "repairRound": 1,
+                    "maxRepairRounds": 3,
+                }
+            )
+        )
+    )
+    assert sdlc_step["profile"] == "lambda-aitia/sdlc/open-security"
+    assert sdlc_step["state"] == "need-agent-synthesis"
+    assert len(sdlc_step["repairTasks"]) == 2
+    assert sdlc_step["actionAuthorized"] is False
+
+    # Multi-repo GitOps orchestration inside the SAME live Python Session:
+    # 1) Dependency cycle fails closed
+    cycle_res = json.loads(
+        session.drive_multi_repo_protocol(
+            json.dumps(
+                {
+                    "repos": [
+                        {"repoId": "repo-a", "dependsOn": ["repo-b"]},
+                        {"repoId": "repo-b", "dependsOn": ["repo-a"]},
+                    ]
+                }
+            )
+        )
+    )
+    assert cycle_res["state"] == "need-human-decision"
+    assert cycle_res["escalationReason"] == "dependency-cycle"
+    assert cycle_res["actionAuthorized"] is False
+
+    # 2) Cross-repo pin drift emits localized Schwarz repairTask preserving unaffected upstream
+    drift_res = json.loads(
+        session.workflow_protocol_step(
+            json.dumps(
+                {
+                    "caseId": "aitia/case/multi-repo-gitops",
+                    "project": "multi-repo-wheel",
+                    "receipts": {
+                        "repo:core:gitops.jj.observe-cut": {
+                            "cut": {
+                                "workspace": "default",
+                                "change": "c1",
+                                "operation": "op1",
+                                "commit": "core-new-sha",
+                                "tree": "t1",
+                                "parents": ["p0"],
+                            },
+                            "paths": ["modules/workflow/reconcile.ss"],
+                            "sources": [
+                                {"path": "README.md", "text": "English readme.\n"},
+                                {
+                                    "path": "docs/rfcs/0008.org",
+                                    "text": "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n",
+                                },
+                            ],
+                        },
+                        "repo:core:sysml.project-scopes": [
+                            {"name": "gitops", "paths": ["modules/workflow"]}
+                        ],
+                        "repo:app:gitops.jj.observe-cut": {
+                            "cut": {
+                                "workspace": "default",
+                                "change": "a1",
+                                "operation": "op2",
+                                "commit": "app-sha-1",
+                                "tree": "t2",
+                                "parents": ["p1"],
+                            },
+                            "paths": ["modules/workflow/reconcile.ss"],
+                            "sources": [
+                                {"path": "README.md", "text": "English readme.\n"},
+                                {
+                                    "path": "docs/rfcs/0008.org",
+                                    "text": "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n",
+                                },
+                            ],
+                        },
+                        "repo:app:sysml.project-scopes": [
+                            {"name": "gitops", "paths": ["modules/workflow"]}
+                        ],
+                    },
+                    "repos": [
+                        {
+                            "repoId": "core",
+                            "directory": ".",
+                            "dependsOn": [],
+                            "naming": protocol_naming,
+                            "proposals": [
+                                {
+                                    "identity": "AITIA-RFC-0008",
+                                    "reference": "RFC-0008",
+                                    "language": "en",
+                                    "languageSource": "README.md",
+                                    "type": "feat",
+                                    "scope": "gitops",
+                                    "summary": "Core upstream change",
+                                    "rationale": "Upstream repo.",
+                                }
+                            ],
+                            "approvalLive": True,
+                        },
+                        {
+                            "repoId": "app",
+                            "directory": ".",
+                            "dependsOn": ["core"],
+                            "pinnedUpstreamCommits": {"core": "core-stale-sha"},
+                            "naming": protocol_naming,
+                            "proposals": [
+                                {
+                                    "identity": "AITIA-RFC-0008",
+                                    "reference": "RFC-0008",
+                                    "language": "en",
+                                    "languageSource": "README.md",
+                                    "type": "feat",
+                                    "scope": "gitops",
+                                    "summary": "Downstream app change",
+                                    "rationale": "Downstream repo.",
+                                }
+                            ],
+                            "approvalLive": True,
+                        },
+                    ],
+                }
+            )
+        )
+    )
+    assert drift_res["state"] == "need-agent-synthesis"
+    assert drift_res["escalationReason"] == "cross-repo-pin-drift"
+    assert drift_res["waves"] == [["core"], ["app"]]
+    assert len(drift_res["pinDrifts"]) == 1
+    assert drift_res["repairTasks"][0]["recomputeScope"] == "cross-repo-pin-drift"
+    assert drift_res["repairTasks"][0]["preservedSupportedObligations"] == ["core"]
+    assert drift_res["actionAuthorized"] is False
 finally:
     session.close()
 

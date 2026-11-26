@@ -34,8 +34,9 @@ mod review_provider;
 pub use cli::run_cli;
 #[cfg(feature = "linked-program")]
 pub use protocol::{
-    DEFAULT_WORKFLOW_CASE, drive_scheme_protocol, execute_project_protocol,
-    execute_project_protocol_fenced,
+    DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
+    drive_multi_repo_protocol, drive_scheme_protocol, execute_multi_repo_protocol,
+    execute_project_protocol, execute_project_protocol_fenced, host_capabilities_json,
 };
 
 #[cfg(feature = "linked-program")]

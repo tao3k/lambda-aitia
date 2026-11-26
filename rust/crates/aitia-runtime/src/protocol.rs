@@ -17,6 +17,42 @@ const MAX_PROTOCOL_ROUNDS: usize = 8;
 /// Default Scheme workflow case identifier for GitOps commit reconciliation.
 pub const DEFAULT_WORKFLOW_CASE: &str = "aitia/case/gitops-commit";
 
+/// Scheme workflow case identifier for Multi-Repository GitOps wave orchestration.
+pub const MULTI_REPO_WORKFLOW_CASE: &str = "aitia/case/multi-repo-gitops";
+
+/// Return the JSON envelope listing all registered host capabilities and effect classes.
+///
+/// # Errors
+/// Returns an error if serialization fails.
+pub fn host_capabilities_json() -> Result<String, String> {
+    serde_json::to_string(&HostCapabilityRegistry::default_linked().descriptors_json())
+        .map_err(|error| error.to_string())
+}
+
+/// Validate and dispatch a JSON array of Scheme-emitted host capability frames.
+///
+/// Fails closed on unknown capabilities, effect-class mismatches, or missing fence tokens.
+///
+/// # Errors
+/// Returns an error string on invalid JSON or failed capability validation/execution.
+pub fn dispatch_host_frames_json(frames_json: &str) -> Result<String, String> {
+    let frames: Vec<Value> =
+        serde_json::from_str(frames_json).map_err(|error| error.to_string())?;
+    let registry = HostCapabilityRegistry::default_linked();
+    let pairs = registry
+        .dispatch_protocol_frames(&frames)
+        .map_err(|error| error.to_string())?;
+    let mut receipts = serde_json::Map::new();
+    for (key, payload) in pairs {
+        receipts.insert(key, payload);
+    }
+    serde_json::to_string(&json!({
+        "receipts": receipts,
+        "actionAuthorized": false,
+    }))
+    .map_err(|error| error.to_string())
+}
+
 /// Execute the Scheme-driven 5-state workflow protocol (planning / read-only probes only).
 ///
 /// # Errors
@@ -26,7 +62,166 @@ pub fn execute_project_protocol(
     case_id: &str,
     overlay: Option<&Value>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
+    if case_id == MULTI_REPO_WORKFLOW_CASE {
+        let req = overlay.ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Multi-repo protocol requires a JSON manifest on stdin",
+            )
+        })?;
+        return execute_multi_repo_protocol(req, false);
+    }
     execute_project_protocol_inner(case_id, overlay, false)
+}
+
+/// Execute the Scheme-driven multi-repository GitOps 5-state IoC protocol in one linked session.
+///
+/// Automatically observes each repository directory's recorded project configuration, dispatches
+/// Scheme-emitted `HostRead` frames across all repositories via [`HostCapabilityRegistry`], and
+/// only executes `FencedEffect` frames when `execute_fenced` is explicitly `true`.
+///
+/// # Errors
+/// Fails closed if any repository configuration cannot be projected, frame dispatch fails, or
+/// the protocol round budget is exceeded.
+pub fn execute_multi_repo_protocol(
+    request: &Value,
+    execute_fenced: bool,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let req = request.clone();
+    with_linked_program(|program| Ok(drive_multi_repo_protocol(&program, &req, execute_fenced)))?
+}
+
+/// Drive the multi-repository 5-state IoC protocol using an already-live [`AitiaProgram`] session.
+///
+/// # Errors
+/// Fails closed if the manifest is malformed, a repository configuration fails projection,
+/// capability dispatch fails, or the protocol round budget is exceeded.
+pub fn drive_multi_repo_protocol(
+    program: &AitiaProgram<'_>,
+    request: &Value,
+    execute_fenced: bool,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let mut state = request.clone();
+    let root_obj = state.as_object_mut().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Multi-repo request must be a JSON object",
+        )
+    })?;
+    root_obj
+        .entry("caseId".to_owned())
+        .or_insert_with(|| json!(MULTI_REPO_WORKFLOW_CASE));
+    root_obj
+        .entry("project".to_owned())
+        .or_insert_with(|| json!("multi-repo-workspace"));
+    root_obj
+        .entry("receipts".to_owned())
+        .or_insert_with(|| json!({}));
+
+    if let Some(repos) = root_obj.get_mut("repos").and_then(Value::as_array_mut) {
+        for repo in repos.iter_mut() {
+            let Some(repo_obj) = repo.as_object_mut() else {
+                continue;
+            };
+            let needs_hydrate = repo_obj.get("naming").is_none()
+                || repo_obj.get("requestedPaths").is_none()
+                || (execute_fenced
+                    && repo_obj.get("draft").is_some()
+                    && repo_obj.get("fencedCommitSpec").is_none());
+            if !needs_hydrate {
+                continue;
+            }
+            let Some(dir_str) = repo_obj
+                .get("directory")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+            else {
+                continue;
+            };
+            let dir_path = Path::new(&dir_str);
+            if !dir_path.join(".jj").exists() {
+                continue;
+            }
+            let observed = observe_project_sources(dir_path, usize::try_from(MAX_REQUEST_BYTES)?)?;
+            let (_, projection) = program
+                .resolve_project_config(&project::recorded_configuration_input(&observed.1)?)?;
+            let cfg = project::decode_configuration_projection(&projection)?;
+            if let Some(policy) = cfg.commit.as_ref() {
+                repo_obj
+                    .entry("project".to_owned())
+                    .or_insert_with(|| policy["project"].clone());
+                repo_obj
+                    .entry("profile".to_owned())
+                    .or_insert_with(|| policy["profile"].clone());
+                repo_obj
+                    .entry("checks".to_owned())
+                    .or_insert_with(|| policy["checks"].clone());
+                repo_obj
+                    .entry("naming".to_owned())
+                    .or_insert_with(|| policy["naming"].clone());
+                repo_obj
+                    .entry("modelCheckEnabled".to_owned())
+                    .or_insert_with(|| json!(cfg.model_check_enabled()));
+                if repo_obj.get("requestedPaths").is_none() {
+                    repo_obj.insert(
+                        "requestedPaths".to_owned(),
+                        json!(project::review_source_paths(policy)?),
+                    );
+                }
+            }
+            if execute_fenced
+                && repo_obj.get("draft").is_some()
+                && repo_obj.get("fencedCommitSpec").is_none()
+            {
+                let overlay_val = Value::Object(repo_obj.clone());
+                let (_, fenced_spec, proposal_json, _) =
+                    verify_fenced_commit_draft(program, observed, Some(&overlay_val))?;
+                repo_obj.insert("fencedCommitSpec".to_owned(), fenced_spec);
+                if repo_obj
+                    .get("proposals")
+                    .and_then(Value::as_array)
+                    .is_none_or(Vec::is_empty)
+                {
+                    repo_obj.insert("proposals".to_owned(), json!([proposal_json]));
+                }
+                repo_obj.insert("reconcile".to_owned(), json!(false));
+            }
+        }
+    }
+
+    let registry = HostCapabilityRegistry::default_linked();
+    let max_rounds = MAX_PROTOCOL_ROUNDS * 2;
+    for _ in 0..max_rounds {
+        let req = serde_json::to_string(&state)?;
+        let step: Value = serde_json::from_str(&program.workflow_protocol_step(&req)?)?;
+        let state_name = step["state"].as_str();
+        let should_dispatch = state_name == Some("need-host-frames")
+            || (execute_fenced && state_name == Some("need-fenced-frames"));
+        if !should_dispatch {
+            return Ok(step);
+        }
+        let raw_frames = step["frames"]
+            .as_array()
+            .ok_or_else(|| io::Error::other("Scheme protocol step missing frames array"))?;
+        let map = state["receipts"]
+            .as_object_mut()
+            .ok_or_else(|| io::Error::other("protocol receipts must be an object"))?;
+        for (key, payload) in registry.dispatch_protocol_frames(raw_frames)? {
+            map.insert(key, payload);
+        }
+        let receipts_snapshot = state["receipts"].clone();
+        if let Some(repos) = state.get_mut("repos").and_then(Value::as_array_mut) {
+            for repo in repos.iter_mut() {
+                if let Some(rid) = repo.get("repoId").and_then(Value::as_str) {
+                    let apply_key = format!("repo:{rid}:gitops.jj.apply-description");
+                    if receipts_snapshot.get(&apply_key).is_some() {
+                        repo["reconcile"] = json!(true);
+                    }
+                }
+            }
+        }
+    }
+    Err(io::Error::other("multi-repo workflow protocol exceeded host frame round budget").into())
 }
 
 /// Execute the Scheme-driven 5-state workflow protocol with explicit opt-in fenced execution.

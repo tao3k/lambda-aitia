@@ -26,7 +26,9 @@
                  workflow-sdlc-lifecycle-graph
                  workflow-reconcile-frontier
                  workflow-admit-proposal
-                 workflow-reconcile))
+                 workflow-reconcile)
+        (only-in "./multi-repo.ss"
+                 workflow-plan-multi-repo-step))
 
 (export workflow-plan-protocol-step)
 
@@ -302,9 +304,14 @@
   (unless (object? ctx)
     (error "workflow-plan-protocol-step expects a POO protocol context" ctx))
   (let ((case-id (opt-ref ctx 'case-id 'aitia/case/gitops-commit)))
-    (if (or (eq? case-id 'aitia/case/sdlc-lifecycle)
-            (equal? case-id "aitia/case/sdlc-lifecycle"))
-      (plan-sdlc-lifecycle-step ctx)
+    (cond
+     ((or (eq? case-id 'aitia/case/sdlc-lifecycle)
+          (equal? case-id "aitia/case/sdlc-lifecycle"))
+      (plan-sdlc-lifecycle-step ctx))
+     ((or (eq? case-id 'aitia/case/multi-repo-gitops)
+          (equal? case-id "aitia/case/multi-repo-gitops"))
+      (workflow-plan-multi-repo-step ctx workflow-plan-protocol-step))
+     (else
       (let* ((profile (opt-ref ctx 'profile "lambda-aitia/sdlc"))
              (required-checks (opt-ref ctx 'required-checks #f))
              (directory (opt-ref ctx 'directory "."))
@@ -439,4 +446,4 @@
                     (report := report)
                     (final-frontier := final-frontier)
                     (proposal-admission := proposal-res)
-                    (action-authorized? := #f))))))))))
+                    (action-authorized? := #f)))))))))))

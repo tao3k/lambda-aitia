@@ -14,6 +14,7 @@
         SdlcLifecycleWorkflowDomain.
         SdlcOpenSecurityWorkflowDomain.
         SdlcNasaLifecycleWorkflowDomain.
+        MultiRepoGitOpsWorkflowDomain.
         ChoiceFlowPlan.)
 
 (.def AitiaWorkflowDomain.
@@ -94,6 +95,17 @@
                     "SWE-065"
                     "SWE-084"
                     "sdlc.release-approved"))
+
+;;; Multi-Repository GitOps wave orchestration domain (Bernstein-disjoint waves + pin-drift decay).
+(.def (MultiRepoGitOpsWorkflowDomain. @ AitiaWorkflowDomain.)
+  domain-id: 'aitia/multi-repo-gitops
+  profile-id: "lambda-aitia/sdlc"
+  obligation-ids: '("multi-repo.dependency-dag-acyclic"
+                    "multi-repo.upstream-pins-aligned"
+                    "multi-repo.all-repos-quiescent")
+  synthesis-hole-id: "hole:multi-repo-pin-drift-or-narration"
+  human-gate-obligation: "multi-repo.all-repos-approved"
+  fenced-effect-obligation: "multi-repo.all-repos-applied")
 
 ;;; Declarative POO prototype for Finite-Choice -> Typed FunFlow routing
 ;;; (the Coproduct/ArrowChoice dual of FunFlow's Product `flow-fanout`).

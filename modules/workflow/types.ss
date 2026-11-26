@@ -271,6 +271,7 @@
                sdlc-lifecycle-domain: [WorkflowDomainProfileType]
                sdlc-open-security-domain: [WorkflowDomainProfileType]
                sdlc-nasa-lifecycle-domain: [WorkflowDomainProfileType]
+               multi-repo-gitops-domain: [WorkflowDomainProfileType]
                choice-flow-plan-prototype: [ChoiceFlowPlanType]
                profiles: [Object]
                domain?: [WorkflowObjectPredicate]

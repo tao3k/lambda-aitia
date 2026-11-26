@@ -54,6 +54,26 @@ impl PythonSession {
         self.call(py, request, AitiaSession::workflow_protocol_step)
     }
 
+    #[pyo3(signature = (request, execute_fenced=false))]
+    fn drive_multi_repo_protocol(
+        &self,
+        py: Python<'_>,
+        request: String,
+        execute_fenced: bool,
+    ) -> PyResult<String> {
+        py.detach(|| {
+            let session = self
+                .session
+                .lock()
+                .map_err(|_| PyRuntimeError::new_err(SessionError::OwnerPanicked.to_string()))?;
+            let live = session
+                .as_ref()
+                .ok_or_else(|| PyRuntimeError::new_err(SessionError::OwnerStopped.to_string()))?;
+            live.drive_multi_repo_protocol(request, execute_fenced)
+                .map_err(PyRuntimeError::new_err)
+        })
+    }
+
     fn close(&self, py: Python<'_>) -> PyResult<()> {
         py.detach(|| {
             let mut session = self
@@ -86,6 +106,18 @@ impl PythonSession {
 
 fn runtime_error(error: SessionError) -> PyErr {
     PyRuntimeError::new_err(error.to_string())
+}
+
+#[pyo3::pyfunction]
+fn host_capabilities() -> PyResult<String> {
+    aitia_runtime::host_capabilities_json().map_err(PyRuntimeError::new_err)
+}
+
+#[pyo3::pyfunction]
+fn dispatch_host_frames(py: Python<'_>, frames_json: String) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::dispatch_host_frames_json(&frames_json).map_err(PyRuntimeError::new_err)
+    })
 }
 
 #[cfg(unix)]
@@ -235,6 +267,8 @@ impl PythonOrgEditReview {
 
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(dispatch_host_frames, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

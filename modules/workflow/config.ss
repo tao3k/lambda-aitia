@@ -12,6 +12,7 @@
         GitOpsCommitCaseProfile.
         UnscopedScopeAuditCaseProfile.
         SdlcLifecycleCaseProfile.
+        MultiRepoGitOpsCaseProfile.
         WorkflowCaseProfiles.)
 
 ;;; Role: `config.ss` owns Profile & Case DAG/Flow composition via pure POO
@@ -48,10 +49,17 @@
   plan-protocol-step: workflow-plan-protocol-step
   reconcile: workflow-reconcile)
 
+(.def (MultiRepoGitOpsCaseProfile. @ MultiRepoGitOpsWorkflowDomain.)
+  case-id: 'aitia/case/multi-repo-gitops
+  state-budget: 32
+  allow-fenced-in-competition?: #f
+  plan-protocol-step: workflow-plan-protocol-step)
+
 (.def WorkflowCaseProfiles.
   gitops-commit: GitOpsCommitCaseProfile.
   unscoped-scope-audit: UnscopedScopeAuditCaseProfile.
-  sdlc-lifecycle: SdlcLifecycleCaseProfile.)
+  sdlc-lifecycle: SdlcLifecycleCaseProfile.
+  multi-repo-gitops: MultiRepoGitOpsCaseProfile.)
 
 (def Config
   (.o domain-prototype: AitiaWorkflowDomain.
@@ -60,6 +68,7 @@
       sdlc-lifecycle-domain: SdlcLifecycleWorkflowDomain.
       sdlc-open-security-domain: SdlcOpenSecurityWorkflowDomain.
       sdlc-nasa-lifecycle-domain: SdlcNasaLifecycleWorkflowDomain.
+      multi-repo-gitops-domain: MultiRepoGitOpsWorkflowDomain.
       choice-flow-plan-prototype: ChoiceFlowPlan.
       profiles: WorkflowCaseProfiles.
       domain?: workflow-domain-profile?

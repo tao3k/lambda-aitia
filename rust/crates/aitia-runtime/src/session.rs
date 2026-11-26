@@ -150,13 +150,36 @@ impl AitiaSession {
         self.call_string(move |program| program.workflow_reconcile(&payload))
     }
 
-    /// Execute one Scheme-owned 4-state inversion-of-control workflow protocol step.
+    /// Execute one Scheme-owned 5-state inversion-of-control workflow protocol step.
     ///
     /// # Errors
     ///
     /// Returns an operation or owner failure.
     pub fn workflow_protocol_step(&self, payload: String) -> Result<String, SessionError> {
         self.call_string(move |program| program.workflow_protocol_step(&payload))
+    }
+
+    /// Drive the Scheme-owned multi-repository GitOps 5-state IoC protocol inside this
+    /// live session without re-initializing the Gambit runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns a session or protocol failure string when the manifest is invalid,
+    /// capability dispatch fails, or the session is closed.
+    pub fn drive_multi_repo_protocol(
+        &self,
+        request_json: String,
+        execute_fenced: bool,
+    ) -> Result<String, String> {
+        let request: serde_json::Value =
+            serde_json::from_str(&request_json).map_err(|error| error.to_string())?;
+        let step = self
+            .execute(move |program| {
+                crate::drive_multi_repo_protocol(program, &request, execute_fenced)
+                    .map_err(|error| error.to_string())
+            })
+            .map_err(|error| error.to_string())??;
+        serde_json::to_string(&step).map_err(|error| error.to_string())
     }
 
     /// End the session and wait for Scheme cleanup.
