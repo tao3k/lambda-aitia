@@ -33,6 +33,8 @@ mod review_provider;
 #[doc(hidden)]
 pub use cli::run_cli;
 #[cfg(feature = "linked-program")]
+pub use commit::governance::{mint_release_attestation_bundle, verify_release_attestation_bundle};
+#[cfg(feature = "linked-program")]
 pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
     drive_multi_repo_protocol, drive_scheme_protocol, drive_single_repo_protocol,

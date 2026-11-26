@@ -245,6 +245,20 @@ pub fn drive_multi_repo_protocol(
         }
         _ => None,
     };
+    if let Some(raw_bundle) = root_obj.get("priorAttestationBundle").cloned()
+        && !raw_bundle.is_null()
+    {
+        let verified_keys = commit::governance::verify_release_attestation_bundle(&raw_bundle)?;
+        root_obj.insert("attestedVerificationKeys".to_owned(), json!(verified_keys));
+    }
+    let emit_attestation = root_obj
+        .get("emitAttestation")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let attestation_seed = root_obj
+        .get("attestationSigningSeed")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let checkpoint_path = root_obj
         .get("checkpointPath")
         .and_then(Value::as_str)
@@ -295,6 +309,12 @@ pub fn drive_multi_repo_protocol(
             }
             if let Some(decision) = verified_decision {
                 step["verifiedHumanDecision"] = decision;
+            }
+            if emit_attestation && state_name.as_deref() == Some("quiescent") {
+                step["releaseAttestation"] = commit::governance::mint_release_attestation_bundle(
+                    &step,
+                    attestation_seed.as_deref(),
+                )?;
             }
             if let Some(path) = checkpoint_path.as_deref() {
                 let persisted = persist_multi_repo_checkpoint(

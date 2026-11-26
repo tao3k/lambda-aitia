@@ -40,3 +40,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.checkpointPreventsDuplicatePublish
 #print axioms GitOps.appliedDecisionCannotReplay
 #print axioms GitOps.semanticAstEquivalencePreservesCutoff
+#print axioms GitOps.attestationCacheHitRequiresMatchingKey
+#print axioms GitOps.staleUpstreamInterfaceInvalidatesCache
+#print axioms GitOps.forgedAttestationSignatureRejected
+#print axioms GitOps.incompleteWaveBundleRejected

@@ -351,6 +351,7 @@ def main() -> None:
         checkpoint_file = root / "diamond-train.checkpoint.json"
         cascade_overlay = {
             "checkpointPath": str(checkpoint_file),
+            "emitAttestation": True,
             "repos": [
                 {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
                 for rid, *_ in specs
@@ -453,6 +454,78 @@ def main() -> None:
         assert repo_states["node-runner"] == "blocked-on-upstream", repo_states
         assert midwave_doc["actionAuthorized"] is False
 
+        # Scenario E: RFC 0010 Proof-Carrying Release Attestation (in-toto/SLSA) + Adapton/Salsa Cache Reuse
+        att = exec_doc["releaseAttestation"]
+        assert att["schema"] == "lambda-aitia.release-attestation-bundle.v1", att
+        assert att["bundleDigest"].startswith("sha256:"), att
+        assert att["actionAuthorized"] is False
+        assert len(att["payload"]["links"]) == 4
+        assert all(link["missingReports"] == 0 for link in att["payload"]["links"])
+        assert all(link["verificationKey"].startswith("sha256:") for link in att["payload"]["links"])
+
+        # E1. Tamper 1 byte in attested interfaceDigest -> Rust Ed25519/SHA-256 verifier MUST fail closed!
+        tampered_att = json.loads(json.dumps(att))
+        tampered_att["payload"]["links"][0]["interfaceDigest"] = "sha256:tampered"
+        tamper_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps({"priorAttestationBundle": tampered_att}),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert tamper_proc.returncode != 0, "Tampered release attestation bundle MUST fail closed!"
+
+        # E2. Authentic priorAttestationBundle -> 4/4 Adapton/Salsa verificationCacheHits!
+        cache_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "checkpointPath": str(checkpoint_file),
+                        "priorAttestationBundle": att,
+                        "repos": [
+                            {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
+                            for rid, *_ in specs
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        assert cache_doc["state"] == "quiescent"
+        assert len(cache_doc["verificationCacheHits"]) == 4, cache_doc["verificationCacheHits"]
+        assert all(r["cacheHit"] is True for r in cache_doc["repos"])
+        assert cache_doc["actionAuthorized"] is False
+
+        # E3. True ABI change on protocol-base automatically invalidates protocol-base + Wave 1 downstream caches!
+        (base_dir / "include" / "protocol.h").write_text(
+            "typedef unsigned long long slot_t;\n"
+            "typedef unsigned int epoch_t;\n"
+        )
+        run_jj(jj_bin, env, base_dir, "status")
+        inv_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps({"priorAttestationBundle": att}),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        inv_hits = {r["repoId"]: r["cacheHit"] for r in inv_doc["repos"]}
+        assert inv_hits["protocol-base"] is False, inv_hits
+        assert inv_hits["ledger-core"] is False, inv_hits
+        assert inv_hits["network-mux"] is False, inv_hits
+        assert inv_doc["actionAuthorized"] is False
+
     print(
         json.dumps(
             {
@@ -466,6 +539,12 @@ def main() -> None:
                 "scenarioC_finalState": exec_doc["state"],
                 "scenarioC_resumedReceipts": resume_doc["checkpoint"]["resumedReceiptCount"],
                 "scenarioD_midWaveNodeState": repo_states["node-runner"],
+                "scenarioE_attestationDigest": att["bundleDigest"],
+                "scenarioE_tamperRejected": tamper_proc.returncode != 0,
+                "scenarioE_cacheHits": len(cache_doc["verificationCacheHits"]),
+                "scenarioE_abiInvalidatedPeers": [
+                    rid for rid in ("protocol-base", "ledger-core", "network-mux") if not inv_hits[rid]
+                ],
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

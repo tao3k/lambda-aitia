@@ -102,4 +102,35 @@ theorem semanticAstEquivalencePreservesCutoff
     hash astBefore = hash astAfter :=
   congrArg hash hEq
 
+/-- RFC 0010 Adapton/Salsa memo key equality across repo commit, upstream interface, and policy. -/
+def CacheKeyMatches (rc ui pd ac aui apd : Nat) : Prop :=
+  rc = ac ∧ ui = aui ∧ pd = apd
+
+/-- RFC 0010 in-toto/SLSA offline release attestation validity predicate. -/
+def AttestationValid (sigValid : Bool) (missingReports : Nat) : Prop :=
+  sigValid = true ∧ missingReports = 0
+
+theorem attestationCacheHitRequiresMatchingKey
+    {rc ui pd ac aui apd : Nat}
+    (hMatch : CacheKeyMatches rc ui pd ac aui apd) :
+    ui = aui :=
+  hMatch.2.1
+
+theorem staleUpstreamInterfaceInvalidatesCache
+    {rc ui pd ac aui apd : Nat}
+    (hDiff : ui ≠ aui) :
+    ¬ CacheKeyMatches rc ui pd ac aui apd := by
+  intro hMatch
+  exact hDiff hMatch.2.1
+
+theorem forgedAttestationSignatureRejected {missingReports : Nat} :
+    ¬ AttestationValid false missingReports := by
+  intro hValid
+  cases hValid.1
+
+theorem incompleteWaveBundleRejected {sigValid : Bool} {k : Nat} :
+    ¬ AttestationValid sigValid (Nat.succ k) := by
+  intro hValid
+  cases hValid.2
+
 end LambdaAitiaProof.Modules.GitOps

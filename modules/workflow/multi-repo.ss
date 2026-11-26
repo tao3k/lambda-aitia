@@ -22,9 +22,11 @@
 ;;;      directories with repo-qualified `receiptKey` (`repo:<id>:<cap>`).
 ;;;   5. `action-authorized?: #f` at every planning boundary.
 
-(import (only-in :gerbil/core list-sort)
+(import (only-in :gerbil/core list-sort string->utf8)
+        (only-in :std/encoding/json json->string)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature source-lock-payload-digest)
         (only-in :clan/poo/object .o .get .ref .slot? object?)
-        (only-in :std/list/list append-map delete-duplicates/hash every filter find))
+        (only-in :std/list/list append-map delete-duplicates/hash every filter filter-map find))
 
 (export workflow-plan-multi-repo-step)
 
@@ -65,6 +67,31 @@
     (or (and (hash-table? iface-rcpt) (hash-get iface-rcpt "interfaceDigest"))
         (opt-ref repo-spec 'interface-digest #f)
         (and (hash-table? obs-rcpt) (hash-get obs-rcpt "interfaceDigest")))))
+
+;;; Adapton / Salsa / Buck2 DICE content-addressed verification memo key (RFC 0010).
+;;; Depends ONLY on repo-id, effective-commit, profile, and the sorted list of
+;;; `(upstream-id . upstream-interface-digest)` pairs (falling back to upstream commit
+;;; when no interface digest is declared). Unchanged semantic/AST upstream interfaces
+;;; yield the exact same SHA-256 verification key across upstream internal commits.
+(def (repo-verification-key rid commit-val iface-val profile-val deps iface-map commit-map)
+  (let ((profile-str (cond ((string? profile-val) profile-val)
+                           ((symbol? profile-val) (symbol->string profile-val))
+                           (else "")))
+        (up-deps
+         (map (lambda (dep-id)
+                (let ((iface (let ((p (assoc dep-id iface-map))) (and p (cdr p))))
+                      (cm (let ((p (assoc dep-id commit-map))) (and p (cdr p)))))
+                  (vector dep-id (or iface cm ""))))
+              (sort-strings deps))))
+    (source-lock-payload-digest
+     (string->utf8
+      (json->string
+       (vector "lambda-aitia.verification-key.v1"
+               rid
+               (or commit-val "")
+               (or iface-val "")
+               profile-str
+               (list->vector up-deps)))))))
 
 (def (find-unknown-dependency repos repo-ids)
   (let loop ((rest repos))
@@ -346,6 +373,12 @@
         (pin-drifts := drifts)
         (early-cutoffs := early-cutoffs)
         (diamond-conflicts := diamond-conflicts)
+        (verification-cache-hits :=
+         (filter-map (lambda (rs)
+                       (and (.slot? rs 'cache-hit?) (.ref rs 'cache-hit?)
+                            (.o (repo-id := (.ref rs 'repo-id))
+                                (verification-key := (.ref rs 'verification-key)))))
+                     repo-summaries))
         (graph := #f)
         (initial-frontier := #f)
         (report := #f)
@@ -358,6 +391,7 @@
          (profile (opt-ref ctx 'profile "lambda-aitia/sdlc"))
          (repos (sort-by-repo-id (opt-ref ctx 'repos '())))
          (raw-receipts (opt-ref ctx 'raw-receipts (hash)))
+         (attested-keys (opt-ref ctx 'attested-verification-keys (hash)))
          (repair-round (opt-ref ctx 'repair-round 0))
          (max-repair-rounds (opt-ref ctx 'max-repair-rounds 3))
          (repo-ids (map (lambda (r) (.ref r 'repo-id)) repos))
@@ -439,6 +473,12 @@
                 (let-values (((drifts early-cutoffs) (classify-pin-transitions repos raw-receipts)))
                   (let* ((drifted-ids (map (lambda (d) (.ref d 'repo-id)) drifts))
                          (cutoff-ids (map (lambda (c) (.ref c 'repo-id)) early-cutoffs))
+                         (commit-map
+                          (map (lambda (r) (cons (.ref r 'repo-id) (repo-effective-commit r raw-receipts)))
+                               repos))
+                         (iface-map
+                          (map (lambda (r) (cons (.ref r 'repo-id) (repo-effective-interface r raw-receipts)))
+                               repos))
                          (quiescent-ids
                           (map car (filter (lambda (e)
                                              (and (eq? (.get (cddr e) state) 'quiescent)
@@ -452,6 +492,16 @@
                                         (deps (sort-strings (opt-ref r 'depends-on '())))
                                         (deps-ready? (every (lambda (d) (member d quiescent-ids)) deps))
                                         (drifted? (member rid drifted-ids))
+                                        (eff-commit (repo-effective-commit r raw-receipts))
+                                        (eff-iface (repo-effective-interface r raw-receipts))
+                                        (vkey (repo-verification-key
+                                               rid eff-commit eff-iface (.get step profile)
+                                               deps iface-map commit-map))
+                                        (attested-key (and (hash-table? attested-keys)
+                                                           (hash-get attested-keys rid)))
+                                        (cache-hit-val (and (string? attested-key)
+                                                            (equal? attested-key vkey)
+                                                            (not drifted?)))
                                         (eff-state
                                          (cond
                                           ((eq? (.get step state) 'need-host-frames) 'need-host-frames)
@@ -462,8 +512,10 @@
                                        (directory := (opt-ref r 'directory "."))
                                        (profile := (.get step profile))
                                        (depends-on := deps)
-                                       (effective-commit := (repo-effective-commit r raw-receipts))
-                                       (interface-digest := (repo-effective-interface r raw-receipts))
+                                       (effective-commit := eff-commit)
+                                       (interface-digest := eff-iface)
+                                       (verification-key := vkey)
+                                       (cache-hit? := cache-hit-val)
                                        (state := eff-state)
                                        (upstream-ready? := deps-ready?)
                                        (pin-drifted? := (and drifted? #t))

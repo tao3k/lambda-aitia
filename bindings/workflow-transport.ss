@@ -417,6 +417,8 @@
         (dependsOn (list->vector (.ref rs 'depends-on)))
         (effectiveCommit (or (.ref rs 'effective-commit) (void)))
         (interfaceDigest (or (and (.slot? rs 'interface-digest) (.ref rs 'interface-digest)) (void)))
+        (verificationKey (or (and (.slot? rs 'verification-key) (.ref rs 'verification-key)) (void)))
+        (cacheHit (and (.slot? rs 'cache-hit?) (.ref rs 'cache-hit?) #t))
         (state (symbol->string (.ref rs 'state)))
         (upstreamReady (.ref rs 'upstream-ready?))
         (pinDrifted (.ref rs 'pin-drifted?))
@@ -573,6 +575,7 @@
                                  (json-multi-repo-spec wf row profile raw-receipts))
                                (optional-workflow-list input "repos")))
                 (raw-receipts := raw-receipts)
+                (attested-verification-keys := (or (hash-get input "attestedVerificationKeys") (hash)))
                 (repair-round := repair-round)
                 (max-repair-rounds := max-repair-rounds)))
            (sdlc-case?
@@ -671,6 +674,13 @@
       (hash-put! out 'earlyCutoffs (list->vector (map early-cutoff->json (.ref step 'early-cutoffs)))))
     (when (.slot? step 'diamond-conflicts)
       (hash-put! out 'diamondConflicts (list->vector (map diamond-conflict->json (.ref step 'diamond-conflicts)))))
+    (when (.slot? step 'verification-cache-hits)
+      (hash-put! out 'verificationCacheHits
+                 (list->vector
+                  (map (lambda (h)
+                         (hash (repoId (.ref h 'repo-id))
+                               (verificationKey (.ref h 'verification-key))))
+                       (.ref step 'verification-cache-hits)))))
     (when (eq? (.get step state) 'need-agent-synthesis)
       (let* ((tasks (.get step repair-tasks))
              (max-b (if (pair? tasks)

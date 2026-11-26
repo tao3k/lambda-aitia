@@ -306,6 +306,7 @@ check-quint-commit:
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/GitOpsAttemptCompetition.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/MultiRepoDiamond.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/MultiRepoSaga.qnt
+    quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/ReleaseAttestation.qnt
 
 # Exercise the assurance-objective selection and evidence-currentness cases.
 [group('check')]
@@ -488,9 +489,16 @@ verify-examples:
     trap 'rm -rf -- "$py_stage"' EXIT
     pypath="${PYTHONPATH:-}"
     if [[ -n "$cdylib" && -f "$cdylib" ]]; then
-      ln -s "$cdylib" "$py_stage/lambda_aitia_rust.so"
-      pypath="${pypath:+$py_stage:$pypath}"
-      pypath="${pypath:-$py_stage}"
+      pkg_dir="$(dirname "$cdylib")"
+      if [[ "$(basename "$pkg_dir")" == "lambda_aitia_rust" && -f "$pkg_dir/__init__.py" ]]; then
+        site_dir="$(dirname "$pkg_dir")"
+        pypath="${pypath:+$site_dir:$pypath}"
+        pypath="${pypath:-$site_dir}"
+      else
+        ln -s "$cdylib" "$py_stage/lambda_aitia_rust.so"
+        pypath="${pypath:+$py_stage:$pypath}"
+        pypath="${pypath:-$py_stage}"
+      fi
     fi
     for script in \
       dev/qualification/diamond_differential_oracle.py \

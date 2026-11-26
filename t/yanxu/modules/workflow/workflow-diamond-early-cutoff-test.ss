@@ -82,13 +82,23 @@
                              '() '())))
              (s-cutoff ((.get wf plan-protocol-step)
                         (.o (case-id := 'aitia/case/multi-repo-gitops) (repos := repos-cutoff))))
-             ;; B. io-sim Schedule Confluence: reversed input repo order yields identical waves & cutoffs!
+             ;; Extract RFC 0010 content-addressed verification keys from s-cutoff
+             (attested-keys
+              (list->hash-table
+               (map (lambda (rs) (cons (.ref rs 'repo-id) (.ref rs 'verification-key)))
+                    (.ref s-cutoff 'repo-summaries))))
+             ;; B. io-sim Schedule Confluence + RFC 0010 Adapton/Salsa 4/4 verification-cache-hits
+             ;;    under reversed input repo order!
              (s-cutoff-rev ((.get wf plan-protocol-step)
-                            (.o (case-id := 'aitia/case/multi-repo-gitops) (repos := (reverse repos-cutoff)))))
-             ;; C. Breaking interface change ("abi:v2") invalidates downstream with localized Schwarz repair
+                            (.o (case-id := 'aitia/case/multi-repo-gitops)
+                                (attested-verification-keys := attested-keys)
+                                (repos := (reverse repos-cutoff)))))
+             ;; C. Breaking interface change ("abi:v2") invalidates protocol-base + Wave 1 peers
+             ;;    (localized Schwarz repair + Adapton/Salsa cache invalidation!)
              (s-iface-break
               ((.get wf plan-protocol-step)
                (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (attested-verification-keys := attested-keys)
                    (repos :=
                     (list (mk-repo "protocol-base" '() base-cut "abi:v2" '() '())
                           (mk-repo "ledger-core" '("protocol-base") ledger-cut "abi:ledger-v1"
@@ -113,14 +123,17 @@
         (check-equal? (.ref s-cutoff 'waves) '(("protocol-base") ("ledger-core" "network-mux") ("node-runner")))
         (check-equal? (length (.ref s-cutoff 'early-cutoffs)) 2)
         (check-equal? (.ref s-cutoff 'pin-drifts) '())
-        ;; Church-Rosser confluence under input permutation:
+        ;; Church-Rosser confluence + RFC 0010 Adapton/Salsa 4/4 verification-cache-hits:
         (check-equal? (.ref s-cutoff-rev 'waves) (.ref s-cutoff 'waves))
         (check-equal? (.get s-cutoff-rev state) (.get s-cutoff state))
         (check-equal? (length (.ref s-cutoff-rev 'early-cutoffs)) (length (.ref s-cutoff 'early-cutoffs)))
-        ;; True ABI break triggers cross-repo-pin-drift:
+        (check-equal? (length (.ref s-cutoff-rev 'verification-cache-hits)) 4)
+        ;; True ABI break triggers cross-repo-pin-drift AND invalidates protocol-base + Wave 1 caches:
         (check-equal? (.get s-iface-break state) 'need-agent-synthesis)
         (check-equal? (.get s-iface-break escalation-reason) 'cross-repo-pin-drift)
         (check-equal? (length (.get s-iface-break repair-tasks)) 2)
+        (check-equal? (map (lambda (h) (.ref h 'repo-id)) (.ref s-iface-break 'verification-cache-hits))
+                      '("node-runner"))
         ;; Diamond conflict fails closed to need-human-decision with competing peer provenance:
         (check-equal? (.get s-diamond-conflict state) 'need-human-decision)
         (check-equal? (.get s-diamond-conflict escalation-reason) 'diamond-pin-conflict)
