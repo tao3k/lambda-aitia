@@ -6,6 +6,10 @@
 //! Computes a deterministic SHA-256 digest over a repository's declared public interface
 //! files (`interfacePaths`), reading recorded JJ cut bytes when available so Bazel Skyframe
 //! two-level Early Cutoff operates on verified source contents rather than ad-hoc strings.
+//!
+//! Supports `"normalization": "semantic"` (default: strips comments and insignificant whitespace
+//! for C/Rust/SysML/Scheme/Python headers so comment-only edits preserve the ABI digest) and
+//! `"normalization": "raw"` (exact frozen byte digest).
 
 use super::{
     CapabilityError, CapabilityFrame, HostCapability, HostCapabilityRegistry, HostEffectClass,
@@ -17,6 +21,31 @@ use std::path::{Component, Path};
 
 pub(super) fn register(registry: &mut HostCapabilityRegistry) {
     registry.register(Box::new(InterfaceProjectDigestCapability));
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NormalizationMode {
+    Semantic,
+    Raw,
+}
+
+impl NormalizationMode {
+    fn parse(raw: Option<&str>) -> Result<Self, CapabilityError> {
+        match raw {
+            None | Some("semantic") => Ok(Self::Semantic),
+            Some("raw") => Ok(Self::Raw),
+            Some(other) => Err(CapabilityError::Execution(format!(
+                "unsupported interface normalization mode `{other}` (expected `semantic` or `raw`)"
+            ))),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Semantic => "semantic",
+            Self::Raw => "raw",
+        }
+    }
 }
 
 struct InterfaceProjectDigestCapability;
@@ -34,6 +63,7 @@ impl HostCapability for InterfaceProjectDigestCapability {
         let request: Value = serde_json::from_str(&frame.payload)
             .map_err(|error| CapabilityError::Execution(error.to_string()))?;
         let directory = request["directory"].as_str().unwrap_or(".");
+        let mode = NormalizationMode::parse(request["normalization"].as_str())?;
         let mut paths: Vec<String> = request["interfacePaths"]
             .as_array()
             .ok_or_else(|| {
@@ -56,12 +86,13 @@ impl HostCapability for InterfaceProjectDigestCapability {
             validate_relative_path(path)?;
         }
         let dir_path = Path::new(directory);
-        let (commit_opt, digest) = compute_interface_digest(dir_path, &paths)?;
+        let (commit_opt, digest) = compute_interface_digest(dir_path, &paths, mode)?;
         let receipt = json!({
             "schema": "lambda-aitia.interface-digest.v1",
             "directory": directory,
             "commit": commit_opt,
             "interfacePaths": paths,
+            "normalization": mode.as_str(),
             "interfaceDigest": digest,
             "actionAuthorized": false,
         });
@@ -98,23 +129,52 @@ fn validate_relative_path(rel: &str) -> Result<(), CapabilityError> {
 fn compute_interface_digest(
     dir_path: &Path,
     paths: &[String],
+    mode: NormalizationMode,
 ) -> Result<(Option<String>, String), CapabilityError> {
+    let (commit_opt, raw_entries) = read_interface_entries(dir_path, paths)?;
+    let mut encoded = Vec::new();
+    encoded.extend_from_slice(b"lambda-aitia.interface-projection.v1\0");
+    encoded.extend_from_slice(mode.as_str().as_bytes());
+    encoded.push(0);
+    encoded.extend_from_slice(&(raw_entries.len() as u64).to_be_bytes());
+    for (rel, bytes) in raw_entries {
+        let projected = match mode {
+            NormalizationMode::Raw => bytes,
+            NormalizationMode::Semantic => normalize_semantic_bytes(&rel, &bytes),
+        };
+        let path_len = u32::try_from(rel.len())
+            .map_err(|_| CapabilityError::Execution(format!("path too long: `{rel}`")))?;
+        encoded.extend_from_slice(&path_len.to_be_bytes());
+        encoded.extend_from_slice(rel.as_bytes());
+        encoded.extend_from_slice(&(projected.len() as u64).to_be_bytes());
+        encoded.extend_from_slice(&projected);
+    }
+    Ok((commit_opt, crate::source_tree::sha256(&encoded)))
+}
+
+fn read_interface_entries(
+    dir_path: &Path,
+    paths: &[String],
+) -> Result<(Option<String>, Vec<(String, Vec<u8>)>), CapabilityError> {
     if dir_path.join(".jj").exists() {
         let cut = aitia_jj::observe_workspace(dir_path)
             .map_err(|error| CapabilityError::Execution(error.to_string()))?;
         let path_refs: Vec<&str> = paths.iter().map(String::as_str).collect();
         let frozen = crate::source_tree::capture_recorded_source_tree(&cut, &path_refs)
             .map_err(|error| CapabilityError::Execution(error.to_string()))?;
-        let digest = crate::source_tree::sha256(&frozen);
-        return Ok((Some(cut.commit_id().to_owned()), digest));
+        let files = crate::source_tree::decode_source_tree(&frozen)
+            .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+        let entries = files
+            .into_iter()
+            .map(|f| (f.path.to_owned(), f.bytes.to_vec()))
+            .collect();
+        return Ok((Some(cut.commit_id().to_owned()), entries));
     }
 
     let root = dir_path
         .canonicalize()
         .map_err(|error| CapabilityError::Execution(error.to_string()))?;
-    let mut encoded = Vec::new();
-    encoded.extend_from_slice(b"lambda-aitia.source-tree.v1\0");
-    encoded.extend_from_slice(&(paths.len() as u64).to_be_bytes());
+    let mut entries = Vec::with_capacity(paths.len());
     for rel in paths {
         let joined = root.join(rel);
         let meta = fs::symlink_metadata(&joined)
@@ -134,12 +194,153 @@ fn compute_interface_digest(
         }
         let bytes = fs::read(&canonical)
             .map_err(|error| CapabilityError::Execution(format!("{rel}: {error}")))?;
-        let path_len = u32::try_from(rel.len())
-            .map_err(|_| CapabilityError::Execution(format!("path too long: `{rel}`")))?;
-        encoded.extend_from_slice(&path_len.to_be_bytes());
-        encoded.extend_from_slice(rel.as_bytes());
-        encoded.extend_from_slice(&(bytes.len() as u64).to_be_bytes());
-        encoded.extend_from_slice(&bytes);
+        entries.push((rel.clone(), bytes));
     }
-    Ok((None, crate::source_tree::sha256(&encoded)))
+    Ok((None, entries))
+}
+
+/// Strip comments and insignificant horizontal/blank-line whitespace for known source interface
+/// languages while preserving quoted string literals verbatim. Non-UTF8 bytes stay raw.
+fn normalize_semantic_bytes(rel: &str, bytes: &[u8]) -> Vec<u8> {
+    let Ok(text) = std::str::from_utf8(bytes) else {
+        return bytes.to_vec();
+    };
+    let ext = Path::new(rel)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let stripped = match ext.as_str() {
+        "h" | "hpp" | "c" | "cc" | "cpp" | "rs" | "sysml" | "ts" | "js" | "go" | "java" => {
+            strip_c_style_comments(text)
+        }
+        "ss" | "scm" | "lisp" => strip_line_comment_char(text, ';'),
+        "py" | "toml" | "yaml" | "yml" => strip_line_comment_char(text, '#'),
+        _ => text.to_owned(),
+    };
+    canonicalize_lines(&stripped).into_bytes()
+}
+
+fn strip_c_style_comments(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    let chars: Vec<char> = input.chars().collect();
+    let mut i = 0;
+    let mut in_string = false;
+    let mut escaped = false;
+    while i < chars.len() {
+        let ch = chars[i];
+        if in_string {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+        if ch == '"' {
+            in_string = true;
+            out.push(ch);
+            i += 1;
+        } else if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+            while i < chars.len() && chars[i] != '\n' {
+                i += 1;
+            }
+        } else if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
+            i += 2;
+            while i + 1 < chars.len() && !(chars[i] == '*' && chars[i + 1] == '/') {
+                if chars[i] == '\n' {
+                    out.push('\n');
+                }
+                i += 1;
+            }
+            i = (i + 2).min(chars.len());
+        } else {
+            out.push(ch);
+            i += 1;
+        }
+    }
+    out
+}
+
+fn strip_line_comment_char(input: &str, marker: char) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut skipping = false;
+    for ch in input.chars() {
+        if skipping {
+            if ch == '\n' {
+                skipping = false;
+                out.push('\n');
+            }
+            continue;
+        }
+        if in_string {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        if ch == '"' {
+            in_string = true;
+            out.push(ch);
+        } else if ch == marker {
+            skipping = true;
+        } else {
+            out.push(ch);
+        }
+    }
+    out
+}
+
+fn canonicalize_lines(input: &str) -> String {
+    let mut lines = Vec::new();
+    for raw_line in input.lines() {
+        let mut normalized = String::new();
+        let mut in_string = false;
+        let mut escaped = false;
+        let mut pending_space = false;
+        for ch in raw_line.trim().chars() {
+            if in_string {
+                normalized.push(ch);
+                if escaped {
+                    escaped = false;
+                } else if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_string = false;
+                }
+                continue;
+            }
+            if ch == '"' {
+                if pending_space && !normalized.is_empty() {
+                    normalized.push(' ');
+                }
+                pending_space = false;
+                in_string = true;
+                normalized.push(ch);
+            } else if ch.is_whitespace() {
+                pending_space = true;
+            } else {
+                if pending_space && !normalized.is_empty() {
+                    normalized.push(' ');
+                }
+                pending_space = false;
+                normalized.push(ch);
+            }
+        }
+        if !normalized.is_empty() {
+            lines.push(normalized);
+        }
+    }
+    lines.join("\n")
 }

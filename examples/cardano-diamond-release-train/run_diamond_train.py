@@ -223,8 +223,8 @@ def main() -> None:
         ws_sysml = root / "workspace.sysml"
         shutil.copy2(sysml_template, ws_sysml)
 
-        # Scenario A: REAL Content-Addressed Source-File Early Cutoff (`interface.project-digest`)
-        # Step A1: Observe protocol-base's real SHA-256 interfaceDigest via SysML `interfacePaths`.
+        # Scenario A: REAL Semantic Source-File Early Cutoff (`interface.project-digest`)
+        # Step A1: Observe protocol-base's real semantic SHA-256 interfaceDigest via SysML `interfacePaths`.
         probe_doc = json.loads(
             subprocess.run(
                 [aitia_bin, "flow", "run", "--workspace", str(ws_sysml)],
@@ -238,6 +238,34 @@ def main() -> None:
         base_summary = next(r for r in probe_doc["repos"] if r["repoId"] == "protocol-base")
         real_iface_digest = base_summary["interfaceDigest"]
         assert real_iface_digest.startswith("sha256:"), real_iface_digest
+
+        # Step A1b: Mutate ONLY comments/whitespace in `include/protocol.h` (semantic ABI unchanged!)
+        # and verify semantic normalization preserves the EXACT SAME `interfaceDigest` across a new JJ cut!
+        base_dir = root / "protocol-base"
+        (base_dir / "include" / "protocol.h").write_text(
+            "/* Public ABI header v1 — expanded doc comment */\n\n"
+            "// Internal formatting change must NOT invalidate downstream repos!\n"
+            "typedef   unsigned long long   slot_t;\n"
+        )
+        run_jj(jj_bin, env, base_dir, "describe", "-m", "Reformat protocol ABI header comments")
+        drafts["protocol-base"] = preview_draft(
+            aitia_bin, env, base_dir, "BASE-RFC-9", "base", "Add typed protocol codecs"
+        )
+        probe_after_comment = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml)],
+                cwd=root,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        base_after_comment = next(r for r in probe_after_comment["repos"] if r["repoId"] == "protocol-base")
+        assert base_after_comment["interfaceDigest"] == real_iface_digest, (
+            f"Comment-only edit broke semantic early cutoff: "
+            f"{base_after_comment['interfaceDigest']} != {real_iface_digest}"
+        )
 
         # Step A2: Downstream peers pinned an older protocol-base commit but the SAME real SHA-256 ABI -> Early Cutoff!
         cutoff_overlay = {
@@ -373,17 +401,71 @@ def main() -> None:
         assert resume_doc["state"] == "quiescent"
         assert resume_doc["checkpoint"]["resumedReceiptCount"] == exec_doc["checkpoint"]["persistedReceiptCount"]
 
+        # Scenario D: Mid-Wave Partial Failure -> Wave Barrier Enforcement (Saga partial checkpoint)
+        # Simulate Wave 0 (`protocol-base`) + Wave 1 peer A (`ledger-core`) succeeded, while Wave 1
+        # peer B (`network-mux`) failed before apply/push: Wave 2 (`node-runner`) MUST stay blocked!
+        full_cp = json.loads(checkpoint_file.read_text())
+        partial_receipts = {
+            k: v
+            for k, v in full_cp["completedReceipts"].items()
+            if not (
+                k.startswith("repo:network-mux:gitops.jj.apply-description")
+                or k.startswith("repo:network-mux:gitops.jj.push-reviewed")
+                or k.startswith("repo:node-runner:gitops.jj.apply-description")
+                or k.startswith("repo:node-runner:gitops.jj.push-reviewed")
+            )
+        }
+        partial_cp_file = root / "partial-midwave.checkpoint.json"
+        partial_cp_file.write_text(
+            json.dumps(
+                {
+                    "schema": "lambda-aitia.multi-repo-checkpoint.v1",
+                    "lastState": "need-fenced-frames",
+                    "completedReceipts": partial_receipts,
+                    "appliedDecisions": [],
+                    "actionAuthorized": False,
+                },
+                indent=2,
+            )
+        )
+        midwave_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "checkpointPath": str(partial_cp_file),
+                        "repos": [
+                            {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
+                            for rid, *_ in specs
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        repo_states = {r["repoId"]: r["state"] for r in midwave_doc["repos"]}
+        assert repo_states["protocol-base"] == "quiescent", repo_states
+        assert repo_states["ledger-core"] == "quiescent", repo_states
+        assert repo_states["node-runner"] == "blocked-on-upstream", repo_states
+        assert midwave_doc["actionAuthorized"] is False
+
     print(
         json.dumps(
             {
                 "case": "cardano-diamond-release-train",
                 "waves": exec_doc["waves"],
                 "realInterfaceDigest": real_iface_digest,
+                "semanticCommentCutoffPreserved": True,
                 "scenarioA_earlyCutoffs": len(cutoff_doc["earlyCutoffs"]),
                 "scenarioB1_agentHandoff": drift_doc["agentHandoff"]["schema"],
                 "scenarioB2_diamondConflict": conflict_doc["escalationReason"],
                 "scenarioC_finalState": exec_doc["state"],
                 "scenarioC_resumedReceipts": resume_doc["checkpoint"]["resumedReceiptCount"],
+                "scenarioD_midWaveNodeState": repo_states["node-runner"],
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

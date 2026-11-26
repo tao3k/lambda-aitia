@@ -475,7 +475,11 @@ verify-examples:
     test -x "$cli" || { echo "missing linked aitia binary at $cli (run: just build-rust-cli)" >&2; exit 1; }
     cdylib="${AITIA_CDYLIB:-}"
     if [[ -z "$cdylib" ]]; then
-      for candidate in "$PWD/$target/debug/liblambda_aitia_rust.dylib" "$PWD/$target/debug/liblambda_aitia_rust.so"; do
+      for candidate in \
+        "$PWD/$target/debug/liblambda_aitia_rust.dylib" \
+        "$PWD/$target/debug/liblambda_aitia_rust.so" \
+        "$PWD/$target/release/liblambda_aitia_rust.dylib" \
+        "$PWD/$target/release/liblambda_aitia_rust.so"; do
         if [[ -f "$candidate" ]]; then cdylib="$candidate"; break; fi
       done
     fi
@@ -488,6 +492,7 @@ verify-examples:
       pypath="${pypath:-$py_stage}"
     fi
     for script in \
+      dev/qualification/diamond_differential_oracle.py \
       examples/cardano-diamond-release-train/run_diamond_train.py \
       examples/sdlc-release-train/run_release_train.py \
       examples/01-sdlc-profiles/run_profiles.py \
@@ -515,6 +520,12 @@ check-rust-delivery:
     wheels=("$scratch"/*.whl)
     test "${#wheels[@]}" -eq 1
     just check-installed-rust-wheel "${wheels[0]}"
+    wheel_extract="$scratch/wheel-cdylib"
+    python3 -m zipfile -e "${wheels[0]}" "$wheel_extract"
+    wheel_cdylib="$(find "$wheel_extract/lambda_aitia_rust" -maxdepth 1 -type f \( -name 'lambda_aitia_rust*.so' -o -name 'lambda_aitia_rust*.dylib' \) | head -n 1)"
+    test -f "$wheel_cdylib"
+    just build-rust-cli
+    AITIA_CDYLIB="$wheel_cdylib" just verify-examples
 
 # Current repository closure. No recipe grants runtime authority.
 [group('check')]
