@@ -187,7 +187,19 @@
                                               (rationale "Scheme drives host frames"))))
                      (approvalLive #t)
                      (reconcile #t))))
-             (step3 (read-aitia-json (aitia-workflow-protocol-step-payload req3))))
+             (step3 (read-aitia-json (aitia-workflow-protocol-step-payload req3)))
+             (req4
+              (json->string
+               (hash (caseId "aitia/case/gitops-commit")
+                     (project "lambda-aitia")
+                     (directory ".")
+                     (naming base-naming)
+                     (receipts receipts2)
+                     (forbiddenScopes (vector "gitops"))
+                     (approvalLive #t)
+                     (reconcile #t))))
+             (step4 (read-aitia-json (aitia-workflow-protocol-step-payload req4)))
+             (rec4 (hash-get step4 "reconciliation")))
         ;; Round 1: Scheme requests missing host-read frames with zero authority
         (check (hash-get step1 "schema") => "lambda-aitia.workflow-protocol-step.v1")
         (check (hash-get step1 "state") => "need-host-frames")
@@ -203,5 +215,9 @@
         (check (hash-get step2 "actionAuthorized") => #f)
         ;; Round 2 (with approval): reaches quiescent fixed point with zero authority
         (check (hash-get step3 "state") => "quiescent")
-        (check (hash-get step3 "actionAuthorized") => #f)))
+        (check (hash-get step3 "actionAuthorized") => #f)
+        ;; Round 2 (human decision forbids sole scope): fails closed to unsatisfiable!
+        (check (hash-get rec4 "choiceStatus") => "unsatisfiable")
+        (check (hash-get rec4 "choiceWorldCount") => 0)
+        (check (hash-get step4 "actionAuthorized") => #f)))
     ))

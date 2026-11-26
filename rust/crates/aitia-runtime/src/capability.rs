@@ -168,6 +168,28 @@ impl HostCapabilityRegistry {
             .collect()
     }
 
+    /// Project registered capability descriptors into the public JSON envelope.
+    #[cfg(feature = "linked-program")]
+    #[must_use]
+    pub fn descriptors_json(&self) -> serde_json::Value {
+        let descriptors: Vec<serde_json::Value> = self
+            .descriptors()
+            .into_iter()
+            .map(|(capability, class)| {
+                let effect = match class {
+                    HostEffectClass::HostRead => "host-read",
+                    HostEffectClass::FencedEffect => "fenced-effect",
+                };
+                serde_json::json!({ "capability": capability, "effectClass": effect })
+            })
+            .collect();
+        serde_json::json!({
+            "schema": "lambda-aitia.host-capabilities.v1",
+            "capabilities": descriptors,
+            "actionAuthorized": false,
+        })
+    }
+
     /// Dispatch a single capability frame after enforcing effect-class and fence invariants.
     ///
     /// # Errors
@@ -625,7 +647,7 @@ fn parse_revision_sysml_json(
     crate::sysml::parse_model_report(|| {
         crate::sysml::revision_documents(directory, revision, paths)
     })
-    .map_err(|error| CapabilityError::Execution(error.to_string()))
+    .map_err(|error| CapabilityError::Execution(format!("{error} ({error:?})")))
 }
 
 #[cfg(all(feature = "linked-program", not(feature = "sysml")))]
@@ -662,7 +684,7 @@ fn parse_workspace_sysml_json(
         return crate::sysml::parse_model_report(|| {
             crate::sysml::recorded_documents(&cut, &sources)
         })
-        .map_err(|error| CapabilityError::Execution(error.to_string()));
+        .map_err(|error| CapabilityError::Execution(format!("{error} ({error:?})")));
     }
     let (model, scopes) = crate::sysml::observe_commit_sysml_and_scopes(&cut, paths);
     Ok(serde_json::json!({

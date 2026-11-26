@@ -50,6 +50,10 @@ impl PythonSession {
         self.call(py, request, AitiaSession::workflow_reconcile)
     }
 
+    fn workflow_protocol_step(&self, py: Python<'_>, request: String) -> PyResult<String> {
+        self.call(py, request, AitiaSession::workflow_protocol_step)
+    }
+
     fn close(&self, py: Python<'_>) -> PyResult<()> {
         py.detach(|| {
             let mut session = self

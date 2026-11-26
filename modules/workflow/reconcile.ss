@@ -778,12 +778,16 @@
              (proposals (opt-ref ctx 'proposals '()))
              (observations (opt-ref ctx 'observations '()))
              (approval-live? (and (opt-ref ctx 'approval-live? #f) #t))
+             (candidate-offers (opt-ref ctx 'candidate-offers '()))
+             (forbidden-scopes (opt-ref ctx 'forbidden-scopes '()))
              (run-reconcile? (opt-ref ctx 'reconcile? #t))
              (proposal (opt-ref ctx 'proposal #f))
              (graph (workflow-gitops-commit-graph
                      naming cut sources paths proposals
                      observations: observations
-                     approval-live?: approval-live?))
+                     approval-live?: approval-live?
+                     candidate-offers: candidate-offers
+                     forbidden-scopes: forbidden-scopes))
              (initial (workflow-reconcile-frontier graph))
              (proposal-res (and proposal (workflow-admit-proposal graph proposal)))
              (report (if run-reconcile? (workflow-reconcile graph) #f))

@@ -32,6 +32,7 @@ package AitiaProjectArchitecture {
             "bindings",
             ".agents/aita",
             ".github/workflows",
+            "dev/qualification",
             "dev/sysml",
             "docs/rfcs",
             "t/library",

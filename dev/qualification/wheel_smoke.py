@@ -196,6 +196,95 @@ try:
         else:
             raise AssertionError("Orgize transport accepted an invalid request")
     assert json.loads(session.org_contract_evaluate(json.dumps(contract))) == matched
+
+    protocol_naming = {
+        "projectKey": "AITIA",
+        "primaryLanguage": "en",
+        "languageSources": ["README.md"],
+        "types": ["feat"],
+        "references": [
+            {
+                "identity": "RFC-0008",
+                "source": "docs/rfcs/0008.org",
+                "element": "ascent-obligation-funflow",
+            }
+        ],
+    }
+    step1 = json.loads(
+        session.workflow_protocol_step(
+            json.dumps(
+                {
+                    "caseId": "aitia/case/gitops-commit",
+                    "project": "lambda-aitia",
+                    "directory": ".",
+                    "requestedPaths": ["README.md", "docs/rfcs/0008.org"],
+                    "modelCheckEnabled": True,
+                    "naming": protocol_naming,
+                    "receipts": {},
+                }
+            )
+        )
+    )
+    assert step1["schema"] == "lambda-aitia.workflow-protocol-step.v1"
+    assert step1["state"] == "need-host-frames"
+    assert {frame["capability"] for frame in step1["frames"]} == {
+        "gitops.jj.observe-cut",
+        "sysml.project-scopes",
+    }
+    assert step1["actionAuthorized"] is False
+    step2 = json.loads(
+        session.workflow_protocol_step(
+            json.dumps(
+                {
+                    "caseId": "aitia/case/gitops-commit",
+                    "project": "lambda-aitia",
+                    "directory": ".",
+                    "naming": protocol_naming,
+                    "receipts": {
+                        "gitops.jj.observe-cut": {
+                            "cut": {
+                                "workspace": "default",
+                                "change": "kxy",
+                                "operation": "op1",
+                                "commit": "abc123",
+                                "tree": "tree123",
+                                "parents": ["p0"],
+                            },
+                            "paths": ["modules/workflow/reconcile.ss"],
+                            "sources": [
+                                {"path": "README.md", "text": "English readme.\n"},
+                                {
+                                    "path": "docs/rfcs/0008.org",
+                                    "text": "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n",
+                                },
+                            ],
+                        },
+                        "sysml.project-scopes": [
+                            {"name": "gitops", "paths": ["modules/workflow"]}
+                        ],
+                    },
+                    "proposals": [
+                        {
+                            "identity": "AITIA-RFC-0008",
+                            "reference": "RFC-0008",
+                            "language": "en",
+                            "languageSource": "README.md",
+                            "type": "feat",
+                            "scope": "gitops",
+                            "summary": "Verify wheel protocol parity",
+                            "rationale": "Exercise workflow_protocol_step from Python Session.",
+                        }
+                    ],
+                    "approvalLive": False,
+                    "reconcile": True,
+                }
+            )
+        )
+    )
+    assert step2["state"] == "need-synthesis-or-human"
+    assert step2["reconciliation"]["choiceStatus"] == "unique-deduction"
+    assert step2["reconciliation"]["choiceWorldCount"] == 1
+    assert step2["actionAuthorized"] is False
 finally:
     session.close()
 

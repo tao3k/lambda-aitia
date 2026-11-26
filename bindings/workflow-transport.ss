@@ -250,12 +250,16 @@
          (proposals (json-workflow-proposals input))
          (observations (json-workflow-observations input cut))
          (approval-live? (and (hash-get input "approvalLive") #t))
+         (candidate-offers (optional-workflow-list input "candidateOffers"))
+         (forbidden-scopes (optional-workflow-list input "forbiddenScopes"))
          (raw-reconcile (hash-get input "reconcile"))
          (run-reconcile? (if (boolean? raw-reconcile) raw-reconcile #t))
          (graph ((.get wf gitops-commit-graph)
                  naming cut sources paths proposals
                  observations: observations
-                 approval-live?: approval-live?))
+                 approval-live?: approval-live?
+                 candidate-offers: candidate-offers
+                 forbidden-scopes: forbidden-scopes))
          (initial ((.get wf reconcile-frontier) graph))
          (raw-proposal (hash-get input "proposal"))
          (proposal-res (and raw-proposal
@@ -300,6 +304,8 @@
          (raw-proposal (hash-get input "proposal"))
          (proposal-obj (and ready? raw-proposal (json-workflow-proposal wf raw-proposal)))
          (approval-live? (and (hash-get input "approvalLive") #t))
+         (candidate-offers (optional-workflow-list input "candidateOffers"))
+         (forbidden-scopes (optional-workflow-list input "forbiddenScopes"))
          (raw-reconcile (hash-get input "reconcile"))
          (run-reconcile? (if (boolean? raw-reconcile) raw-reconcile #t))
          (ctx (.o (case-id := case-id)
@@ -318,6 +324,8 @@
                   (observations := observations)
                   (proposal := proposal-obj)
                   (approval-live? := approval-live?)
+                  (candidate-offers := candidate-offers)
+                  (forbidden-scopes := forbidden-scopes)
                   (reconcile? := run-reconcile?)))
          (step ((.get wf plan-protocol-step) ctx))
          (cid (.get step case-id)))
