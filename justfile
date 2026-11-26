@@ -487,6 +487,7 @@ verify-examples:
       pypath="${pypath:-$py_stage}"
     fi
     for script in \
+      examples/cardano-diamond-release-train/run_diamond_train.py \
       examples/sdlc-release-train/run_release_train.py \
       examples/01-sdlc-profiles/run_profiles.py \
       examples/02-sysml-multi-repo-gitops/run_workspace_demo.py \

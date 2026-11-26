@@ -1,0 +1,105 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: RFC 0009: IOHK & Bazel Architectural Synthesis for Diamond Multi-Repo FunFlow
+#+PROPERTY: ID iohk-bazel-diamond-early-cutoff
+#+PROPERTY: ENGINEERING_ID RFC-0009
+
+* Executive Summary
+
+This RFC synthesizes the core architectural laws of *IOHK (Cardano)* and *Bazel / Buck2 / Build
+Systems à la Carte* and implements their high-difficulty invariants natively inside Lambda Aitia's
+pure functional multi-repository FunFlow orchestrator (=modules/workflow/multi-repo.ss=):
+
+1. *Bazel Skyframe Two-Level Early Cutoff (Change Pruning)*:
+   Separates =commit-digest= (exact JJ source cut) from =interface-digest= (projected public API /
+   SysML contract / ABI digest). When an upstream repository advances its commit without changing
+   its exported =interface-digest=, downstream reverse dependencies (=rdeps=) are pruned via
+   =earlyCutoffs= and retain their CAS-verified evidence without spurious rebuilds or repairs.
+2. *Bazel Bzlmod / IOHK CHaP Transitive Diamond Pin Coherence*:
+   In converging diamond topologies (=protocol-base -> {ledger-core, network-mux} -> node-runner=),
+   conflicting transitive pins across peer branches are detected deterministically before any
+   fenced effect executes and fail closed to =need-human-decision= (=diamond-pin-conflict=) with
+   full competing peer provenance—never silently picking a winner.
+3. *IOHK =io-sim= / =IOSimPOR= Deterministic Schedule Invariance (Church-Rosser Confluence)*:
+   Canonical lexicographic wave partitioning and receipt ordering guarantee that permuting
+   concurrent peer repositories or arrival order inside Wave 1 yields bit-for-bit identical
+   protocol decisions, early cutoffs, diamond conflicts, and fenced effect schedules.
+
+* Comparative Architecture Analysis
+
+** IOHK (Cardano) Software Architecture
+
+- *Executable Formal Specification as Test Oracle* (Knispel, Melkonian, Chapman et al.,
+  /Formal Specification of the Cardano Blockchain Ledger, Mechanized in Agda/, FMBC 2024):
+  Literate Agda (=formal-ledger-specifications=) proves ledger preservation laws and extracts an
+  executable Haskell conformance oracle against production =cardano-ledger=.
+  - *Lambda Aitia Mapping*: Lean 4 proofs (=dev/proof/lean=) + Quint state-machine invariants
+    (=dev/proof/quint=) + Scheme POO/ASCENT executable obligation graphs compiled AOT into the
+    single standalone Rust =aitia= binary (zero downstream Gerbil compilation).
+- *Statically Enforced Session State Machines* (=typed-protocols=, Coutts / Davies / Szamotulski):
+  Multiplexed node mini-protocols encode protocol agency in types so invalid transitions are
+  structurally unrepresentable.
+  - *Lambda Aitia Mapping*: Scheme-owned 5-state Mixed-Initiative IoC protocol
+    (=need-host-frames=, =need-agent-synthesis=, =need-human-decision=, =need-fenced-frames=,
+    =quiescent=) with =action-authorized?: #f= pinned structurally at every planning and host
+    boundary.
+- *Deterministic Concurrency Simulation & Partial Order Reduction* (=io-sim= / =IOSimPOR=,
+  Szamotulski & Hughes):
+  Replaces nondeterministic =IO= with a deterministic simulator exploring thread interleavings
+  via POR so concurrency bugs are 100% reproducible.
+  - *Lambda Aitia Mapping*: Pure functional wave scheduling + concurrent =HostRead= fan-out via
+    =std::thread::scope= preserving exact frame index order + schedule-invariance confluence tests.
+- *Multi-Repo Dependency Governance* (=CHaP= + =haskell.nix=):
+  Curated immutable package index coordinating diamond releases across =cardano-base=,
+  =cardano-ledger=, =ouroboros-network=, and =cardano-node=.
+  - *Lambda Aitia Mapping*: Authoritative SysML v2 =part def WorkspaceRepo= topology +
+    transitive diamond coherence law (=diamond-pin-conflict=).
+
+** Bazel / Buck2 / Build Systems à la Carte Architecture
+
+- *Scheduler × Rebuilder Taxonomy* (Mokhov, Mitchell, Peyton Jones, /Build Systems à la Carte:
+  Theory and Practice/, ICFP 2018 / JFP 2020; Mitchell, /Shake Before Building/, ICFP 2012):
+  Decomposes build engines into *Schedulers* (Topological, Restarting, Suspending) and
+  *Rebuilders* (Dirty Bit, Verifying Traces, Constructive Traces).
+- *Skyframe Early Cutoff & Change Pruning* (Bazel Skyframe; Esfahani et al., /CloudBuild:
+  Microsoft's Distributed and Caching Build Service/, ICSE SEIP 2016; Hammer et al., /Adapton:
+  Composable, Demand-Driven Incremental Computation/, PLDI 2014; Meta Buck2 /DICE/):
+  Dirtying a node re-evaluates its output digest; if the exported interface/value digest matches
+  the prior trace, propagation stops immediately (early cutoff) and downstream =rdeps= keep their
+  constructive CAS artifacts untouched.
+- *Bzlmod & Minimal Version Selection (MVS)* (Russ Cox, /Version SAT & Minimal Version Selection/,
+  2018; Bazel Bzlmod):
+  Replaces brittle imperative dependency wiring with declarative module graphs and deterministic
+  diamond resolution. Where Lambda Aitia operates on *security/assurance-governed source cuts*
+  rather than assuming blind semver backward compatibility, conflicting transitive interface pins
+  in a diamond *fail closed* with explicit competing peer witnesses rather than silently upgrading.
+
+* Implemented Invariants in =modules/workflow/multi-repo.ss=
+
+1. *Two-Level Pin Transition Classifier* (=classify-pin-transitions=):
+   - Given downstream repo =r= pinning upstream =u= at =(expected-commit, expected-interface)=:
+     - If =actual-commit == expected-commit= and (=expected-interface= absent or equals
+       =actual-interface=) -> *aligned*.
+     - If =actual-commit != expected-commit= AND =expected-interface= is present AND
+       =actual-interface == expected-interface= -> *Early Cutoff* (=early-cutoffs= entry with
+       =reason: 'interface-digest-unchanged=; downstream stays clean and preserves CAS support).
+     - Otherwise -> *Breaking Pin Drift* (=pin-drifts= entry -> localized Schwarz
+       =cross-repo-pin-drift= =repairTask=).
+2. *Transitive Diamond Coherence Law* (=detect-diamond-conflicts=):
+   - For every consumer repository =c=, computes the transitive closure of pins declared by =c=
+     and all its upstream dependencies toward any common ancestor =u=.
+   - If two distinct repositories in =c='s dependency cone pin =u= to incompatible interface
+     digests (or incompatible commits when no shared interface digest is declared), emits a
+     =diamond-conflicts= entry and fails closed to =need-human-decision= (=diamond-pin-conflict=).
+3. *Canonical Deterministic Ordering* (Church-Rosser Confluence):
+   - Each topological wave's members, =repo-summaries=, =early-cutoffs=, =pin-drifts=,
+     =diamond-conflicts=, and emitted frames are canonically sorted by =repo-id= so concurrent
+     peer permutations produce identical protocol states.
+
+* Flagship Practice Case
+
+See [[file:../../examples/cardano-diamond-release-train/README.org][=examples/cardano-diamond-release-train/=]]
+for a real 4-repository diamond (=protocol-base -> {ledger-core, network-mux} -> node-runner=)
+executed over 4 real JJ workspaces, 4 real bare Git remotes, and one SysML v2 =workspace.sysml=
+with zero =GERBIL_LOADPATH=.

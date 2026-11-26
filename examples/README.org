@@ -10,8 +10,17 @@ pre-compiled =liblambda_aitia_rust.{so,dylib}= =cdylib= with *zero =GERBIL_LOADP
 All workflow topology, SDLC profile composition, and 5-state IoC semantics live strictly inside
 SysML v2 and Scheme POO/ASCENT/FunFlow.
 
-* Flagship End-to-End SDLC Case
+* Flagship End-to-End SDLC Cases
 
+- [[file:cardano-diamond-release-train/README.org][=cardano-diamond-release-train/=]] (*IOHK/Bazel 4-Repo Diamond Release Train*, RFC 0009):
+  Real 4-repository diamond (=protocol-base -> {ledger-core, network-mux} -> node-runner=) across
+  4 real JJ workspaces, 4 bare Git remotes, and one SysML v2 =workspace.sysml=:
+  1. Bazel Skyframe Early Cutoff (upstream commit advances with unchanged =interfaceDigest= ->
+     downstream pruned via =earlyCutoffs=, zero spurious repair);
+  2. Bazel Bzlmod / IOHK CHaP Diamond Conflict (Wave 1 peers disagree on =protocol-base= ABI ->
+     fail-closed =need-human-decision= /=diamond-pin-conflict=/ at =node-runner=);
+  3. 3-wave cascading fenced commit & bare-remote push across all 4 repos with verified
+     =repoEvidenceLineages= (=missingReports: []=).
 - [[file:sdlc-release-train/README.org][=sdlc-release-train/=]] (*Billing Core -> Checkout Service Release Train*):
   Complete 4-stage real engineering release train across two real JJ repositories, two bare Git
   remotes, and an authoritative SysML v2 =workspace.sysml= topology:

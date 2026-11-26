@@ -76,7 +76,8 @@
                        "sdlc-npr-selection-test.ss"
                        "source-admission-test.ss"
                        "workflow-protocol-profile-test.ss"
-                       "workflow-multi-repo-test.ss")))))
+                       "workflow-multi-repo-test.ss"
+                       "workflow-diamond-early-cutoff-test.ss")))))
 
 (def (independent-test? file)
   (let (base (path-strip-directory file))
@@ -85,7 +86,8 @@
                    "decision-preflight-test.ss"
                    "source-admission-test.ss"
                    "workflow-protocol-profile-test.ss"
-                   "workflow-multi-repo-test.ss"))))
+                   "workflow-multi-repo-test.ss"
+                   "workflow-diamond-early-cutoff-test.ss"))))
 
 (def (vm-for-file default-vm file)
   (if (large-heap-test? file) "-:max-heap=2G" default-vm))
