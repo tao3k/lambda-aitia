@@ -259,7 +259,7 @@
         (check-equal? message
           (string-append "AITIA-RFC-7 test(gitops): Verify the recorded jj cut\n\n"
                          "Bind the proposed write to the observed configuration.\n\nEvidence\n"
-                         "- SWE-083: The recorded check passed.\n"
+                         "- SWE-083: The recorded check passed.\n\n"
                          "- SWE-084: The recorded check passed.\n"))
         (for-each
          (lambda (metadata)

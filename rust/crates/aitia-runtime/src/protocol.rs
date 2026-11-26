@@ -240,7 +240,9 @@ pub fn drive_multi_repo_protocol(
         .or_insert_with(|| json!({}));
 
     let verified_decision = match root_obj.get("humanDecision").cloned() {
-        Some(raw) if !raw.is_null() => Some(commit::governance::verify_signed_human_decision(&raw)?),
+        Some(raw) if !raw.is_null() => {
+            Some(commit::governance::verify_signed_human_decision(&raw)?)
+        }
         _ => None,
     };
     let checkpoint_path = root_obj
@@ -339,7 +341,9 @@ fn load_multi_repo_checkpoint(
 ) -> Result<(usize, Vec<String>), Box<dyn std::error::Error>> {
     if let Ok(meta) = std::fs::symlink_metadata(path) {
         if !meta.file_type().is_file() {
-            return Err(io::Error::other("Multi-repo checkpoint path must be a regular file").into());
+            return Err(
+                io::Error::other("Multi-repo checkpoint path must be a regular file").into(),
+            );
         }
     } else {
         return Ok((0, Vec::new()));

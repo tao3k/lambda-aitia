@@ -225,7 +225,9 @@ pub(crate) fn verify_signed_human_decision(raw: &Value) -> Result<Value> {
         || payload.approver.trim().is_empty()
         || payload.intent.trim().is_empty()
     {
-        return Err(err("Signed human decision missing required identity fields"));
+        return Err(err(
+            "Signed human decision missing required identity fields",
+        ));
     }
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

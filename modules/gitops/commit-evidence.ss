@@ -318,10 +318,13 @@
                proposed)
        (andmap (lambda (id) (assoc id proposed)) expected)
        (if (null? expected) ""
-           (apply string-append "\n\n" heading
-                  (map (lambda (id)
-                         (string-append "\n- " (label id) ": " (cadr (assoc id proposed))))
-                       (list-sort string<? expected))))))
+           (let ((ordered (list-sort string<? expected)))
+             (string-append
+              "\n\n" heading "\n- " (label (car ordered)) ": " (cadr (assoc (car ordered) proposed))
+              (apply string-append
+                     (map (lambda (id)
+                            (string-append "\n\n- " (label id) ": " (cadr (assoc id proposed))))
+                          (cdr ordered))))))))
 
 (def (clause-obligations clauses kind)
   (map cdr (filter (lambda (row) (equal? (car row) kind)) clauses)))
@@ -342,8 +345,7 @@
           (if (and evidence model (pair? (.get model supported)))
             (let (paths (.get model paths))
               (string-append
-               (if (equal? evidence "") "\n\nEvidence" "")
-               "\n- OpenSysML: "
+               (if (equal? evidence "") "\n\nEvidence\n- OpenSysML: " "\n\n- OpenSysML: ")
                (if (null? (cdr paths))
                  (string-append "Parsed " (json-value (car paths)) " at the recorded revision.")
                  (string-append "Parsed all " (number->string (length paths))
