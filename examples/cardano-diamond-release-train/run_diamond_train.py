@@ -1011,6 +1011,65 @@ def main() -> None:
                 merkle_flip_rejected = True
             assert merkle_flip_rejected, "Flipped Merkle sibling side MUST fail closed!"
 
+            # Scenario K: RFC 0016 RFC 6962 §2.1.2 Append-Only Transparency Log Consistency Proofs
+            # Test power-of-2 (1->2), non-power-of-2 (2->3, 3->5) append-only growth, PLUS
+            # fail-closed rejection of 1-byte historical Epoch 5 equivocation and log truncation!
+            log_entries = [
+                {"epoch": 5, "bundleDigest": att["bundleDigest"], "merkleRoot": att["payload"]["merkleRoot"]},
+                {"epoch": 6, "bundleDigest": att_ep6["bundleDigest"], "merkleRoot": att_ep6["payload"]["merkleRoot"]},
+                {"epoch": 7, "bundleDigest": "sha256:" + ("7" * 64), "merkleRoot": "sha256:" + ("a" * 64)},
+                {"epoch": 8, "bundleDigest": "sha256:" + ("8" * 64), "merkleRoot": "sha256:" + ("b" * 64)},
+                {"epoch": 9, "bundleDigest": "sha256:" + ("9" * 64), "merkleRoot": "sha256:" + ("c" * 64)},
+            ]
+            # K1. Power-of-2 (1 -> 2), non-power-of-2 (2 -> 3), and multi-step (3 -> 5) append-only proofs
+            p12 = json.loads(lambda_aitia_rust.generate_consistency_proof(json.dumps(log_entries[:2]), 1))
+            v12 = json.loads(
+                lambda_aitia_rust.verify_consistency_proof(
+                    json.dumps(p12), p12["firstRoot"], p12["secondRoot"]
+                )
+            )
+            assert v12["appendOnlyVerified"] is True and v12["actionAuthorized"] is False
+
+            p23 = json.loads(lambda_aitia_rust.generate_consistency_proof(json.dumps(log_entries[:3]), 2))
+            v23 = json.loads(
+                lambda_aitia_rust.verify_consistency_proof(
+                    json.dumps(p23), p23["firstRoot"], p23["secondRoot"]
+                )
+            )
+            assert v23["appendOnlyVerified"] is True and v23["actionAuthorized"] is False
+
+            p35 = json.loads(lambda_aitia_rust.generate_consistency_proof(json.dumps(log_entries), 3))
+            v35 = json.loads(
+                lambda_aitia_rust.verify_consistency_proof(
+                    json.dumps(p35), p35["firstRoot"], p35["secondRoot"]
+                )
+            )
+            assert v35["appendOnlyVerified"] is True and v35["actionAuthorized"] is False
+
+            # K2. Historical equivocation attack: rewrite Epoch 5 entry in size-5 log -> MUST fail closed
+            #     against original trusted size-3 checkpoint root `p35["firstRoot"]`!
+            equiv_entries = json.loads(json.dumps(log_entries))
+            equiv_entries[0]["bundleDigest"] = "sha256:" + ("f" * 64)
+            p35_equiv = json.loads(
+                lambda_aitia_rust.generate_consistency_proof(json.dumps(equiv_entries), 3)
+            )
+            equivocation_rejected = False
+            try:
+                lambda_aitia_rust.verify_consistency_proof(
+                    json.dumps(p35_equiv), p35["firstRoot"], p35_equiv["secondRoot"]
+                )
+            except ValueError:
+                equivocation_rejected = True
+            assert equivocation_rejected, "Historical equivocation MUST fail closed!"
+
+            # K3. Log truncation attack (firstSize=4 > secondSize=3) -> MUST fail closed!
+            truncation_rejected = False
+            try:
+                lambda_aitia_rust.generate_consistency_proof(json.dumps(log_entries[:3]), 4)
+            except ValueError:
+                truncation_rejected = True
+            assert truncation_rejected, "Log truncation MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -1052,6 +1111,9 @@ def main() -> None:
                 "scenarioJ_merkleSiblings": merkle_verdict["siblingCount"],
                 "scenarioJ_merkleTamperRejected": merkle_tamper_rejected,
                 "scenarioJ_merkleFlipRejected": merkle_flip_rejected,
+                "scenarioK_consistencyTransitionsVerified": ["1->2", "2->3", "3->5"],
+                "scenarioK_equivocationRejected": equivocation_rejected,
+                "scenarioK_truncationRejected": truncation_rejected,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

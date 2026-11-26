@@ -333,4 +333,53 @@ theorem tamperedLeafChangesMerkleRootUnderInjectiveHash
   intro hEq
   exact hDiff (hInj leafBefore leafAfter hEq)
 
+/-- RFC 0016 RFC 6962 §2.1.2 append-only transparency log consistency validity predicate. -/
+def ConsistencyProofValid
+    (firstSize secondSize expectedFirst recomputedFirst expectedSecond recomputedSecond : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  firstSize ≥ 1 ∧
+  firstSize ≤ secondSize ∧
+  recomputedFirst = expectedFirst ∧
+  recomputedSecond = expectedSecond ∧
+  actionAuthorized = false
+
+theorem consistencyProofRejectsLogTruncation
+    {firstSize secondSize expectedFirst recomputedFirst expectedSecond recomputedSecond : Nat}
+    {actionAuthorized : Bool}
+    (hTrunc : secondSize < firstSize) :
+    ¬ ConsistencyProofValid
+        firstSize secondSize expectedFirst recomputedFirst
+        expectedSecond recomputedSecond actionAuthorized := by
+  intro hValid
+  exact Nat.not_le_of_gt hTrunc hValid.2.1
+
+theorem consistencyProofRequiresOldRootMatch
+    {firstSize secondSize expectedFirst recomputedFirst expectedSecond recomputedSecond : Nat}
+    {actionAuthorized : Bool}
+    (hEquiv : recomputedFirst ≠ expectedFirst) :
+    ¬ ConsistencyProofValid
+        firstSize secondSize expectedFirst recomputedFirst
+        expectedSecond recomputedSecond actionAuthorized := by
+  intro hValid
+  exact hEquiv hValid.2.2.1
+
+theorem consistencyProofRequiresNewRootMatch
+    {firstSize secondSize expectedFirst recomputedFirst expectedSecond recomputedSecond : Nat}
+    {actionAuthorized : Bool}
+    (hFork : recomputedSecond ≠ expectedSecond) :
+    ¬ ConsistencyProofValid
+        firstSize secondSize expectedFirst recomputedFirst
+        expectedSecond recomputedSecond actionAuthorized := by
+  intro hValid
+  exact hFork hValid.2.2.2.1
+
+theorem consistencyProofPreservesZeroAuthority
+    {firstSize secondSize expectedFirst recomputedFirst expectedSecond recomputedSecond : Nat}
+    {actionAuthorized : Bool}
+    (hValid : ConsistencyProofValid
+        firstSize secondSize expectedFirst recomputedFirst
+        expectedSecond recomputedSecond actionAuthorized) :
+    actionAuthorized = false :=
+  hValid.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

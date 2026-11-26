@@ -349,6 +349,37 @@ fn verify_repo_merkle_proof(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn generate_consistency_proof(
+    py: Python<'_>,
+    entries_json: String,
+    first_size: usize,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::generate_consistency_proof_json(&entries_json, first_size)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_consistency_proof(
+    py: Python<'_>,
+    proof_json: String,
+    expected_first_root: String,
+    expected_second_root: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_consistency_proof_json(
+            &proof_json,
+            &expected_first_root,
+            &expected_second_root,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -359,6 +390,8 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(generate_repo_merkle_proof, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(verify_repo_merkle_proof, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(generate_consistency_proof, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_consistency_proof, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

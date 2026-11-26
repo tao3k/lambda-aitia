@@ -64,3 +64,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.merkleProofRequiresMatchingRoot
 #print axioms GitOps.merkleInclusionPreservesZeroAuthority
 #print axioms GitOps.tamperedLeafChangesMerkleRootUnderInjectiveHash
+#print axioms GitOps.consistencyProofRejectsLogTruncation
+#print axioms GitOps.consistencyProofRequiresOldRootMatch
+#print axioms GitOps.consistencyProofRequiresNewRootMatch
+#print axioms GitOps.consistencyProofPreservesZeroAuthority

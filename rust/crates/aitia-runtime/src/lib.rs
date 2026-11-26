@@ -47,6 +47,11 @@ pub use commit::merkle::{
     verify_repo_merkle_proof, verify_repo_merkle_proof_json,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::transparency::{
+    compute_log_root, generate_consistency_proof, generate_consistency_proof_json,
+    verify_consistency_proof, verify_consistency_proof_json,
+};
+#[cfg(feature = "linked-program")]
 pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
     drive_multi_repo_protocol, drive_scheme_protocol, drive_single_repo_protocol,
