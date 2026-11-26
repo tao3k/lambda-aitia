@@ -37,6 +37,7 @@ package AitiaProjectArchitecture {
             "dev/qualification",
             "dev/sysml",
             "docs/rfcs",
+            "examples",
             "t/harness",
             "t/library",
             "t/yanxu/modules/workflow",
