@@ -245,10 +245,14 @@ pub fn drive_multi_repo_protocol(
         }
         _ => None,
     };
+    let trust_root = root_obj.get("trustRoot").cloned().filter(|v| !v.is_null());
     if let Some(raw_bundle) = root_obj.get("priorAttestationBundle").cloned()
         && !raw_bundle.is_null()
     {
-        let verified_keys = commit::governance::verify_release_attestation_bundle(&raw_bundle)?;
+        let verified_keys = commit::attestation::verify_release_attestation_bundle_with_trust_root(
+            &raw_bundle,
+            trust_root.as_ref(),
+        )?;
         root_obj.insert("attestedVerificationKeys".to_owned(), json!(verified_keys));
     }
     let emit_attestation = root_obj
@@ -259,6 +263,20 @@ pub fn drive_multi_repo_protocol(
         .get("attestationSigningSeed")
         .and_then(Value::as_str)
         .map(str::to_owned);
+    let attestation_seeds: Vec<String> = root_obj
+        .get("attestationSigningSeeds")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    let attestation_epoch = root_obj
+        .get("attestationEpoch")
+        .and_then(Value::as_u64)
+        .unwrap_or(1);
     let checkpoint_path = root_obj
         .get("checkpointPath")
         .and_then(Value::as_str)
@@ -311,10 +329,20 @@ pub fn drive_multi_repo_protocol(
                 step["verifiedHumanDecision"] = decision;
             }
             if emit_attestation && state_name.as_deref() == Some("quiescent") {
-                step["releaseAttestation"] = commit::governance::mint_release_attestation_bundle(
-                    &step,
-                    attestation_seed.as_deref(),
-                )?;
+                step["releaseAttestation"] = if !attestation_seeds.is_empty() {
+                    let seed_refs: Vec<&str> =
+                        attestation_seeds.iter().map(String::as_str).collect();
+                    commit::attestation::mint_release_attestation_bundle_with_quorum(
+                        &step,
+                        &seed_refs,
+                        attestation_epoch,
+                    )?
+                } else {
+                    commit::attestation::mint_release_attestation_bundle(
+                        &step,
+                        attestation_seed.as_deref(),
+                    )?
+                };
             }
             if let Some(path) = checkpoint_path.as_deref() {
                 let persisted = persist_multi_repo_checkpoint(

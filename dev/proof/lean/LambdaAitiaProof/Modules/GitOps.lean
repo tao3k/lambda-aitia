@@ -133,4 +133,43 @@ theorem incompleteWaveBundleRejected {sigValid : Bool} {k : Nat} :
   intro hValid
   cases hValid.2
 
+/-- RFC 0011 TUF k-of-n threshold attestation admissibility predicate. -/
+def TufBundleAdmissible
+    (distinctAuthorizedNonRevoked : Nat)
+    (threshold : Nat)
+    (hasRevokedSigner : Bool)
+    (bundleEpoch minEpoch : Nat) : Prop :=
+  threshold ≥ 1 ∧
+  hasRevokedSigner = false ∧
+  distinctAuthorizedNonRevoked ≥ threshold ∧
+  bundleEpoch ≥ minEpoch
+
+/-- RFC 0011 Counterfactual competing-branch evaluation never grants authority. -/
+def CounterfactualEvaluationSafe (hypothetical actionAuthorized : Bool) : Prop :=
+  hypothetical = true ∧ actionAuthorized = false
+
+theorem duplicateKeyCannotSatisfyThreshold
+    {threshold : Nat} (hTwo : threshold ≥ 2) {hasRevoked : Bool} {ep minEp : Nat} :
+    ¬ TufBundleAdmissible 1 threshold hasRevoked ep minEp := by
+  intro hAdm
+  exact Nat.not_le_of_gt (Nat.lt_succ_self 1) (Nat.le_trans hTwo hAdm.2.2.1)
+
+theorem revokedKeyExcludedFromQuorum
+    {distinct threshold ep minEp : Nat} :
+    ¬ TufBundleAdmissible distinct threshold true ep minEp := by
+  intro hAdm
+  cases hAdm.2.1
+
+theorem epochRollbackRejected
+    {distinct threshold ep minEp : Nat} (hOld : ep < minEp) :
+    ¬ TufBundleAdmissible distinct threshold false ep minEp := by
+  intro hAdm
+  exact Nat.not_le_of_gt hOld hAdm.2.2.2
+
+theorem counterfactualEvaluationPreservesZeroAuthority
+    {hypothetical actionAuthorized : Bool}
+    (hSafe : CounterfactualEvaluationSafe hypothetical actionAuthorized) :
+    actionAuthorized = false :=
+  hSafe.2
+
 end LambdaAitiaProof.Modules.GitOps

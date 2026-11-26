@@ -348,10 +348,16 @@ def main() -> None:
         assert conflict_doc["actionAuthorized"] is False
 
         # Scenario C: 3-Wave Cascading Fenced Commit + Push + Durable Crash-Recovery Checkpoint Ledger!
+        # Mint a RFC 0011 TUF 2-of-3 Ed25519 quorum Release Attestation Bundle at epoch 5.
+        seed_a = "11" * 32
+        seed_b = "22" * 32
+        seed_c = "33" * 32
         checkpoint_file = root / "diamond-train.checkpoint.json"
         cascade_overlay = {
             "checkpointPath": str(checkpoint_file),
             "emitAttestation": True,
+            "attestationSigningSeeds": [seed_a, seed_b],
+            "attestationEpoch": 5,
             "repos": [
                 {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
                 for rid, *_ in specs
@@ -526,6 +532,111 @@ def main() -> None:
         assert inv_hits["network-mux"] is False, inv_hits
         assert inv_doc["actionAuthorized"] is False
 
+        # Scenario F: RFC 0011 TUF 2-of-3 Quorum + Revocation + Rollback Defense + Counterfactual Branch Matrix
+        assert att["payload"]["epoch"] == 5, att["payload"]
+        assert len(att["signatures"]) == 2, att["signatures"]
+        pk_a = att["signatures"][0]["publicKey"]
+        pk_b = att["signatures"][1]["publicKey"]
+        trust_root_ok = {
+            "schema": "lambda-aitia.tuf-trust-root.v1",
+            "rootVersion": 1,
+            "threshold": 2,
+            "minEpoch": 5,
+            "authorizedKeys": [pk_a, pk_b, "44" * 32],
+            "revokedKeys": [],
+        }
+        # F1. Valid 2-of-3 quorum bundle accepted under TrustRoot + Counterfactual Competing-Branch Matrix!
+        # Evaluate TWO competing hypotheses simultaneously (preserving BOTH without selecting a winner!):
+        #   Branch 1: Revert protocol-base to attested real_iface_digest -> preserves 4/4 memo hits
+        #   Branch 2: Push forward to ABI v2 -> invalidates protocol-base + ledger-core + network-mux
+        tuf_cf_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "checkpointPath": str(checkpoint_file),
+                        "priorAttestationBundle": att,
+                        "trustRoot": trust_root_ok,
+                        "repos": [
+                            {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
+                            for rid, *_ in specs
+                        ],
+                        "counterfactualBranches": [
+                            {
+                                "branchId": "branch-revert-abi-v1",
+                                "hypothesis": "Revert protocol-base header to ABI v1 to preserve 4/4 memo hits",
+                                "repoOverrides": [
+                                    {"repoId": "protocol-base", "interfaceDigest": real_iface_digest}
+                                ],
+                            },
+                            {
+                                "branchId": "branch-advance-abi-v2",
+                                "hypothesis": "Advance protocol-base to ABI v2 and re-verify Wave 1 peers",
+                                "repoOverrides": [
+                                    {"repoId": "protocol-base", "interfaceDigest": "sha256:abi-v2-breaking"},
+                                    {"repoId": "ledger-core", "pinnedUpstreamInterfaces": {"protocol-base": real_iface_digest}},
+                                    {"repoId": "network-mux", "pinnedUpstreamInterfaces": {"protocol-base": real_iface_digest}},
+                                ],
+                            },
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        cf_matrix = tuf_cf_doc["counterfactualMatrix"]
+        assert len(cf_matrix) == 2, cf_matrix
+        assert all(b["hypothetical"] is True and b["actionAuthorized"] is False for b in cf_matrix)
+        cf_by_id = {b["branchId"]: b for b in cf_matrix}
+        assert len(cf_by_id["branch-revert-abi-v1"]["verificationCacheHits"]) == 4, cf_by_id
+        assert cf_by_id["branch-advance-abi-v2"]["resultingState"] == "need-agent-synthesis", cf_by_id
+        assert len(cf_by_id["branch-advance-abi-v2"]["invalidatedRepos"]) == 3, cf_by_id
+        assert tuf_cf_doc["actionAuthorized"] is False
+
+        # F2. Duplicate-key quorum inflation attack (repeating signer A twice) -> MUST fail closed!
+        dup_att = json.loads(json.dumps(att))
+        dup_att["signatures"] = [att["signatures"][0], att["signatures"][0]]
+        dup_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps({"priorAttestationBundle": dup_att, "trustRoot": trust_root_ok}),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert dup_proc.returncode != 0, "Duplicate-key quorum inflation MUST fail closed!"
+
+        # F3. TUF Key Revocation (pk_a compromised & revoked) -> MUST fail closed!
+        trust_root_revoked = dict(trust_root_ok, rootVersion=2, revokedKeys=[pk_a])
+        revoked_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps({"priorAttestationBundle": att, "trustRoot": trust_root_revoked}),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert revoked_proc.returncode != 0, "Revoked key attestation MUST fail closed!"
+
+        # F4. TUF Epoch Rollback Defense (minEpoch=6 vs valid epoch=5 bundle) -> MUST fail closed!
+        trust_root_rollback = dict(trust_root_ok, rootVersion=3, minEpoch=6)
+        rollback_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps({"priorAttestationBundle": att, "trustRoot": trust_root_rollback}),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert rollback_proc.returncode != 0, "Epoch rollback attestation MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -545,6 +656,12 @@ def main() -> None:
                 "scenarioE_abiInvalidatedPeers": [
                     rid for rid in ("protocol-base", "ledger-core", "network-mux") if not inv_hits[rid]
                 ],
+                "scenarioF_tufQuorumSigners": len(att["signatures"]),
+                "scenarioF_tufEpoch": att["payload"]["epoch"],
+                "scenarioF_duplicateKeyRejected": dup_proc.returncode != 0,
+                "scenarioF_revokedKeyRejected": revoked_proc.returncode != 0,
+                "scenarioF_epochRollbackRejected": rollback_proc.returncode != 0,
+                "scenarioF_counterfactualBranchesPreserved": len(cf_matrix),
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

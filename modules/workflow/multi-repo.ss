@@ -46,12 +46,14 @@
 
 (def (repo-effective-commit repo-spec raw-receipts)
   (let* ((rid (.ref repo-spec 'repo-id))
+         (override-commit (opt-ref repo-spec 'counterfactual-commit #f))
          (apply-rcpt (and (hash-table? raw-receipts)
                           (hash-get raw-receipts (repo-receipt-key rid "gitops.jj.apply-description"))))
          (obs-rcpt (and (hash-table? raw-receipts)
                         (hash-get raw-receipts (repo-receipt-key rid "gitops.jj.observe-cut"))))
          (cut-obj (opt-ref repo-spec 'cut #f)))
-    (or (and (hash-table? apply-rcpt) (hash-get apply-rcpt "resulting_commit"))
+    (or override-commit
+        (and (hash-table? apply-rcpt) (hash-get apply-rcpt "resulting_commit"))
         (and (hash-table? obs-rcpt)
              (let ((c (hash-get obs-rcpt "cut")))
                (and (hash-table? c) (hash-get c "commit"))))
@@ -60,11 +62,13 @@
 
 (def (repo-effective-interface repo-spec raw-receipts)
   (let* ((rid (.ref repo-spec 'repo-id))
+         (override-iface (opt-ref repo-spec 'counterfactual-interface #f))
          (iface-rcpt (and (hash-table? raw-receipts)
                           (hash-get raw-receipts (repo-receipt-key rid "interface.project-digest"))))
          (obs-rcpt (and (hash-table? raw-receipts)
                         (hash-get raw-receipts (repo-receipt-key rid "gitops.jj.observe-cut")))))
-    (or (and (hash-table? iface-rcpt) (hash-get iface-rcpt "interfaceDigest"))
+    (or override-iface
+        (and (hash-table? iface-rcpt) (hash-get iface-rcpt "interfaceDigest"))
         (opt-ref repo-spec 'interface-digest #f)
         (and (hash-table? obs-rcpt) (hash-get obs-rcpt "interfaceDigest")))))
 
@@ -321,9 +325,120 @@
         (jj-apply-description := (hash-get raw-receipts (repo-receipt-key rid "gitops.jj.apply-description")))
         (jj-push-reviewed := (hash-get raw-receipts (repo-receipt-key rid "gitops.jj.push-reviewed"))))))
 
+;;; Pure functional RFC 0011 Counterfactual Competing-Branch Verification Matrix.
+;;; Evaluates EVERY bounded POO branch proposed by investigators or Agents against
+;;; the multi-repo diamond coherence laws and attested Adapton/Salsa verification keys,
+;;; preserving competing hypotheses, contradictions, and open questions WITHOUT
+;;; collapsing to a single favored path or granting execution authority.
+(def (apply-counterfactual-overlay repos overrides)
+  (map (lambda (r)
+         (let* ((rid (.ref r 'repo-id))
+                (ov (find (lambda (o) (equal? (.ref o 'repo-id) rid)) overrides)))
+           (if (not ov)
+             r
+             (let ((ov-iface (opt-ref ov 'interface-digest #f))
+                   (ov-commit (opt-ref ov 'cut-commit #f))
+                   (ov-pins (opt-ref ov 'pinned-upstream-commits #f))
+                   (ov-iface-pins (opt-ref ov 'pinned-upstream-interfaces #f))
+                   (base-prof (opt-ref r 'profile #f))
+                   (base-deps (opt-ref r 'depends-on '()))
+                   (base-cut (opt-ref r 'cut #f))
+                   (base-cut-commit (opt-ref r 'cut-commit #f))
+                   (base-iface (opt-ref r 'interface-digest #f))
+                   (base-cf-iface (opt-ref r 'counterfactual-interface #f))
+                   (base-cf-commit (opt-ref r 'counterfactual-commit #f))
+                   (base-pins (opt-ref r 'pinned-upstream-commits '()))
+                   (base-iface-pins (opt-ref r 'pinned-upstream-interfaces '())))
+               (.o (repo-id := rid)
+                   (profile := base-prof)
+                   (depends-on := base-deps)
+                   (cut := base-cut)
+                   (cut-commit := base-cut-commit)
+                   (interface-digest := base-iface)
+                   (counterfactual-interface := (or ov-iface base-cf-iface))
+                   (counterfactual-commit := (or ov-commit base-cf-commit))
+                   (pinned-upstream-commits := (or ov-pins base-pins))
+                   (pinned-upstream-interfaces := (or ov-iface-pins base-iface-pins)))))))
+       repos))
+
+(def (evaluate-counterfactual-branch branch repos raw-receipts attested-keys default-profile)
+  (let* ((bid (opt-ref branch 'branch-id "branch-unnamed"))
+         (hyp (opt-ref branch 'hypothesis ""))
+         (overrides (opt-ref branch 'repo-overrides '()))
+         (b-repos (apply-counterfactual-overlay repos overrides))
+         (b-conflicts (detect-diamond-conflicts b-repos)))
+    (let-values (((b-drifts b-cutoffs) (classify-pin-transitions b-repos raw-receipts)))
+      (let* ((drifted-ids (map (lambda (d) (.ref d 'repo-id)) b-drifts))
+             (commit-map (map (lambda (r) (cons (.ref r 'repo-id) (repo-effective-commit r raw-receipts))) b-repos))
+             (iface-map (map (lambda (r) (cons (.ref r 'repo-id) (repo-effective-interface r raw-receipts))) b-repos))
+             (repo-evals
+              (map (lambda (r)
+                     (let* ((rid (.ref r 'repo-id))
+                            (deps (sort-strings (opt-ref r 'depends-on '())))
+                            (r-prof (opt-ref r 'profile default-profile))
+                            (eff-commit (repo-effective-commit r raw-receipts))
+                            (eff-iface (repo-effective-interface r raw-receipts))
+                            (vkey (repo-verification-key rid eff-commit eff-iface r-prof deps iface-map commit-map))
+                            (attested-key (and (hash-table? attested-keys) (hash-get attested-keys rid)))
+                            (hit? (and (string? attested-key)
+                                       (equal? attested-key vkey)
+                                       (not (member rid drifted-ids)))))
+                       (list rid vkey hit?)))
+                   b-repos))
+             (cache-hits
+              (filter-map (lambda (e)
+                            (and (caddr e)
+                                 (.o (repo-id := (car e)) (verification-key := (cadr e)))))
+                          repo-evals))
+             (invalidated
+              (filter-map (lambda (e) (and (not (caddr e)) (car e))) repo-evals))
+             (res-state
+              (cond
+               ((pair? b-conflicts) 'need-human-decision)
+               ((pair? b-drifts) 'need-agent-synthesis)
+               (else 'quiescent)))
+             (res-esc
+              (cond
+               ((pair? b-conflicts) 'diamond-pin-conflict)
+               ((pair? b-drifts) 'cross-repo-pin-drift)
+               (else #f)))
+             (contradictions
+              (append
+               (map (lambda (c)
+                      (string-append "diamond-pin-conflict:" (.ref c 'consumer-repo) "<-" (.ref c 'upstream-repo)))
+                    b-conflicts)
+               (map (lambda (d)
+                      (string-append "cross-repo-pin-drift:" (.ref d 'repo-id) "<-" (.ref d 'upstream-repo)))
+                    b-drifts)))
+             (open-questions
+              (append
+               (map (lambda (rid) (string-append "reverify-repo:" rid)) invalidated)
+               (if (pair? b-conflicts)
+                 (list "human-decision-required:diamond-pin-conflict")
+                 '()))))
+        (.o (branch-id := bid)
+            (hypothesis := hyp)
+            (hypothetical? := #t)
+            (action-authorized? := #f)
+            (resulting-state := res-state)
+            (escalation-reason := res-esc)
+            (pin-drifts := b-drifts)
+            (diamond-conflicts := b-conflicts)
+            (early-cutoffs := b-cutoffs)
+            (verification-cache-hits := cache-hits)
+            (invalidated-repos := invalidated)
+            (contradictions := contradictions)
+            (open-questions := open-questions))))))
+
+(def (evaluate-counterfactual-branches branches repos raw-receipts attested-keys default-profile)
+  (map (lambda (b)
+         (evaluate-counterfactual-branch b repos raw-receipts attested-keys default-profile))
+       branches))
+
 (def (make-multi-repo-step
       case-id profile state escalation-reason repair-round max-repair-rounds
-      waves repo-summaries frames repair-tasks drifts early-cutoffs diamond-conflicts)
+      waves repo-summaries frames repair-tasks drifts early-cutoffs diamond-conflicts
+      (counterfactual-matrix '()))
   (let* ((handoff (case state
                     ((quiescent) 'none)
                     ((need-host-frames) 'host-probe)
@@ -379,6 +494,7 @@
                             (.o (repo-id := (.ref rs 'repo-id))
                                 (verification-key := (.ref rs 'verification-key)))))
                      repo-summaries))
+        (counterfactual-matrix := counterfactual-matrix)
         (graph := #f)
         (initial-frontier := #f)
         (report := #f)
@@ -392,6 +508,7 @@
          (repos (sort-by-repo-id (opt-ref ctx 'repos '())))
          (raw-receipts (opt-ref ctx 'raw-receipts (hash)))
          (attested-keys (opt-ref ctx 'attested-verification-keys (hash)))
+         (cf-branches (opt-ref ctx 'counterfactual-branches '()))
          (repair-round (opt-ref ctx 'repair-round 0))
          (max-repair-rounds (opt-ref ctx 'max-repair-rounds 3))
          (repo-ids (map (lambda (r) (.ref r 'repo-id)) repos))
@@ -523,29 +640,34 @@
                                        (applied-receipt := (.get step applied-receipt))
                                        (pushed-receipt := (.get step pushed-receipt)))))
                                repo-results)))
+                    (let ((cf-matrix
+                           (if (pair? cf-branches)
+                             (evaluate-counterfactual-branches
+                              cf-branches repos raw-receipts attested-keys profile)
+                             '())))
                     (cond
                      ;; Phase 1: Fan out all read-only HostRead probes across all repos in parallel.
                      ((pair? host-frames)
                       (make-multi-repo-step
                        case-id profile 'need-host-frames #f repair-round max-repair-rounds
-                       waves repo-summaries host-frames '() drifts early-cutoffs '()))
+                       waves repo-summaries host-frames '() drifts early-cutoffs '() cf-matrix))
                      ;; Phase 2: Breaking pin drift -> localized Schwarz repair (or human escalation).
                      ((pair? drifts)
                       (let ((preserved (filter (lambda (id) (not (member id drifted-ids))) repo-ids)))
                         (if (>= repair-round max-repair-rounds)
                           (make-multi-repo-step
                            case-id profile 'need-human-decision 'repair-budget-exhausted
-                           repair-round max-repair-rounds waves repo-summaries '() '() drifts early-cutoffs '())
+                           repair-round max-repair-rounds waves repo-summaries '() '() drifts early-cutoffs '() cf-matrix)
                           (make-multi-repo-step
                            case-id profile 'need-agent-synthesis 'cross-repo-pin-drift
                            repair-round max-repair-rounds waves repo-summaries '()
                            (build-pin-drift-repair-tasks drifts preserved repair-round)
-                           drifts early-cutoffs '()))))
+                           drifts early-cutoffs '() cf-matrix))))
                      ;; Phase 3: All repos quiescent -> global quiescence (retaining Early Cutoff audit proof!).
                      ((every (lambda (rs) (eq? (.ref rs 'state) 'quiescent)) repo-summaries)
                       (make-multi-repo-step
                        case-id profile 'quiescent #f repair-round max-repair-rounds
-                       waves repo-summaries '() '() '() early-cutoffs '()))
+                       waves repo-summaries '() '() '() early-cutoffs '() cf-matrix))
                      ;; Phase 4: Active-wave fenced frames, synthesis repair tasks, or human gates.
                      (else
                       (let* ((active-entries
@@ -583,12 +705,12 @@
                          ((pair? fenced-frames)
                           (make-multi-repo-step
                            case-id profile 'need-fenced-frames #f repair-round max-repair-rounds
-                           waves repo-summaries fenced-frames '() '() early-cutoffs '()))
+                           waves repo-summaries fenced-frames '() '() early-cutoffs '() cf-matrix))
                          ((pair? synth-tasks)
                           (make-multi-repo-step
                            case-id profile 'need-agent-synthesis #f repair-round max-repair-rounds
-                           waves repo-summaries '() synth-tasks '() early-cutoffs '()))
+                           waves repo-summaries '() synth-tasks '() early-cutoffs '() cf-matrix))
                          (else
                           (make-multi-repo-step
                            case-id profile 'need-human-decision human-esc repair-round max-repair-rounds
-                           waves repo-summaries '() '() '() early-cutoffs '()))))))))))))))))
+                           waves repo-summaries '() '() '() early-cutoffs '() cf-matrix)))))))))))))))))

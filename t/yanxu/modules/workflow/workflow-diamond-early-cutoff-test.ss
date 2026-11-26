@@ -88,10 +88,19 @@
                (map (lambda (rs) (cons (.ref rs 'repo-id) (.ref rs 'verification-key)))
                     (.ref s-cutoff 'repo-summaries))))
              ;; B. io-sim Schedule Confluence + RFC 0010 Adapton/Salsa 4/4 verification-cache-hits
-             ;;    under reversed input repo order!
+             ;;    + RFC 0011 Counterfactual Competing-Branch Verification Matrix!
+             (cf-branches
+              (list (.o (branch-id := "branch-preserve-abi-v1")
+                        (hypothesis := "Keep protocol-base ABI v1 to preserve Early Cutoff and 4/4 memo hits")
+                        (repo-overrides := '()))
+                    (.o (branch-id := "branch-upgrade-abi-v2")
+                        (hypothesis := "Bump protocol-base ABI to v2, invalidating Wave 1 downstream caches")
+                        (repo-overrides := (list (.o (repo-id := "protocol-base")
+                                                     (interface-digest := "abi:v2")))))))
              (s-cutoff-rev ((.get wf plan-protocol-step)
                             (.o (case-id := 'aitia/case/multi-repo-gitops)
                                 (attested-verification-keys := attested-keys)
+                                (counterfactual-branches := cf-branches)
                                 (repos := (reverse repos-cutoff)))))
              ;; C. Breaking interface change ("abi:v2") invalidates protocol-base + Wave 1 peers
              ;;    (localized Schwarz repair + Adapton/Salsa cache invalidation!)
@@ -128,6 +137,18 @@
         (check-equal? (.get s-cutoff-rev state) (.get s-cutoff state))
         (check-equal? (length (.ref s-cutoff-rev 'early-cutoffs)) (length (.ref s-cutoff 'early-cutoffs)))
         (check-equal? (length (.ref s-cutoff-rev 'verification-cache-hits)) 4)
+        ;; RFC 0011 Counterfactual Competing-Branch Matrix preserves BOTH branches with zero authority:
+        (let* ((cf-mat (.ref s-cutoff-rev 'counterfactual-matrix))
+               (b1 (car cf-mat))
+               (b2 (cadr cf-mat)))
+          (check-equal? (length cf-mat) 2)
+          (check-equal? (.ref b1 'hypothetical?) #t)
+          (check-equal? (.ref b1 'action-authorized?) #f)
+          (check-equal? (length (.ref b1 'verification-cache-hits)) 4)
+          (check-equal? (.ref b2 'hypothetical?) #t)
+          (check-equal? (.ref b2 'action-authorized?) #f)
+          (check-equal? (.ref b2 'resulting-state) 'need-agent-synthesis)
+          (check-equal? (length (.ref b2 'invalidated-repos)) 3))
         ;; True ABI break triggers cross-repo-pin-drift AND invalidates protocol-base + Wave 1 caches:
         (check-equal? (.get s-iface-break state) 'need-agent-synthesis)
         (check-equal? (.get s-iface-break escalation-reason) 'cross-repo-pin-drift)

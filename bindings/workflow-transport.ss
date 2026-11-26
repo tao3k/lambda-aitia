@@ -508,6 +508,47 @@
     (json->string
      (reconcile-result->hash project cut graph initial report final-frontier proposal-res))))
 
+(def (json-counterfactual-override row)
+  (let ((pins (let ((raw (hash-get row "pinnedUpstreamCommits")))
+                (and (hash-table? raw)
+                     (map (lambda (k) (cons k (hash-get raw k))) (hash-keys raw)))))
+        (iface-pins (let ((raw (hash-get row "pinnedUpstreamInterfaces")))
+                      (and (hash-table? raw)
+                           (map (lambda (k) (cons k (hash-get raw k))) (hash-keys raw))))))
+    (.o (repo-id := (json-required row "repoId"))
+        (interface-digest := (hash-get row "interfaceDigest"))
+        (cut-commit := (hash-get row "cutCommit"))
+        (pinned-upstream-commits := pins)
+        (pinned-upstream-interfaces := iface-pins))))
+
+(def (json-counterfactual-branch row)
+  (.o (branch-id := (or (hash-get row "branchId") "branch-unnamed"))
+      (hypothesis := (or (hash-get row "hypothesis") ""))
+      (repo-overrides := (map json-counterfactual-override
+                              (optional-workflow-list row "repoOverrides")))))
+
+(def (counterfactual-entry->json entry)
+  (let ((esc (.ref entry 'escalation-reason)))
+    (hash (schema "lambda-aitia.counterfactual-branch-eval.v1")
+          (branchId (.ref entry 'branch-id))
+          (hypothesis (.ref entry 'hypothesis))
+          (hypothetical #t)
+          (actionAuthorized #f)
+          (resultingState (symbol->string (.ref entry 'resulting-state)))
+          (escalationReason (if esc (symbol->string esc) (void)))
+          (pinDrifts (list->vector (map pin-drift->json (.ref entry 'pin-drifts))))
+          (diamondConflicts (list->vector (map diamond-conflict->json (.ref entry 'diamond-conflicts))))
+          (earlyCutoffs (list->vector (map early-cutoff->json (.ref entry 'early-cutoffs))))
+          (verificationCacheHits
+           (list->vector
+            (map (lambda (h)
+                   (hash (repoId (.ref h 'repo-id))
+                         (verificationKey (.ref h 'verification-key))))
+                 (.ref entry 'verification-cache-hits))))
+          (invalidatedRepos (list->vector (.ref entry 'invalidated-repos)))
+          (contradictions (list->vector (.ref entry 'contradictions)))
+          (openQuestions (list->vector (.ref entry 'open-questions))))))
+
 (def (aitia-workflow-protocol-step-payload payload)
   (assert-aitia-input-budget! payload)
   (let* ((input (read-aitia-json payload))
@@ -576,6 +617,9 @@
                                (optional-workflow-list input "repos")))
                 (raw-receipts := raw-receipts)
                 (attested-verification-keys := (or (hash-get input "attestedVerificationKeys") (hash)))
+                (counterfactual-branches :=
+                 (map json-counterfactual-branch
+                      (optional-workflow-list input "counterfactualBranches")))
                 (repair-round := repair-round)
                 (max-repair-rounds := max-repair-rounds)))
            (sdlc-case?
@@ -681,6 +725,10 @@
                          (hash (repoId (.ref h 'repo-id))
                                (verificationKey (.ref h 'verification-key))))
                        (.ref step 'verification-cache-hits)))))
+    (when (and (.slot? step 'counterfactual-matrix)
+               (pair? (.ref step 'counterfactual-matrix)))
+      (hash-put! out 'counterfactualMatrix
+                 (list->vector (map counterfactual-entry->json (.ref step 'counterfactual-matrix)))))
     (when (eq? (.get step state) 'need-agent-synthesis)
       (let* ((tasks (.get step repair-tasks))
              (max-b (if (pair? tasks)

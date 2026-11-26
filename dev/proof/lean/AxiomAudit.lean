@@ -44,3 +44,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.staleUpstreamInterfaceInvalidatesCache
 #print axioms GitOps.forgedAttestationSignatureRejected
 #print axioms GitOps.incompleteWaveBundleRejected
+#print axioms GitOps.duplicateKeyCannotSatisfyThreshold
+#print axioms GitOps.revokedKeyExcludedFromQuorum
+#print axioms GitOps.epochRollbackRejected
+#print axioms GitOps.counterfactualEvaluationPreservesZeroAuthority
