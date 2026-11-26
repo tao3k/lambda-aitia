@@ -9,8 +9,9 @@ use crate::{
 };
 use aitia_jj::{WorkspaceCut, observe_project_sources};
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const MAX_PROTOCOL_ROUNDS: usize = 8;
 
@@ -95,7 +96,7 @@ pub fn execute_multi_repo_protocol(
 ///
 /// # Errors
 /// Fails closed if the manifest is malformed, a repository configuration fails projection,
-/// capability dispatch fails, or the protocol round budget is exceeded.
+/// capability dispatch fails, evidence verification fails, or the protocol round budget is exceeded.
 pub fn drive_multi_repo_protocol(
     program: &AitiaProgram<'_>,
     request: &Value,
@@ -118,86 +119,25 @@ pub fn drive_multi_repo_protocol(
         .entry("receipts".to_owned())
         .or_insert_with(|| json!({}));
 
-    if let Some(repos) = root_obj.get_mut("repos").and_then(Value::as_array_mut) {
-        for repo in repos.iter_mut() {
-            let Some(repo_obj) = repo.as_object_mut() else {
-                continue;
-            };
-            let needs_hydrate = repo_obj.get("naming").is_none()
-                || repo_obj.get("requestedPaths").is_none()
-                || (execute_fenced
-                    && repo_obj.get("draft").is_some()
-                    && repo_obj.get("fencedCommitSpec").is_none());
-            if !needs_hydrate {
-                continue;
-            }
-            let Some(dir_str) = repo_obj
-                .get("directory")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-            else {
-                continue;
-            };
-            let dir_path = Path::new(&dir_str);
-            if !dir_path.join(".jj").exists() {
-                continue;
-            }
-            let observed = observe_project_sources(dir_path, usize::try_from(MAX_REQUEST_BYTES)?)?;
-            let (_, projection) = program
-                .resolve_project_config(&project::recorded_configuration_input(&observed.1)?)?;
-            let cfg = project::decode_configuration_projection(&projection)?;
-            if let Some(policy) = cfg.commit.as_ref() {
-                repo_obj
-                    .entry("project".to_owned())
-                    .or_insert_with(|| policy["project"].clone());
-                repo_obj
-                    .entry("profile".to_owned())
-                    .or_insert_with(|| policy["profile"].clone());
-                repo_obj
-                    .entry("checks".to_owned())
-                    .or_insert_with(|| policy["checks"].clone());
-                repo_obj
-                    .entry("naming".to_owned())
-                    .or_insert_with(|| policy["naming"].clone());
-                repo_obj
-                    .entry("modelCheckEnabled".to_owned())
-                    .or_insert_with(|| json!(cfg.model_check_enabled()));
-                if repo_obj.get("requestedPaths").is_none() {
-                    repo_obj.insert(
-                        "requestedPaths".to_owned(),
-                        json!(project::review_source_paths(policy)?),
-                    );
-                }
-            }
-            if execute_fenced
-                && repo_obj.get("draft").is_some()
-                && repo_obj.get("fencedCommitSpec").is_none()
-            {
-                let overlay_val = Value::Object(repo_obj.clone());
-                let (_, fenced_spec, proposal_json, _) =
-                    verify_fenced_commit_draft(program, observed, Some(&overlay_val))?;
-                repo_obj.insert("fencedCommitSpec".to_owned(), fenced_spec);
-                if repo_obj
-                    .get("proposals")
-                    .and_then(Value::as_array)
-                    .is_none_or(Vec::is_empty)
-                {
-                    repo_obj.insert("proposals".to_owned(), json!([proposal_json]));
-                }
-                repo_obj.insert("reconcile".to_owned(), json!(false));
-            }
-        }
-    }
-
+    let archived_reviews = hydrate_multi_repo_entries(program, root_obj, execute_fenced)?;
+    let repo_count = state["repos"].as_array().map_or(1, Vec::len);
     let registry = HostCapabilityRegistry::default_linked();
-    let max_rounds = MAX_PROTOCOL_ROUNDS * 2;
+    let max_rounds = MAX_PROTOCOL_ROUNDS.max(repo_count.saturating_mul(4).saturating_add(4));
     for _ in 0..max_rounds {
         let req = serde_json::to_string(&state)?;
-        let step: Value = serde_json::from_str(&program.workflow_protocol_step(&req)?)?;
+        let mut step: Value = serde_json::from_str(&program.workflow_protocol_step(&req)?)?;
         let state_name = step["state"].as_str();
         let should_dispatch = state_name == Some("need-host-frames")
             || (execute_fenced && state_name == Some("need-fenced-frames"));
         if !should_dispatch {
+            if execute_fenced {
+                attach_multi_repo_evidence_lineages(
+                    program,
+                    &mut step,
+                    &state["receipts"],
+                    archived_reviews,
+                )?;
+            }
             return Ok(step);
         }
         let raw_frames = step["frames"]
@@ -209,19 +149,142 @@ pub fn drive_multi_repo_protocol(
         for (key, payload) in registry.dispatch_protocol_frames(raw_frames)? {
             map.insert(key, payload);
         }
-        let receipts_snapshot = state["receipts"].clone();
-        if let Some(repos) = state.get_mut("repos").and_then(Value::as_array_mut) {
-            for repo in repos.iter_mut() {
-                if let Some(rid) = repo.get("repoId").and_then(Value::as_str) {
-                    let apply_key = format!("repo:{rid}:gitops.jj.apply-description");
-                    if receipts_snapshot.get(&apply_key).is_some() {
-                        repo["reconcile"] = json!(true);
-                    }
+        mark_applied_repos_for_reconcile(&mut state);
+    }
+    Err(io::Error::other("multi-repo workflow protocol exceeded host frame round budget").into())
+}
+
+fn hydrate_multi_repo_entries(
+    program: &AitiaProgram<'_>,
+    root_obj: &mut serde_json::Map<String, Value>,
+    execute_fenced: bool,
+) -> Result<BTreeMap<String, (PathBuf, Value)>, Box<dyn std::error::Error>> {
+    let mut archived_reviews = BTreeMap::new();
+    let Some(repos) = root_obj.get_mut("repos").and_then(Value::as_array_mut) else {
+        return Ok(archived_reviews);
+    };
+    for repo in repos.iter_mut() {
+        let Some(repo_obj) = repo.as_object_mut() else {
+            continue;
+        };
+        let needs_hydrate = repo_obj.get("naming").is_none()
+            || repo_obj.get("requestedPaths").is_none()
+            || (execute_fenced
+                && repo_obj.get("draft").is_some()
+                && repo_obj.get("fencedCommitSpec").is_none());
+        if !needs_hydrate {
+            continue;
+        }
+        let Some(dir_str) = repo_obj
+            .get("directory")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+        else {
+            continue;
+        };
+        let dir_path = PathBuf::from(&dir_str);
+        if !dir_path.join(".jj").exists() {
+            continue;
+        }
+        let observed = observe_project_sources(&dir_path, usize::try_from(MAX_REQUEST_BYTES)?)?;
+        let (_, projection) =
+            program.resolve_project_config(&project::recorded_configuration_input(&observed.1)?)?;
+        let cfg = project::decode_configuration_projection(&projection)?;
+        if let Some(policy) = cfg.commit.as_ref() {
+            repo_obj
+                .entry("project".to_owned())
+                .or_insert_with(|| policy["project"].clone());
+            repo_obj
+                .entry("profile".to_owned())
+                .or_insert_with(|| policy["profile"].clone());
+            repo_obj
+                .entry("checks".to_owned())
+                .or_insert_with(|| policy["checks"].clone());
+            repo_obj
+                .entry("naming".to_owned())
+                .or_insert_with(|| policy["naming"].clone());
+            repo_obj
+                .entry("modelCheckEnabled".to_owned())
+                .or_insert_with(|| json!(cfg.model_check_enabled()));
+            if repo_obj.get("requestedPaths").is_none() {
+                repo_obj.insert(
+                    "requestedPaths".to_owned(),
+                    json!(project::review_source_paths(policy)?),
+                );
+            }
+        }
+        if execute_fenced
+            && repo_obj.get("draft").is_some()
+            && repo_obj.get("fencedCommitSpec").is_none()
+        {
+            let overlay_val = Value::Object(repo_obj.clone());
+            let (_, fenced_spec, proposal_json, review_report) =
+                verify_fenced_commit_draft(program, observed, Some(&overlay_val))?;
+            repo_obj.insert("fencedCommitSpec".to_owned(), fenced_spec);
+            if repo_obj
+                .get("proposals")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+            {
+                repo_obj.insert("proposals".to_owned(), json!([proposal_json]));
+            }
+            repo_obj.insert("reconcile".to_owned(), json!(false));
+            if let Some(rid) = repo_obj.get("repoId").and_then(Value::as_str) {
+                archived_reviews.insert(rid.to_owned(), (dir_path, review_report));
+            }
+        }
+    }
+    Ok(archived_reviews)
+}
+
+fn mark_applied_repos_for_reconcile(state: &mut Value) {
+    let receipts_snapshot = state["receipts"].clone();
+    if let Some(repos) = state.get_mut("repos").and_then(Value::as_array_mut) {
+        for repo in repos.iter_mut() {
+            if let Some(rid) = repo.get("repoId").and_then(Value::as_str) {
+                let apply_key = format!("repo:{rid}:gitops.jj.apply-description");
+                if receipts_snapshot.get(&apply_key).is_some() {
+                    repo["reconcile"] = json!(true);
                 }
             }
         }
     }
-    Err(io::Error::other("multi-repo workflow protocol exceeded host frame round budget").into())
+}
+
+fn attach_multi_repo_evidence_lineages(
+    program: &AitiaProgram<'_>,
+    step: &mut Value,
+    receipts: &Value,
+    archived_reviews: BTreeMap<String, (PathBuf, Value)>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut lineages = serde_json::Map::new();
+    for (rid, (dir_path, mut archive)) in archived_reviews {
+        let apply_key = format!("repo:{rid}:gitops.jj.apply-description");
+        let Some(receipt) = receipts.get(&apply_key).filter(|value| !value.is_null()) else {
+            continue;
+        };
+        let revision = receipt["resulting_commit"]
+            .as_str()
+            .ok_or_else(|| {
+                io::Error::other(format!(
+                    "Applied commit receipt for repo `{rid}` missing resulting_commit"
+                ))
+            })?
+            .to_owned();
+        archive["receipt"] = receipt.clone();
+        let evidence = commit::evidence_with_program_in(
+            program,
+            &dir_path,
+            &revision,
+            &serde_json::to_string(&archive)?,
+            true,
+        )?;
+        lineages.insert(rid, evidence);
+    }
+    if !lineages.is_empty() {
+        step["repoEvidenceLineages"] = Value::Object(lineages);
+    }
+    Ok(())
 }
 
 /// Execute the Scheme-driven 5-state workflow protocol with explicit opt-in fenced execution.
@@ -237,7 +300,56 @@ pub fn execute_project_protocol_fenced(
     case_id: &str,
     overlay: Option<&Value>,
 ) -> Result<Value, Box<dyn std::error::Error>> {
+    if case_id == MULTI_REPO_WORKFLOW_CASE {
+        let req = overlay.ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Multi-repo fenced protocol requires a JSON manifest on stdin",
+            )
+        })?;
+        return execute_multi_repo_protocol(req, true);
+    }
     execute_project_protocol_inner(case_id, overlay, true)
+}
+
+/// Drive the Scheme-owned single-repository 5-state IoC protocol against `directory` using an
+/// already-live [`AitiaProgram`] session, attaching `evidenceLineage` after fenced quiescence.
+///
+/// # Errors
+/// Fails closed if workspace observation, Scheme configuration projection, reviewed draft
+/// verification, capability dispatch, or post-apply evidence verification fails.
+pub fn drive_single_repo_protocol(
+    program: &AitiaProgram<'_>,
+    directory: &Path,
+    case_id: &str,
+    overlay: Option<&Value>,
+    execute_fenced: bool,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let observed = observe_project_sources(directory, usize::try_from(MAX_REQUEST_BYTES)?)?;
+    let (mut result, archived_review) =
+        drive_scheme_protocol_inner(program, observed, case_id, overlay, execute_fenced)?;
+    if execute_fenced
+        && result["state"].as_str() == Some("quiescent")
+        && let (Some(mut archive), Some(receipt)) = (
+            archived_review,
+            result.get("appliedReceipt").filter(|v| !v.is_null()),
+        )
+    {
+        let revision = receipt["resulting_commit"]
+            .as_str()
+            .ok_or_else(|| io::Error::other("Applied commit receipt missing resulting_commit"))?
+            .to_owned();
+        archive["receipt"] = receipt.clone();
+        let evidence = commit::evidence_with_program_in(
+            program,
+            directory,
+            &revision,
+            &serde_json::to_string(&archive)?,
+            true,
+        )?;
+        result["evidenceLineage"] = evidence;
+    }
+    Ok(result)
 }
 
 fn execute_project_protocol_inner(
@@ -245,36 +357,14 @@ fn execute_project_protocol_inner(
     overlay: Option<&Value>,
     execute_fenced: bool,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    let observed = observe_project_sources(Path::new("."), usize::try_from(MAX_REQUEST_BYTES)?)?;
     with_linked_program(|program| {
-        let outcome = (|| -> Result<Value, Box<dyn std::error::Error>> {
-            let (mut result, archived_review) =
-                drive_scheme_protocol_inner(&program, observed, case_id, overlay, execute_fenced)?;
-            if execute_fenced
-                && result["state"].as_str() == Some("quiescent")
-                && let (Some(mut archive), Some(receipt)) = (
-                    archived_review,
-                    result.get("appliedReceipt").filter(|v| !v.is_null()),
-                )
-            {
-                let revision = receipt["resulting_commit"]
-                    .as_str()
-                    .ok_or_else(|| {
-                        io::Error::other("Applied commit receipt missing resulting_commit")
-                    })?
-                    .to_owned();
-                archive["receipt"] = receipt.clone();
-                let evidence = commit::evidence_with_program(
-                    &program,
-                    &revision,
-                    &serde_json::to_string(&archive)?,
-                    true,
-                )?;
-                result["evidenceLineage"] = evidence;
-            }
-            Ok(result)
-        })();
-        Ok(outcome)
+        Ok(drive_single_repo_protocol(
+            &program,
+            Path::new("."),
+            case_id,
+            overlay,
+            execute_fenced,
+        ))
     })?
 }
 

@@ -338,4 +338,45 @@ fn host_capability_registry_enforces_fenced_effects_and_zero_authority() {
         .expect("valid batch succeeds with zero authority");
     assert_eq!(good_batch.len(), 2);
     assert!(good_batch.iter().all(|receipt| !receipt.action_authorized));
+
+    // Pure multi-frame HostRead batch fans out concurrently while preserving exact frame order.
+    let parallel_reads = registry
+        .dispatch_batch(&[
+            CapabilityFrame {
+                capability: CapabilityId::new("jj.read-test"),
+                effect_class: HostEffectClass::HostRead,
+                payload: "{\"repo\":\"wave0\"}".to_owned(),
+                fence_token: None,
+            },
+            CapabilityFrame {
+                capability: CapabilityId::new("jj.read-test"),
+                effect_class: HostEffectClass::HostRead,
+                payload: "{\"repo\":\"wave1\"}".to_owned(),
+                fence_token: None,
+            },
+            CapabilityFrame {
+                capability: CapabilityId::new("jj.read-test"),
+                effect_class: HostEffectClass::HostRead,
+                payload: "{\"repo\":\"wave2\"}".to_owned(),
+                fence_token: None,
+            },
+        ])
+        .expect("parallel HostRead batch succeeds in deterministic order");
+    let payloads: Vec<&str> = parallel_reads
+        .iter()
+        .map(|receipt| receipt.payload.as_str())
+        .collect();
+    assert_eq!(
+        payloads,
+        vec![
+            "{\"repo\":\"wave0\"}",
+            "{\"repo\":\"wave1\"}",
+            "{\"repo\":\"wave2\"}"
+        ]
+    );
+    assert!(
+        parallel_reads
+            .iter()
+            .all(|receipt| !receipt.action_authorized)
+    );
 }

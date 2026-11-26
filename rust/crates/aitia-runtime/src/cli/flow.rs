@@ -10,7 +10,7 @@ use crate::protocol::{
 use crate::{HostCapabilityRegistry, with_linked_program};
 use std::io::{self, Write};
 
-const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision [--execute-fenced] < decision.json";
+const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision [--case <id>] [--execute-fenced] < decision.json";
 
 pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let words: Vec<&str> = arguments.iter().map(String::as_str).collect();
@@ -25,7 +25,8 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
             writeln!(io::stdout().lock(), "{response}").map_err(Into::into)
         }
         ["run", rest @ ..] => {
-            let (case_id, overlay) = parse_run_args(rest)?;
+            let (case_id, read_stdin) = parse_case_flag(rest, "--proposal-stdin")?;
+            let overlay = read_stdin.then(read_json_stdin).transpose()?;
             print_json(&execute_project_protocol(case_id, overlay.as_ref())?)
         }
         ["gitops"] | ["gitops", "--proposal-stdin"] => {
@@ -40,7 +41,8 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
                 &execute_project_protocol(DEFAULT_WORKFLOW_CASE, Some(&overlay))?["reconciliation"],
             )
         }
-        ["submit-decision"] | ["submit-decision", "--execute-fenced"] => {
+        ["submit-decision", rest @ ..] => {
+            let (case_id, execute_fenced) = parse_case_flag(rest, "--execute-fenced")?;
             let mut decision = read_json_stdin()?;
             let obj = decision.as_object_mut().ok_or_else(|| {
                 io::Error::new(io::ErrorKind::InvalidInput, "expected JSON object")
@@ -48,10 +50,10 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
             if let Some(approved) = obj.remove("approved") {
                 obj.entry("approvalLive").or_insert(approved);
             }
-            let out = if words.len() == 2 {
-                execute_project_protocol_fenced(DEFAULT_WORKFLOW_CASE, Some(&decision))?
+            let out = if execute_fenced {
+                execute_project_protocol_fenced(case_id, Some(&decision))?
             } else {
-                execute_project_protocol(DEFAULT_WORKFLOW_CASE, Some(&decision))?
+                execute_project_protocol(case_id, Some(&decision))?
             };
             print_json(&out)
         }
@@ -59,15 +61,15 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
     }
 }
 
-fn parse_run_args<'a>(
+fn parse_case_flag<'a>(
     rest: &'a [&'a str],
-) -> Result<(&'a str, Option<serde_json::Value>), Box<dyn std::error::Error>> {
-    let (case_id, read_stdin) = match rest {
-        [] => (DEFAULT_WORKFLOW_CASE, false),
-        ["--proposal-stdin"] => (DEFAULT_WORKFLOW_CASE, true),
-        ["--case", id] => (*id, false),
-        ["--case", id, "--proposal-stdin"] | ["--proposal-stdin", "--case", id] => (*id, true),
-        _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
-    };
-    Ok((case_id, read_stdin.then(read_json_stdin).transpose()?))
+    flag: &str,
+) -> Result<(&'a str, bool), Box<dyn std::error::Error>> {
+    match rest {
+        [] => Ok((DEFAULT_WORKFLOW_CASE, false)),
+        [f] if *f == flag => Ok((DEFAULT_WORKFLOW_CASE, true)),
+        ["--case", id] => Ok((*id, false)),
+        ["--case", id, f] | [f, "--case", id] if *f == flag => Ok((*id, true)),
+        _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+    }
 }

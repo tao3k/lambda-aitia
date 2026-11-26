@@ -6,7 +6,7 @@ use pyo3::exceptions::PyRuntimeError;
 #[cfg(unix)]
 use pyo3::types::{PyBytes, PyBytesMethods, PyDict, PyDictMethods};
 use pyo3::types::{PyModule, PyModuleMethods};
-use pyo3::{Bound, PyErr, PyResult, Python, pyclass, pymethods, pymodule};
+use pyo3::{Bound, Py, PyAny, PyErr, PyRef, PyResult, Python, pyclass, pymethods, pymodule};
 #[cfg(unix)]
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -54,6 +54,30 @@ impl PythonSession {
         self.call(py, request, AitiaSession::workflow_protocol_step)
     }
 
+    #[pyo3(signature = (directory=".", case_id="aitia/case/gitops-commit", overlay=None, execute_fenced=false))]
+    fn drive_protocol(
+        &self,
+        py: Python<'_>,
+        directory: &str,
+        case_id: &str,
+        overlay: Option<String>,
+        execute_fenced: bool,
+    ) -> PyResult<String> {
+        let directory = directory.to_owned();
+        let case_id = case_id.to_owned();
+        py.detach(|| {
+            let session = self
+                .session
+                .lock()
+                .map_err(|_| PyRuntimeError::new_err(SessionError::OwnerPanicked.to_string()))?;
+            let live = session
+                .as_ref()
+                .ok_or_else(|| PyRuntimeError::new_err(SessionError::OwnerStopped.to_string()))?;
+            live.drive_protocol(directory, case_id, overlay, execute_fenced)
+                .map_err(PyRuntimeError::new_err)
+        })
+    }
+
     #[pyo3(signature = (request, execute_fenced=false))]
     fn drive_multi_repo_protocol(
         &self,
@@ -72,6 +96,21 @@ impl PythonSession {
             live.drive_multi_repo_protocol(request, execute_fenced)
                 .map_err(PyRuntimeError::new_err)
         })
+    }
+
+    fn __enter__(slf: PyRef<'_, Self>) -> Py<Self> {
+        slf.into()
+    }
+
+    fn __exit__(
+        &self,
+        py: Python<'_>,
+        _exc_type: Option<&Bound<'_, PyAny>>,
+        _exc_value: Option<&Bound<'_, PyAny>>,
+        _traceback: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<bool> {
+        self.close(py)?;
+        Ok(false)
     }
 
     fn close(&self, py: Python<'_>) -> PyResult<()> {

@@ -5,7 +5,11 @@
 
 import hashlib
 import json
+import os
+import shutil
+import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -469,8 +473,117 @@ try:
     assert drift_res["repairTasks"][0]["recomputeScope"] == "cross-repo-pin-drift"
     assert drift_res["repairTasks"][0]["preservedSupportedObligations"] == ["core"]
     assert drift_res["actionAuthorized"] is False
+
+    # 3) Session.__enter__ returns the live session, and drive_protocol executes against a real JJ workspace when jj is available
+    assert session.__enter__() is session
+    jj_bin = os.environ.get("AITIA_JJ_BIN") or shutil.which("jj")
+    if jj_bin:
+        with tempfile.TemporaryDirectory() as jj_tmp:
+            jj_root = Path(jj_tmp)
+            env_jj = dict(os.environ, AITIA_JJ_BIN=jj_bin)
+            os.environ["AITIA_JJ_BIN"] = jj_bin
+            for jj_args in (
+                ["git", "init", "--colocate"],
+                ["describe", "-m", "wheel smoke base"],
+            ):
+                subprocess.run(
+                    [
+                        jj_bin,
+                        "--config",
+                        "user.name='Wheel Smoke'",
+                        "--config",
+                        "user.email='wheel@example.invalid'",
+                        *jj_args,
+                    ],
+                    cwd=jj_root,
+                    env=env_jj,
+                    check=True,
+                    capture_output=True,
+                )
+            (jj_root / ".agents" / "aita").mkdir(parents=True)
+            (jj_root / "src").mkdir(parents=True)
+            (jj_root / ".agents" / "aita" / "project.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "programs": {
+                            "jj": {
+                                "enable": True,
+                                "settings": {
+                                    "project": "wheel-py-core",
+                                    "profile": "lambda-aitia/sdlc",
+                                    "primary": "sdlc.config-audit",
+                                    "checks": [
+                                        {
+                                            "requirement": "sdlc.change-record",
+                                            "method": "jj.recorded-change",
+                                        },
+                                        {
+                                            "requirement": "sdlc.config-audit",
+                                            "method": "jj.configuration-audit",
+                                        },
+                                    ],
+                                    "naming": {
+                                        "projectKey": "PY",
+                                        "primaryLanguage": "en",
+                                        "languageSources": ["README.org"],
+                                        "types": ["feat"],
+                                        "scopes": [
+                                            {
+                                                "name": "core",
+                                                "paths": [
+                                                    "src",
+                                                    ".agents/aita",
+                                                    "README.org",
+                                                    "work.org",
+                                                ],
+                                            }
+                                        ],
+                                        "references": [
+                                            {
+                                                "identity": "RFC-1",
+                                                "source": "work.org",
+                                                "element": "work1",
+                                            }
+                                        ],
+                                    },
+                                },
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (jj_root / "README.org").write_text("* Wheel Core\nEnglish readme.\n", encoding="utf-8")
+            (jj_root / "work.org").write_text(
+                "* RFC-1\n:PROPERTIES:\n:ID: work1\n:ENGINEERING_ID: RFC-1\n:END:\n",
+                encoding="utf-8",
+            )
+            (jj_root / "src" / "app.py").write_text("def main():\n    return 0\n", encoding="utf-8")
+            subprocess.run(
+                [
+                    jj_bin,
+                    "--config",
+                    "user.name='Wheel Smoke'",
+                    "--config",
+                    "user.email='wheel@example.invalid'",
+                    "describe",
+                    "-m",
+                    "wheel smoke candidate",
+                ],
+                cwd=jj_root,
+                env=env_jj,
+                check=True,
+                capture_output=True,
+            )
+            py_proto = json.loads(session.drive_protocol(str(jj_root)))
+            assert py_proto["profile"] == "lambda-aitia/sdlc"
+            assert py_proto["state"] == "need-agent-synthesis"
+            assert py_proto["handoffTarget"] == "agent-synthesis"
+            assert py_proto["actionAuthorized"] is False
+            assert len(py_proto["repairTasks"]) >= 1
 finally:
-    session.close()
+    session.__exit__(None, None, None)
 
 try:
     session.flow_graph('{"lifecycle-id":"wheel/42"}')

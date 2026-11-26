@@ -221,10 +221,12 @@ impl HostCapabilityRegistry {
         Ok(handler.as_ref())
     }
 
-    /// Dispatch a sequence of capability frames in order, failing closed on the first violation.
+    /// Dispatch a sequence of capability frames, failing closed before execution on any violation.
     ///
     /// Every frame is validated against its registered capability, effect class, and fence token
-    /// before any capability in the batch is executed.
+    /// before any capability in the batch is executed. Pure multi-frame `HostRead` batches fan out
+    /// concurrently via `std::thread::scope` while preserving exact deterministic output order;
+    /// any batch containing a `FencedEffect` executes strictly sequentially.
     ///
     /// # Errors
     /// Fails closed before executing any frame if any entry is unknown, mismatched, or unfenced,
@@ -236,6 +238,28 @@ impl HostCapabilityRegistry {
         frames
             .iter()
             .try_for_each(|frame| self.validate_frame(frame).map(|_| ()))?;
+        let all_reads = frames.len() > 1
+            && frames
+                .iter()
+                .all(|frame| frame.effect_class == HostEffectClass::HostRead);
+        if all_reads {
+            return std::thread::scope(|scope| {
+                let handles: Vec<_> = frames
+                    .iter()
+                    .map(|frame| scope.spawn(move || self.dispatch(frame)))
+                    .collect();
+                handles
+                    .into_iter()
+                    .map(|handle| {
+                        handle.join().unwrap_or_else(|_| {
+                            Err(CapabilityError::Execution(
+                                "host read capability worker panicked".to_owned(),
+                            ))
+                        })
+                    })
+                    .collect()
+            });
+        }
         frames.iter().map(|frame| self.dispatch(frame)).collect()
     }
 

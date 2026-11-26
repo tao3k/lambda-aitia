@@ -159,6 +159,40 @@ impl AitiaSession {
         self.call_string(move |program| program.workflow_protocol_step(&payload))
     }
 
+    /// Drive the Scheme-owned single-repository 5-state IoC protocol against `directory` inside
+    /// this live session without re-initializing the Gambit runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns a session or protocol failure string when observation, overlay parsing,
+    /// capability dispatch, or evidence verification fails.
+    pub fn drive_protocol(
+        &self,
+        directory: String,
+        case_id: String,
+        overlay_json: Option<String>,
+        execute_fenced: bool,
+    ) -> Result<String, String> {
+        let overlay: Option<serde_json::Value> = overlay_json
+            .as_deref()
+            .map(serde_json::from_str)
+            .transpose()
+            .map_err(|error| error.to_string())?;
+        let step = self
+            .execute(move |program| {
+                crate::drive_single_repo_protocol(
+                    program,
+                    std::path::Path::new(&directory),
+                    &case_id,
+                    overlay.as_ref(),
+                    execute_fenced,
+                )
+                .map_err(|error| error.to_string())
+            })
+            .map_err(|error| error.to_string())??;
+        serde_json::to_string(&step).map_err(|error| error.to_string())
+    }
+
     /// Drive the Scheme-owned multi-repository GitOps 5-state IoC protocol inside this
     /// live session without re-initializing the Gambit runtime.
     ///

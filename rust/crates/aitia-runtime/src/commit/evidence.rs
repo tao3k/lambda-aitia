@@ -29,8 +29,20 @@ pub(crate) fn evidence(revision: &str, input: &str, query: bool) -> Result<Value
 
 /// Verify archived raw reports against an applied local revision using an already-live
 /// linked Scheme [`AitiaProgram`] session.
-pub(crate) fn evidence_with_program(
+fn evidence_with_program(
     program: &AitiaProgram<'_>,
+    revision: &str,
+    input: &str,
+    query: bool,
+) -> Result<Value> {
+    evidence_with_program_in(program, std::path::Path::new("."), revision, input, query)
+}
+
+/// Verify archived raw reports against an applied local revision in an explicit workspace
+/// directory using an already-live linked Scheme [`AitiaProgram`] session.
+pub(crate) fn evidence_with_program_in(
+    program: &AitiaProgram<'_>,
+    directory: &std::path::Path,
     revision: &str,
     input: &str,
     query: bool,
@@ -55,7 +67,7 @@ pub(crate) fn evidence_with_program(
         recovery.attempt
     };
     let facts = aitia_jj::read_applied_description_evidence(
-        std::path::Path::new("."),
+        directory,
         revision,
         &record,
         crate::MAX_REQUEST_BYTES as usize,

@@ -965,7 +965,7 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
     assert_eq!(sdlc_json["actionAuthorized"], false);
 
     // 6. Multi-Repo GitOps orchestration across TWO real JJ workspaces (`upstream` -> `downstream`):
-    multi_repo_gitops::verify_two_repo_pin_drift(&jj, root, resulting_commit)?;
+    multi_repo_gitops::verify_two_repo_pin_drift(&jj, root, remote_dir.path(), resulting_commit)?;
     Ok(())
 }
 
