@@ -24,6 +24,18 @@ pub struct SysmlCapabilitySpec {
     pub element_id: String,
 }
 
+/// Multi-repository workspace node projected from a parsed SysML v2 `WorkspaceRepo` part.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SysmlWorkspaceRepo {
+    pub repo_id: String,
+    pub directory: String,
+    pub depends_on: Vec<String>,
+    pub profile: Option<String>,
+    pub push_remote: Option<String>,
+    pub push_bookmark: Option<String>,
+    pub element_id: String,
+}
+
 fn collect_text_values(value: &Value, out: &mut Vec<String>) {
     match value {
         Value::Text(text) if !text.is_empty() => out.push(text.clone()),
@@ -173,6 +185,142 @@ pub fn extract_declared_capabilities(model: &Model) -> Result<Vec<SysmlCapabilit
             .then_with(|| left.element_id.cmp(&right.element_id))
     });
     Ok(specs)
+}
+
+fn collect_workspace_repo_candidates(
+    symbol: &Symbol,
+    depth: usize,
+    candidates: &mut Vec<String>,
+) -> Result<(), Error> {
+    if depth > 4 {
+        return Ok(());
+    }
+    let children = symbol.children()?;
+    let has_id = children.iter().any(|child| child.name() == "repoId");
+    let has_dir = children.iter().any(|child| child.name() == "directory");
+    if has_id && has_dir && symbol.kind().to_ascii_lowercase().contains("part") {
+        candidates.push(symbol.id().to_owned());
+        return Ok(());
+    }
+    for child in children {
+        collect_workspace_repo_candidates(&child, depth + 1, candidates)?;
+    }
+    Ok(())
+}
+
+fn optional_text_feature(instance: &opensysml::Instance, name: &str) -> Option<String> {
+    match instance.feature(name).and_then(|f| f.value()) {
+        Some(Value::Text(text)) if !text.is_empty() => Some(text.clone()),
+        _ => None,
+    }
+}
+
+/// Project declared `WorkspaceRepo` parts (`repoId`, `directory`, `dependsOn`, optional
+/// `profile` and `pushRemote`/`pushBookmark`) from a parsed SysML v2 workspace topology model.
+///
+/// # Errors
+/// Fails if OpenSysML symbol traversal or instantiation fails.
+pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorkspaceRepo>, Error> {
+    let mut candidates = Vec::new();
+    for root in model.roots() {
+        collect_workspace_repo_candidates(root, 0, &mut candidates)?;
+    }
+    let mut repos = Vec::new();
+    for fqn in candidates {
+        let instantiation = model.instantiate(&fqn)?;
+        for instance in instantiation.instances() {
+            let Some(repo_id) = optional_text_feature(instance, "repoId") else {
+                continue;
+            };
+            let Some(directory) = optional_text_feature(instance, "directory") else {
+                continue;
+            };
+            let mut depends_on = Vec::new();
+            if let Some(deps_feature) = instance.feature("dependsOn") {
+                for value in deps_feature.values() {
+                    collect_text_values(value, &mut depends_on);
+                }
+                if depends_on.is_empty()
+                    && let Some(value) = deps_feature.value()
+                {
+                    collect_text_values(value, &mut depends_on);
+                }
+            }
+            repos.push(SysmlWorkspaceRepo {
+                repo_id,
+                directory,
+                depends_on,
+                profile: optional_text_feature(instance, "profile"),
+                push_remote: optional_text_feature(instance, "pushRemote"),
+                push_bookmark: optional_text_feature(instance, "pushBookmark"),
+                element_id: fqn.clone(),
+            });
+            break;
+        }
+    }
+    repos.sort_by(|left, right| {
+        left.repo_id
+            .cmp(&right.repo_id)
+            .then_with(|| left.element_id.cmp(&right.element_id))
+    });
+    Ok(repos)
+}
+
+/// Parse a standalone SysML v2 workspace file (`*.sysml`) and project it into a
+/// multi-repository GitOps protocol manifest (`aitia/case/multi-repo-gitops`).
+#[cfg(feature = "linked-program")]
+pub(crate) fn project_workspace_manifest_from_sysml(
+    path: &std::path::Path,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let text = std::fs::read_to_string(path)?;
+    let doc_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("workspace.sysml")
+        .to_owned();
+    let base_dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let repos = std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                let connection = Connection::connect()?;
+                let model = parse_sysml(&connection, [(doc_name, text)])?;
+                extract_declared_workspace_repos(&model)
+            })
+            .join()
+    })
+    .map_err(|_| io::Error::other("SysML workspace projection worker panicked"))??;
+    let json_repos: Vec<serde_json::Value> = repos
+        .into_iter()
+        .map(|repo| {
+            let dir_path = std::path::Path::new(&repo.directory);
+            let resolved_dir = if dir_path.is_absolute() {
+                dir_path.to_path_buf()
+            } else {
+                base_dir.join(dir_path)
+            };
+            let mut obj = serde_json::Map::new();
+            obj.insert("repoId".to_owned(), serde_json::json!(repo.repo_id));
+            obj.insert(
+                "directory".to_owned(),
+                serde_json::json!(resolved_dir.to_string_lossy().into_owned()),
+            );
+            obj.insert("dependsOn".to_owned(), serde_json::json!(repo.depends_on));
+            if let Some(profile) = repo.profile {
+                obj.insert("profile".to_owned(), serde_json::json!(profile));
+            }
+            if let (Some(remote), Some(bookmark)) = (repo.push_remote, repo.push_bookmark) {
+                obj.insert(
+                    "pushTarget".to_owned(),
+                    serde_json::json!({ "remote": remote, "bookmark": bookmark }),
+                );
+            }
+            serde_json::Value::Object(obj)
+        })
+        .collect();
+    Ok(serde_json::json!({
+        "caseId": crate::MULTI_REPO_WORKFLOW_CASE,
+        "repos": json_repos,
+    }))
 }
 
 /// Parse captured source contents under their project-relative document names.

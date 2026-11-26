@@ -64,12 +64,14 @@
                (action-authorized? := #f)))
          holes)))
 
-(def (missing-host-frames receipts directory requested-paths model-check-enabled? include-pr?)
+(def (missing-host-frames
+      receipts directory requested-paths model-check-enabled? include-pr? python-check)
   (let ((has-jj-cut? (and (object? receipts) (opt-ref receipts 'jj-observe-cut #f) #t))
         (has-sysml-scopes? (and (object? receipts)
                                 (.slot? receipts 'sysml-project-scopes)
                                 (list? (.ref receipts 'sysml-project-scopes))))
-        (has-pr? (and (object? receipts) (opt-ref receipts 'github-observe-pr #f) #t)))
+        (has-pr? (and (object? receipts) (opt-ref receipts 'github-observe-pr #f) #t))
+        (has-python? (and (object? receipts) (opt-ref receipts 'python-observe-pytest #f) #t)))
     (append
      (if has-jj-cut?
        '()
@@ -90,6 +92,15 @@
                  (effect-class := 'host-read)
                  (receipt-key := "gitops.github.observe-pr")
                  (payload := (.o (directory := directory)))))
+       '())
+     (if (and python-check (not has-python?))
+       (list (.o (capability := "python.observe-pytest")
+                 (effect-class := 'host-read)
+                 (receipt-key := "python.observe-pytest")
+                 (payload := (.o (directory := directory)
+                                 (interpreter := (opt-ref python-check 'interpreter #f))
+                                 (selectors := (opt-ref python-check 'selectors '()))
+                                 (paths := (opt-ref python-check 'paths '()))))))
        '()))))
 
 (def (pr-route-mismatch? pr-receipt push-target)
@@ -165,10 +176,39 @@
               (payload := (.o (directory := directory)
                               (commit := commit-id))))))))
 
+(def (python-check-passed? python-receipt)
+  (and (hash-table? python-receipt)
+       (equal? (hash-get python-receipt "verdict") "passed")
+       (and (hash-get python-receipt "sourceUnchanged") #t)))
+
+(def (build-python-check-repair-task python-receipt repair-round preserved-supported)
+  (let ((verdict (or (and (hash-table? python-receipt) (hash-get python-receipt "verdict"))
+                     "invalid-receipt")))
+    (list (.o (kind := 'lambda-aitia.workflow.repair-task.v1)
+              (hole-id := "hole:leaf-python-check")
+              (obligation-id := "verification.python-pytest")
+              (gap-kind := 'model-check-gap)
+              (target := 'agent-synthesis)
+              (repair-round := repair-round)
+              (recompute-scope := 'leaf-python-check)
+              (decayed-obligations := '("verification.python-pytest"))
+              (preserved-supported-obligations := preserved-supported)
+              (unscoped-paths := '())
+              (open-diagnostics := (list (list "python-check-failed" verdict)))
+              (allowed-scopes := '())
+              (allowed-references := '())
+              (allowed-types := '())
+              (max-branches := 2)
+              (action-authorized? := #f)))))
+
 (def (classify-protocol-state
       unsat blocked holes approval-live? apply-receipt push-target push-receipt
-      route-mismatch? choice-sol proposal-res repair-round max-repair-rounds)
+      route-mismatch? python-failed? choice-sol proposal-res repair-round max-repair-rounds)
   (cond
+   (python-failed?
+    (if (>= repair-round max-repair-rounds)
+      (values 'need-human-decision 'repair-budget-exhausted)
+      (values 'need-agent-synthesis 'python-check-failed)))
    ((and apply-receipt push-target (not push-receipt) route-mismatch?)
     (values 'need-human-decision 'push-route-mismatch))
    ((and apply-receipt push-target (not push-receipt) approval-live?
@@ -252,7 +292,7 @@
     (let-values (((state escalation-reason)
                   (classify-protocol-state
                    unsat blocked holes approval-live? release-published?
-                   #f #f #f choice-sol proposal-res repair-round max-repair-rounds)))
+                   #f #f #f #f choice-sol proposal-res repair-round max-repair-rounds)))
       (let* ((repair-tasks
               (if (eq? state 'need-agent-synthesis)
                 (build-agent-repair-tasks holes #f #f repair-round '() discharged)
@@ -318,6 +358,7 @@
              (requested-paths (opt-ref ctx 'requested-paths '()))
              (model-check-enabled? (opt-ref ctx 'model-check-enabled? #t))
              (push-target (opt-ref ctx 'push-target #f))
+             (python-check (opt-ref ctx 'python-check #f))
              (include-pr? (or (and (opt-ref ctx 'include-pr-observation? #f) #t)
                               (and push-target #t)))
              (repair-round (opt-ref ctx 'repair-round 0))
@@ -325,7 +366,7 @@
              (receipts (opt-ref ctx 'receipts (.o)))
              (missing-frames
               (missing-host-frames
-               receipts directory requested-paths model-check-enabled? include-pr?)))
+               receipts directory requested-paths model-check-enabled? include-pr? python-check)))
         (if (pair? missing-frames)
           (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
               (schema := "lambda-aitia.workflow-protocol-step.v1")
@@ -363,9 +404,22 @@
                  (proposal (opt-ref ctx 'proposal #f))
                  (fenced-spec (opt-ref ctx 'fenced-commit-spec #f))
                  (pr-receipt (and (object? receipts) (opt-ref receipts 'github-observe-pr #f)))
+                 (python-receipt (and (object? receipts) (opt-ref receipts 'python-observe-pytest #f)))
                  (prepare-receipt (and (object? receipts) (opt-ref receipts 'jj-prepare-description #f)))
                  (apply-receipt (and (object? receipts) (opt-ref receipts 'jj-apply-description #f)))
                  (push-receipt (and (object? receipts) (opt-ref receipts 'jj-push-reviewed #f)))
+                 (python-failed? (and python-check (not (python-check-passed? python-receipt))))
+                 (python-evidence
+                  (if (and python-check (python-check-passed? python-receipt))
+                    (list (make-evidence-fact
+                           "ev:python-pytest-receipt"
+                           (.o (kind := 'python-pytest-observed)
+                               (commit := commit-id)
+                               (source-sha256 := (hash-get python-receipt "sourceSha256")))
+                           cut: 1
+                           premise-ids: (list cut-premise)
+                           origin-tier: 'observed-fact))
+                    '()))
                  (applied-evidence
                   (if apply-receipt
                     (list (make-evidence-fact
@@ -383,7 +437,7 @@
                          approval-live?: approval-live?
                          candidate-offers: candidate-offers
                          forbidden-scopes: forbidden-scopes
-                         extra-evidence: applied-evidence))
+                         extra-evidence: (append applied-evidence python-evidence)))
                  (initial (workflow-reconcile-frontier graph))
                  (proposal-res (and proposal (workflow-admit-proposal graph proposal)))
                  (report (if run-reconcile? (workflow-reconcile graph) #f))
@@ -402,14 +456,18 @@
             (let-values (((state escalation-reason)
                           (classify-protocol-state
                            unsat blocked holes approval-live? apply-receipt
-                           push-target push-receipt route-mismatch?
+                           push-target push-receipt route-mismatch? python-failed?
                            choice-sol proposal-res repair-round max-repair-rounds)))
               (let* ((repair-tasks
-                      (if (eq? state 'need-agent-synthesis)
+                      (cond
+                       ((and (eq? state 'need-agent-synthesis) python-failed?)
+                        (build-python-check-repair-task
+                         python-receipt repair-round preserved-supported))
+                       ((eq? state 'need-agent-synthesis)
                         (build-agent-repair-tasks
                          holes semantics naming repair-round
-                         decayed-obligations preserved-supported)
-                        '()))
+                         decayed-obligations preserved-supported))
+                       (else '())))
                      (epistemic-summary
                       (.o (profile := profile)
                           (choice-status := (.get choice-sol choice-status))

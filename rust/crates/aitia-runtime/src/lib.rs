@@ -37,7 +37,7 @@ pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
     drive_multi_repo_protocol, drive_scheme_protocol, drive_single_repo_protocol,
     execute_multi_repo_protocol, execute_project_protocol, execute_project_protocol_fenced,
-    host_capabilities_json,
+    host_capabilities_json, load_workspace_manifest,
 };
 
 #[cfg(feature = "linked-program")]
@@ -82,6 +82,7 @@ pub use source_tree::{FrozenSourceFile, FrozenWorkspace, capture_source_tree, de
 mod sysml;
 #[cfg(feature = "sysml")]
 pub use sysml::{
-    RecordedSysmlError, SysmlCapabilitySpec, SysmlScopeProjection, extract_declared_capabilities,
-    extract_declared_scopes, parse_recorded_sysml, parse_sysml,
+    RecordedSysmlError, SysmlCapabilitySpec, SysmlScopeProjection, SysmlWorkspaceRepo,
+    extract_declared_capabilities, extract_declared_scopes, extract_declared_workspace_repos,
+    parse_recorded_sysml, parse_sysml,
 };

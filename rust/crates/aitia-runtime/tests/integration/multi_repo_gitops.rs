@@ -366,5 +366,67 @@ pub(crate) fn verify_two_repo_pin_drift(
         down_commit,
         "downstream bare Git remote must hold Wave 1 applied commit"
     );
+
+    // Part C: First-class SysML v2 `WorkspaceRepo` file -> `aitia flow run --workspace <file.sysml>`
+    // with ZERO hand-written JSON manifest and ZERO Gerbil/Gambit compilation downstream!
+    let ws_dir = tempfile::tempdir()?;
+    let ws_sysml = ws_dir.path().join("workspace.sysml");
+    std::fs::write(
+        &ws_sysml,
+        format!(
+            r#"package TwoRepoWorkspace {{
+    private import ScalarValues::*;
+
+    part def WorkspaceRepo {{
+        attribute repoId : String;
+        attribute directory : String;
+        attribute dependsOn : String[0..*];
+        attribute profile : String;
+        attribute pushRemote : String;
+        attribute pushBookmark : String;
+    }}
+
+    part upstreamCore : WorkspaceRepo {{
+        attribute :>> repoId = "upstream-core";
+        attribute :>> directory = "{up}";
+        attribute :>> profile = "lambda-aitia/sdlc";
+        attribute :>> pushRemote = "origin";
+        attribute :>> pushBookmark = "reviewed";
+    }}
+
+    part downstreamApp : WorkspaceRepo {{
+        attribute :>> repoId = "downstream-app";
+        attribute :>> directory = "{down}";
+        attribute :>> dependsOn = ("upstream-core");
+        attribute :>> profile = "lambda-aitia/sdlc";
+        attribute :>> pushRemote = "origin";
+        attribute :>> pushBookmark = "reviewed";
+    }}
+}}
+"#,
+            up = upstream_root.to_str().unwrap(),
+            down = down_root.to_str().unwrap(),
+        ),
+    )?;
+    let ws_out = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(ws_dir.path())
+        .env_remove("GERBIL_LOADPATH")
+        .env_remove("GERBIL_PATH")
+        .env_remove("GERBIL_HOME")
+        .args(["flow", "run", "--workspace", ws_sysml.to_str().unwrap()])
+        .output()?;
+    assert!(
+        ws_out.status.success(),
+        "aitia flow run --workspace workspace.sysml failed: {}",
+        String::from_utf8_lossy(&ws_out.stderr)
+    );
+    let ws_json: Value = serde_json::from_slice(&ws_out.stdout)?;
+    assert_eq!(ws_json["caseId"], "aitia/case/multi-repo-gitops");
+    assert_eq!(
+        ws_json["waves"],
+        json!([["upstream-core"], ["downstream-app"]])
+    );
+    assert_eq!(ws_json["repos"].as_array().unwrap().len(), 2);
+    assert_eq!(ws_json["actionAuthorized"], false);
     Ok(())
 }

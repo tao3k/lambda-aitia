@@ -60,6 +60,7 @@ fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn 
             ("gitops.jj.push-reviewed", "fenced-effect"),
             ("gitops.jj.reconcile-description", "host-read"),
             ("gitops.jj.recover-push", "host-read"),
+            ("python.observe-pytest", "host-read"),
             ("sysml.parse-revision", "host-read"),
             ("sysml.parse-workspace", "host-read"),
             ("sysml.project-scopes", "host-read"),

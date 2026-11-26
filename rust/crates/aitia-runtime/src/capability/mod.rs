@@ -5,6 +5,8 @@
 
 #[cfg(feature = "linked-program")]
 mod jj;
+#[cfg(feature = "linked-program")]
+mod python;
 mod registry;
 #[cfg(feature = "linked-program")]
 mod review;

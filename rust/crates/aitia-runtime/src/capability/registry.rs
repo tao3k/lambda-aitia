@@ -341,6 +341,7 @@ impl HostCapabilityRegistry {
         let mut registry = Self::new();
         super::review::register(&mut registry);
         super::jj::register(&mut registry);
+        super::python::register(&mut registry);
         super::sysml::register(&mut registry);
         registry
     }

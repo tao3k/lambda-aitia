@@ -31,7 +31,8 @@ cap_names = {entry["capability"] for entry in caps["capabilities"]}
 assert "gitops.jj.push-reviewed" in cap_names
 assert "gitops.jj.prepare-description" in cap_names
 assert "gitops.jj.apply-description" in cap_names
-assert len(cap_names) == 11
+assert "python.observe-pytest" in cap_names
+assert len(cap_names) == 12
 
 # Fail-closed check: dispatching a fenced-effect frame without a fenceToken MUST raise RuntimeError
 try:

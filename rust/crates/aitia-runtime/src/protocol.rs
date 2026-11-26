@@ -54,6 +54,126 @@ pub fn dispatch_host_frames_json(frames_json: &str) -> Result<String, String> {
     .map_err(|error| error.to_string())
 }
 
+/// Parse CLI flags (`--case`, `--workspace`, and one boolean switch) and resolve the effective
+/// workflow case identifier plus merged manifest/overlay payload for `aitia flow`.
+///
+/// # Errors
+/// Fails closed on unrecognized flags or unreadable workspace topology files.
+pub(crate) fn resolve_flow_cli_invocation<'a>(
+    mut rest: &'a [&'a str],
+    switch: &str,
+    usage: &str,
+    mut overlay: Option<Value>,
+    read_stdin: impl FnOnce() -> Result<Value, Box<dyn std::error::Error>>,
+) -> Result<(&'a str, Option<Value>, bool), Box<dyn std::error::Error>> {
+    let (mut case_id, mut workspace, mut switch_set) = (DEFAULT_WORKFLOW_CASE, None, false);
+    while !rest.is_empty() {
+        match rest {
+            ["--case", id, tail @ ..] => {
+                case_id = id;
+                rest = tail;
+            }
+            ["--workspace", path, tail @ ..] => {
+                workspace = Some(*path);
+                rest = tail;
+            }
+            [flag, tail @ ..] if *flag == switch => {
+                switch_set = true;
+                rest = tail;
+            }
+            _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into()),
+        }
+    }
+    if switch == "--proposal-stdin" && switch_set && overlay.is_none() {
+        overlay = Some(read_stdin()?);
+    }
+    match workspace {
+        Some(path) => Ok((
+            MULTI_REPO_WORKFLOW_CASE,
+            Some(load_workspace_manifest(Path::new(path), overlay.as_ref())?),
+            switch_set,
+        )),
+        None => Ok((case_id, overlay, switch_set)),
+    }
+}
+
+/// Load a declarative multi-repository workspace topology from a SysML v2 file (`*.sysml`)
+/// or JSON manifest, merging any optional runtime overlay (such as per-repo `draft`s or
+/// `approvalLive`) by `repoId`.
+///
+/// # Errors
+/// Fails closed if the workspace file cannot be read or parsed, or if a `.sysml` workspace is
+/// supplied to a build without the `sysml` feature.
+pub fn load_workspace_manifest(
+    path: &Path,
+    overlay: Option<&Value>,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let is_sysml = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("sysml"));
+    let mut manifest = if is_sysml {
+        #[cfg(feature = "sysml")]
+        {
+            crate::sysml::project_workspace_manifest_from_sysml(path)?
+        }
+        #[cfg(not(feature = "sysml"))]
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "SysML workspace projection requires the `sysml` feature",
+            )
+            .into());
+        }
+    } else {
+        let mut parsed: Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+        if let Some(obj) = parsed.as_object_mut() {
+            obj.entry("caseId".to_owned())
+                .or_insert_with(|| json!(MULTI_REPO_WORKFLOW_CASE));
+        }
+        parsed
+    };
+    if let Some(extra) = overlay.and_then(Value::as_object) {
+        merge_workspace_overlay(&mut manifest, extra);
+    }
+    Ok(manifest)
+}
+
+fn merge_workspace_overlay(manifest: &mut Value, extra: &serde_json::Map<String, Value>) {
+    if let Some(root) = manifest.as_object_mut() {
+        for (key, value) in extra {
+            if key != "repos" {
+                root.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    let Some(extra_repos) = extra.get("repos").and_then(Value::as_array) else {
+        return;
+    };
+    let Some(base_repos) = manifest.get_mut("repos").and_then(Value::as_array_mut) else {
+        return;
+    };
+    for patch in extra_repos {
+        let Some(patch_obj) = patch.as_object() else {
+            continue;
+        };
+        let Some(rid) = patch_obj.get("repoId").and_then(Value::as_str) else {
+            continue;
+        };
+        if let Some(target) = base_repos
+            .iter_mut()
+            .filter_map(Value::as_object_mut)
+            .find(|repo| repo.get("repoId").and_then(Value::as_str) == Some(rid))
+        {
+            for (k, v) in patch_obj {
+                if k != "repoId" {
+                    target.insert(k.clone(), v.clone());
+                }
+            }
+        }
+    }
+}
+
 /// Execute the Scheme-driven 5-state workflow protocol (planning / read-only probes only).
 ///
 /// # Errors
@@ -484,6 +604,7 @@ fn drive_scheme_protocol_inner(
         "repairRound",
         "maxRepairRounds",
         "pushTarget",
+        "pythonCheck",
         "changeId",
         "designAlternatives",
         "extraObligations",

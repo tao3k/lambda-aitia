@@ -37,6 +37,7 @@ package AitiaProjectArchitecture {
             "dev/qualification",
             "dev/sysml",
             "docs/rfcs",
+            "t/harness",
             "t/library",
             "t/yanxu/modules/workflow",
             "gerbil.pkg",
@@ -136,5 +137,21 @@ package AitiaProjectArchitecture {
     part sysmlParseWorkspaceCapability : HostCapabilitySpec {
         attribute :>> capabilityId = "sysml.parse-workspace";
         attribute :>> effectClass = "host-read";
+    }
+
+    part pythonObservePytestCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "python.observe-pytest";
+        attribute :>> effectClass = "host-read";
+    }
+
+    part def WorkspaceRepo {
+        doc /* Declarative multi-repository GitOps topology node projected directly by
+             * the standalone Rust `aitia` binary into Scheme FunFlow wave scheduling. */
+        attribute repoId : String;
+        attribute directory : String;
+        attribute dependsOn : String[0..*];
+        attribute profile : String;
+        attribute pushRemote : String;
+        attribute pushBookmark : String;
     }
 }
