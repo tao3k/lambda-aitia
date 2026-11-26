@@ -122,11 +122,13 @@ pub fn mint_release_attestation_bundle_with_lineage(
             "actionAuthorized": false,
         }));
     }
+    let merkle_root = super::merkle::compute_links_merkle_root(&links)?;
     let mut payload = json!({
         "schema": "lambda-aitia.release-attestation-payload.v1",
         "epoch": epoch,
         "waves": step["waves"],
         "links": links,
+        "merkleRoot": merkle_root,
         "earlyCutoffs": step.get("earlyCutoffs").cloned().unwrap_or_else(|| json!([])),
         "actionAuthorized": false,
     });
@@ -292,6 +294,14 @@ pub fn verify_release_attestation_bundle_with_trust_root(
         .ok_or_else(|| err("Release attestation missing links array"))?;
     if links.is_empty() {
         return Err(err("Release attestation contains zero repo links"));
+    }
+    if let Some(claimed_root) = payload.get("merkleRoot").and_then(Value::as_str) {
+        let computed_root = super::merkle::compute_links_merkle_root(links)?;
+        if computed_root != claimed_root {
+            return Err(err(
+                "Release attestation merkleRoot mismatch (links tampered)",
+            ));
+        }
     }
     let mut attested = BTreeMap::new();
     for link in links {

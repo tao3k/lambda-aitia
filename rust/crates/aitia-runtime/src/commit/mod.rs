@@ -8,6 +8,7 @@ pub(crate) mod audit;
 mod common;
 mod evidence;
 pub(crate) mod governance;
+pub(crate) mod merkle;
 mod push;
 mod review;
 

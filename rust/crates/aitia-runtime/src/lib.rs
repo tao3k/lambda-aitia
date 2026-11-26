@@ -40,7 +40,12 @@ pub use commit::attestation::{
     verify_release_attestation_bundle_with_trust_root, verify_tuf_root_rotation_chain,
 };
 #[cfg(feature = "linked-program")]
-pub use commit::audit::verify_portable_audit_bundle;
+pub use commit::audit::{verify_portable_audit_bundle, verify_portable_audit_bundle_json};
+#[cfg(feature = "linked-program")]
+pub use commit::merkle::{
+    compute_links_merkle_root, generate_repo_merkle_proof, generate_repo_merkle_proof_json,
+    verify_repo_merkle_proof, verify_repo_merkle_proof_json,
+};
 #[cfg(feature = "linked-program")]
 pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,

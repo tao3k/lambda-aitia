@@ -6,7 +6,9 @@ use pyo3::exceptions::PyRuntimeError;
 #[cfg(unix)]
 use pyo3::types::{PyBytes, PyBytesMethods, PyDict, PyDictMethods};
 use pyo3::types::{PyModule, PyModuleMethods};
-use pyo3::{Bound, Py, PyAny, PyErr, PyRef, PyResult, Python, pyclass, pymethods, pymodule};
+use pyo3::{
+    Bound, Py, PyAny, PyErr, PyRef, PyResult, Python, pyclass, pyfunction, pymethods, pymodule,
+};
 #[cfg(unix)]
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -304,10 +306,59 @@ impl PythonOrgEditReview {
     }
 }
 
+#[pyfunction]
+#[pyo3(signature = (bundle_json, workspace_sysml_path=None))]
+fn verify_portable_audit_bundle(
+    py: Python<'_>,
+    bundle_json: String,
+    workspace_sysml_path: Option<String>,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_portable_audit_bundle_json(
+            &bundle_json,
+            workspace_sysml_path.as_deref().map(std::path::Path::new),
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn generate_repo_merkle_proof(
+    py: Python<'_>,
+    bundle_json: String,
+    repo_id: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::generate_repo_merkle_proof_json(&bundle_json, &repo_id)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_repo_merkle_proof(
+    py: Python<'_>,
+    proof_json: String,
+    expected_merkle_root: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_repo_merkle_proof_json(&proof_json, &expected_merkle_root)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(dispatch_host_frames, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        verify_portable_audit_bundle,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(generate_repo_merkle_proof, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_repo_merkle_proof, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

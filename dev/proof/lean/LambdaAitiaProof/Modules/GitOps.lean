@@ -303,4 +303,34 @@ theorem completeChainAndInventoryAdmitOfflineAudit
       true false expectedRepos coveredRepos :=
   ⟨rfl, rfl, hThresh, hEpoch, hCov⟩
 
+/-- RFC 0015 RFC 6962 binary Merkle inclusion proof validity predicate. -/
+def MerkleInclusionValid
+    (leafTag nodeTag : Nat) (computedRoot signedRoot : Nat) (actionAuthorized : Bool) : Prop :=
+  leafTag ≠ nodeTag ∧ computedRoot = signedRoot ∧ actionAuthorized = false
+
+theorem merkleDomainSeparationDistinct : (0 : Nat) ≠ 1 := by
+  intro hEq
+  cases hEq
+
+theorem merkleProofRequiresMatchingRoot
+    {leafTag nodeTag computedRoot signedRoot : Nat} {actionAuthorized : Bool}
+    (hDiff : computedRoot ≠ signedRoot) :
+    ¬ MerkleInclusionValid leafTag nodeTag computedRoot signedRoot actionAuthorized := by
+  intro hValid
+  exact hDiff hValid.2.1
+
+theorem merkleInclusionPreservesZeroAuthority
+    {leafTag nodeTag computedRoot signedRoot : Nat} {actionAuthorized : Bool}
+    (hValid : MerkleInclusionValid leafTag nodeTag computedRoot signedRoot actionAuthorized) :
+    actionAuthorized = false :=
+  hValid.2.2
+
+theorem tamperedLeafChangesMerkleRootUnderInjectiveHash
+    {α β : Type} (rootOf : α → β)
+    (hInj : ∀ x y, rootOf x = rootOf y → x = y)
+    {leafBefore leafAfter : α} (hDiff : leafBefore ≠ leafAfter) :
+    rootOf leafBefore ≠ rootOf leafAfter := by
+  intro hEq
+  exact hDiff (hInj leafBefore leafAfter hEq)
+
 end LambdaAitiaProof.Modules.GitOps

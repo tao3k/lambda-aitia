@@ -60,3 +60,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.missingExpectedRepoBlocksOfflineAudit
 #print axioms GitOps.airGappedVerdictGrantsNoAuthority
 #print axioms GitOps.completeChainAndInventoryAdmitOfflineAudit
+#print axioms GitOps.merkleDomainSeparationDistinct
+#print axioms GitOps.merkleProofRequiresMatchingRoot
+#print axioms GitOps.merkleInclusionPreservesZeroAuthority
+#print axioms GitOps.tamperedLeafChangesMerkleRootUnderInjectiveHash

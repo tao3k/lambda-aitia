@@ -133,6 +133,11 @@ pub fn verify_portable_audit_bundle(
         }
     }
 
+    let head_merkle_root = chain
+        .last()
+        .and_then(|b| b["payload"]["merkleRoot"].as_str())
+        .map(str::to_owned);
+
     Ok(json!({
         "schema": "lambda-aitia.offline-audit-verdict.v1",
         "verified": true,
@@ -143,10 +148,26 @@ pub fn verify_portable_audit_bundle(
         "epochs": lineage["epochs"],
         "genesisDigest": lineage["genesisDigest"],
         "headDigest": lineage["headDigest"],
+        "headMerkleRoot": head_merkle_root,
         "verifiedRepoCount": verified_keys.len(),
         "verifiedRepoKeys": verified_keys,
         "actionAuthorized": false,
     }))
+}
+
+/// JSON string wrapper for FFI/PyO3 callers: verify a portable air-gapped audit bundle.
+///
+/// # Errors
+/// Fails closed on malformed JSON or any air-gapped verification failure.
+pub fn verify_portable_audit_bundle_json(
+    bundle_json: &str,
+    workspace_sysml: Option<&Path>,
+) -> Result<String> {
+    let bundle: Value = serde_json::from_str(bundle_json)?;
+    Ok(serde_json::to_string(&verify_portable_audit_bundle(
+        &bundle,
+        workspace_sysml,
+    )?)?)
 }
 
 pub(crate) fn run_verify_attestation_cli(

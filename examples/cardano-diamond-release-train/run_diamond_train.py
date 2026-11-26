@@ -950,6 +950,67 @@ def main() -> None:
             )
             assert missing_repo_proc.returncode != 0, "Missing expected repo MUST fail closed!"
 
+            # Scenario J: RFC 0015 In-Process PyO3 Air-Gapped Auditor + RFC 6962 O(log N) Merkle Proof
+            # Runs directly inside Python via `lambda_aitia_rust` (zero subprocess, zero Scheme boot!).
+            import lambda_aitia_rust
+
+            inproc_bundle = dict(
+                portable_bundle,
+                sysmlTufPolicy={"minThreshold": 2, "minEpoch": 5},
+                expectedRepoIds=["protocol-base", "ledger-core", "network-mux", "node-runner"],
+            )
+            inproc_verdict = json.loads(
+                lambda_aitia_rust.verify_portable_audit_bundle(json.dumps(inproc_bundle))
+            )
+            assert inproc_verdict["verified"] is True, inproc_verdict
+            assert inproc_verdict["airGapped"] is True
+            assert inproc_verdict["headMerkleRoot"] == att_ep6["payload"]["merkleRoot"]
+            assert inproc_verdict["actionAuthorized"] is False
+
+            # J2. Generate & verify O(log_2 4) = 2 sibling Merkle inclusion proof for `ledger-core`
+            merkle_proof_json = lambda_aitia_rust.generate_repo_merkle_proof(
+                json.dumps(att_ep6), "ledger-core"
+            )
+            merkle_proof = json.loads(merkle_proof_json)
+            assert merkle_proof["schema"] == "lambda-aitia.repo-merkle-proof.v1"
+            assert len(merkle_proof["siblings"]) == 2, merkle_proof["siblings"]
+            assert merkle_proof["actionAuthorized"] is False
+
+            merkle_verdict = json.loads(
+                lambda_aitia_rust.verify_repo_merkle_proof(
+                    merkle_proof_json, inproc_verdict["headMerkleRoot"]
+                )
+            )
+            assert merkle_verdict["verified"] is True
+            assert merkle_verdict["repoId"] == "ledger-core"
+            assert merkle_verdict["siblingCount"] == 2
+            assert merkle_verdict["actionAuthorized"] is False
+
+            # J3. Negative controls in-process: tampered link & flipped sibling side MUST raise ValueError!
+            tampered_proof = json.loads(merkle_proof_json)
+            tampered_proof["link"]["interfaceDigest"] = "sha256:tampered"
+            merkle_tamper_rejected = False
+            try:
+                lambda_aitia_rust.verify_repo_merkle_proof(
+                    json.dumps(tampered_proof), inproc_verdict["headMerkleRoot"]
+                )
+            except ValueError:
+                merkle_tamper_rejected = True
+            assert merkle_tamper_rejected, "Tampered Merkle leaf MUST fail closed!"
+
+            flipped_proof = json.loads(merkle_proof_json)
+            flipped_proof["siblings"][0]["side"] = (
+                "right" if flipped_proof["siblings"][0]["side"] == "left" else "left"
+            )
+            merkle_flip_rejected = False
+            try:
+                lambda_aitia_rust.verify_repo_merkle_proof(
+                    json.dumps(flipped_proof), inproc_verdict["headMerkleRoot"]
+                )
+            except ValueError:
+                merkle_flip_rejected = True
+            assert merkle_flip_rejected, "Flipped Merkle sibling side MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -986,6 +1047,11 @@ def main() -> None:
                 "scenarioI_airGappedSysmlPolicyEnforced": audit_verdict["sysmlPolicyEnforced"],
                 "scenarioI_spoofedPolicyRejected": weak_audit_proc.returncode != 0,
                 "scenarioI_missingRepoRejected": missing_repo_proc.returncode != 0,
+                "scenarioJ_inProcessPyO3AuditVerified": inproc_verdict["verified"],
+                "scenarioJ_merkleRoot": inproc_verdict["headMerkleRoot"],
+                "scenarioJ_merkleSiblings": merkle_verdict["siblingCount"],
+                "scenarioJ_merkleTamperRejected": merkle_tamper_rejected,
+                "scenarioJ_merkleFlipRejected": merkle_flip_rejected,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,
