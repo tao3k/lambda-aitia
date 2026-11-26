@@ -48,3 +48,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.revokedKeyExcludedFromQuorum
 #print axioms GitOps.epochRollbackRejected
 #print axioms GitOps.counterfactualEvaluationPreservesZeroAuthority
+#print axioms GitOps.rootRotationRequiresDualQuorum
+#print axioms GitOps.rootVersionSkipRejected
+#print axioms GitOps.attestationChainRequiresParentLink
+#print axioms GitOps.attestationChainRequiresStrictlyIncreasingEpoch

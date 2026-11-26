@@ -60,6 +60,22 @@ pub fn mint_release_attestation_bundle_with_quorum(
     signing_seeds: &[&str],
     epoch: u64,
 ) -> Result<Value> {
+    mint_release_attestation_bundle_with_lineage(step, signing_seeds, epoch, None)
+}
+
+/// Mint a TUF `k-of-n` threshold Proof-Carrying Release Attestation Bundle linked to an
+/// optional prior `parent_bundle_digest` (RFC 0012 multi-epoch provenance chain).
+///
+/// # Errors
+/// Fails closed if `step` is not `quiescent`, `signing_seeds` is empty, `epoch == 0`,
+/// `parent_bundle_digest` is not a `sha256:` digest, any repo lineage has `missingReports`,
+/// or any Ed25519 seed is malformed.
+pub fn mint_release_attestation_bundle_with_lineage(
+    step: &Value,
+    signing_seeds: &[&str],
+    epoch: u64,
+    parent_bundle_digest: Option<&str>,
+) -> Result<Value> {
     if step["state"].as_str() != Some("quiescent") {
         return Err(err(
             "Release attestation bundle requires a quiescent protocol step",
@@ -72,6 +88,11 @@ pub fn mint_release_attestation_bundle_with_quorum(
     }
     if epoch == 0 {
         return Err(err("Release attestation epoch must be >= 1"));
+    }
+    if let Some(parent) = parent_bundle_digest
+        && !parent.starts_with("sha256:")
+    {
+        return Err(err("parentBundleDigest must be a sha256 digest"));
     }
     let repos = step["repos"]
         .as_array()
@@ -101,7 +122,7 @@ pub fn mint_release_attestation_bundle_with_quorum(
             "actionAuthorized": false,
         }));
     }
-    let payload = json!({
+    let mut payload = json!({
         "schema": "lambda-aitia.release-attestation-payload.v1",
         "epoch": epoch,
         "waves": step["waves"],
@@ -109,20 +130,14 @@ pub fn mint_release_attestation_bundle_with_quorum(
         "earlyCutoffs": step.get("earlyCutoffs").cloned().unwrap_or_else(|| json!([])),
         "actionAuthorized": false,
     });
+    if let Some(parent) = parent_bundle_digest
+        && let Some(obj) = payload.as_object_mut()
+    {
+        obj.insert("parentBundleDigest".to_owned(), json!(parent));
+    }
     let canonical = serde_json::to_string(&payload)?;
     let bundle_digest = crate::source_tree::sha256(canonical.as_bytes());
-    let mut signatures: Vec<(String, String)> = Vec::with_capacity(signing_seeds.len());
-    for seed_hex in signing_seeds {
-        let seed = hex_decode::<32>(seed_hex)?;
-        let keypair = ring::signature::Ed25519KeyPair::from_seed_unchecked(&seed)
-            .map_err(|_| err("Failed to construct Ed25519 attestation signing key"))?;
-        let sig = keypair.sign(bundle_digest.as_bytes());
-        signatures.push((
-            hex_encode(keypair.public_key().as_ref()),
-            hex_encode(sig.as_ref()),
-        ));
-    }
-    signatures.sort_by(|a, b| a.0.cmp(&b.0));
+    let signatures = sign_digest_with_seeds(&bundle_digest, signing_seeds)?;
     let (primary_pk, primary_sig) = signatures
         .first()
         .cloned()
@@ -138,6 +153,68 @@ pub fn mint_release_attestation_bundle_with_quorum(
         "publicKey": primary_pk,
         "signature": primary_sig,
         "signatures": sig_entries,
+        "actionAuthorized": false,
+    }))
+}
+
+fn sign_digest_with_seeds(digest: &str, seeds: &[&str]) -> Result<Vec<(String, String)>> {
+    let mut signatures: Vec<(String, String)> = Vec::with_capacity(seeds.len());
+    for seed_hex in seeds {
+        let seed = hex_decode::<32>(seed_hex)?;
+        let keypair = ring::signature::Ed25519KeyPair::from_seed_unchecked(&seed)
+            .map_err(|_| err("Failed to construct Ed25519 signing key"))?;
+        let sig = keypair.sign(digest.as_bytes());
+        signatures.push((
+            hex_encode(keypair.public_key().as_ref()),
+            hex_encode(sig.as_ref()),
+        ));
+    }
+    signatures.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(signatures)
+}
+
+/// Derive the hex-encoded Ed25519 public key for a 32-byte hex seed.
+///
+/// # Errors
+/// Fails closed if `seed_hex` is not a valid 32-byte hex string.
+pub fn ed25519_public_key_hex(seed_hex: &str) -> Result<String> {
+    let seed = hex_decode::<32>(seed_hex)?;
+    let keypair = ring::signature::Ed25519KeyPair::from_seed_unchecked(&seed)
+        .map_err(|_| err("Failed to construct Ed25519 keypair"))?;
+    Ok(hex_encode(keypair.public_key().as_ref()))
+}
+
+/// Mint a signed TUF dual-quorum root rotation envelope (`lambda-aitia.tuf-root-rotation.v1`).
+///
+/// Signs the canonical SHA-256 `rotationDigest` of `new_root` with both `old_signing_seeds`
+/// (handover from previous root) and `new_signing_seeds` (self-attestation by new root).
+///
+/// # Errors
+/// Fails closed if `new_root` has an invalid schema or either seed list is malformed.
+pub fn mint_tuf_root_rotation(
+    new_root: &Value,
+    old_signing_seeds: &[&str],
+    new_signing_seeds: &[&str],
+) -> Result<Value> {
+    if new_root["schema"].as_str() != Some("lambda-aitia.tuf-trust-root.v1") {
+        return Err(err("Unsupported TUF trust root schema in rotation"));
+    }
+    let canonical = serde_json::to_string(new_root)?;
+    let rotation_digest = crate::source_tree::sha256(canonical.as_bytes());
+    let old_sigs: Vec<Value> = sign_digest_with_seeds(&rotation_digest, old_signing_seeds)?
+        .into_iter()
+        .map(|(pk, sig)| json!({ "publicKey": pk, "signature": sig }))
+        .collect();
+    let new_sigs: Vec<Value> = sign_digest_with_seeds(&rotation_digest, new_signing_seeds)?
+        .into_iter()
+        .map(|(pk, sig)| json!({ "publicKey": pk, "signature": sig }))
+        .collect();
+    Ok(json!({
+        "schema": "lambda-aitia.tuf-root-rotation.v1",
+        "newRoot": new_root,
+        "rotationDigest": rotation_digest,
+        "oldSignatures": old_sigs,
+        "newSignatures": new_sigs,
         "actionAuthorized": false,
     }))
 }
@@ -313,4 +390,219 @@ fn verify_tuf_trust_root(root: &Value, payload: &Value, verified_pks: &[String])
         ));
     }
     Ok(())
+}
+
+fn verify_signature_entries(digest: &str, entries: &[Value]) -> Result<Vec<String>> {
+    let mut verified_pks = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let pk_hex = entry["publicKey"]
+            .as_str()
+            .ok_or_else(|| err("Rotation signature missing publicKey"))?;
+        let sig_hex = entry["signature"]
+            .as_str()
+            .ok_or_else(|| err("Rotation signature missing signature"))?;
+        let pubkey = hex_decode::<32>(pk_hex)?;
+        let sig = hex_decode::<64>(sig_hex)?;
+        ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, pubkey)
+            .verify(digest.as_bytes(), &sig)
+            .map_err(|_| err("TUF root rotation Ed25519 signature rejected"))?;
+        verified_pks.push(pk_hex.to_owned());
+    }
+    Ok(verified_pks)
+}
+
+fn check_root_quorum_only(root: &Value, verified_pks: &[String], label: &str) -> Result<()> {
+    let threshold = usize::try_from(
+        root["threshold"]
+            .as_u64()
+            .ok_or_else(|| err("TUF trust root missing threshold"))?,
+    )
+    .map_err(|_| err("Invalid TUF trust root threshold"))?;
+    if threshold == 0 {
+        return Err(err("TUF trust root threshold must be >= 1"));
+    }
+    let authorized: BTreeSet<&str> = root["authorizedKeys"]
+        .as_array()
+        .ok_or_else(|| err("TUF trust root missing authorizedKeys"))?
+        .iter()
+        .filter_map(Value::as_str)
+        .collect();
+    let revoked: BTreeSet<&str> = root
+        .get("revokedKeys")
+        .and_then(Value::as_array)
+        .map(|arr| arr.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    let mut distinct_valid = BTreeSet::new();
+    for pk in verified_pks {
+        if revoked.contains(pk.as_str()) {
+            return Err(err(&format!(
+                "TUF root rotation signed by revoked key in {label} root"
+            )));
+        }
+        if authorized.contains(pk.as_str()) {
+            distinct_valid.insert(pk.as_str());
+        }
+    }
+    if distinct_valid.len() < threshold {
+        return Err(err(&format!(
+            "TUF root rotation failed {label} k-of-n distinct authorized signer threshold"
+        )));
+    }
+    Ok(())
+}
+
+/// Offline verifier for a TUF dual-quorum root rotation chain (`R_1 -> R_2 -> ... -> R_m`).
+///
+/// Enforces strict `rootVersion == prev + 1`, monotonic `minEpoch >= prev.minEpoch`,
+/// canonical `rotationDigest`, `actionAuthorized == false`, AND dual-quorum Ed25519
+/// signatures from BOTH the previous root and the new root.
+///
+/// # Errors
+/// Fails closed on version skip, epoch downgrade, digest tampering, revoked signer, or
+/// missing old/new quorum.
+pub fn verify_tuf_root_rotation_chain(
+    genesis_root: &Value,
+    rotations: &[Value],
+) -> Result<Vec<Value>> {
+    if genesis_root["schema"].as_str() != Some("lambda-aitia.tuf-trust-root.v1") {
+        return Err(err("Unsupported genesis TUF trust root schema"));
+    }
+    let mut timeline = vec![genesis_root.clone()];
+    for rot in rotations {
+        if rot["schema"].as_str() != Some("lambda-aitia.tuf-root-rotation.v1") {
+            return Err(err("Unsupported TUF root rotation envelope schema"));
+        }
+        if rot["actionAuthorized"].as_bool() != Some(false) {
+            return Err(err("TUF root rotation must have actionAuthorized: false"));
+        }
+        let prev = timeline
+            .last()
+            .ok_or_else(|| err("Missing previous trust root"))?;
+        let new_root = rot
+            .get("newRoot")
+            .ok_or_else(|| err("TUF root rotation missing newRoot"))?;
+        if new_root["schema"].as_str() != Some("lambda-aitia.tuf-trust-root.v1") {
+            return Err(err("Unsupported rotated TUF trust root schema"));
+        }
+        let prev_ver = prev["rootVersion"].as_u64().unwrap_or(0);
+        let new_ver = new_root["rootVersion"].as_u64().unwrap_or(0);
+        if new_ver != prev_ver.saturating_add(1) {
+            return Err(err(
+                "TUF root rotation must strictly increment rootVersion by 1",
+            ));
+        }
+        let prev_min = prev["minEpoch"].as_u64().unwrap_or(1);
+        let new_min = new_root["minEpoch"].as_u64().unwrap_or(0);
+        if new_min < prev_min {
+            return Err(err("TUF root rotation cannot downgrade minEpoch"));
+        }
+        let canonical = serde_json::to_string(new_root)?;
+        let recomputed = crate::source_tree::sha256(canonical.as_bytes());
+        let claimed = rot["rotationDigest"]
+            .as_str()
+            .ok_or_else(|| err("TUF root rotation missing rotationDigest"))?;
+        if recomputed != claimed {
+            return Err(err("TUF root rotationDigest mismatch (tampering detected)"));
+        }
+        let old_entries = rot["oldSignatures"]
+            .as_array()
+            .ok_or_else(|| err("TUF root rotation missing oldSignatures"))?;
+        let new_entries = rot["newSignatures"]
+            .as_array()
+            .ok_or_else(|| err("TUF root rotation missing newSignatures"))?;
+        let old_pks = verify_signature_entries(claimed, old_entries)?;
+        let new_pks = verify_signature_entries(claimed, new_entries)?;
+        check_root_quorum_only(prev, &old_pks, "previous")?;
+        check_root_quorum_only(new_root, &new_pks, "new")?;
+        timeline.push(new_root.clone());
+    }
+    Ok(timeline)
+}
+
+/// Offline verifier for a transitive multi-epoch release attestation chain (`B_0 -> ... -> B_k`)
+/// rooted in a caller-pinned genesis `TrustRoot` and verified TUF dual-quorum `rotations`.
+///
+/// Enforces:
+/// 1. Full TUF dual-quorum root rotation chain verification (`R_1 -> ... -> R_m`),
+/// 2. Strictly increasing epochs across bundles (`B_i.epoch > B_{i-1}.epoch`),
+/// 3. Exact cryptographic parent hash continuity (`B_i.payload.parentBundleDigest == B_{i-1}.bundleDigest`),
+/// 4. Every bundle verified against the root active at its epoch, and the head bundle
+///    verified against the latest active root `R_m`,
+/// 5. `actionAuthorized: false` across every link and summary.
+///
+/// # Errors
+/// Fails closed on any root rotation, parent-link, epoch-order, threshold, revocation,
+/// or digest violation.
+pub fn verify_attestation_lineage_chain(
+    chain: &[Value],
+    genesis_root: &Value,
+    rotations: &[Value],
+) -> Result<(BTreeMap<String, String>, Value)> {
+    if chain.is_empty() {
+        return Err(err("Attestation lineage chain must be non-empty"));
+    }
+    let roots = verify_tuf_root_rotation_chain(genesis_root, rotations)?;
+    let latest_root = roots
+        .last()
+        .ok_or_else(|| err("Verified root timeline is empty"))?;
+
+    let mut prev_digest: Option<String> = None;
+    let mut prev_epoch: Option<u64> = None;
+    let mut epochs: Vec<u64> = Vec::with_capacity(chain.len());
+    let mut genesis_digest = String::new();
+    let mut head_keys = BTreeMap::new();
+
+    for (idx, bundle) in chain.iter().enumerate() {
+        let ep = bundle["payload"]["epoch"].as_u64().unwrap_or(0);
+        if let Some(pe) = prev_epoch
+            && ep <= pe
+        {
+            return Err(err(
+                "Attestation lineage chain epochs must be strictly increasing",
+            ));
+        }
+        if let Some(ref pd) = prev_digest {
+            let claimed_parent = bundle["payload"]["parentBundleDigest"]
+                .as_str()
+                .ok_or_else(|| err("Chained attestation bundle missing parentBundleDigest"))?;
+            if claimed_parent != pd {
+                return Err(err("Attestation lineage chain parentBundleDigest mismatch"));
+            }
+        }
+        let is_head = idx + 1 == chain.len();
+        let active_root = if is_head {
+            latest_root
+        } else {
+            roots
+                .iter()
+                .rev()
+                .find(|r| r["minEpoch"].as_u64().unwrap_or(1) <= ep)
+                .unwrap_or(genesis_root)
+        };
+        let keys = verify_release_attestation_bundle_with_trust_root(bundle, Some(active_root))?;
+        let digest = bundle["bundleDigest"]
+            .as_str()
+            .ok_or_else(|| err("Verified bundle missing bundleDigest"))?
+            .to_owned();
+        if idx == 0 {
+            genesis_digest.clone_from(&digest);
+        }
+        prev_digest = Some(digest);
+        prev_epoch = Some(ep);
+        epochs.push(ep);
+        if is_head {
+            head_keys = keys;
+        }
+    }
+
+    let summary = json!({
+        "schema": "lambda-aitia.verified-attestation-lineage.v1",
+        "chainLength": chain.len(),
+        "rootVersion": latest_root["rootVersion"],
+        "epochs": epochs,
+        "genesisDigest": genesis_digest,
+        "headDigest": prev_digest.unwrap_or_default(),
+        "actionAuthorized": false,
+    });
+    Ok((head_keys, summary))
 }

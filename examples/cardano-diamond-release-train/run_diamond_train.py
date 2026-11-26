@@ -637,6 +637,157 @@ def main() -> None:
         )
         assert rollback_proc.returncode != 0, "Epoch rollback attestation MUST fail closed!"
 
+        # Scenario G: RFC 0012 TUF Dual-Quorum Root Rotation (R1 -> R2) & Transitive Multi-Epoch Chain (Epoch 5 -> 6)
+        # Restore protocol-base ABI v1 and mint Epoch 6 bundle signed by rotated quorum [seed_b, seed_c]
+        # linked via parentBundleDigest -> att["bundleDigest"] (Epoch 5).
+        (base_dir / "include" / "protocol.h").write_text(
+            "/* Public ABI header v1 */\ntypedef unsigned long long slot_t;\n"
+        )
+        run_jj(jj_bin, env, base_dir, "status")
+        ep6_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "checkpointPath": str(checkpoint_file),
+                        "emitAttestation": True,
+                        "attestationSigningSeeds": [seed_b, seed_c],
+                        "attestationEpoch": 6,
+                        "parentBundleDigest": att["bundleDigest"],
+                        "repos": [
+                            {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
+                            for rid, *_ in specs
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        att_ep6 = ep6_doc["releaseAttestation"]
+        assert att_ep6["payload"]["epoch"] == 6, att_ep6["payload"]
+        assert att_ep6["payload"]["parentBundleDigest"] == att["bundleDigest"]
+        pks_ep5 = {s["publicKey"] for s in att["signatures"]}
+        pks_ep6 = {s["publicKey"] for s in att_ep6["signatures"]}
+        shared_pk_b = (pks_ep5 & pks_ep6).pop()
+        old_pk_a = (pks_ep5 - {shared_pk_b}).pop()
+        new_pk_c = (pks_ep6 - {shared_pk_b}).pop()
+        genesis_r1 = {
+            "schema": "lambda-aitia.tuf-trust-root.v1",
+            "rootVersion": 1,
+            "threshold": 2,
+            "minEpoch": 5,
+            "authorizedKeys": [old_pk_a, shared_pk_b, new_pk_c],
+            "revokedKeys": [],
+        }
+        rotated_r2 = {
+            "schema": "lambda-aitia.tuf-trust-root.v1",
+            "rootVersion": 2,
+            "threshold": 2,
+            "minEpoch": 6,
+            "authorizedKeys": [shared_pk_b, new_pk_c, "55" * 32],
+            "revokedKeys": [old_pk_a],
+        }
+        # G1. Mint genuine dual-quorum R1 -> R2 handover envelope (old=[seed_a, seed_b], new=[seed_b, seed_c])
+        rot_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "emitRootRotation": {
+                            "newRoot": rotated_r2,
+                            "oldSigningSeeds": [seed_a, seed_b],
+                            "newSigningSeeds": [seed_b, seed_c],
+                        }
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        r1_to_r2 = rot_doc["signedRootRotation"]
+        assert r1_to_r2["schema"] == "lambda-aitia.tuf-root-rotation.v1"
+        assert r1_to_r2["actionAuthorized"] is False
+
+        # G2. Verify full transitive chain (R1 -> R2 + Epoch 5 -> Epoch 6) -> 4/4 cache hits & verifiedLineage!
+        chain_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "checkpointPath": str(checkpoint_file),
+                        "pinnedGenesisRoot": genesis_r1,
+                        "rootRotations": [r1_to_r2],
+                        "attestationChain": [att, att_ep6],
+                        "repos": [
+                            {"repoId": rid, "approvalLive": True, "draft": drafts[rid]}
+                            for rid, *_ in specs
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        lineage_meta = chain_doc["verifiedAttestationLineage"]
+        assert lineage_meta["schema"] == "lambda-aitia.verified-attestation-lineage.v1"
+        assert lineage_meta["chainLength"] == 2
+        assert lineage_meta["rootVersion"] == 2
+        assert lineage_meta["epochs"] == [5, 6]
+        assert lineage_meta["genesisDigest"] == att["bundleDigest"]
+        assert lineage_meta["headDigest"] == att_ep6["bundleDigest"]
+        assert lineage_meta["actionAuthorized"] is False
+        assert len(chain_doc["verificationCacheHits"]) == 4
+
+        # G3. Negative control 1: Unilateral hijack rotation (missing old R1 quorum!) -> MUST fail closed!
+        hijack_rot = json.loads(json.dumps(r1_to_r2))
+        hijack_rot["oldSignatures"] = [r1_to_r2["oldSignatures"][0]]
+        hijack_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps(
+                {
+                    "pinnedGenesisRoot": genesis_r1,
+                    "rootRotations": [hijack_rot],
+                    "attestationChain": [att, att_ep6],
+                }
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert hijack_proc.returncode != 0, "Unilateral root rotation without old quorum MUST fail closed!"
+
+        # G4. Negative control 2: Broken parentBundleDigest hash chain -> MUST fail closed!
+        broken_ep6 = json.loads(json.dumps(att_ep6))
+        broken_ep6["payload"]["parentBundleDigest"] = "sha256:" + ("0" * 64)
+        broken_chain_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps(
+                {
+                    "pinnedGenesisRoot": genesis_r1,
+                    "rootRotations": [r1_to_r2],
+                    "attestationChain": [att, broken_ep6],
+                }
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert broken_chain_proc.returncode != 0, "Broken parentBundleDigest chain MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -662,6 +813,10 @@ def main() -> None:
                 "scenarioF_revokedKeyRejected": revoked_proc.returncode != 0,
                 "scenarioF_epochRollbackRejected": rollback_proc.returncode != 0,
                 "scenarioF_counterfactualBranchesPreserved": len(cf_matrix),
+                "scenarioG_rotatedRootVersion": lineage_meta["rootVersion"],
+                "scenarioG_verifiedChainLength": lineage_meta["chainLength"],
+                "scenarioG_unilateralRotationRejected": hijack_proc.returncode != 0,
+                "scenarioG_brokenParentHashRejected": broken_chain_proc.returncode != 0,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

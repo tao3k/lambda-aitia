@@ -172,4 +172,46 @@ theorem counterfactualEvaluationPreservesZeroAuthority
     actionAuthorized = false :=
   hSafe.2
 
+/-- RFC 0012 TUF dual-quorum root rotation admissibility predicate. -/
+def RootRotationAdmissible
+    (oldVer newVer oldMinEp newMinEp oldValid newValid oldThresh newThresh : Nat) : Prop :=
+  newVer = oldVer + 1 ∧
+  newMinEp ≥ oldMinEp ∧
+  oldThresh ≥ 1 ∧
+  newThresh ≥ 1 ∧
+  oldValid ≥ oldThresh ∧
+  newValid ≥ newThresh
+
+/-- RFC 0012 Multi-epoch parent-linked attestation chain step validity predicate. -/
+def AttestationLinkValid
+    (prevHash parentHash : Nat) (prevEpoch nextEpoch : Nat) : Prop :=
+  parentHash = prevHash ∧ nextEpoch > prevEpoch
+
+theorem rootRotationRequiresDualQuorum
+    {oldVer newVer oldMinEp newMinEp oldValid newValid oldThresh newThresh : Nat}
+    (hRot : RootRotationAdmissible oldVer newVer oldMinEp newMinEp oldValid newValid oldThresh newThresh) :
+    oldValid ≥ oldThresh ∧ newValid ≥ newThresh :=
+  ⟨hRot.2.2.2.2.1, hRot.2.2.2.2.2⟩
+
+theorem rootVersionSkipRejected
+    {oldVer newVer oldMinEp newMinEp oldValid newValid oldThresh newThresh : Nat}
+    (hSkip : newVer ≠ oldVer + 1) :
+    ¬ RootRotationAdmissible oldVer newVer oldMinEp newMinEp oldValid newValid oldThresh newThresh := by
+  intro hRot
+  exact hSkip hRot.1
+
+theorem attestationChainRequiresParentLink
+    {prevHash parentHash prevEpoch nextEpoch : Nat}
+    (hBroken : parentHash ≠ prevHash) :
+    ¬ AttestationLinkValid prevHash parentHash prevEpoch nextEpoch := by
+  intro hLink
+  exact hBroken hLink.1
+
+theorem attestationChainRequiresStrictlyIncreasingEpoch
+    {prevHash parentHash prevEpoch nextEpoch : Nat}
+    (hNonInc : nextEpoch ≤ prevEpoch) :
+    ¬ AttestationLinkValid prevHash parentHash prevEpoch nextEpoch := by
+  intro hLink
+  exact Nat.not_le_of_gt hLink.2 hNonInc
+
 end LambdaAitiaProof.Modules.GitOps

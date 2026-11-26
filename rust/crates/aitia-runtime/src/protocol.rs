@@ -246,7 +246,31 @@ pub fn drive_multi_repo_protocol(
         _ => None,
     };
     let trust_root = root_obj.get("trustRoot").cloned().filter(|v| !v.is_null());
-    if let Some(raw_bundle) = root_obj.get("priorAttestationBundle").cloned()
+    let mut verified_lineage: Option<Value> = None;
+    if let (Some(genesis_root), Some(chain_arr)) = (
+        root_obj
+            .get("pinnedGenesisRoot")
+            .cloned()
+            .filter(|v| !v.is_null()),
+        root_obj
+            .get("attestationChain")
+            .and_then(Value::as_array)
+            .cloned(),
+    ) {
+        let rotations = root_obj
+            .get("rootRotations")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let (verified_keys, lineage_summary) =
+            commit::attestation::verify_attestation_lineage_chain(
+                &chain_arr,
+                &genesis_root,
+                &rotations,
+            )?;
+        root_obj.insert("attestedVerificationKeys".to_owned(), json!(verified_keys));
+        verified_lineage = Some(lineage_summary);
+    } else if let Some(raw_bundle) = root_obj.get("priorAttestationBundle").cloned()
         && !raw_bundle.is_null()
     {
         let verified_keys = commit::attestation::verify_release_attestation_bundle_with_trust_root(
@@ -255,6 +279,10 @@ pub fn drive_multi_repo_protocol(
         )?;
         root_obj.insert("attestedVerificationKeys".to_owned(), json!(verified_keys));
     }
+    let emit_root_rotation = root_obj
+        .get("emitRootRotation")
+        .cloned()
+        .filter(|v| !v.is_null());
     let emit_attestation = root_obj
         .get("emitAttestation")
         .and_then(Value::as_bool)
@@ -277,6 +305,10 @@ pub fn drive_multi_repo_protocol(
         .get("attestationEpoch")
         .and_then(Value::as_u64)
         .unwrap_or(1);
+    let parent_bundle_digest = root_obj
+        .get("parentBundleDigest")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let checkpoint_path = root_obj
         .get("checkpointPath")
         .and_then(Value::as_str)
@@ -328,14 +360,33 @@ pub fn drive_multi_repo_protocol(
             if let Some(decision) = verified_decision {
                 step["verifiedHumanDecision"] = decision;
             }
+            if let Some(lineage) = verified_lineage {
+                step["verifiedAttestationLineage"] = lineage;
+            }
+            if let Some(rot_req) = emit_root_rotation {
+                let old_seeds: Vec<&str> = rot_req["oldSigningSeeds"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(Value::as_str).collect())
+                    .unwrap_or_default();
+                let new_seeds: Vec<&str> = rot_req["newSigningSeeds"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(Value::as_str).collect())
+                    .unwrap_or_default();
+                step["signedRootRotation"] = commit::attestation::mint_tuf_root_rotation(
+                    &rot_req["newRoot"],
+                    &old_seeds,
+                    &new_seeds,
+                )?;
+            }
             if emit_attestation && state_name.as_deref() == Some("quiescent") {
                 step["releaseAttestation"] = if !attestation_seeds.is_empty() {
                     let seed_refs: Vec<&str> =
                         attestation_seeds.iter().map(String::as_str).collect();
-                    commit::attestation::mint_release_attestation_bundle_with_quorum(
+                    commit::attestation::mint_release_attestation_bundle_with_lineage(
                         &step,
                         &seed_refs,
                         attestation_epoch,
+                        parent_bundle_digest.as_deref(),
                     )?
                 } else {
                     commit::attestation::mint_release_attestation_bundle(

@@ -1,0 +1,61 @@
+#+TITLE: RFC 0012: TUF Dual-Quorum Root Rotation & Transitive Multi-Epoch Attestation Lineage
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0011 established offline TUF ~k-of-n~ threshold Ed25519 release attestations,
+explicit key revocation, and monotonic epoch floor checks against a single static
+~TrustRoot~. Two deeper supply-chain problems remain for long-lived multi-repo
+release trains:
+
+1. *Survivable Key Rotation Without Trust Teleportation (TUF CCS 2010, §4.3)*:
+   Rotating a compromised release key (~pkA~) out of the root of trust (~R_1 -> R_2~)
+   cannot rely on an unsigned config update. TUF requires a /dual-quorum handover/:
+   ~R_{i+1}~ must strictly advance ~rootVersion = R_i.rootVersion + 1~, preserve
+   monotonic ~minEpoch >= R_i.minEpoch~, and carry valid Ed25519 signatures from BOTH
+   a ~R_i.threshold~-quorum of old authorized non-revoked keys AND a
+   ~R_{i+1}.threshold~-quorum of new authorized non-revoked keys.
+2. *Transitive Multi-Epoch Attestation Lineage (SLSA Recursive Provenance)*:
+   Release trains span epochs (~Epoch 5 -> Epoch 6 -> ...~). Without linking each
+   attestation payload to ~parentBundleDigest~ and verifying strictly increasing epochs
+   across the chain, an adversary can splice or reorder independent bundles.
+3. *Differential Conformance Over Counterfactual Branch Matrices*:
+   Extending the ~MultiRepoDiamond.qnt <-> aitia C ABI~ differential oracle from 72
+   regime checks to 96 checks (adding 24 permutation checks over competing counterfactual
+   branches) guarantees bit-for-bit permutation invariance of the RFC 0011
+   ~counterfactualMatrix~.
+
+* Architectural Invariants
+
+1. *Strict Root Version Continuity*: Every root rotation step satisfies
+   ~R_{i+1}.rootVersion == R_i.rootVersion + 1~ and ~R_{i+1}.minEpoch >= R_i.minEpoch~.
+2. *Dual-Quorum Handover*: Every rotation envelope (~lambda-aitia.tuf-root-rotation.v1~)
+   must satisfy ~oldDistinctValid >= R_i.threshold~ AND
+   ~newDistinctValid >= R_{i+1}.threshold~, with zero revoked signers and
+   ~actionAuthorized: false~.
+3. *Transitive Parent Hash & Strict Epoch Monotonicity*: Every multi-epoch chain link
+   ~B_j~ (~j > 0~) satisfies ~B_j.payload.parentBundleDigest == B_{j-1}.bundleDigest~
+   and ~B_j.payload.epoch > B_{j-1}.payload.epoch~, verified against the root active at
+   its epoch (rolling forward across verified root rotations).
+4. *Zero Authority Across Chains*: Verified root rotation chains and attestation lineages
+   carry ~actionAuthorized: false~ at every envelope and summary boundary.
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~rootRotationRequiresDualQuorum~, ~rootVersionSkipRejected~,
+  ~attestationChainRequiresParentLink~, ~attestationChainRequiresStrictlyIncreasingEpoch~
+  (23 total ~GitOps~ theorems, zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/TufRootRotationChain.qnt~):
+  6 model-checking tests including dual-quorum handover, unilateral hijack rejection,
+  version-skip rejection, broken parent hash rejection, non-monotonic epoch rejection,
+  and negative-control single-quorum violation detection.
+- *Differential Oracle* (~dev/qualification/diamond_differential_oracle.py~):
+  96/96 differential checks across all ~4! = 24~ permutations (72 diamond regimes + 24
+  competing-branch counterfactual matrix checks).
+- *Live 4-Repo Diamond Scenario G* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  Live ~R1 -> R2~ dual-quorum Ed25519 root rotation revoking ~pkA~, Epoch 5 -> Epoch 6
+  parent-linked release chain verification, and negative-control rejection of unilateral
+  hijack and broken parent hash links.

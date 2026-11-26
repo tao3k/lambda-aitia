@@ -233,6 +233,69 @@ def main() -> None:
                     assert actual["agentHandoff"]["schema"] == "lambda-aitia.agent-synthesis-handoff.v1"
                     assert actual["agentHandoff"]["actionAuthorized"] is False
                 checked += 1
+
+        # RFC 0012 Extension: Exhaust all 4! = 24 permutations over the RFC 0011 Counterfactual
+        # Competing-Branch Verification Matrix (2 competing branches preserved, zero authority)!
+        r_base, rc_base = make_quiescent_repo("protocol-base", [], "base-v2", "sha256:abi-v1")
+        r_ledg, rc_ledg = make_quiescent_repo("ledger-core", ["protocol-base"], "ledg-v1", "sha256:ledg", "base-v1", "sha256:abi-v1")
+        r_net, rc_net = make_quiescent_repo("network-mux", ["protocol-base"], "net-v1", "sha256:net", "base-v1", "sha256:abi-v1")
+        r_node, rc_node = make_quiescent_repo("node-runner", ["ledger-core", "network-mux"], "node-v1", "sha256:node")
+        cf_receipts = {**rc_base, **rc_ledg, **rc_net, **rc_node}
+        cf_base_repos = [r_base, r_ledg, r_net, r_node]
+        seed_req = json.dumps(
+            {
+                "caseId": "aitia/case/multi-repo-gitops",
+                "project": "quint-differential-oracle",
+                "repos": cf_base_repos,
+                "receipts": cf_receipts,
+            }
+        ).encode()
+        st, seed_text = take_buf(lib.aitia_session_call(handle, op, len(op), seed_req, len(seed_req)))
+        assert st == 0, f"counterfactual seed failed: {seed_text}"
+        seed_doc = json.loads(seed_text)
+        attested_keys = {r["repoId"]: r["verificationKey"] for r in seed_doc["repos"]}
+        cf_branches = [
+            {
+                "branchId": "branch-preserve-v1",
+                "hypothesis": "Preserve ABI v1 for 4/4 Adapton/Salsa memo hits",
+                "repoOverrides": [],
+            },
+            {
+                "branchId": "branch-break-v2",
+                "hypothesis": "Bump protocol-base to ABI v2 and invalidate Wave 1 peers",
+                "repoOverrides": [{"repoId": "protocol-base", "interfaceDigest": "sha256:abi-v2"}],
+            },
+        ]
+        for perm in itertools.permutations(cf_base_repos):
+            req = json.dumps(
+                {
+                    "caseId": "aitia/case/multi-repo-gitops",
+                    "project": "quint-differential-oracle",
+                    "repos": list(perm),
+                    "receipts": cf_receipts,
+                    "attestedVerificationKeys": attested_keys,
+                    "counterfactualBranches": cf_branches,
+                }
+            ).encode()
+            st, text = take_buf(lib.aitia_session_call(handle, op, len(op), req, len(req)))
+            assert st == 0, f"counterfactual perm failed: {text}"
+            actual = json.loads(text)
+            assert actual["waves"] == canonical_waves
+            assert len(actual["verificationCacheHits"]) == 4
+            cf_mat = actual["counterfactualMatrix"]
+            assert len(cf_mat) == 2
+            assert all(b["hypothetical"] is True and b["actionAuthorized"] is False for b in cf_mat)
+            by_id = {b["branchId"]: b for b in cf_mat}
+            assert len(by_id["branch-preserve-v1"]["verificationCacheHits"]) == 4
+            assert by_id["branch-preserve-v1"]["invalidatedRepos"] == []
+            assert by_id["branch-break-v2"]["resultingState"] == "need-agent-synthesis"
+            assert sorted(by_id["branch-break-v2"]["invalidatedRepos"]) == [
+                "ledger-core",
+                "network-mux",
+                "protocol-base",
+            ]
+            assert actual["actionAuthorized"] is False
+            checked += 1
     finally:
         close_err = AitiaBuffer()
         rc = lib.aitia_session_close(handle, ctypes.byref(close_err))
@@ -241,8 +304,8 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "oracle": "MultiRepoDiamond.qnt <-> aitia C ABI",
-                "regimes": len(regimes),
+                "oracle": "MultiRepoDiamond.qnt + RFC 0011 Counterfactual <-> aitia C ABI",
+                "regimes": len(regimes) + 1,
                 "permutationsPerRegime": 24,
                 "totalDifferentialChecksPassed": checked,
                 "canonicalWaves": canonical_waves,
