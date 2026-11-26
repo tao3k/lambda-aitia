@@ -33,7 +33,10 @@ mod review_provider;
 #[doc(hidden)]
 pub use cli::run_cli;
 #[cfg(feature = "linked-program")]
-pub use protocol::{DEFAULT_WORKFLOW_CASE, drive_scheme_protocol, execute_project_protocol};
+pub use protocol::{
+    DEFAULT_WORKFLOW_CASE, drive_scheme_protocol, execute_project_protocol,
+    execute_project_protocol_fenced,
+};
 
 #[cfg(feature = "linked-program")]
 mod program;

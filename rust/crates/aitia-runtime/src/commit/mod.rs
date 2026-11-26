@@ -14,7 +14,7 @@ pub(crate) use common::{
     execute_commit_action, execute_decision_or_recover, project_id, proposal_binding,
     review_context, review_cut_value, review_input_digest,
 };
-pub(crate) use evidence::evidence;
+pub(crate) use evidence::{evidence, evidence_with_program};
 pub(crate) use governance::{
     Apply, CommitRecovery, apply, attach_revision, prepare, record, recover, recover_attempt,
 };

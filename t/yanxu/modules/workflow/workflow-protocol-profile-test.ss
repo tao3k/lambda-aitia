@@ -156,4 +156,95 @@
         (check-equal? (.get s5 state) 'quiescent)
         (check-equal? (.get s5 handoff-target) 'none)
         (check-equal? (.get s5 gap-kind) 'none)
-        (check-equal? (.get s5 action-authorized?) #f)))))
+        (check-equal? (.get s5 action-authorized?) #f)))
+
+    (test-case "3. Evidence decay tracking detects stale cut observations and 2-stage fenced protocol transitions prepare -> apply -> quiescent"
+      (let* ((stale-cut
+              (.o project: "tao3k/lambda-aitia"
+                  workspace: "default"
+                  change: "sywptlmp"
+                  operation: "op-old"
+                  commit: "old-commit-000"
+                  tree: "tree-old"
+                  parents: '("835a5e62b8deb3caa9ecf89748660aef458a6393")))
+             (stale-obs
+              (list (.o (cut := stale-cut)
+                        identity: "ev-stale-change"
+                        obligation: "sdlc.change-record"
+                        outcome: 'passed)))
+             (fenced-spec
+              (.o (expected-commit := (.get test-cut commit))
+                  (expected-operation := (.get test-cut operation))
+                  (description := "AITIA-RFC-0008 feat(gitops): Wire dual-profile 5-state protocol")
+                  (review-context := "sha256:verified-fence-token")
+                  (proposal-binding := "sha256:proposal-binding")))
+             ;; Round A: stale prior-cut evidence is flagged as decayed in epistemic-summary,
+             ;; and fenced-spec without prepare receipt emits `gitops.jj.prepare-description`!
+             (step-prep
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/gitops-commit)
+                   (profile := "lambda-aitia/sdlc")
+                   (directory := ".")
+                   (fenced-commit-spec := fenced-spec)
+                   (receipts := (.o (jj-observe-cut := #t)
+                                    (sysml-project-scopes := '())))
+                   (naming := test-naming)
+                   (cut := test-cut)
+                   (sources := test-sources)
+                   (paths := '("justfile"))
+                   (proposals := (list valid-proposal))
+                   (observations := stale-obs)
+                   (approval-live? := #t)
+                   (reconcile? := #f))))
+             (ep-prep (.get step-prep epistemic-summary))
+             (frame-prep (car (.get step-prep frames)))
+             ;; Round B: prepare receipt present -> emits `gitops.jj.apply-description` with fence-token!
+             (step-apply
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/gitops-commit)
+                   (profile := "lambda-aitia/sdlc")
+                   (directory := ".")
+                   (fenced-commit-spec := fenced-spec)
+                   (receipts := (.o (jj-observe-cut := #t)
+                                    (sysml-project-scopes := '())
+                                    (jj-prepare-description := (.o (workspace := "default")))))
+                   (naming := test-naming)
+                   (cut := test-cut)
+                   (sources := test-sources)
+                   (paths := '("justfile"))
+                   (proposals := (list valid-proposal))
+                   (approval-live? := #t)
+                   (reconcile? := #f))))
+             (frame-apply (car (.get step-apply frames)))
+             ;; Round C: apply receipt present + reconcile -> discharges gitops.commit-applied and reaches quiescent!
+             (step-done
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/gitops-commit)
+                   (profile := "lambda-aitia/sdlc")
+                   (directory := ".")
+                   (fenced-commit-spec := fenced-spec)
+                   (receipts := (.o (jj-observe-cut := #t)
+                                    (sysml-project-scopes := '())
+                                    (jj-prepare-description := (.o (workspace := "default")))
+                                    (jj-apply-description := (.o (resulting-commit := "new-commit-123")))))
+                   (naming := test-naming)
+                   (cut := test-cut)
+                   (sources := test-sources)
+                   (paths := '("justfile"))
+                   (proposals := (list valid-proposal))
+                   (approval-live? := #t)
+                   (reconcile? := #t)))))
+        (check-equal? (.get ep-prep evidence-decay-detected?) #t)
+        (check-equal? (.get ep-prep decayed-obligations) '("sdlc.change-record"))
+        (check-equal? (.get ep-prep stale-evidence-ids) '("ev-stale-change"))
+        (check-equal? (.get step-prep state) 'need-fenced-frames)
+        (check-equal? (.get frame-prep capability) "gitops.jj.prepare-description")
+        (check-equal? (.get frame-prep effect-class) 'fenced-effect)
+        (check-equal? (.get frame-prep fence-token) "sha256:verified-fence-token")
+        (check-equal? (.get step-apply state) 'need-fenced-frames)
+        (check-equal? (.get frame-apply capability) "gitops.jj.apply-description")
+        (check-equal? (.get frame-apply effect-class) 'fenced-effect)
+        (check-equal? (.get frame-apply fence-token) "sha256:verified-fence-token")
+        (check-equal? (.get step-done state) 'quiescent)
+        (check-equal? (.get step-done handoff-target) 'none)
+        (check-equal? (.get step-done action-authorized?) #f)))))

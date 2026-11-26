@@ -329,6 +329,7 @@
                                           (cons 'forbidden-scopes: ChoiceOptionSymbolList)
                                           (cons 'state-budget: UInt)
                                           (cons 'extra-hypotheses: (List HypothesisType))
+                                          (cons 'extra-evidence: (List EvidenceFactType))
                                           (cons 'extra-tasks: (List DeterministicTaskNodeType))))]
                solve-gitops-choices:
                [(Function (list ChoiceSolutionType)

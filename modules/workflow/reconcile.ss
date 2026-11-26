@@ -300,6 +300,7 @@
       forbidden-scopes: (forbidden-scopes '())
       state-budget: (state-budget 32)
       extra-hypotheses: (extra-hypotheses '())
+      extra-evidence: (extra-evidence '())
       extra-tasks: (extra-tasks '()))
   (let* ((commit-id (.get cut commit))
          (cut-premise (string-append "premise:cut:" commit-id))
@@ -336,7 +337,8 @@
                     cut: cut-index
                     premise-ids: (list cut-premise)
                     origin-tier: 'human-decision))
-             '())))
+             '())
+           extra-evidence))
          (check-obligations
           (map (lambda (spec)
                  (let ((req-id (car spec))
@@ -841,6 +843,7 @@
           (frames := missing-frames)
           (repair-tasks := '())
           (epistemic-summary := #f)
+          (applied-receipt := #f)
           (graph := #f)
           (initial-frontier := #f)
           (report := #f)
@@ -849,6 +852,8 @@
           (action-authorized? := #f))
       (let* ((naming (.ref ctx 'naming))
              (cut (.ref ctx 'cut))
+             (commit-id (.get cut commit))
+             (cut-premise (string-append "premise:cut:" commit-id))
              (sources (opt-ref ctx 'sources '()))
              (paths (opt-ref ctx 'paths '()))
              (proposals (opt-ref ctx 'proposals '()))
@@ -858,6 +863,18 @@
              (forbidden-scopes (opt-ref ctx 'forbidden-scopes '()))
              (run-reconcile? (opt-ref ctx 'reconcile? #t))
              (proposal (opt-ref ctx 'proposal #f))
+             (fenced-spec (opt-ref ctx 'fenced-commit-spec #f))
+             (prepare-receipt (and (object? receipts) (opt-ref receipts 'jj-prepare-description #f)))
+             (apply-receipt (and (object? receipts) (opt-ref receipts 'jj-apply-description #f)))
+             (applied-evidence
+              (if apply-receipt
+                (list (make-evidence-fact
+                       "ev:gitops-commit-receipt"
+                       (.o (kind := 'commit-applied-receipt) (commit := commit-id))
+                       cut: 1
+                       premise-ids: (list cut-premise)
+                       origin-tier: 'observed-fact))
+                '()))
              (graph (workflow-gitops-commit-graph
                      naming cut sources paths proposals
                      profile: profile
@@ -865,7 +882,8 @@
                      observations: observations
                      approval-live?: approval-live?
                      candidate-offers: candidate-offers
-                     forbidden-scopes: forbidden-scopes))
+                     forbidden-scopes: forbidden-scopes
+                     extra-evidence: applied-evidence))
              (initial (workflow-reconcile-frontier graph))
              (proposal-res (and proposal (workflow-admit-proposal graph proposal)))
              (report (if run-reconcile? (workflow-reconcile graph) #f))
@@ -873,6 +891,8 @@
              (choice-sol (.get graph choice-solution))
              (semantics (.get graph semantics-assessment))
              (evidence-view (.get graph evidence-assessment))
+             (decayed-obligations (map car (.get evidence-view reopened)))
+             (stale-evidence-ids (map car (.get evidence-view stale)))
              (unsat (.ref final-frontier 'unsatisfied-obligations))
              (blocked (.ref final-frontier 'blocked-on-human-obligations))
              (holes (.ref final-frontier 'ready-synthesis-holes))
@@ -881,6 +901,7 @@
                ((and (null? unsat) (null? blocked) (null? holes))
                 'quiescent)
                ((and approval-live?
+                     (not apply-receipt)
                      (= (.get choice-sol world-count) 1)
                      (eq? (.get (car (.get choice-sol worlds)) dispatch-decision) 'fenced-apply)
                      (null? blocked)
@@ -913,15 +934,45 @@
                   (supported-count := (length (.get evidence-view supported)))
                   (stale-count := (length (.get evidence-view stale)))
                   (open-count := (length (.get evidence-view open)))
-                  (reopened-count := (length (.get evidence-view reopened)))))
+                  (reopened-count := (length (.get evidence-view reopened)))
+                  (decayed-obligations := decayed-obligations)
+                  (stale-evidence-ids := stale-evidence-ids)
+                  (evidence-decay-detected? := (or (pair? decayed-obligations)
+                                                   (pair? stale-evidence-ids)))))
              (fenced-frames
-              (if (eq? state 'need-fenced-frames)
+              (cond
+               ((not (eq? state 'need-fenced-frames))
+                '())
+               ((and fenced-spec (not prepare-receipt) (not (opt-ref fenced-spec 'attempt #f)))
+                (list (.o (capability := "gitops.jj.prepare-description")
+                          (effect-class := 'fenced-effect)
+                          (receipt-key := "gitops.jj.prepare-description")
+                          (fence-token := (.ref fenced-spec 'review-context))
+                          (payload := (.o (directory := directory)
+                                          (expected-commit := (.ref fenced-spec 'expected-commit))
+                                          (expected-operation := (.ref fenced-spec 'expected-operation))
+                                          (description := (.ref fenced-spec 'description))
+                                          (review-context := (.ref fenced-spec 'review-context))
+                                          (proposal-binding := (.ref fenced-spec 'proposal-binding)))))))
+               (fenced-spec
+                (let ((attempt-val (or prepare-receipt (opt-ref fenced-spec 'attempt #f))))
+                  (list (.o (capability := "gitops.jj.apply-description")
+                            (effect-class := 'fenced-effect)
+                            (receipt-key := "gitops.jj.apply-description")
+                            (fence-token := (.ref fenced-spec 'review-context))
+                            (payload := (.o (directory := directory)
+                                            (expected-commit := (.ref fenced-spec 'expected-commit))
+                                            (expected-operation := (.ref fenced-spec 'expected-operation))
+                                            (description := (.ref fenced-spec 'description))
+                                            (review-context := (.ref fenced-spec 'review-context))
+                                            (proposal-binding := (.ref fenced-spec 'proposal-binding))
+                                            (attempt := attempt-val)))))))
+               (else
                 (list (.o (capability := "gitops.jj.apply-description")
                           (effect-class := 'fenced-effect)
                           (receipt-key := "gitops.jj.apply-description")
                           (payload := (.o (directory := directory)
-                                          (commit := (.get cut commit))))))
-                '())))
+                                          (commit := commit-id)))))))))
         (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
             (schema := "lambda-aitia.workflow-protocol-step.v1")
             (profile := profile)
@@ -932,6 +983,7 @@
             (frames := fenced-frames)
             (repair-tasks := repair-tasks)
             (epistemic-summary := epistemic-summary)
+            (applied-receipt := apply-receipt)
             (graph := graph)
             (initial-frontier := initial)
             (report := report)

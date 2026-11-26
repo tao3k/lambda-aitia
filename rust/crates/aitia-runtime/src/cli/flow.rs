@@ -4,11 +4,13 @@
 //! Thin CLI adapter for `aitia flow ...` subcommands.
 
 use super::{print_json, read_json_stdin, read_request};
-use crate::protocol::{DEFAULT_WORKFLOW_CASE, execute_project_protocol};
+use crate::protocol::{
+    DEFAULT_WORKFLOW_CASE, execute_project_protocol, execute_project_protocol_fenced,
+};
 use crate::{HostCapabilityRegistry, with_linked_program};
 use std::io::{self, Write};
 
-const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision < decision.json";
+const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision [--execute-fenced] < decision.json";
 
 pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let words: Vec<&str> = arguments.iter().map(String::as_str).collect();
@@ -38,7 +40,7 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
                 &execute_project_protocol(DEFAULT_WORKFLOW_CASE, Some(&overlay))?["reconciliation"],
             )
         }
-        ["submit-decision"] => {
+        ["submit-decision"] | ["submit-decision", "--execute-fenced"] => {
             let mut decision = read_json_stdin()?;
             let obj = decision.as_object_mut().ok_or_else(|| {
                 io::Error::new(io::ErrorKind::InvalidInput, "expected JSON object")
@@ -46,10 +48,12 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
             if let Some(approved) = obj.remove("approved") {
                 obj.entry("approvalLive").or_insert(approved);
             }
-            print_json(&execute_project_protocol(
-                DEFAULT_WORKFLOW_CASE,
-                Some(&decision),
-            )?)
+            let out = if words.len() == 2 {
+                execute_project_protocol_fenced(DEFAULT_WORKFLOW_CASE, Some(&decision))?
+            } else {
+                execute_project_protocol(DEFAULT_WORKFLOW_CASE, Some(&decision))?
+            };
+            print_json(&out)
         }
         _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
     }

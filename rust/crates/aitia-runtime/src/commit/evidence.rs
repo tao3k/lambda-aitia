@@ -24,6 +24,17 @@ struct RecoveredDescription {
 /// host observations and projects the original project configuration through
 /// the linked Scheme Contract to determine model check applicability.
 pub(crate) fn evidence(revision: &str, input: &str, query: bool) -> Result<Value> {
+    with_linked_program(|program| Ok(evidence_with_program(&program, revision, input, query)))?
+}
+
+/// Verify archived raw reports against an applied local revision using an already-live
+/// linked Scheme [`AitiaProgram`] session.
+pub(crate) fn evidence_with_program(
+    program: &AitiaProgram<'_>,
+    revision: &str,
+    input: &str,
+    query: bool,
+) -> Result<Value> {
     let artifact: Value = serde_json::from_str(input)?;
     let applied = artifact.get("receipt");
     let record: DescriptionRecovery = if let Some(receipt) = applied {
@@ -102,7 +113,7 @@ pub(crate) fn evidence(revision: &str, input: &str, query: bool) -> Result<Value
         input_digest,
         description: record.description,
     };
-    with_linked_program(|program| Ok(verified_evidence(&program, evidence, query)))?
+    verified_evidence(program, evidence, query)
 }
 
 // JJ supplies the raw facts. Scheme still selects the policy checks that

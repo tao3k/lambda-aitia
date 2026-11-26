@@ -789,5 +789,90 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
         .unwrap();
     assert!(discharged.iter().any(|o| o["id"] == "sdlc.change-record"));
     assert!(discharged.iter().any(|o| o["id"] == "sdlc.config-audit"));
+
+    // 4. Unified closed-loop `aitia flow submit-decision --execute-fenced`:
+    //    preview -> submit-decision --execute-fenced -> prepare -> apply -> quiescent + evidenceLineage!
+    let mut draft = json!({
+        "context": commit_json["review"]["context"],
+        "proposal": {
+            "identity": "CORE-RFC-1",
+            "reference": "RFC-1",
+            "type": "feat",
+            "scope": "core",
+            "summary": "Add standard-free core entrypoint",
+            "rationale": "Exercise unified FunFlow fenced execution on standard-free SDLC.",
+            "language": "en",
+            "languageSource": "README.org"
+        },
+        "narration": {
+            "change": "Add initial standard-free SDLC core entrypoint.",
+            "evidence": [
+                {"obligation": "sdlc.change-record", "text": "JJ recorded the workspace cut."},
+                {"obligation": "sdlc.config-audit", "text": "JJ audited project configuration."}
+            ],
+            "open": []
+        },
+        "org": "* CORE-RFC-1 feat(core): Add standard-free core entrypoint\n:PROPERTIES:\n:AITIA_SUPPORT: sdlc.config-audit\n:END:\n** Change\n:PROPERTIES:\n:AITIA_SUPPORT: sdlc.change-record\n:END:\n"
+    });
+    let mut prev_child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args(["jj", "commit", "preview"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    prev_child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&draft)?)?;
+    let prev_out = prev_child.wait_with_output()?;
+    assert!(
+        prev_out.status.success(),
+        "preview failed: {}",
+        String::from_utf8_lossy(&prev_out.stderr)
+    );
+    let prev_json: Value = serde_json::from_slice(&prev_out.stdout)?;
+    assert_eq!(prev_json["review"]["draftValid"], true);
+    draft["context"] = prev_json["review"]["context"].clone();
+
+    let decision = json!({
+        "approved": true,
+        "draft": draft
+    });
+    let mut exec_child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args(["flow", "submit-decision", "--execute-fenced"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    exec_child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&decision)?)?;
+    let exec_out = exec_child.wait_with_output()?;
+    assert!(
+        exec_out.status.success(),
+        "submit-decision --execute-fenced failed: {}",
+        String::from_utf8_lossy(&exec_out.stderr)
+    );
+    let exec_json: Value = serde_json::from_slice(&exec_out.stdout)?;
+    assert_eq!(exec_json["profile"], "lambda-aitia/sdlc");
+    assert_eq!(exec_json["state"], "quiescent");
+    assert_eq!(exec_json["handoffTarget"], "none");
+    assert_eq!(exec_json["actionAuthorized"], false);
+    assert!(
+        exec_json["appliedReceipt"]["resulting_commit"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty()),
+        "expected applied JJ commit receipt: {exec_json}"
+    );
+    assert_eq!(exec_json["evidenceLineage"]["missingReports"], json!([]));
+    assert_eq!(
+        exec_json["evidenceLineage"]["revision"],
+        exec_json["appliedReceipt"]["resulting_commit"]
+    );
     Ok(())
 }

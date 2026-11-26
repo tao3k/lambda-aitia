@@ -8,7 +8,11 @@
         (only-in :clan/poo/object .get .o .cc .ref .slot?)
         (only-in :clan/poo/type element?)
         (only-in :gerbil-ascent/program/syntax ascent)
-        (only-in :gerbil-ascent/program/api gerbil-ascent-evaluate-program)
+        (only-in :gerbil-ascent/program/api
+                 gerbil-ascent-evaluate-program
+                 relational-fragment relational-compose
+                 relational-open-session relational-session-prepare-transaction
+                 relational-prepare-queries)
         (only-in :orgize/languages/org/modules/org-elements/source-interface
                  org-source-element-graph org-source-element-field)
         (only-in :orgize/languages/org/modules/org-elements/values
@@ -55,38 +59,82 @@
            (.o open: (rows 'open) supported: (rows 'supported) paths: affected
                context: (vector (list->vector affected) (and matching identity-value)))))))
 
-;; The host supplies admitted observations. This program derives relations
-;; for one current cut and does not admit facts or issue a write grant.
-(def (commit-relations cuts obligations observations)
-  (ascent
-  (relation current (project workspace change operation commit tree parents) cuts)
-  (relation required (obligation) obligations)
-  (relation observation (project workspace change operation commit tree parents id obligation outcome) observations)
-  (relation supported (id obligation))
-  (relation contradicted (id obligation))
-  (relation stale (id obligation))
-  (relation stale_support (obligation))
-  (relation has_support (obligation))
-  (relation has_counter (obligation))
-  (relation open (obligation))
-  (relation reopened (obligation))
-  ((supported I R) <-- (required R) (current P W C O V T A)
-    (observation P W C O V T A I R (lit "passed")))
-  ((contradicted I R) <-- (required R) (current P W C O V T A)
-    (observation P W C O V T A I R (lit "failed")))
-  ;; The admitted observation belongs to this project/workspace and
-  ;; obligation. Change ID is part of its exact cut, not its scope.
-  ((stale I R) <-- (required R) (current P W _ _ _ _ _)
-    (observation P W C O V T A I R _)
-    (not (current P W C O V T A)))
-  ((stale_support R) <-- (stale I R) (current P W _ _ _ _ _)
-    (observation P W C O V T A I R (lit "passed"))
-    (not (current P W C O V T A)))
-  ((has_support R) <-- (supported _ R))
-  ((has_counter R) <-- (contradicted _ R))
-  ((open R) <-- (required R) (not (has_support R)))
-  ((open R) <-- (has_counter R))
-  ((reopened R) <-- (stale_support R) (open R))))
+;; Pre-admitted checked relational-fragment session for commit-evidence evaluation.
+;; Avoids re-compiling an ASCENT program on every workspace cut while preserving
+;; exact cut-bound support, contradiction, staleness, and evidence-decay reopening.
+(def +commit-evidence-engine-mutex+ (make-mutex 'commit-evidence-engine))
+(def +commit-evidence-engine-cell+ (box #f))
+
+(def (make-commit-evidence-engine)
+  (let* ((ev-frag
+          (relational-fragment
+           (import)
+           (source (current (scope_key cut_key) '() (role input))
+                   (required (req_key) '() (role input))
+                   (passed_obs (scope_key cut_key obs_id req_key) '() (role input))
+                   (failed_obs (scope_key cut_key obs_id req_key) '() (role input))
+                   (any_obs (scope_key cut_key obs_id req_key) '() (role input)))
+           (private (supported (obs_id req_key))
+                    (contradicted (obs_id req_key))
+                    (stale (obs_id req_key))
+                    (stale_support (req_key))
+                    (has_support (req_key))
+                    (has_counter (req_key))
+                    (open (req_key))
+                    (reopened (req_key)))
+           (export (current current)
+                   (required required)
+                   (passed_obs passed_obs)
+                   (failed_obs failed_obs)
+                   (any_obs any_obs)
+                   (supported supported)
+                   (contradicted contradicted)
+                   (stale stale)
+                   (open open)
+                   (reopened reopened))
+           (rule (supported ?i ?r)
+                 (required ?r)
+                 (current ?s ?c)
+                 (passed_obs ?s ?c ?i ?r))
+           (rule (contradicted ?i ?r)
+                 (required ?r)
+                 (current ?s ?c)
+                 (failed_obs ?s ?c ?i ?r))
+           (rule (stale ?i ?r)
+                 (required ?r)
+                 (current ?s ?_)
+                 (any_obs ?s ?c ?i ?r)
+                 (not (current ?s ?c)))
+           (rule (stale_support ?r)
+                 (required ?r)
+                 (current ?s ?_)
+                 (passed_obs ?s ?c ?_ ?r)
+                 (not (current ?s ?c)))
+           (rule (has_support ?r) (supported ?_ ?r))
+           (rule (has_counter ?r) (contradicted ?_ ?r))
+           (rule (open ?r) (required ?r) (not (has_support ?r)))
+           (rule (open ?r) (has_counter ?r))
+           (rule (reopened ?r) (stale_support ?r) (open ?r))))
+         (composed (relational-compose (list ev-frag) 4096 16384 16384))
+         (session (relational-open-session composed))
+         (run-tx
+          (relational-session-prepare-transaction
+           session
+           (list (list ev-frag 'current)
+                 (list ev-frag 'required)
+                 (list ev-frag 'passed_obs)
+                 (list ev-frag 'failed_obs)
+                 (list ev-frag 'any_obs))))
+         (read-ev
+          (relational-prepare-queries
+           ev-frag '(supported contradicted stale open reopened))))
+    (.o (run-tx := run-tx) (read-ev := read-ev))))
+
+(def (commit-evidence-engine!)
+  (or (unbox +commit-evidence-engine-cell+)
+      (let ((engine (make-commit-evidence-engine)))
+        (set-box! +commit-evidence-engine-cell+ engine)
+        engine)))
 
 (def (cut-row cut)
   (list (.get cut project) (.get cut workspace) (.get cut change)
@@ -94,23 +142,74 @@
         (call-with-output-string
          (lambda (port) (write-json port (list->vector (.get cut parents)))))))
 
-(def (observation-row observation)
-  (append (cut-row (.get observation cut))
-          (list (.get observation identity) (.get observation obligation)
-                (symbol->string (.get observation outcome)))))
-
 (def (gitops-commit-evidence cut obligations observations)
   (unless (and (element? GitOpsCommitCut cut)
                (element? GitOpsCommitObligations obligations)
                (element? GitOpsCommitObservations observations))
     (error "invalid GitOps commit evidence inputs"))
-  (let (result (gerbil-ascent-evaluate-program
-                (commit-relations (list (cut-row cut)) (map list obligations)
-                                  (map observation-row observations))))
-    (unless (.get result finished) (error "incomplete GitOps commit evidence query"))
-    (let (rows (.get result rows-of))
-      (.o supported: (rows 'supported) contradicted: (rows 'contradicted)
-          stale: (rows 'stale) open: (rows 'open) reopened: (rows 'reopened)))))
+  (let* ((to-id (make-hash-table))
+         (from-id (make-hash-table))
+         (next-id 1)
+         (intern (lambda (v)
+                   (or (hash-get to-id v)
+                       (let ((id next-id))
+                         (set! next-id (+ id 1))
+                         (hash-put! to-id v id)
+                         (hash-put! from-id id v)
+                         id))))
+         (unintern (lambda (id) (hash-ref from-id id)))
+         (cur-row (cut-row cut))
+         (cur-scope (intern (list (car cur-row) (cadr cur-row))))
+         (cur-cut (intern cur-row))
+         (req-rows (map (lambda (ob) (list (intern ob))) obligations))
+         (passed-rows '())
+         (failed-rows '())
+         (any-rows '()))
+    (for-each
+     (lambda (obs)
+       (let* ((orow (cut-row (.get obs cut)))
+              (oscope (intern (list (car orow) (cadr orow))))
+              (ocut (intern orow))
+              (oid (intern (.get obs identity)))
+              (oreq (intern (.get obs obligation)))
+              (row (list oscope ocut oid oreq)))
+         (set! any-rows (cons row any-rows))
+         (case (.get obs outcome)
+           ((passed) (set! passed-rows (cons row passed-rows)))
+           ((failed) (set! failed-rows (cons row failed-rows))))))
+     observations)
+    (let* ((tx-batches
+            (list (list (list cur-scope cur-cut))
+                  req-rows
+                  (reverse passed-rows)
+                  (reverse failed-rows)
+                  (reverse any-rows)))
+           (ev-out
+            (dynamic-wind
+              (lambda () (mutex-lock! +commit-evidence-engine-mutex+))
+              (lambda ()
+                (let* ((engine (commit-evidence-engine!))
+                       (solution ((.get engine run-tx) tx-batches)))
+                  ((.get engine read-ev) solution)))
+              (lambda () (mutex-unlock! +commit-evidence-engine-mutex+))))
+           (decode-pairs
+            (lambda (rows)
+              (list-sort
+               (lambda (a b)
+                 (or (string<? (car a) (car b))
+                     (and (string=? (car a) (car b))
+                          (string<? (cadr a) (cadr b)))))
+               (map (lambda (r) (list (unintern (car r)) (unintern (cadr r)))) rows))))
+           (decode-singles
+            (lambda (rows)
+              (list-sort
+               (lambda (a b) (string<? (car a) (car b)))
+               (map (lambda (r) (list (unintern (car r)))) rows)))))
+      (.o supported: (decode-pairs (list-ref ev-out 0))
+          contradicted: (decode-pairs (list-ref ev-out 1))
+          stale: (decode-pairs (list-ref ev-out 2))
+          open: (decode-singles (list-ref ev-out 3))
+          reopened: (decode-singles (list-ref ev-out 4))))))
 
 ;; Both inventories are supplied by the caller for the same captured cut.
 ;; A resolved reference says nothing about the result of executing a check.
