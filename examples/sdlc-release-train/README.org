@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Flagship SDLC Case: Billing Core -> Checkout Service Release Train
+
+This is an end-to-end Software Engineering / SDLC case demonstrating how a real two-repository
+team ships a coordinated change using Lambda Aitia with *zero downstream Gerbil/Gambit
+compilation* and *zero hand-written multi-repo JSON manifests*.
+
+* Scenario Topology (=workspace.sysml=)
+
+- *Wave 0 — =billing-core=* (=lambda-aitia/sdlc/open-security=):
+  Shared Rust/protocol library repository with its own bare Git remote (=origin/reviewed=).
+- *Wave 1 — =checkout-service=* (=lambda-aitia/sdlc=):
+  Downstream consumer service depending on =billing-core= (=dependsOn = ("billing-core")=), with
+  its own bare Git remote (=origin/reviewed=).
+
+* Complete 4-Stage SDLC Walkthrough (=run_release_train.py=)
+
+1. *Stage 1 — Architecture & Security Design Gate*:
+   Evaluates competing architectures (=sync-rpc= vs =async-outbox=) under
+   =lambda-aitia/sdlc/open-security= via the resident in-process =Session= ABI. Scheme preserves
+   both worlds (=worldCount = 2=, =need-human-decision=) instead of greedily collapsing them, then
+   verifies discharge of =sec.sbom-provenance=, =sec.dependency-audit=, and
+   =sec.threat-model-review= once the team selects a single design.
+2. *Stage 2 — Implementation Cut & Cross-Repo Pin-Drift Agent Repair*:
+   Creates two real colocated JJ workspaces (=billing-core=, =checkout-service=) plus their bare
+   Git remotes and copies =workspace.sysml=. Runs =aitia flow run --workspace workspace.sysml=
+   with an outdated downstream pin -> Scheme detects =cross-repo-pin-drift= against =billing-core='s
+   real commit SHA and emits a localized Schwarz =repairTask= preserving =billing-core=.
+3. *Stage 3 — Reviewed Commit Drafts & Human Approval Gate*:
+   Synthesizes grounded commit drafts (=aitia jj commit= + =aitia jj commit preview= on both
+   workspaces) and verifies =actionAuthorized = false= prior to human authorization.
+4. *Stage 4 — Cascading Wave 0 -> Wave 1 Fenced Commit, Push & Evidence Lineage Audit*:
+   Executes one single =aitia flow submit-decision --workspace workspace.sysml --execute-fenced=
+   command:
+   - Parallel =HostRead= probes across both workspaces;
+   - Wave 0 (=billing-core=): =prepare-description= -> =apply-description= -> =push-reviewed=;
+   - Wave 1 (=checkout-service=): automatically unblocked once Wave 0 reaches =quiescent= ->
+     =prepare-description= -> =apply-description= -> =push-reviewed=;
+   - Global =quiescent= with verified =repoEvidenceLineages= (=missingReports = []=) and exact
+     =refs/heads/reviewed= commit SHAs confirmed on *both* bare Git remotes.

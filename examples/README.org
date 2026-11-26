@@ -1,32 +1,40 @@
 # SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 # SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-#+TITLE: Lambda Aitia Executable Examples by Use Case
+#+TITLE: Lambda Aitia Executable SDLC & GitOps Examples
 
-Every example in this directory runs against the pre-compiled standalone Rust =aitia= binary
-and/or the pre-compiled =liblambda_aitia_rust.{so,dylib}= =cdylib= with *zero =GERBIL_LOADPATH=*
-and *zero downstream Gerbil/Gambit compilation*.
+Every example here executes against the pre-compiled standalone Rust =aitia= binary and/or the
+pre-compiled =liblambda_aitia_rust.{so,dylib}= =cdylib= with *zero =GERBIL_LOADPATH=* and
+*zero downstream Gerbil/Gambit compilation*.
 
-All workflow topology, SDLC profile composition, and 5-state IoC semantics remain 100% inside
-Scheme POO/ASCENT/FunFlow and SysML v2. Python is used here strictly as:
-- a thin in-process ABI caller (=lambda_aitia_rust.Session= or pure =ctypes= C ABI) to avoid CLI
-  cold-start overhead in multi-turn loops, or
-- a leaf verification target invoked by FunFlow (=python.observe-pytest=).
+All workflow topology, SDLC profile composition, and 5-state IoC semantics live strictly inside
+SysML v2 and Scheme POO/ASCENT/FunFlow.
 
-* Use-Case Matrix
+* Flagship End-to-End SDLC Case
+
+- [[file:sdlc-release-train/README.org][=sdlc-release-train/=]] (*Billing Core -> Checkout Service Release Train*):
+  Complete 4-stage real engineering release train across two real JJ repositories, two bare Git
+  remotes, and an authoritative SysML v2 =workspace.sysml= topology:
+  1. Architecture & =open-security= design gate (competing hypotheses preserved -> resolved);
+  2. Implementation cut + =aitia flow run --workspace workspace.sysml= detecting
+     =cross-repo-pin-drift= against real commit SHAs;
+  3. Reviewed commit drafts (=aitia jj commit= + =preview=) before human approval;
+  4. Cascading Wave 0 -> Wave 1 fenced commit & bare-remote push
+     (=aitia flow submit-decision --workspace workspace.sysml --execute-fenced=) with per-repo
+     verified =repoEvidenceLineages= (=missingReports: []=).
+
+* Focused Capability & Protocol Use Cases
 
 | Example | Use Case | Primary Entrypoint | What It Demonstrates |
 | --- | --- | --- | --- |
-| =01-sdlc-profiles/run_profiles.py= | Multi-profile SDLC governance | PyO3 =Session= | Standard-Free SDLC Core (=lambda-aitia/sdlc=) vs =open-security= vs NASA NPR 7150.2D; competing-design preservation (=worldCount=2=) and =quiescent= convergence |
-| =02-sysml-multi-repo-gitops/= | First-class SysML v2 multi-repo GitOps | Standalone =aitia= CLI (=--workspace workspace.sysml=) | Declaring =part def WorkspaceRepo= in SysML v2 (no hand-written JSON manifest), parallel =HostRead= fan-out, Kahn topological waves |
-| =03-python-leaf-pytest-capability/run_leaf_pytest.py= | FunFlow leaf Python check | PyO3 =Session= + =python.observe-pytest= | Scheme emits =python.observe-pytest= =HostRead= frame; failing receipt triggers localized =leaf-python-check= Schwarz repair; passing frozen receipt converges to =quiescent= |
-| =04-agent-repair-loop/run_agent_loop.py= | AI-Native Mixed-Initiative 5-state IoC | PyO3 =Session= | Single resident Gambit thread driving Agent synthesis (=need-agent-synthesis= + Schwarz =repairTasks=) -> Human gate (=need-human-decision=) -> =quiescent= |
+| =01-sdlc-profiles/run_profiles.py= | Multi-profile SDLC governance | PyO3 =Session= | Standard-Free SDLC Core (=lambda-aitia/sdlc=) vs =open-security= vs NASA NPR 7150.2D |
+| =02-sysml-multi-repo-gitops/= | First-class SysML v2 multi-repo GitOps | Standalone =aitia= CLI (=--workspace workspace.sysml=) | Declaring =part def WorkspaceRepo= in SysML v2 (no hand-written JSON manifest) |
+| =03-python-leaf-pytest-capability/run_leaf_pytest.py= | FunFlow leaf Python check | PyO3 =Session= + =python.observe-pytest= | Scheme emits =python.observe-pytest= =HostRead= frame; fail-closed =leaf-python-check= Schwarz repair |
+| =04-agent-repair-loop/run_agent_loop.py= | AI-Native Mixed-Initiative 5-state IoC | PyO3 =Session= | Resident Gambit thread driving Agent synthesis -> Human approval gate -> =quiescent= |
 | =05-c-abi-inprocess/run_c_abi.py= | Language-agnostic C ABI embedding | Pure =ctypes.CDLL= + =include/aitia.h= | Zero-PyO3 calling sequence for C/Go/Node/Zig hosts across all 7 =aitia_*= C ABI symbols |
 
-* Running All Examples
+* Verification Entrypoint
 
 #+begin_src bash
-# Point AITIA_BIN to the linked `aitia` binary and AITIA_CDYLIB to `liblambda_aitia_rust.{so,dylib}`
-# (or install the Maturin wheel into your Python environment).
-python3 examples/run_all.py
+just verify-examples
 #+end_src

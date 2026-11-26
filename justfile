@@ -464,6 +464,42 @@ check-rust-zero-loadpath: build-rust-cli
     grep -Fq '"sysml.project-scopes"' <<< "$caps_out"
     grep -Fq '"actionAuthorized":false' <<< "$caps_out"
 
+# Verify the flagship SDLC release-train case and all focused Use-Case examples with zero GERBIL_LOADPATH.
+[group('check')]
+verify-examples:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target="${CARGO_TARGET_DIR:-rust/target}"
+    cli="${AITIA_BIN:-$PWD/$target/debug/aitia}"
+    test -x "$cli" || { echo "missing linked aitia binary at $cli (run: just build-rust-cli)" >&2; exit 1; }
+    cdylib="${AITIA_CDYLIB:-}"
+    if [[ -z "$cdylib" ]]; then
+      for candidate in "$PWD/$target/debug/liblambda_aitia_rust.dylib" "$PWD/$target/debug/liblambda_aitia_rust.so"; do
+        if [[ -f "$candidate" ]]; then cdylib="$candidate"; break; fi
+      done
+    fi
+    py_stage="$(mktemp -d)"
+    trap 'rm -rf -- "$py_stage"' EXIT
+    pypath="${PYTHONPATH:-}"
+    if [[ -n "$cdylib" && -f "$cdylib" ]]; then
+      ln -s "$cdylib" "$py_stage/lambda_aitia_rust.so"
+      pypath="${pypath:+$py_stage:$pypath}"
+      pypath="${pypath:-$py_stage}"
+    fi
+    for script in \
+      examples/sdlc-release-train/run_release_train.py \
+      examples/01-sdlc-profiles/run_profiles.py \
+      examples/02-sysml-multi-repo-gitops/run_workspace_demo.py \
+      examples/03-python-leaf-pytest-capability/run_leaf_pytest.py \
+      examples/04-agent-repair-loop/run_agent_loop.py \
+      examples/05-c-abi-inprocess/run_c_abi.py; do
+      echo "=== $script ==="
+      env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME \
+        AITIA_BIN="$cli" AITIA_CDYLIB="$cdylib" PYTHONPATH="$pypath" \
+        python3 "$script"
+    done
+    echo "AITIA-EXAMPLES-VERIFIED-OK"
+
 # Qualify the linked program, Quint consumer and the exact wheel built here.
 [group('check')]
 check-rust-delivery:
