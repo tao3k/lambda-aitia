@@ -4,6 +4,7 @@
 //! GitOps commit review, signed governance, archived evidence verification, and reviewed push.
 
 pub(crate) mod attestation;
+pub(crate) mod audit;
 mod common;
 mod evidence;
 pub(crate) mod governance;

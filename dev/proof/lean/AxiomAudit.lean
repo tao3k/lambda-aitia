@@ -56,3 +56,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.satisfiedAssumptionsAdmitComposition
 #print axioms GitOps.weakenedThresholdRejectedBySysmlPolicy
 #print axioms GitOps.weakenedMinEpochRejectedBySysmlPolicy
+#print axioms GitOps.verifierPinnedPolicyOverridesUntrustedBundle
+#print axioms GitOps.missingExpectedRepoBlocksOfflineAudit
+#print axioms GitOps.airGappedVerdictGrantsNoAuthority
+#print axioms GitOps.completeChainAndInventoryAdmitOfflineAudit

@@ -249,4 +249,58 @@ theorem weakenedMinEpochRejectedBySysmlPolicy
   intro hSat
   exact Nat.not_le_of_gt hWeak hSat.2
 
+/-- RFC 0014 Air-gapped offline audit admissibility predicate. -/
+def OfflineAuditAdmissible
+    (verifierThresh verifierMinEp rtThresh rtMinEp : Nat)
+    (chainValid actionAuthorized : Bool)
+    (expectedRepos coveredRepos : List Nat) : Prop :=
+  chainValid = true ∧
+  actionAuthorized = false ∧
+  rtThresh ≥ verifierThresh ∧
+  rtMinEp ≥ verifierMinEp ∧
+  ∀ r, r ∈ expectedRepos → r ∈ coveredRepos
+
+theorem verifierPinnedPolicyOverridesUntrustedBundle
+    {verifierThresh verifierMinEp rtThresh rtMinEp : Nat}
+    {chainValid actionAuthorized : Bool}
+    {expectedRepos coveredRepos : List Nat}
+    (hWeak : rtThresh < verifierThresh) :
+    ¬ OfflineAuditAdmissible
+        verifierThresh verifierMinEp rtThresh rtMinEp
+        chainValid actionAuthorized expectedRepos coveredRepos := by
+  intro hAdm
+  exact Nat.not_le_of_gt hWeak hAdm.2.2.1
+
+theorem missingExpectedRepoBlocksOfflineAudit
+    {r verifierThresh verifierMinEp rtThresh rtMinEp : Nat}
+    {chainValid actionAuthorized : Bool}
+    {expectedRepos coveredRepos : List Nat}
+    (hExpected : r ∈ expectedRepos) (hMissing : r ∉ coveredRepos) :
+    ¬ OfflineAuditAdmissible
+        verifierThresh verifierMinEp rtThresh rtMinEp
+        chainValid actionAuthorized expectedRepos coveredRepos := by
+  intro hAdm
+  exact hMissing (hAdm.2.2.2.2 r hExpected)
+
+theorem airGappedVerdictGrantsNoAuthority
+    {verifierThresh verifierMinEp rtThresh rtMinEp : Nat}
+    {chainValid actionAuthorized : Bool}
+    {expectedRepos coveredRepos : List Nat}
+    (hAdm : OfflineAuditAdmissible
+        verifierThresh verifierMinEp rtThresh rtMinEp
+        chainValid actionAuthorized expectedRepos coveredRepos) :
+    actionAuthorized = false :=
+  hAdm.2.1
+
+theorem completeChainAndInventoryAdmitOfflineAudit
+    {verifierThresh verifierMinEp rtThresh rtMinEp : Nat}
+    {expectedRepos coveredRepos : List Nat}
+    (hThresh : rtThresh ≥ verifierThresh)
+    (hEpoch : rtMinEp ≥ verifierMinEp)
+    (hCov : ∀ r, r ∈ expectedRepos → r ∈ coveredRepos) :
+    OfflineAuditAdmissible
+      verifierThresh verifierMinEp rtThresh rtMinEp
+      true false expectedRepos coveredRepos :=
+  ⟨rfl, rfl, hThresh, hEpoch, hCov⟩
+
 end LambdaAitiaProof.Modules.GitOps

@@ -4,14 +4,15 @@
 //! Thin CLI adapter for `aitia flow ...` subcommands.
 
 use super::{print_json, read_json_stdin, read_request};
+use crate::commit::audit::run_verify_attestation_cli;
 use crate::protocol::{
-    DEFAULT_WORKFLOW_CASE, execute_project_protocol, execute_project_protocol_fenced,
+    DEFAULT_WORKFLOW_CASE, execute_project_protocol, execute_submit_decision_cli,
     resolve_flow_cli_invocation,
 };
 use crate::{HostCapabilityRegistry, with_linked_program};
 use std::io::{self, Write};
 
-const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--workspace <path>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision [--case <id>] [--workspace <path>] [--execute-fenced] < decision.json";
+const USAGE: &str = "usage: aitia flow capabilities\n       aitia flow reconcile < request.json\n       aitia flow run [--case <id>] [--workspace <path>] [--proposal-stdin]\n       aitia flow gitops [--proposal-stdin]\n       aitia flow submit-patch < proposal.json\n       aitia flow submit-decision [--case <id>] [--workspace <path>] [--execute-fenced] < decision.json\n       aitia flow verify-attestation [--workspace <path>] < audit-bundle.json";
 
 pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let words: Vec<&str> = arguments.iter().map(String::as_str).collect();
@@ -47,28 +48,17 @@ pub(super) fn run(arguments: &[String]) -> Result<(), Box<dyn std::error::Error>
                 &execute_project_protocol(DEFAULT_WORKFLOW_CASE, Some(&overlay))?["reconciliation"],
             )
         }
-        ["submit-decision", rest @ ..] => {
-            let mut decision = read_json_stdin()?;
-            let obj = decision.as_object_mut().ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "expected JSON object")
-            })?;
-            if let Some(approved) = obj.remove("approved") {
-                obj.entry("approvalLive").or_insert(approved);
-            }
-            let (case_id, payload, fenced) = resolve_flow_cli_invocation(
-                rest,
-                "--execute-fenced",
-                USAGE,
-                Some(decision),
-                read_json_stdin,
-            )?;
-            let out = if fenced {
-                execute_project_protocol_fenced(case_id, payload.as_ref())?
-            } else {
-                execute_project_protocol(case_id, payload.as_ref())?
-            };
-            print_json(&out)
-        }
+        ["submit-decision", rest @ ..] => print_json(&execute_submit_decision_cli(
+            rest,
+            USAGE,
+            read_json_stdin()?,
+            read_json_stdin,
+        )?),
+        ["verify-attestation", rest @ ..] => print_json(&run_verify_attestation_cli(
+            rest,
+            &read_json_stdin()?,
+            USAGE,
+        )?),
         _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
     }
 }

@@ -1,0 +1,62 @@
+#+TITLE: RFC 0014: Air-Gapped Offline Attestation & Supply-Chain Auditor (`aitia flow verify-attestation`)
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0010–0013 constructed a complete cryptographic proof stack over multi-repo
+workspaces: content-addressed Adapton/Salsa ~verificationKey~s, offline Ed25519
+~k-of-n~ TUF threshold attestations, dual-quorum root rotation chains (~R_1 -> R_m~),
+multi-epoch parent-linked provenance chains (~Epoch 5 -> Epoch 6~), and OpenSysML v2
+Assume-Guarantee + ~TufPolicy~ architectural floors.
+
+In regulated environments (NASA IV&V, SLSA Build L3+ air-gapped consumers, Sigstore
+offline bundle verification), an independent auditor must be able to verify a
+release's entire cryptographic lineage *without* access to source trees, JJ/Git
+repositories, network endpoints, or a Scheme runtime:
+
+#+begin_src sh
+aitia flow verify-attestation [--workspace workspace.sysml] < audit-bundle.json
+#+end_src
+
+* Architectural Invariants
+
+1. *Zero-Checkout Air-Gapped Execution*: ~verify_portable_audit_bundle~ operates
+   strictly over the self-contained ~lambda-aitia.portable-audit-bundle.v1~ JSON input
+   plus an optional verifier-pinned ~workspace.sysml~ file. It spawns zero JJ/Git
+   processes, makes zero network calls, requires zero ~GERBIL_LOADPATH~, and does not
+   boot the Scheme runtime.
+2. *Verifier-Pinned SysML Policy Precedence*: When the auditor supplies
+   ~--workspace workspace.sysml~, the OpenSysML-parsed ~TufPolicy~ (~minThreshold~,
+   ~minEpoch~) and declared ~repoId~ inventory take strict precedence over any
+   untrusted fields inside the audit bundle JSON; an attacker cannot weaken the
+   verifier's policy floor by editing the bundle.
+3. *Transitive Cryptographic & Inventory Closure*:
+   - Verifies ~R_1 -> ... -> R_m~ dual-quorum root rotation chain against
+     ~pinnedGenesisRoot~,
+   - Enforces the SysML ~TufPolicy~ floor on the effective head root ~R_m~,
+   - Verifies ~B_0 -> ... -> B_k~ multi-epoch parent-linked attestation chain
+     (strictly increasing epochs, parent hash continuity, zero ~missingReports~,
+     ~actionAuthorized: false~),
+   - When expected repo IDs are pinned (via ~--workspace~ or ~expectedRepoIds~),
+     rejects any bundle missing a required repository link.
+4. *Zero-Authority Audit Verdict*: Emits ~lambda-aitia.offline-audit-verdict.v1~ with
+   ~verified: true~, ~airGapped: true~, ~sysmlPolicyEnforced~, ~verifiedRepoKeys~, and
+   ~actionAuthorized: false~.
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~verifierPinnedPolicyOverridesUntrustedBundle~, ~missingExpectedRepoBlocksOfflineAudit~,
+  ~airGappedVerdictGrantsNoAuthority~, ~completeChainAndInventoryAdmitOfflineAudit~
+  (31 total ~GitOps~ theorems, zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/AirGappedAuditor.qnt~):
+  6 model-checking tests covering complete air-gapped audit pass, verifier-pinned
+  policy precedence over spoofed bundle policy, missing repo link rejection, broken
+  lineage rejection, zero-authority preservation, and negative-control violation.
+- *Live 4-Repo Diamond Scenario I* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  Copies ONLY ~workspace.sysml~ and ~audit-bundle.json~ into a fresh empty air-gapped
+  temp directory (ZERO JJ/Git repos!), runs ~aitia flow verify-attestation --workspace~
+  with zero ~GERBIL_LOADPATH~, verifies pass + fail-closed rejection of missing repo
+  link, tampered bundle, and weakened root against verifier-pinned SysML ~TufPolicy~.

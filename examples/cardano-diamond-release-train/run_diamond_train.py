@@ -876,6 +876,80 @@ def main() -> None:
             "Weakened threshold=1 MUST fail closed against SysML TufPolicy minThreshold=2!"
         )
 
+        # Scenario I: RFC 0014 Standalone Air-Gapped Offline Auditor (`aitia flow verify-attestation`)
+        # Copy ONLY `workspace.sysml` into a completely empty air-gapped directory (ZERO JJ/Git repos!)
+        # and verify the portable R1->R2 + Epoch 5->6 proof bundle offline with zero GERBIL_LOADPATH!
+        with tempfile.TemporaryDirectory() as airgap_tmp:
+            airgap_dir = Path(airgap_tmp)
+            airgap_sysml = airgap_dir / "workspace.sysml"
+            shutil.copy2(ws_sysml, airgap_sysml)
+            portable_bundle = {
+                "schema": "lambda-aitia.portable-audit-bundle.v1",
+                "pinnedGenesisRoot": genesis_r1,
+                "rootRotations": [r1_to_r2],
+                "attestationChain": [att, att_ep6],
+                "actionAuthorized": False,
+            }
+            # I1. Authentic air-gapped audit passes with ZERO repos on disk!
+            audit_verdict = json.loads(
+                subprocess.run(
+                    [aitia_bin, "flow", "verify-attestation", "--workspace", str(airgap_sysml)],
+                    cwd=airgap_dir,
+                    env=env,
+                    input=json.dumps(portable_bundle),
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+            )
+            assert audit_verdict["schema"] == "lambda-aitia.offline-audit-verdict.v1", audit_verdict
+            assert audit_verdict["verified"] is True
+            assert audit_verdict["airGapped"] is True
+            assert audit_verdict["sysmlPolicyEnforced"] is True
+            assert audit_verdict["rootVersion"] == 2
+            assert audit_verdict["chainLength"] == 2
+            assert audit_verdict["verifiedRepoCount"] == 4
+            assert audit_verdict["actionAuthorized"] is False
+
+            # I2. Verifier-pinned SysML TufPolicy beats spoofed bundle policy + weakened root!
+            weak_genesis = dict(genesis_r1, threshold=1)
+            weak_portable = {
+                "schema": "lambda-aitia.portable-audit-bundle.v1",
+                "sysmlTufPolicy": {"minThreshold": 1, "minEpoch": 1},
+                "pinnedGenesisRoot": weak_genesis,
+                "rootRotations": [],
+                "attestationChain": [att],
+                "actionAuthorized": False,
+            }
+            weak_audit_proc = subprocess.run(
+                [aitia_bin, "flow", "verify-attestation", "--workspace", str(airgap_sysml)],
+                cwd=airgap_dir,
+                env=env,
+                input=json.dumps(weak_portable),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            assert weak_audit_proc.returncode != 0, (
+                "Air-gapped auditor MUST enforce verifier-pinned SysML TufPolicy over spoofed bundle!"
+            )
+
+            # I3. Missing expected repository link fails closed!
+            incomplete_bundle = dict(
+                portable_bundle,
+                expectedRepoIds=["protocol-base", "ledger-core", "network-mux", "node-runner", "missing-repo"],
+            )
+            missing_repo_proc = subprocess.run(
+                [aitia_bin, "flow", "verify-attestation"],
+                cwd=airgap_dir,
+                env=env,
+                input=json.dumps(incomplete_bundle),
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            assert missing_repo_proc.returncode != 0, "Missing expected repo MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -908,6 +982,10 @@ def main() -> None:
                 "scenarioH_assumeGuaranteeGapDetected": ag_gap_doc["contractGaps"][0]["missingAssumption"],
                 "scenarioH_counterfactualFixesPreserved": len(ag_cf),
                 "scenarioH_sysmlTufPolicyFloorEnforced": weak_policy_proc.returncode != 0,
+                "scenarioI_airGappedAuditVerified": audit_verdict["verified"],
+                "scenarioI_airGappedSysmlPolicyEnforced": audit_verdict["sysmlPolicyEnforced"],
+                "scenarioI_spoofedPolicyRejected": weak_audit_proc.returncode != 0,
+                "scenarioI_missingRepoRejected": missing_repo_proc.returncode != 0,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

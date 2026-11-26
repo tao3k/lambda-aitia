@@ -97,6 +97,27 @@ pub(crate) fn resolve_flow_cli_invocation<'a>(
     }
 }
 
+pub(crate) fn execute_submit_decision_cli(
+    rest: &[&str],
+    usage: &str,
+    mut decision: Value,
+    read_stdin: impl FnOnce() -> Result<Value, Box<dyn std::error::Error>>,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let obj = decision
+        .as_object_mut()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "expected JSON object"))?;
+    if let Some(approved) = obj.remove("approved") {
+        obj.entry("approvalLive").or_insert(approved);
+    }
+    let (case_id, payload, fenced) =
+        resolve_flow_cli_invocation(rest, "--execute-fenced", usage, Some(decision), read_stdin)?;
+    if fenced {
+        execute_project_protocol_fenced(case_id, payload.as_ref())
+    } else {
+        execute_project_protocol(case_id, payload.as_ref())
+    }
+}
+
 /// Load a declarative multi-repository workspace topology from a SysML v2 file (`*.sysml`)
 /// or JSON manifest, merging any optional runtime overlay (such as per-repo `draft`s or
 /// `approvalLive`) by `repoId`.

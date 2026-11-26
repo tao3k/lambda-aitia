@@ -40,6 +40,8 @@ pub use commit::attestation::{
     verify_release_attestation_bundle_with_trust_root, verify_tuf_root_rotation_chain,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::audit::verify_portable_audit_bundle;
+#[cfg(feature = "linked-program")]
 pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
     drive_multi_repo_protocol, drive_scheme_protocol, drive_single_repo_protocol,
