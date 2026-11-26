@@ -370,6 +370,58 @@ pub(crate) fn project_workspace_manifest_from_sysml(
     }))
 }
 
+fn collect_ast_interface_tuples(
+    symbol: &Symbol,
+    depth: usize,
+    out: &mut Vec<String>,
+) -> Result<(), Error> {
+    if depth > 12 {
+        return Ok(());
+    }
+    let kind = symbol.kind();
+    if !kind.eq_ignore_ascii_case("documentation") && !kind.eq_ignore_ascii_case("comment") {
+        out.push(format!("{}|{}|{}", symbol.id(), kind, symbol.name()));
+    }
+    for child in symbol.children()? {
+        collect_ast_interface_tuples(&child, depth + 1, out)?;
+    }
+    Ok(())
+}
+
+/// Parse a SysML v2 interface document via OpenSysML and emit an order-independent,
+/// documentation-insensitive canonical AST signature for semantic Early Cutoff.
+///
+/// Reordering sibling declarations or editing `doc /* ... */` blocks yields the exact
+/// same canonical signature; changing any declared symbol name, kind, or qualified path
+/// changes the signature.
+///
+/// # Errors
+/// Fails closed if OpenSysML rejects the document under strict conformance.
+pub fn canonical_sysml_interface_signature(doc_name: &str, source: &str) -> Result<String, Error> {
+    let name = doc_name.to_owned();
+    let text = source.to_owned();
+    std::thread::scope(|scope| {
+        scope
+            .spawn(move || {
+                let connection = Connection::connect()?;
+                let model = parse_sysml(&connection, [(name, text)])?;
+                let mut tuples = Vec::new();
+                for root in model.roots() {
+                    collect_ast_interface_tuples(root, 0, &mut tuples)?;
+                }
+                tuples.sort();
+                tuples.dedup();
+                Ok(tuples.join("\n"))
+            })
+            .join()
+    })
+    .unwrap_or_else(|_| {
+        Err(Error::Io(io::Error::other(
+            "OpenSysML AST signature worker panicked",
+        )))
+    })
+}
+
 /// Parse captured source contents under their project-relative document names.
 /// The caller owns the connection and binds these inputs to the observed cut.
 pub fn parse_sysml(

@@ -140,7 +140,7 @@ fn compute_interface_digest(
     for (rel, bytes) in raw_entries {
         let projected = match mode {
             NormalizationMode::Raw => bytes,
-            NormalizationMode::Semantic => normalize_semantic_bytes(&rel, &bytes),
+            NormalizationMode::Semantic => normalize_semantic_bytes(&rel, &bytes)?,
         };
         let path_len = u32::try_from(rel.len())
             .map_err(|_| CapabilityError::Execution(format!("path too long: `{rel}`")))?;
@@ -199,17 +199,26 @@ fn read_interface_entries(
     Ok((None, entries))
 }
 
-/// Strip comments and insignificant horizontal/blank-line whitespace for known source interface
-/// languages while preserving quoted string literals verbatim. Non-UTF8 bytes stay raw.
-fn normalize_semantic_bytes(rel: &str, bytes: &[u8]) -> Vec<u8> {
+/// Project public interface files semantically:
+/// - `.sysml` files (when `sysml` feature is enabled): parse via OpenSysML and emit an
+///   order-independent, doc-insensitive canonical AST signature (true AST-level Early Cutoff).
+/// - C/C++/Rust/Scheme/Python/etc.: strip comments and insignificant whitespace while
+///   preserving quoted string literals verbatim. Non-UTF8 bytes stay raw.
+fn normalize_semantic_bytes(rel: &str, bytes: &[u8]) -> Result<Vec<u8>, CapabilityError> {
     let Ok(text) = std::str::from_utf8(bytes) else {
-        return bytes.to_vec();
+        return Ok(bytes.to_vec());
     };
     let ext = Path::new(rel)
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
+    #[cfg(feature = "sysml")]
+    if ext == "sysml" {
+        let sig = crate::sysml::canonical_sysml_interface_signature(rel, text)
+            .map_err(|error| CapabilityError::Execution(format!("{rel}: {error}")))?;
+        return Ok(sig.into_bytes());
+    }
     let stripped = match ext.as_str() {
         "h" | "hpp" | "c" | "cc" | "cpp" | "rs" | "sysml" | "ts" | "js" | "go" | "java" => {
             strip_c_style_comments(text)
@@ -218,7 +227,7 @@ fn normalize_semantic_bytes(rel: &str, bytes: &[u8]) -> Vec<u8> {
         "py" | "toml" | "yaml" | "yml" => strip_line_comment_char(text, '#'),
         _ => text.to_owned(),
     };
-    canonicalize_lines(&stripped).into_bytes()
+    Ok(canonicalize_lines(&stripped).into_bytes())
 }
 
 fn strip_c_style_comments(input: &str) -> String {

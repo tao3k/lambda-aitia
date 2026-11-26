@@ -36,3 +36,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.interfaceChangePreventsEarlyCutoff
 #print axioms GitOps.diamondConflictBlocksConsumerClosure
 #print axioms GitOps.waveBarrierPreventsPrematureDownstreamEffect
+#print axioms GitOps.partialWaveBlocksConsumerPublish
+#print axioms GitOps.checkpointPreventsDuplicatePublish
+#print axioms GitOps.appliedDecisionCannotReplay
+#print axioms GitOps.semanticAstEquivalencePreservesCutoff

@@ -74,38 +74,53 @@ def main() -> None:
         assert r1["state"] == "need-agent-synthesis"
         assert r1["handoffTarget"] == "agent-synthesis"
         assert r1["gapKind"] == "model-check-gap"
+        assert r1["agentHandoff"]["schema"] == "lambda-aitia.agent-synthesis-handoff.v1"
+        assert r1["agentHandoff"]["actionAuthorized"] is False
+        assert "execute-fenced-effect" in r1["agentHandoff"]["forbiddenActions"]
         task = r1["repairTasks"][0]
         assert "gitops" in task["allowedScopes"]
         assert "RFC-0008" in task["allowedReferences"]
         assert r1["actionAuthorized"] is False
 
-        # Agent synthesizes a grounded proposal strictly within Scheme's allowed scope/reference/type
-        synthesized_proposal = {
-            "identity": f"AITIA-{task['allowedReferences'][0]}",
+        # Agent synthesizes TWO competing grounded candidate branches strictly within allowed bounds
+        branch_feat = {
+            "identity": f"AITIA-{task['allowedReferences'][0]}-feat",
             "reference": task["allowedReferences"][0],
             "language": "en",
             "languageSource": "README.md",
-            "type": task["allowedTypes"][0],
+            "type": "feat",
             "scope": task["allowedScopes"][0],
             "summary": "Add grounded commit proposal",
-            "rationale": "Machine-checkable synthesis hole resolved by Agent before human review.",
+            "rationale": "Candidate branch A: introduce new capability boundary.",
+        }
+        branch_fix = {
+            "identity": f"AITIA-{task['allowedReferences'][0]}-fix",
+            "reference": task["allowedReferences"][0],
+            "language": "en",
+            "languageSource": "README.md",
+            "type": "fix",
+            "scope": task["allowedScopes"][0],
+            "summary": "Fix grounded commit proposal",
+            "rationale": "Candidate branch B: narrow patch to existing boundary.",
         }
 
-        # Round 2: Grounded proposal passes machine checks -> escalates cleanly to Human governance gate
+        # Round 2: Both competing branches pass machine checks -> Scheme preserves BOTH eligible
+        # titles (never silently picks a winner!) and escalates cleanly to Human governance gate.
         r2 = json.loads(
             session.workflow_protocol_step(
-                json.dumps(make_step_payload([synthesized_proposal], False, False))
+                json.dumps(make_step_payload([branch_feat, branch_fix], False, False))
             )
         )
         assert r2["state"] == "need-human-decision"
         assert r2["handoffTarget"] == "human-decision"
         assert r2["gapKind"] == "requirement-gap"
+        assert len(r2["reconciliation"]["eligibleTitles"]) == 2
         assert r2["actionAuthorized"] is False
 
-        # Round 3: Human approves + fenced commit receipt recorded -> quiescent
+        # Round 3: Human selects winning branch + grants live approval + fenced commit applied -> quiescent
         r3 = json.loads(
             session.workflow_protocol_step(
-                json.dumps(make_step_payload([synthesized_proposal], True, True))
+                json.dumps(make_step_payload([branch_feat], True, True))
             )
         )
         assert r3["state"] == "quiescent"
@@ -116,8 +131,16 @@ def main() -> None:
         json.dumps(
             {
                 "example": "04-agent-repair-loop",
-                "round1": {"state": r1["state"], "handoff": r1["handoffTarget"]},
-                "round2": {"state": r2["state"], "handoff": r2["handoffTarget"]},
+                "round1": {
+                    "state": r1["state"],
+                    "handoff": r1["handoffTarget"],
+                    "agentHandoffSchema": r1["agentHandoff"]["schema"],
+                },
+                "round2": {
+                    "state": r2["state"],
+                    "handoff": r2["handoffTarget"],
+                    "competingBranchesPreserved": len(r2["reconciliation"]["eligibleTitles"]),
+                },
                 "round3": {"state": r3["state"], "handoff": r3["handoffTarget"]},
             },
             indent=2,

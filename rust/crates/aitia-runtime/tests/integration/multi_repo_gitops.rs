@@ -428,5 +428,67 @@ pub(crate) fn verify_two_repo_pin_drift(
     );
     assert_eq!(ws_json["repos"].as_array().unwrap().len(), 2);
     assert_eq!(ws_json["actionAuthorized"], false);
+
+    // Part D: True OpenSysML AST Semantic Early Cutoff — reordering sibling declarations and
+    // rewriting `doc /* ... */` in a `.sysml` interface file yields the EXACT SAME SHA-256 digest,
+    // while altering an attribute name immediately changes the digest.
+    let ast_dir_a = tempfile::tempdir()?;
+    let ast_dir_b = tempfile::tempdir()?;
+    let ast_dir_c = tempfile::tempdir()?;
+    std::fs::write(
+        ast_dir_a.path().join("api.sysml"),
+        r#"package ProtocolApi {
+            private import ScalarValues::*;
+            doc /* Version 1 documentation */
+            part def FrameHeader {
+                attribute epoch : Integer;
+                attribute slot : Integer;
+            }
+        }"#,
+    )?;
+    std::fs::write(
+        ast_dir_b.path().join("api.sysml"),
+        r#"package ProtocolApi {
+            private import ScalarValues::*;
+            doc /* Completely rewritten documentation comment */
+            part def FrameHeader {
+                attribute slot : Integer;
+                attribute epoch : Integer;
+            }
+        }"#,
+    )?;
+    std::fs::write(
+        ast_dir_c.path().join("api.sysml"),
+        r#"package ProtocolApi {
+            private import ScalarValues::*;
+            part def FrameHeader {
+                attribute epoch : Integer;
+                attribute slotNumber : Integer;
+            }
+        }"#,
+    )?;
+    let registry = aitia_runtime::HostCapabilityRegistry::default_linked();
+    let digest_of = |dir: &Path| -> Result<String, Box<dyn std::error::Error>> {
+        let rcpt = registry.dispatch_json(
+            "interface.project-digest",
+            aitia_runtime::HostEffectClass::HostRead,
+            &json!({"directory": dir.to_str().unwrap(), "interfacePaths": ["api.sysml"]}),
+            None,
+        )?;
+        assert_eq!(rcpt["normalization"], "semantic");
+        assert_eq!(rcpt["actionAuthorized"], false);
+        Ok(rcpt["interfaceDigest"].as_str().unwrap().to_owned())
+    };
+    let d_a = digest_of(ast_dir_a.path())?;
+    let d_b = digest_of(ast_dir_b.path())?;
+    let d_c = digest_of(ast_dir_c.path())?;
+    assert_eq!(
+        d_a, d_b,
+        "Reordering SysML attributes & rewriting docs must preserve OpenSysML AST semantic digest"
+    );
+    assert_ne!(
+        d_a, d_c,
+        "Renaming a SysML attribute must invalidate OpenSysML AST semantic digest"
+    );
     Ok(())
 }

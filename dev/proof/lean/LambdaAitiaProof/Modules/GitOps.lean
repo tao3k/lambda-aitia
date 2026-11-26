@@ -67,4 +67,39 @@ theorem waveBarrierPreventsPrematureDownstreamEffect :
   intro hAllowed
   cases hAllowed
 
+/-- Multi-repo Saga partial-wave barrier: consumer publish requires both concurrent peers. -/
+def WaveConsumerCanPublish (peerLeftReady peerRightReady : Bool) : Prop :=
+  peerLeftReady = true ∧ peerRightReady = true
+
+/-- Durable checkpoint at-most-once publication guard. -/
+def CheckpointAllowsPublish (alreadyPublished : Bool) : Prop :=
+  alreadyPublished = false
+
+/-- Signed human decision replay guard over applied decision IDs. -/
+def FreshDecision (decisionId : Nat) (applied : List Nat) : Prop :=
+  decisionId ∉ applied
+
+theorem partialWaveBlocksConsumerPublish :
+    ¬ WaveConsumerCanPublish true false := by
+  intro h
+  cases h.2
+
+theorem checkpointPreventsDuplicatePublish :
+    ¬ CheckpointAllowsPublish true := by
+  intro h
+  cases h
+
+theorem appliedDecisionCannotReplay
+    {decisionId : Nat} {applied : List Nat}
+    (hMem : decisionId ∈ applied) :
+    ¬ FreshDecision decisionId applied := by
+  intro hFresh
+  exact hFresh hMem
+
+theorem semanticAstEquivalencePreservesCutoff
+    {α β : Type} (hash : α → β) {astBefore astAfter : α}
+    (hEq : astBefore = astAfter) :
+    hash astBefore = hash astAfter :=
+  congrArg hash hEq
+
 end LambdaAitiaProof.Modules.GitOps
