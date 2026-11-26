@@ -52,3 +52,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.rootVersionSkipRejected
 #print axioms GitOps.attestationChainRequiresParentLink
 #print axioms GitOps.attestationChainRequiresStrictlyIncreasingEpoch
+#print axioms GitOps.missingUpstreamGuaranteeBlocksComposition
+#print axioms GitOps.satisfiedAssumptionsAdmitComposition
+#print axioms GitOps.weakenedThresholdRejectedBySysmlPolicy
+#print axioms GitOps.weakenedMinEpochRejectedBySysmlPolicy

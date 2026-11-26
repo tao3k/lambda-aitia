@@ -788,6 +788,94 @@ def main() -> None:
         )
         assert broken_chain_proc.returncode != 0, "Broken parentBundleDigest chain MUST fail closed!"
 
+        # Scenario H: RFC 0013 OpenSysML v2 Assume-Guarantee Contracts & SysML-Pinned TUF Policy Floor
+        assert probe_doc.get("contractGaps", []) == [], probe_doc
+
+        # H1. Inject unsatisfied assumption on ledger-core + TWO competing counterfactual fixes:
+        #     Live step MUST fail closed (`assume-guarantee-gap`), while counterfactualMatrix preserves BOTH fixes!
+        ag_gap_doc = json.loads(
+            subprocess.run(
+                [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+                cwd=root,
+                env=env,
+                input=json.dumps(
+                    {
+                        "repos": [
+                            {
+                                "repoId": "ledger-core",
+                                "assumes": ["protocol.v1.codecs", "zero-copy.framing"],
+                            }
+                        ],
+                        "counterfactualBranches": [
+                            {
+                                "branchId": "branch-export-guarantee",
+                                "hypothesis": "protocol-base exports zero-copy.framing",
+                                "repoOverrides": [
+                                    {
+                                        "repoId": "protocol-base",
+                                        "guarantees": [
+                                            "protocol.v1.codecs",
+                                            "crypto.ed25519",
+                                            "zero-copy.framing",
+                                        ],
+                                    }
+                                ],
+                            },
+                            {
+                                "branchId": "branch-drop-assumption",
+                                "hypothesis": "ledger-core removes zero-copy.framing assumption",
+                                "repoOverrides": [
+                                    {
+                                        "repoId": "ledger-core",
+                                        "assumes": ["protocol.v1.codecs"],
+                                    }
+                                ],
+                            },
+                        ],
+                    }
+                ),
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        )
+        assert ag_gap_doc["state"] == "need-human-decision", ag_gap_doc
+        assert ag_gap_doc["escalationReason"] == "assume-guarantee-gap", ag_gap_doc
+        assert len(ag_gap_doc["contractGaps"]) == 1, ag_gap_doc["contractGaps"]
+        assert ag_gap_doc["contractGaps"][0]["consumerRepo"] == "ledger-core"
+        assert ag_gap_doc["contractGaps"][0]["missingAssumption"] == "zero-copy.framing"
+        ag_cf = ag_gap_doc["counterfactualMatrix"]
+        assert len(ag_cf) == 2, ag_cf
+        assert all(
+            b["resultingState"] == "quiescent"
+            and b["hypothetical"] is True
+            and b["actionAuthorized"] is False
+            for b in ag_cf
+        ), ag_cf
+        assert ag_gap_doc["actionAuthorized"] is False
+
+        # H2. SysML-pinned TUF Policy Floor defense: weakened threshold=1 (even with spoofed overlay
+        #     `sysmlTufPolicy`) MUST fail closed against `releaseTufPolicy` (minThreshold=2)!
+        weak_root = dict(trust_root_ok, threshold=1)
+        weak_policy_proc = subprocess.run(
+            [aitia_bin, "flow", "run", "--workspace", str(ws_sysml), "--proposal-stdin"],
+            cwd=root,
+            env=env,
+            input=json.dumps(
+                {
+                    "sysmlTufPolicy": {"minThreshold": 1, "minEpoch": 1},
+                    "priorAttestationBundle": att,
+                    "trustRoot": weak_root,
+                }
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert weak_policy_proc.returncode != 0, (
+            "Weakened threshold=1 MUST fail closed against SysML TufPolicy minThreshold=2!"
+        )
+
     print(
         json.dumps(
             {
@@ -817,6 +905,9 @@ def main() -> None:
                 "scenarioG_verifiedChainLength": lineage_meta["chainLength"],
                 "scenarioG_unilateralRotationRejected": hijack_proc.returncode != 0,
                 "scenarioG_brokenParentHashRejected": broken_chain_proc.returncode != 0,
+                "scenarioH_assumeGuaranteeGapDetected": ag_gap_doc["contractGaps"][0]["missingAssumption"],
+                "scenarioH_counterfactualFixesPreserved": len(ag_cf),
+                "scenarioH_sysmlTufPolicyFloorEnforced": weak_policy_proc.returncode != 0,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

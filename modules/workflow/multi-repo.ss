@@ -165,6 +165,34 @@
 ;;; For each consumer repo `c`, checks whether any two repos in `{c} U ancestors(c)`
 ;;; pin a shared upstream ancestor `u` to incompatible references. Never silently picks
 ;;; a winner; returns canonical `diamond-conflict` POO objects with full peer provenance.
+(def (detect-assume-guarantee-gaps repos)
+  (let* ((ordered-repos (sort-by-repo-id repos))
+         (guarantees-map
+          (map (lambda (r)
+                 (cons (.ref r 'repo-id) (sort-strings (opt-ref r 'guarantees '()))))
+               ordered-repos)))
+    (append-map
+     (lambda (r)
+       (let* ((rid (.ref r 'repo-id))
+              (deps (sort-strings (opt-ref r 'depends-on '())))
+              (assumes-list (sort-strings (opt-ref r 'assumes '())))
+              (available
+               (sort-strings
+                (delete-duplicates/hash
+                 (append-map (lambda (d)
+                               (let ((p (assoc d guarantees-map)))
+                                 (if p (cdr p) '())))
+                             deps)))))
+         (filter-map
+          (lambda (a)
+            (and (not (member a available))
+                 (.o (consumer-repo := rid)
+                     (missing-assumption := a)
+                     (upstream-repos := deps)
+                     (available-upstream-guarantees := available))))
+          assumes-list)))
+     ordered-repos)))
+
 (def (detect-diamond-conflicts repos)
   (let* ((ordered-repos (sort-by-repo-id repos))
          (repo-index (map (lambda (r) (cons (.ref r 'repo-id) r)) ordered-repos)))
@@ -340,6 +368,8 @@
                    (ov-commit (opt-ref ov 'cut-commit #f))
                    (ov-pins (opt-ref ov 'pinned-upstream-commits #f))
                    (ov-iface-pins (opt-ref ov 'pinned-upstream-interfaces #f))
+                   (ov-assumes (opt-ref ov 'assumes #f))
+                   (ov-guarantees (opt-ref ov 'guarantees #f))
                    (base-prof (opt-ref r 'profile #f))
                    (base-deps (opt-ref r 'depends-on '()))
                    (base-cut (opt-ref r 'cut #f))
@@ -348,7 +378,9 @@
                    (base-cf-iface (opt-ref r 'counterfactual-interface #f))
                    (base-cf-commit (opt-ref r 'counterfactual-commit #f))
                    (base-pins (opt-ref r 'pinned-upstream-commits '()))
-                   (base-iface-pins (opt-ref r 'pinned-upstream-interfaces '())))
+                   (base-iface-pins (opt-ref r 'pinned-upstream-interfaces '()))
+                   (base-assumes (opt-ref r 'assumes '()))
+                   (base-guarantees (opt-ref r 'guarantees '())))
                (.o (repo-id := rid)
                    (profile := base-prof)
                    (depends-on := base-deps)
@@ -358,7 +390,9 @@
                    (counterfactual-interface := (or ov-iface base-cf-iface))
                    (counterfactual-commit := (or ov-commit base-cf-commit))
                    (pinned-upstream-commits := (or ov-pins base-pins))
-                   (pinned-upstream-interfaces := (or ov-iface-pins base-iface-pins)))))))
+                   (pinned-upstream-interfaces := (or ov-iface-pins base-iface-pins))
+                   (assumes := (if (list? ov-assumes) ov-assumes base-assumes))
+                   (guarantees := (if (list? ov-guarantees) ov-guarantees base-guarantees)))))))
        repos))
 
 (def (evaluate-counterfactual-branch branch repos raw-receipts attested-keys default-profile)
@@ -366,7 +400,8 @@
          (hyp (opt-ref branch 'hypothesis ""))
          (overrides (opt-ref branch 'repo-overrides '()))
          (b-repos (apply-counterfactual-overlay repos overrides))
-         (b-conflicts (detect-diamond-conflicts b-repos)))
+         (b-conflicts (detect-diamond-conflicts b-repos))
+         (b-gaps (detect-assume-guarantee-gaps b-repos)))
     (let-values (((b-drifts b-cutoffs) (classify-pin-transitions b-repos raw-receipts)))
       (let* ((drifted-ids (map (lambda (d) (.ref d 'repo-id)) b-drifts))
              (commit-map (map (lambda (r) (cons (.ref r 'repo-id) (repo-effective-commit r raw-receipts))) b-repos))
@@ -394,12 +429,13 @@
               (filter-map (lambda (e) (and (not (caddr e)) (car e))) repo-evals))
              (res-state
               (cond
-               ((pair? b-conflicts) 'need-human-decision)
+               ((or (pair? b-conflicts) (pair? b-gaps)) 'need-human-decision)
                ((pair? b-drifts) 'need-agent-synthesis)
                (else 'quiescent)))
              (res-esc
               (cond
                ((pair? b-conflicts) 'diamond-pin-conflict)
+               ((pair? b-gaps) 'assume-guarantee-gap)
                ((pair? b-drifts) 'cross-repo-pin-drift)
                (else #f)))
              (contradictions
@@ -407,6 +443,9 @@
                (map (lambda (c)
                       (string-append "diamond-pin-conflict:" (.ref c 'consumer-repo) "<-" (.ref c 'upstream-repo)))
                     b-conflicts)
+               (map (lambda (g)
+                      (string-append "assume-guarantee-gap:" (.ref g 'consumer-repo) ":" (.ref g 'missing-assumption)))
+                    b-gaps)
                (map (lambda (d)
                       (string-append "cross-repo-pin-drift:" (.ref d 'repo-id) "<-" (.ref d 'upstream-repo)))
                     b-drifts)))
@@ -415,6 +454,9 @@
                (map (lambda (rid) (string-append "reverify-repo:" rid)) invalidated)
                (if (pair? b-conflicts)
                  (list "human-decision-required:diamond-pin-conflict")
+                 '())
+               (if (pair? b-gaps)
+                 (list "human-decision-required:assume-guarantee-gap")
                  '()))))
         (.o (branch-id := bid)
             (hypothesis := hyp)
@@ -424,6 +466,7 @@
             (escalation-reason := res-esc)
             (pin-drifts := b-drifts)
             (diamond-conflicts := b-conflicts)
+            (contract-gaps := b-gaps)
             (early-cutoffs := b-cutoffs)
             (verification-cache-hits := cache-hits)
             (invalidated-repos := invalidated)
@@ -438,7 +481,8 @@
 (def (make-multi-repo-step
       case-id profile state escalation-reason repair-round max-repair-rounds
       waves repo-summaries frames repair-tasks drifts early-cutoffs diamond-conflicts
-      (counterfactual-matrix '()))
+      (counterfactual-matrix '())
+      (contract-gaps '()))
   (let* ((handoff (case state
                     ((quiescent) 'none)
                     ((need-host-frames) 'host-probe)
@@ -488,6 +532,7 @@
         (pin-drifts := drifts)
         (early-cutoffs := early-cutoffs)
         (diamond-conflicts := diamond-conflicts)
+        (contract-gaps := contract-gaps)
         (verification-cache-hits :=
          (filter-map (lambda (rs)
                        (and (.slot? rs 'cache-hit?) (.ref rs 'cache-hit?)
@@ -522,11 +567,26 @@
           (make-multi-repo-step
            case-id profile 'need-human-decision 'dependency-cycle
            repair-round max-repair-rounds waves '() '() '() '() '() '())
-          (let ((diamond-conflicts (detect-diamond-conflicts repos)))
-            (if (pair? diamond-conflicts)
+          (let ((diamond-conflicts (detect-diamond-conflicts repos))
+                (contract-gaps (detect-assume-guarantee-gaps repos)))
+            (cond
+             ((pair? diamond-conflicts)
               (make-multi-repo-step
                case-id profile 'need-human-decision 'diamond-pin-conflict
-               repair-round max-repair-rounds waves '() '() '() '() '() diamond-conflicts)
+               repair-round max-repair-rounds waves '() '() '() '() '() diamond-conflicts
+               (if (pair? cf-branches)
+                 (evaluate-counterfactual-branches cf-branches repos raw-receipts attested-keys profile)
+                 '())
+               contract-gaps))
+             ((pair? contract-gaps)
+              (make-multi-repo-step
+               case-id profile 'need-human-decision 'assume-guarantee-gap
+               repair-round max-repair-rounds waves '() '() '() '() '() '()
+               (if (pair? cf-branches)
+                 (evaluate-counterfactual-branches cf-branches repos raw-receipts attested-keys profile)
+                 '())
+               contract-gaps))
+             (else
               (let* ((repo-results
                       (map (lambda (r)
                              (let* ((rid (.ref r 'repo-id))
@@ -713,4 +773,4 @@
                          (else
                           (make-multi-repo-step
                            case-id profile 'need-human-decision human-esc repair-round max-repair-rounds
-                           waves repo-summaries '() '() '() early-cutoffs '() cf-matrix)))))))))))))))))
+                           waves repo-summaries '() '() '() early-cutoffs '() cf-matrix))))))))))))))))))

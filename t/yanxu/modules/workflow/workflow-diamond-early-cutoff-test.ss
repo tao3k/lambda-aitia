@@ -175,4 +175,41 @@
              (caps (map (lambda (f) (.get f capability)) (.get s-probe frames))))
         (check-equal? (.get s-probe state) 'need-host-frames)
         (check (and (member "interface.project-digest" caps) #t) => #t)
-        (check-equal? (.get s-probe action-authorized?) #f)))))
+        (check-equal? (.get s-probe action-authorized?) #f)))
+
+    (test-case "3. RFC 0013 Benveniste Assume-Guarantee contract gap fail-closed & counterfactual resolution"
+      (let* ((s-gap
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (counterfactual-branches :=
+                    (list (.o (branch-id := "branch-export-guarantee")
+                              (hypothesis := "protocol-base exports zero-copy.framing")
+                              (repo-overrides :=
+                               (list (.o (repo-id := "protocol-base")
+                                         (guarantees := '("protocol.v1.codecs" "zero-copy.framing"))))))
+                          (.o (branch-id := "branch-drop-assumption")
+                              (hypothesis := "ledger-core drops zero-copy.framing assumption")
+                              (repo-overrides :=
+                               (list (.o (repo-id := "ledger-core")
+                                         (assumes := '("protocol.v1.codecs"))))))))
+                   (repos :=
+                    (list (.o (repo-id := "protocol-base")
+                              (directory := "/tmp/protocol-base")
+                              (depends-on := '())
+                              (guarantees := '("protocol.v1.codecs")))
+                          (.o (repo-id := "ledger-core")
+                              (directory := "/tmp/ledger-core")
+                              (depends-on := '("protocol-base"))
+                              (assumes := '("protocol.v1.codecs" "zero-copy.framing"))))))))
+             (gaps (.ref s-gap 'contract-gaps))
+             (cf (.ref s-gap 'counterfactual-matrix)))
+        (check-equal? (.get s-gap state) 'need-human-decision)
+        (check-equal? (.get s-gap escalation-reason) 'assume-guarantee-gap)
+        (check-equal? (length gaps) 1)
+        (check-equal? (.ref (car gaps) 'consumer-repo) "ledger-core")
+        (check-equal? (.ref (car gaps) 'missing-assumption) "zero-copy.framing")
+        (check-equal? (length cf) 2)
+        (check-equal? (.ref (car cf) 'resulting-state) 'quiescent)
+        (check-equal? (.ref (cadr cf) 'resulting-state) 'quiescent)
+        (check-equal? (.ref (car cf) 'action-authorized?) #f)
+        (check-equal? (.get s-gap action-authorized?) #f)))))

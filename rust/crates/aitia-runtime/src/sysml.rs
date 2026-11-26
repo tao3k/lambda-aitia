@@ -35,7 +35,17 @@ pub struct SysmlWorkspaceRepo {
     pub push_bookmark: Option<String>,
     pub interface_paths: Vec<String>,
     pub pinned_upstream_interfaces: BTreeMap<String, String>,
+    pub assumes: Vec<String>,
+    pub guarantees: Vec<String>,
     pub element_id: String,
+}
+
+/// SysML-pinned TUF governance floor projected from a `TufPolicy` part (`minThreshold`, `minEpoch`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct SysmlTufPolicy {
+    pub(crate) min_threshold: u64,
+    pub(crate) min_epoch: u64,
+    pub(crate) element_id: String,
 }
 
 fn collect_text_values(value: &Value, out: &mut Vec<String>) {
@@ -189,23 +199,25 @@ pub fn extract_declared_capabilities(model: &Model) -> Result<Vec<SysmlCapabilit
     Ok(specs)
 }
 
-fn collect_workspace_repo_candidates(
+fn collect_part_candidates(
     symbol: &Symbol,
     depth: usize,
+    req_a: &str,
+    req_b: &str,
     candidates: &mut Vec<String>,
 ) -> Result<(), Error> {
     if depth > 4 {
         return Ok(());
     }
     let children = symbol.children()?;
-    let has_id = children.iter().any(|child| child.name() == "repoId");
-    let has_dir = children.iter().any(|child| child.name() == "directory");
-    if has_id && has_dir && symbol.kind().to_ascii_lowercase().contains("part") {
+    let has_a = children.iter().any(|child| child.name() == req_a);
+    let has_b = children.iter().any(|child| child.name() == req_b);
+    if has_a && has_b && symbol.kind().to_ascii_lowercase().contains("part") {
         candidates.push(symbol.id().to_owned());
         return Ok(());
     }
     for child in children {
-        collect_workspace_repo_candidates(&child, depth + 1, candidates)?;
+        collect_part_candidates(&child, depth + 1, req_a, req_b, candidates)?;
     }
     Ok(())
 }
@@ -217,15 +229,31 @@ fn optional_text_feature(instance: &opensysml::Instance, name: &str) -> Option<S
     }
 }
 
+fn optional_text_list_feature(instance: &opensysml::Instance, name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    if let Some(feature) = instance.feature(name) {
+        for value in feature.values() {
+            collect_text_values(value, &mut out);
+        }
+        if out.is_empty()
+            && let Some(value) = feature.value()
+        {
+            collect_text_values(value, &mut out);
+        }
+    }
+    out
+}
+
 /// Project declared `WorkspaceRepo` parts (`repoId`, `directory`, `dependsOn`, optional
-/// `profile` and `pushRemote`/`pushBookmark`) from a parsed SysML v2 workspace topology model.
+/// `profile`, `pushRemote`/`pushBookmark`, `interfacePaths`, `assumes`, `guarantees`) from
+/// a parsed SysML v2 workspace topology model.
 ///
 /// # Errors
 /// Fails if OpenSysML symbol traversal or instantiation fails.
 pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorkspaceRepo>, Error> {
     let mut candidates = Vec::new();
     for root in model.roots() {
-        collect_workspace_repo_candidates(root, 0, &mut candidates)?;
+        collect_part_candidates(root, 0, "repoId", "directory", &mut candidates)?;
     }
     let mut repos = Vec::new();
     for fqn in candidates {
@@ -237,57 +265,26 @@ pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorksp
             let Some(directory) = optional_text_feature(instance, "directory") else {
                 continue;
             };
-            let mut depends_on = Vec::new();
-            if let Some(deps_feature) = instance.feature("dependsOn") {
-                for value in deps_feature.values() {
-                    collect_text_values(value, &mut depends_on);
-                }
-                if depends_on.is_empty()
-                    && let Some(value) = deps_feature.value()
-                {
-                    collect_text_values(value, &mut depends_on);
-                }
-            }
-            let mut interface_paths = Vec::new();
-            if let Some(iface_feature) = instance.feature("interfacePaths") {
-                for value in iface_feature.values() {
-                    collect_text_values(value, &mut interface_paths);
-                }
-                if interface_paths.is_empty()
-                    && let Some(value) = iface_feature.value()
-                {
-                    collect_text_values(value, &mut interface_paths);
-                }
-            }
-            let mut raw_pins = Vec::new();
-            if let Some(pin_feature) = instance.feature("pinnedUpstreamInterfaces") {
-                for value in pin_feature.values() {
-                    collect_text_values(value, &mut raw_pins);
-                }
-                if raw_pins.is_empty()
-                    && let Some(value) = pin_feature.value()
-                {
-                    collect_text_values(value, &mut raw_pins);
-                }
-            }
-            let mut pinned_upstream_interfaces = BTreeMap::new();
-            for entry in raw_pins {
-                if let Some((up, digest)) = entry.split_once('=')
-                    && !up.is_empty()
-                    && !digest.is_empty()
-                {
-                    pinned_upstream_interfaces.insert(up.to_owned(), digest.to_owned());
-                }
-            }
+            let pinned_upstream_interfaces: BTreeMap<String, String> =
+                optional_text_list_feature(instance, "pinnedUpstreamInterfaces")
+                    .into_iter()
+                    .filter_map(|entry| {
+                        let (up, digest) = entry.split_once('=')?;
+                        (!up.is_empty() && !digest.is_empty())
+                            .then(|| (up.to_owned(), digest.to_owned()))
+                    })
+                    .collect();
             repos.push(SysmlWorkspaceRepo {
                 repo_id,
                 directory,
-                depends_on,
+                depends_on: optional_text_list_feature(instance, "dependsOn"),
                 profile: optional_text_feature(instance, "profile"),
                 push_remote: optional_text_feature(instance, "pushRemote"),
                 push_bookmark: optional_text_feature(instance, "pushBookmark"),
-                interface_paths,
+                interface_paths: optional_text_list_feature(instance, "interfacePaths"),
                 pinned_upstream_interfaces,
+                assumes: optional_text_list_feature(instance, "assumes"),
+                guarantees: optional_text_list_feature(instance, "guarantees"),
                 element_id: fqn.clone(),
             });
             break;
@@ -299,6 +296,31 @@ pub fn extract_declared_workspace_repos(model: &Model) -> Result<Vec<SysmlWorksp
             .then_with(|| left.element_id.cmp(&right.element_id))
     });
     Ok(repos)
+}
+
+pub(crate) fn extract_declared_tuf_policy(model: &Model) -> Result<Option<SysmlTufPolicy>, Error> {
+    let mut candidates = Vec::new();
+    for root in model.roots() {
+        collect_part_candidates(root, 0, "minThreshold", "minEpoch", &mut candidates)?;
+    }
+    candidates.sort();
+    for fqn in candidates {
+        let instantiation = model.instantiate(&fqn)?;
+        for instance in instantiation.instances() {
+            let min_threshold =
+                optional_text_feature(instance, "minThreshold").and_then(|s| s.parse::<u64>().ok());
+            let min_epoch =
+                optional_text_feature(instance, "minEpoch").and_then(|s| s.parse::<u64>().ok());
+            if let (Some(min_threshold), Some(min_epoch)) = (min_threshold, min_epoch) {
+                return Ok(Some(SysmlTufPolicy {
+                    min_threshold,
+                    min_epoch,
+                    element_id: fqn.clone(),
+                }));
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// Parse a standalone SysML v2 workspace file (`*.sysml`) and project it into a
@@ -314,12 +336,14 @@ pub(crate) fn project_workspace_manifest_from_sysml(
         .unwrap_or("workspace.sysml")
         .to_owned();
     let base_dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
-    let repos = std::thread::scope(|scope| {
+    let (repos, tuf_policy) = std::thread::scope(|scope| {
         scope
-            .spawn(|| {
+            .spawn(|| -> Result<_, Error> {
                 let connection = Connection::connect()?;
                 let model = parse_sysml(&connection, [(doc_name, text)])?;
-                extract_declared_workspace_repos(&model)
+                let repos = extract_declared_workspace_repos(&model)?;
+                let policy = extract_declared_tuf_policy(&model)?;
+                Ok((repos, policy))
             })
             .join()
     })
@@ -361,13 +385,33 @@ pub(crate) fn project_workspace_manifest_from_sysml(
                     serde_json::json!(repo.pinned_upstream_interfaces),
                 );
             }
+            if !repo.assumes.is_empty() {
+                obj.insert("assumes".to_owned(), serde_json::json!(repo.assumes));
+            }
+            if !repo.guarantees.is_empty() {
+                obj.insert("guarantees".to_owned(), serde_json::json!(repo.guarantees));
+            }
             serde_json::Value::Object(obj)
         })
         .collect();
-    Ok(serde_json::json!({
-        "caseId": crate::MULTI_REPO_WORKFLOW_CASE,
-        "repos": json_repos,
-    }))
+    let mut out = serde_json::Map::new();
+    out.insert(
+        "caseId".to_owned(),
+        serde_json::json!(crate::MULTI_REPO_WORKFLOW_CASE),
+    );
+    out.insert("repos".to_owned(), serde_json::Value::Array(json_repos));
+    if let Some(policy) = tuf_policy {
+        out.insert(
+            "sysmlTufPolicy".to_owned(),
+            serde_json::json!({
+                "schema": "lambda-aitia.sysml-tuf-policy.v1",
+                "minThreshold": policy.min_threshold,
+                "minEpoch": policy.min_epoch,
+                "elementId": policy.element_id,
+            }),
+        );
+    }
+    Ok(serde_json::Value::Object(out))
 }
 
 fn collect_ast_interface_tuples(

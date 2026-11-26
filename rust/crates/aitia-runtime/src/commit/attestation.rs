@@ -451,6 +451,30 @@ fn check_root_quorum_only(root: &Value, verified_pks: &[String], label: &str) ->
     Ok(())
 }
 
+/// Enforce that a runtime TUF `TrustRoot` meets or exceeds the SysML-pinned `TufPolicy`
+/// architectural floor (`minThreshold`, `minEpoch`) declared in `workspace.sysml` (RFC 0013).
+///
+/// # Errors
+/// Fails closed if `active_root.threshold < policy.minThreshold` or
+/// `active_root.minEpoch < policy.minEpoch`.
+pub fn enforce_sysml_tuf_policy(policy: &Value, active_root: &Value) -> Result<()> {
+    let pol_thresh = policy["minThreshold"].as_u64().unwrap_or(1);
+    let pol_epoch = policy["minEpoch"].as_u64().unwrap_or(1);
+    let rt_thresh = active_root["threshold"].as_u64().unwrap_or(0);
+    let rt_epoch = active_root["minEpoch"].as_u64().unwrap_or(0);
+    if rt_thresh < pol_thresh {
+        return Err(err(
+            "TUF trust root threshold violates SysML TufPolicy minThreshold",
+        ));
+    }
+    if rt_epoch < pol_epoch {
+        return Err(err(
+            "TUF trust root minEpoch violates SysML TufPolicy minEpoch",
+        ));
+    }
+    Ok(())
+}
+
 /// Offline verifier for a TUF dual-quorum root rotation chain (`R_1 -> R_2 -> ... -> R_m`).
 ///
 /// Enforces strict `rootVersion == prev + 1`, monotonic `minEpoch >= prev.minEpoch`,

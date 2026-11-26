@@ -397,6 +397,8 @@
         (pinned-upstream-interfaces := r-iface-pins)
         (interface-paths := r-iface-paths)
         (interface-digest := r-iface-digest)
+        (assumes := (optional-workflow-list row "assumes"))
+        (guarantees := (optional-workflow-list row "guarantees"))
         (cut-commit := (hash-get row "cutCommit"))
         (naming := naming)
         (cut := cut)
@@ -508,18 +510,28 @@
     (json->string
      (reconcile-result->hash project cut graph initial report final-frontier proposal-res))))
 
+(def (contract-gap->json g)
+  (hash (consumerRepo (.ref g 'consumer-repo))
+        (missingAssumption (.ref g 'missing-assumption))
+        (upstreamRepos (list->vector (.ref g 'upstream-repos)))
+        (availableUpstreamGuarantees (list->vector (.ref g 'available-upstream-guarantees)))))
+
 (def (json-counterfactual-override row)
   (let ((pins (let ((raw (hash-get row "pinnedUpstreamCommits")))
                 (and (hash-table? raw)
                      (map (lambda (k) (cons k (hash-get raw k))) (hash-keys raw)))))
         (iface-pins (let ((raw (hash-get row "pinnedUpstreamInterfaces")))
                       (and (hash-table? raw)
-                           (map (lambda (k) (cons k (hash-get raw k))) (hash-keys raw))))))
+                           (map (lambda (k) (cons k (hash-get raw k))) (hash-keys raw)))))
+        (ov-assumes (and (hash-key? row "assumes") (optional-workflow-list row "assumes")))
+        (ov-guarantees (and (hash-key? row "guarantees") (optional-workflow-list row "guarantees"))))
     (.o (repo-id := (json-required row "repoId"))
         (interface-digest := (hash-get row "interfaceDigest"))
         (cut-commit := (hash-get row "cutCommit"))
         (pinned-upstream-commits := pins)
-        (pinned-upstream-interfaces := iface-pins))))
+        (pinned-upstream-interfaces := iface-pins)
+        (assumes := ov-assumes)
+        (guarantees := ov-guarantees))))
 
 (def (json-counterfactual-branch row)
   (.o (branch-id := (or (hash-get row "branchId") "branch-unnamed"))
@@ -538,6 +550,7 @@
           (escalationReason (if esc (symbol->string esc) (void)))
           (pinDrifts (list->vector (map pin-drift->json (.ref entry 'pin-drifts))))
           (diamondConflicts (list->vector (map diamond-conflict->json (.ref entry 'diamond-conflicts))))
+          (contractGaps (list->vector (map contract-gap->json (if (.slot? entry 'contract-gaps) (.ref entry 'contract-gaps) '()))))
           (earlyCutoffs (list->vector (map early-cutoff->json (.ref entry 'early-cutoffs))))
           (verificationCacheHits
            (list->vector
@@ -718,6 +731,8 @@
       (hash-put! out 'earlyCutoffs (list->vector (map early-cutoff->json (.ref step 'early-cutoffs)))))
     (when (.slot? step 'diamond-conflicts)
       (hash-put! out 'diamondConflicts (list->vector (map diamond-conflict->json (.ref step 'diamond-conflicts)))))
+    (when (.slot? step 'contract-gaps)
+      (hash-put! out 'contractGaps (list->vector (map contract-gap->json (.ref step 'contract-gaps)))))
     (when (.slot? step 'verification-cache-hits)
       (hash-put! out 'verificationCacheHits
                  (list->vector

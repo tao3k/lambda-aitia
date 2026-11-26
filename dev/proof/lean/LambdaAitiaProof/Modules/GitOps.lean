@@ -214,4 +214,39 @@ theorem attestationChainRequiresStrictlyIncreasingEpoch
   intro hLink
   exact Nat.not_le_of_gt hLink.2 hNonInc
 
+/-- RFC 0013 Benveniste et al. Assume-Guarantee cross-repo contract discharge predicate. -/
+def ContractDischarged (assumes guarantees : List Nat) : Prop :=
+  ∀ a, a ∈ assumes → a ∈ guarantees
+
+/-- RFC 0013 SysML-pinned TUF policy floor admissibility predicate. -/
+def SysmlTufPolicySatisfied (rtThresh rtMinEp polThresh polMinEp : Nat) : Prop :=
+  rtThresh ≥ polThresh ∧ rtMinEp ≥ polMinEp
+
+theorem missingUpstreamGuaranteeBlocksComposition
+    {a : Nat} {assumes guarantees : List Nat}
+    (hAssumed : a ∈ assumes) (hNotGuaranteed : a ∉ guarantees) :
+    ¬ ContractDischarged assumes guarantees := by
+  intro hDischarged
+  exact hNotGuaranteed (hDischarged a hAssumed)
+
+theorem satisfiedAssumptionsAdmitComposition
+    {assumes guarantees : List Nat}
+    (hAll : ∀ a, a ∈ assumes → a ∈ guarantees) :
+    ContractDischarged assumes guarantees :=
+  hAll
+
+theorem weakenedThresholdRejectedBySysmlPolicy
+    {rtThresh rtMinEp polThresh polMinEp : Nat}
+    (hWeak : rtThresh < polThresh) :
+    ¬ SysmlTufPolicySatisfied rtThresh rtMinEp polThresh polMinEp := by
+  intro hSat
+  exact Nat.not_le_of_gt hWeak hSat.1
+
+theorem weakenedMinEpochRejectedBySysmlPolicy
+    {rtThresh rtMinEp polThresh polMinEp : Nat}
+    (hWeak : rtMinEp < polMinEp) :
+    ¬ SysmlTufPolicySatisfied rtThresh rtMinEp polThresh polMinEp := by
+  intro hSat
+  exact Nat.not_le_of_gt hWeak hSat.2
+
 end LambdaAitiaProof.Modules.GitOps

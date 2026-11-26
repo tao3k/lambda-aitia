@@ -142,7 +142,7 @@ pub fn load_workspace_manifest(
 fn merge_workspace_overlay(manifest: &mut Value, extra: &serde_json::Map<String, Value>) {
     if let Some(root) = manifest.as_object_mut() {
         for (key, value) in extra {
-            if key != "repos" {
+            if key != "repos" && key != "sysmlTufPolicy" {
                 root.insert(key.clone(), value.clone());
             }
         }
@@ -245,6 +245,10 @@ pub fn drive_multi_repo_protocol(
         }
         _ => None,
     };
+    let sysml_tuf_policy = root_obj
+        .get("sysmlTufPolicy")
+        .cloned()
+        .filter(|v| !v.is_null());
     let trust_root = root_obj.get("trustRoot").cloned().filter(|v| !v.is_null());
     let mut verified_lineage: Option<Value> = None;
     if let (Some(genesis_root), Some(chain_arr)) = (
@@ -262,6 +266,13 @@ pub fn drive_multi_repo_protocol(
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
+        if let Some(policy) = sysml_tuf_policy.as_ref() {
+            let roots =
+                commit::attestation::verify_tuf_root_rotation_chain(&genesis_root, &rotations)?;
+            if let Some(effective_root) = roots.last() {
+                commit::attestation::enforce_sysml_tuf_policy(policy, effective_root)?;
+            }
+        }
         let (verified_keys, lineage_summary) =
             commit::attestation::verify_attestation_lineage_chain(
                 &chain_arr,
@@ -273,6 +284,9 @@ pub fn drive_multi_repo_protocol(
     } else if let Some(raw_bundle) = root_obj.get("priorAttestationBundle").cloned()
         && !raw_bundle.is_null()
     {
+        if let (Some(policy), Some(root)) = (sysml_tuf_policy.as_ref(), trust_root.as_ref()) {
+            commit::attestation::enforce_sysml_tuf_policy(policy, root)?;
+        }
         let verified_keys = commit::attestation::verify_release_attestation_bundle_with_trust_root(
             &raw_bundle,
             trust_root.as_ref(),

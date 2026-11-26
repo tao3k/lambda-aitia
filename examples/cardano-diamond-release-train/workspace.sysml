@@ -18,6 +18,18 @@ package CardanoDiamondReleaseTrain {
         attribute pushBookmark : String;
         attribute interfacePaths : String[0..*];
         attribute pinnedUpstreamInterfaces : String[0..*];
+        attribute assumes : String[0..*];
+        attribute guarantees : String[0..*];
+    }
+
+    part def TufPolicy {
+        attribute minThreshold : String;
+        attribute minEpoch : String;
+    }
+
+    part releaseTufPolicy : TufPolicy {
+        attribute :>> minThreshold = "2";
+        attribute :>> minEpoch = "5";
     }
 
     part protocolBase : WorkspaceRepo {
@@ -27,6 +39,7 @@ package CardanoDiamondReleaseTrain {
         attribute :>> pushRemote = "origin";
         attribute :>> pushBookmark = "reviewed";
         attribute :>> interfacePaths = ("include/protocol.h");
+        attribute :>> guarantees = ("protocol.v1.codecs", "crypto.ed25519");
     }
 
     part ledgerCore : WorkspaceRepo {
@@ -36,6 +49,8 @@ package CardanoDiamondReleaseTrain {
         attribute :>> profile = "lambda-aitia/sdlc";
         attribute :>> pushRemote = "origin";
         attribute :>> pushBookmark = "reviewed";
+        attribute :>> assumes = ("protocol.v1.codecs");
+        attribute :>> guarantees = ("ledger.utxo.deterministic");
     }
 
     part networkMux : WorkspaceRepo {
@@ -45,6 +60,8 @@ package CardanoDiamondReleaseTrain {
         attribute :>> profile = "lambda-aitia/sdlc";
         attribute :>> pushRemote = "origin";
         attribute :>> pushBookmark = "reviewed";
+        attribute :>> assumes = ("protocol.v1.codecs", "crypto.ed25519");
+        attribute :>> guarantees = ("network.mux.framed");
     }
 
     part nodeRunner : WorkspaceRepo {
@@ -54,5 +71,7 @@ package CardanoDiamondReleaseTrain {
         attribute :>> profile = "lambda-aitia/sdlc";
         attribute :>> pushRemote = "origin";
         attribute :>> pushBookmark = "reviewed";
+        attribute :>> assumes = ("ledger.utxo.deterministic", "network.mux.framed");
+        attribute :>> guarantees = ("node.consensus.ready");
     }
 }

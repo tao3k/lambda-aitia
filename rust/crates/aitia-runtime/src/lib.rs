@@ -34,7 +34,7 @@ mod review_provider;
 pub use cli::run_cli;
 #[cfg(feature = "linked-program")]
 pub use commit::attestation::{
-    ed25519_public_key_hex, mint_release_attestation_bundle,
+    ed25519_public_key_hex, enforce_sysml_tuf_policy, mint_release_attestation_bundle,
     mint_release_attestation_bundle_with_lineage, mint_release_attestation_bundle_with_quorum,
     mint_tuf_root_rotation, verify_attestation_lineage_chain, verify_release_attestation_bundle,
     verify_release_attestation_bundle_with_trust_root, verify_tuf_root_rotation_chain,
