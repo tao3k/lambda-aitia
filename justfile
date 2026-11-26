@@ -169,7 +169,8 @@ test-dev:
     set -euo pipefail
     output="$(mktemp)"
     trap 'rm -f -- "$output"' EXIT
-    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=1G test dev.ss 2>&1 | tee "$output"
+    # Whole-package init projection + .prepare-compiler-contexts matches the 2G fence in run-aitia-tests.ss.
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=5s 120s gerbil -:max-heap=2G test dev.ss 2>&1 | tee "$output"
     grep -Fxq 'MODULE-OK dev.ss' "$output"
     grep -Fxq 'HARNESS-OK ("dev.ss")' "$output"
     grep -Fxq 'OK' "$output"

@@ -6,7 +6,8 @@
         "types.ss"
         "objects.ss"
         "func.ss"
-        "reconcile.ss")
+        "reconcile.ss"
+        "protocol.ss")
 (export Config
         GitOpsCommitCaseProfile.
         UnscopedScopeAuditCaseProfile.
