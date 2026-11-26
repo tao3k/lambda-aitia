@@ -40,10 +40,13 @@
   state-budget: 32
   allow-fenced-in-competition?: #f
   choice-plan-prototype: ChoiceFlowPlan.
+  build-graph: workflow-sdlc-lifecycle-graph
   solve-choices: workflow-solve-sdlc-choices
   build-choice-plan: workflow-choice-flow-plan
   execute-plan: workflow-execute-choice-worlds
-  converge-plan: workflow-converge-choice-worlds)
+  converge-plan: workflow-converge-choice-worlds
+  plan-protocol-step: workflow-plan-protocol-step
+  reconcile: workflow-reconcile)
 
 (.def WorkflowCaseProfiles.
   gitops-commit: GitOpsCommitCaseProfile.
@@ -55,6 +58,8 @@
       gitops-commit-domain: GitOpsCommitWorkflowDomain.
       gitops-nasa-commit-domain: GitOpsNasaCommitWorkflowDomain.
       sdlc-lifecycle-domain: SdlcLifecycleWorkflowDomain.
+      sdlc-open-security-domain: SdlcOpenSecurityWorkflowDomain.
+      sdlc-nasa-lifecycle-domain: SdlcNasaLifecycleWorkflowDomain.
       choice-flow-plan-prototype: ChoiceFlowPlan.
       profiles: WorkflowCaseProfiles.
       domain?: workflow-domain-profile?
@@ -84,6 +89,7 @@
       session-append-evidence!: workflow-session-append-evidence!
       session-retract-evidence!: workflow-session-retract-evidence!
       gitops-commit-graph: workflow-gitops-commit-graph
+      sdlc-lifecycle-graph: workflow-sdlc-lifecycle-graph
       reconcile-frontier: workflow-reconcile-frontier
       admit-proposal: workflow-admit-proposal
       reconcile-step: workflow-reconcile-step

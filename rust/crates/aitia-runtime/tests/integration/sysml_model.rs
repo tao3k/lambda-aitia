@@ -57,6 +57,7 @@ fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn 
             ("gitops.jj.apply-description", "fenced-effect"),
             ("gitops.jj.observe-cut", "host-read"),
             ("gitops.jj.prepare-description", "fenced-effect"),
+            ("gitops.jj.push-reviewed", "fenced-effect"),
             ("gitops.jj.reconcile-description", "host-read"),
             ("gitops.jj.recover-push", "host-read"),
             ("sysml.parse-revision", "host-read"),
@@ -657,9 +658,24 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
     };
     let scratch = tempfile::tempdir()?;
     let root = scratch.path();
+    let remote_dir = tempfile::tempdir()?;
+    assert!(
+        Command::new("git")
+            .args(["init", "--bare"])
+            .arg(remote_dir.path())
+            .status()?
+            .success(),
+        "git init --bare failed"
+    );
     let run_jj = |args: &[&str]| {
         let out = Command::new(&jj)
             .current_dir(root)
+            .args([
+                "--config",
+                "user.name='AITIA Test'",
+                "--config",
+                "user.email='test@example.invalid'",
+            ])
             .args(args)
             .output()
             .expect("run jj");
@@ -706,6 +722,24 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
         root.join("work.org"),
         "* Core RFC\n:PROPERTIES:\n:ID: work\n:ENGINEERING_ID: RFC-1\n:END:\n",
     )?;
+    run_jj(&["describe", "-m", "base standard-free sdlc cut"]);
+    run_jj(&["bookmark", "create", "reviewed", "-r", "@"]);
+    run_jj(&[
+        "git",
+        "remote",
+        "add",
+        "origin",
+        remote_dir.path().to_str().unwrap(),
+    ]);
+    run_jj(&[
+        "git",
+        "push",
+        "--remote",
+        "origin",
+        "--bookmark",
+        "reviewed",
+    ]);
+    run_jj(&["new", "-m", "initial standard-free sdlc cut"]);
     std::fs::write(root.join("src/main.rs"), "fn main() {}\n")?;
     run_jj(&["describe", "-m", "initial standard-free sdlc cut"]);
 
@@ -838,7 +872,11 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
 
     let decision = json!({
         "approved": true,
-        "draft": draft
+        "draft": draft,
+        "pushTarget": {
+            "remote": "origin",
+            "bookmark": "reviewed"
+        }
     });
     let mut exec_child = Command::new(env!("CARGO_BIN_EXE_aitia"))
         .current_dir(root)
@@ -863,16 +901,67 @@ fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
     assert_eq!(exec_json["state"], "quiescent");
     assert_eq!(exec_json["handoffTarget"], "none");
     assert_eq!(exec_json["actionAuthorized"], false);
+    let resulting_commit = exec_json["appliedReceipt"]["resulting_commit"]
+        .as_str()
+        .expect("applied JJ commit receipt");
+    assert!(!resulting_commit.is_empty());
     assert!(
-        exec_json["appliedReceipt"]["resulting_commit"]
-            .as_str()
-            .is_some_and(|s| !s.is_empty()),
-        "expected applied JJ commit receipt: {exec_json}"
+        exec_json["pushedReceipt"].is_object(),
+        "expected pushedReceipt from 3rd fenced stage: {exec_json}"
     );
     assert_eq!(exec_json["evidenceLineage"]["missingReports"], json!([]));
+    assert_eq!(exec_json["evidenceLineage"]["revision"], resulting_commit);
+    let remote_head = Command::new("git")
+        .current_dir(remote_dir.path())
+        .args(["rev-parse", "refs/heads/reviewed"])
+        .output()?;
+    assert!(remote_head.status.success());
     assert_eq!(
-        exec_json["evidenceLineage"]["revision"],
-        exec_json["appliedReceipt"]["resulting_commit"]
+        String::from_utf8_lossy(&remote_head.stdout).trim(),
+        resulting_commit,
+        "bare Git remote must hold the exact reviewed applied commit"
     );
+
+    // 5. Slice C: Multi-profile SDLC Lifecycle protocol via `aitia flow run --case aitia/case/sdlc-lifecycle`.
+    let sdlc_overlay = json!({
+        "profile": "lambda-aitia/sdlc/open-security",
+        "changeId": "change:sec-e2e",
+        "designAlternatives": ["design-zero-trust"],
+        "verified": true,
+        "observedObligations": ["sec.sbom-provenance"],
+        "repairRound": 1,
+        "maxRepairRounds": 3
+    });
+    let mut sdlc_child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args([
+            "flow",
+            "run",
+            "--case",
+            "aitia/case/sdlc-lifecycle",
+            "--proposal-stdin",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    sdlc_child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&sdlc_overlay)?)?;
+    let sdlc_out = sdlc_child.wait_with_output()?;
+    assert!(
+        sdlc_out.status.success(),
+        "sdlc-lifecycle flow failed: {}",
+        String::from_utf8_lossy(&sdlc_out.stderr)
+    );
+    let sdlc_json: Value = serde_json::from_slice(&sdlc_out.stdout)?;
+    assert_eq!(sdlc_json["profile"], "lambda-aitia/sdlc/open-security");
+    assert_eq!(sdlc_json["caseId"], "aitia/case/sdlc-lifecycle");
+    assert_eq!(sdlc_json["state"], "need-agent-synthesis");
+    assert_eq!(sdlc_json["repairRound"], 1);
+    assert_eq!(sdlc_json["repairTasks"].as_array().unwrap().len(), 2);
+    assert_eq!(sdlc_json["actionAuthorized"], false);
     Ok(())
 }

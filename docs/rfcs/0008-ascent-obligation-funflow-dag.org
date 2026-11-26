@@ -91,13 +91,77 @@ Instead, =lambda-aitia/modules/workflow= separates:
 - =FencedEffect.= commit application remains =blocked-on-human= while signed approval is absent.
 - Workspace cut retraction invalidates dependent commit evidence without discarding unrelated facts.
 
+* Theoretical Foundations and AI-Native Literature Alignment
+
+Lambda Aitia's SDLC Core, GitOps commit/push protocol, and FunFlow CAS execution plane synthesize
+six established and frontier lines of research into one verifiable POO + functional architecture:
+
+1. *Mixed-Initiative Interaction and Explicit Handoff Gaps* (Horvitz, /Principles of Mixed-Initiative
+   User Interfaces/, CHI 1999; Amershi et al., /Guidelines for Human-AI Interaction/, CHI 2019):
+   Instead of a single opaque agent loop that silently guesses or interrupts humans on every step,
+   =modules/workflow/protocol.ss= partitions every non-quiescent frontier into three explicit gap
+   classes:
+   - =model-reality-gap= (=need-host-frames= -> =host-probe=): missing side-effect-free host facts
+     dispatched automatically through =HostCapabilityRegistry= (=HostRead=).
+   - =model-check-gap= (=need-agent-synthesis= -> =agent-synthesis=): machine-checkable synthesis
+     holes handed to the AI Agent with bounded repair budgets (=max-repair-rounds=).
+   - =requirement-gap= (=need-human-decision= -> =human-decision=): irreducible competing worlds,
+     exhausted/rejected repair rounds, route mismatches, or governance approval gates requiring
+     explicit human authority.
+
+2. *Typed Holes and Schwarz-Style Domain-Decomposed Local Repair* (Omar et al., /Live Functional
+   Programming with Typed Holes/, POPL 2019; Lubin et al., /Program Sketching with Typed Holes/,
+   OOPSLA 2020; alternating Schwarz domain decomposition):
+   Each open synthesis hole emits a typed =repairTask= keyed by =(hole-id, premise-digest)= carrying
+   only the local allowed scopes, references, types, open diagnostics, =recompute-scope=
+   (=localized-decay= vs =synthesis-hole=), and =preserved-supported-obligations=. Agents repair the
+   localized boundary without invalidating unaffected FunFlow CAS evidence, and rejected or
+   budget-exhausted repair attempts escalate deterministically to =need-human-decision=.
+
+3. *Truth Maintenance Systems (TMS/ATMS) and Bitemporal Evidence Decay* (Doyle, /A Truth Maintenance
+   System/, AIJ 1979; de Kleer, /An Assumption-based TMS/, AIJ 1986; Jensen & Snodgrass, bitemporal
+   relational models):
+   Observations are bound to exact workspace cuts (=premise:cut:<sha>=). When a workspace cut moves,
+   =modules/gitops/commit-evidence.ss= derives =stale= observations and =reopened= obligations
+   (projected as =decayedObligations=, =staleEvidenceIds=, =evidenceDecayDetected=), while
+   =workflow-retract-premise= retracts only affected assumption lineages and preserves unaffected
+   current-cut support.
+
+4. *Checked Relational Compilation, Stratified Datalog, and Provenance Semirings* (Green,
+   Karvounarakis, Tannen, /Provenance Semirings/, PODS 2007; Bembenek et al., /Formulog/, OOPSLA
+   2020; Arntzenius & Krishnaswami, /Datafun/ / /Ascent/):
+   Stage 1 compiles =commit-semantics= and =commit-evidence= once into pre-admitted checked
+   =relational-fragment= sessions (eliminating per-cut macro compilation and enforcing deterministic
+   lexicographic row ordering). Stage 2 runs Lean-verified =relational-choice-solve= with detached
+   =provenance?: #t= derivation witnesses to preserve all consistent competing worlds without greedy
+   ranking.
+
+5. *Object-Capability Security and Plan/Data Separation for Agents* (Miller, /Robust Composition/,
+   2006; Debenedetti et al., /CaMeL: Defeating Prompt Injections by Design/, 2025):
+   Scheme owns the semantic control flow and emits declarative host frames with
+   =action-authorized?: #f=. Rust's flat =HostCapabilityRegistry= enforces bidirectional SysML v2
+   capability parity (=dev/sysml/project-architecture.sysml=) and rejects any =FencedEffect=
+   (=prepare-description=, =apply-description=, =push-reviewed=) lacking a Scheme-issued
+   =fenceToken=.
+
+6. *Content-Addressed Functional Workflows and Cross-World Memoization* (Mokhov, Mitchell, Peyton
+   Jones, /Build Systems à la Carte/, ICFP 2018; Bernstein, /Analysis of Programs for Parallel
+   Processing/, 1966):
+   Surviving Finite-Choice worlds execute over one shared =FunflowCasStore=
+   (=workflow-execute-choice-worlds=), deduplicating shared read-only prefixes (=cas-hit?: #t=)
+   while running diverging epistemic probes independently under Bernstein disjoint footprints.
+
 * Phased Delivery
 
-- *Slice 1 (Current)*: =modules/workflow= Yuanxu 5-role POO module + =GitOpsCommitWorkflowDomain.=
-  bridging real =gitops-commit-semantics= / =gitops-commit-evidence= to Lab's =ObligationGraph=,
-  =ascent-reconciler=, =dag-frontier-scheduler=, and =synthesis-oracle=, verified in
-  =t/yanxu/modules/workflow/workflow-reconcile-test.ss=.
-- *Slice 2*: =SdlcLifecycleWorkflowDomain.= linking requirements, competing design alternatives,
-  verification evidence, and job-executor retirement impact trajectories (RFC 0004).
-- *Slice 3*: Rust =AitiaSession= / CLI / Python frontier projection (=flow reconcile=,
-  =flow submit-patch=, =flow submit-decision=) compiled into the zero-=GERBIL_LOADPATH= binary.
+- *Slice 1 (Completed)*: =modules/workflow= Yuanxu 5-role POO module + =GitOpsCommitWorkflowDomain.=
+  and =GitOpsNasaCommitWorkflowDomain.= (SDLC Core =lambda-aitia/sdlc= decoupled from
+  =nasa/sdlc/npr-7150.2=), pre-admitted checked =relational-fragment= commit evidence with
+  Evidence Decay, and 5-state Mixed-Initiative IoC protocol (=modules/workflow/protocol.ss=).
+- *Slice 2 (Completed)*: AI-Native localized Schwarz repair feedback loop with bounded repair rounds
+  and deterministic human escalation, plus end-to-end fenced GitOps commit + remote PR/push
+  (=gitops.jj.prepare-description= -> =gitops.jj.apply-description= -> =gitops.jj.push-reviewed= ->
+  =quiescent= + verified =evidenceLineage=).
+- *Slice 3 (Completed)*: Multi-profile SDLC Core (=SdlcCoreStandard=, =SdlcOpenSecurityStandard=,
+  and =nasa/sdlc/npr-7150.2= composed orthogonally) driving =SdlcLifecycleWorkflowDomain.= through
+  the same 5-state IoC protocol, with Rust =AitiaSession= / thin CLI / Python bindings compiled
+  into the zero-=GERBIL_LOADPATH= native binary.

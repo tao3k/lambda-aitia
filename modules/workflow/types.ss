@@ -60,6 +60,8 @@
         GitOpsSemanticsEvidence
         GitOpsApplyRequest
         GitOpsApplyEvidence
+        SdlcLifecycleRequest
+        SdlcLifecycleEvidence
         WorkflowPatchRequest
         WorkflowPatchEvidence
         workflow-domain-profile?
@@ -244,6 +246,13 @@
 (def GitOpsApplyEvidence
   (Record kind: [(Enum commit-applied-receipt)] commit: [NonEmptyString]))
 
+(def SdlcLifecycleRequest
+  (Record change-id: [NonEmptyString] obligation-id: [NonEmptyString]))
+(def SdlcLifecycleEvidence
+  (Record kind: [(Enum sdlc-obligation-discharged)]
+          change-id: [NonEmptyString]
+          obligation-id: [NonEmptyString]))
+
 (def WorkflowPatchRequest
   (Record action: [Symbol] targets: [(List NonEmptyString)]))
 (def WorkflowPatchEvidence
@@ -260,6 +269,8 @@
                gitops-commit-domain: [WorkflowDomainProfileType]
                gitops-nasa-commit-domain: [WorkflowDomainProfileType]
                sdlc-lifecycle-domain: [WorkflowDomainProfileType]
+               sdlc-open-security-domain: [WorkflowDomainProfileType]
+               sdlc-nasa-lifecycle-domain: [WorkflowDomainProfileType]
                choice-flow-plan-prototype: [ChoiceFlowPlanType]
                profiles: [Object]
                domain?: [WorkflowObjectPredicate]
@@ -331,6 +342,23 @@
                                           (cons 'extra-hypotheses: (List HypothesisType))
                                           (cons 'extra-evidence: (List EvidenceFactType))
                                           (cons 'extra-tasks: (List DeterministicTaskNodeType))))]
+               sdlc-lifecycle-graph:
+               [(Function (list ObligationGraphType)
+                          (list NonEmptyString ChoiceOptionSymbolList)
+                          keywords: (list (cons 'graph-id: NonEmptyString)
+                                          (cons 'profile: NonEmptyString)
+                                          (cons 'extra-obligations: (List NonEmptyString))
+                                          (cons 'observed-obligations: (List NonEmptyString))
+                                          (cons 'requirements-traced?: Bool)
+                                          (cons 'verified?: Bool)
+                                          (cons 'retirement-clear?: Bool)
+                                          (cons 'approval-live?: Bool)
+                                          (cons 'release-published?: Bool)
+                                          (cons 'refuted-designs: ChoiceOptionSymbolList)
+                                          (cons 'required-design: (Or False Symbol NonEmptyString))
+                                          (cons 'cut-index: UInt)
+                                          (cons 'state-budget: UInt)
+                                          (cons 'extra-evidence: (List EvidenceFactType))))]
                solve-gitops-choices:
                [(Function (list ChoiceSolutionType)
                           (list Object GitOpsCommitCut)

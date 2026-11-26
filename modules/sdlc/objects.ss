@@ -9,7 +9,7 @@
         (only-in :tao3k/agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.)
         "types.ss")
-(export StandardProfile. SdlcCoreStandard SdlcProfile)
+(export StandardProfile. SdlcCoreStandard SdlcOpenSecurityStandard SdlcProfile)
 (def StandardProfile.
   (.o (:: @ (.ref SdlcStandard 'proto)) kind: 'lambda-aitia.sdlc-standard coverage: 'partial
       requirements: '() assessment: 'not-evaluated))
@@ -33,6 +33,22 @@
                 title: "Observe required verification checks against current cut")
             (.o identity: "sdlc.release-approval"
                 title: "Explicit human approval bound to current cut"))))
+(def SdlcOpenSecurityStandard
+  (.o (:: @ StandardProfile.)
+      identity: "lambda-aitia/sdlc/open-security"
+      edition: "1"
+      source-url: "https://github.com/tao3k/lambda-aitia/blob/main/modules/sdlc/README.org"
+      source-lock-digest: (source-lock-payload-digest (string->utf8 "lambda-aitia/sdlc/open-security:v1"))
+      coverage: 'complete
+      requirements:
+      (list (.o identity: "sec.sbom-provenance"
+                title: "Record reproducible dependency and SBOM provenance at current cut")
+            (.o identity: "sec.dependency-audit"
+                title: "Audit pinned dependencies for policy and vulnerability regressions")
+            (.o identity: "sec.threat-model-review"
+                title: "Assess competing design alternatives against security boundaries")
+            (.o identity: "sec.signed-release-approval"
+                title: "Explicit human security release approval bound to current cut"))))
 (def sdlc-ontology
   (.o entities: '(LifecycleActivity Requirement Artifact Verification Evidence
                  Review Decision Baseline Standard TailoringRequest Approval)

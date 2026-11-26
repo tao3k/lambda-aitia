@@ -108,6 +108,11 @@ package AitiaProjectArchitecture {
         attribute :>> effectClass = "host-read";
     }
 
+    part jjPushReviewedCapability : HostCapabilitySpec {
+        attribute :>> capabilityId = "gitops.jj.push-reviewed";
+        attribute :>> effectClass = "fenced-effect";
+    }
+
     part githubObservePrCapability : HostCapabilitySpec {
         attribute :>> capabilityId = "gitops.github.observe-pr";
         attribute :>> effectClass = "host-read";

@@ -12,6 +12,8 @@
         GitOpsCommitWorkflowDomain.
         GitOpsNasaCommitWorkflowDomain.
         SdlcLifecycleWorkflowDomain.
+        SdlcOpenSecurityWorkflowDomain.
+        SdlcNasaLifecycleWorkflowDomain.
         ChoiceFlowPlan.)
 
 (.def AitiaWorkflowDomain.
@@ -52,6 +54,8 @@
 
 (.def (SdlcLifecycleWorkflowDomain. @ AitiaWorkflowDomain.)
   domain-id: 'aitia/sdlc-lifecycle
+  profile-id: "lambda-aitia/sdlc"
+  extra-obligations: '()
   obligation-ids: '("sdlc.requirements-traced"
                     "sdlc.design-alternatives-assessed"
                     "sdlc.verification-observed"
@@ -60,6 +64,36 @@
   synthesis-hole-id: "hole:sdlc-competing-design-or-retirement"
   human-gate-obligation: "sdlc.release-approved"
   fenced-effect-obligation: "sdlc.release-published")
+
+;;; Open-Security Assurance SDLC Lifecycle specialization via pure POO inheritance.
+(.def (SdlcOpenSecurityWorkflowDomain. @ SdlcLifecycleWorkflowDomain.)
+  domain-id: 'aitia/sdlc-lifecycle-open-security
+  profile-id: "lambda-aitia/sdlc/open-security"
+  extra-obligations: '("sec.sbom-provenance"
+                       "sec.dependency-audit"
+                       "sec.threat-model-review")
+  obligation-ids: '("sdlc.requirements-traced"
+                    "sdlc.design-alternatives-assessed"
+                    "sdlc.verification-observed"
+                    "sdlc.retirement-impact-audited"
+                    "sec.sbom-provenance"
+                    "sec.dependency-audit"
+                    "sec.threat-model-review"
+                    "sdlc.release-approved"))
+
+;;; NASA NPR 7150.2D SDLC Lifecycle specialization via pure POO inheritance.
+(.def (SdlcNasaLifecycleWorkflowDomain. @ SdlcLifecycleWorkflowDomain.)
+  domain-id: 'aitia/sdlc-lifecycle-nasa
+  profile-id: "nasa/sdlc/npr-7150.2"
+  extra-obligations: '("SWE-052" "SWE-065" "SWE-084")
+  obligation-ids: '("sdlc.requirements-traced"
+                    "sdlc.design-alternatives-assessed"
+                    "sdlc.verification-observed"
+                    "sdlc.retirement-impact-audited"
+                    "SWE-052"
+                    "SWE-065"
+                    "SWE-084"
+                    "sdlc.release-approved"))
 
 ;;; Declarative POO prototype for Finite-Choice -> Typed FunFlow routing
 ;;; (the Coproduct/ArrowChoice dual of FunFlow's Product `flow-fanout`).

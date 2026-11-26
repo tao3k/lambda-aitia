@@ -13,7 +13,7 @@
 
 (import (only-in :clan/poo/object .o .get .ref .slot? object?)
         (only-in :clan/poo/type Fun validate)
-        (only-in :std/list/list every filter find)
+        (only-in :std/list/list every filter filter-map find)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/task
                  make-pure-task)
         (only-in :tao3k/agentic-ai-lab/modules/funflow/control-plane/flow
@@ -65,7 +65,8 @@
                  GitOpsCutRequest GitOpsCutEvidence
                  GitOpsConfigRequest GitOpsConfigEvidence
                  GitOpsSemanticsRequest GitOpsSemanticsEvidence
-                 GitOpsApplyRequest GitOpsApplyEvidence))
+                 GitOpsApplyRequest GitOpsApplyEvidence
+                 SdlcLifecycleRequest SdlcLifecycleEvidence))
 
 (export workflow-make-pure-runner
         workflow-flow-arr
@@ -90,6 +91,7 @@
         workflow-session-append-evidence!
         workflow-session-retract-evidence!
         workflow-gitops-commit-graph
+        workflow-sdlc-lifecycle-graph
         workflow-reconcile-frontier
         workflow-admit-proposal
         workflow-reconcile-step
@@ -101,6 +103,7 @@
 (def +config-audit-sig+ (Fun GitOpsConfigEvidence <- GitOpsConfigRequest))
 (def +semantics-assess-sig+ (Fun GitOpsSemanticsEvidence <- GitOpsSemanticsRequest))
 (def +apply-commit-sig+ (Fun GitOpsApplyEvidence <- GitOpsApplyRequest))
+(def +sdlc-lifecycle-sig+ (Fun SdlcLifecycleEvidence <- SdlcLifecycleRequest))
 
 (def (opt-ref obj key default)
   (if (and (object? obj) (.slot? obj key))
@@ -439,6 +442,190 @@
         (semantics-assessment := semantics)
         (choice-solution := choice-solution)
         (evidence-assessment := evidence-view)
+        (cut-premise := cut-premise))))
+
+(def (default-sdlc-profile-extra-obligations profile)
+  (cond
+   ((equal? profile "lambda-aitia/sdlc/open-security")
+    '("sec.sbom-provenance" "sec.dependency-audit" "sec.threat-model-review"))
+   ((equal? profile "nasa/sdlc/npr-7150.2")
+    '("SWE-052" "SWE-065" "SWE-084"))
+   (else '())))
+
+;;; Pure functional ObligationGraph builder for multi-profile SDLC lifecycle workflows
+;;; (`lambda-aitia/sdlc`, `lambda-aitia/sdlc/open-security`, `nasa/sdlc/npr-7150.2`).
+;;; Combines Stage-2 `workflow-solve-sdlc-choices` competing design worlds with
+;;; profile-parameterized FunFlow CAS tasks and an explicit human release gate.
+(def (workflow-sdlc-lifecycle-graph
+      change-id design-alternatives
+      graph-id: (graph-id "graph:sdlc-lifecycle")
+      profile: (profile "lambda-aitia/sdlc")
+      extra-obligations: (extra-obligations '())
+      observed-obligations: (observed-obligations '())
+      requirements-traced?: (requirements-traced? #t)
+      verified?: (verified? #f)
+      retirement-clear?: (retirement-clear? #t)
+      approval-live?: (approval-live? #f)
+      release-published?: (release-published? #f)
+      refuted-designs: (refuted-designs '())
+      required-design: (required-design #f)
+      cut-index: (cut-index 1)
+      state-budget: (state-budget 32)
+      extra-evidence: (extra-evidence '()))
+  (let* ((cut-premise (string-append "premise:sdlc:" change-id))
+         (choice-solution
+          (workflow-solve-sdlc-choices
+           change-id design-alternatives
+           verified?: verified?
+           retirement-clear?: retirement-clear?
+           approval-live?: approval-live?
+           refuted-designs: refuted-designs
+           required-design: required-design
+           state-budget: state-budget))
+         (unique-design? (= (.get choice-solution world-count) 1))
+         (profile-extras
+          (if (pair? extra-obligations)
+            extra-obligations
+            (default-sdlc-profile-extra-obligations profile)))
+         (extra-ev-ids
+          (map (lambda (ob) (string-append "ev:sdlc:" ob)) profile-extras))
+         (extra-ob-specs
+          (map (lambda (ob ev-id)
+                 (make-obligation ob
+                                  title: (string-append "Profile (" profile ") obligation " ob)
+                                  required-evidence-ids: (list ev-id)
+                                  premise-ids: (list cut-premise)))
+               profile-extras extra-ev-ids))
+         (obligations
+          (append
+           (list
+            (make-obligation "sdlc.requirements-traced"
+                             title: "Trace change requirements to engineering design elements"
+                             required-evidence-ids: '("ev:sdlc-requirements-traced")
+                             premise-ids: (list cut-premise))
+            (make-obligation "sdlc.design-alternatives-assessed"
+                             title: "Assess competing design alternatives without premature collapse"
+                             required-evidence-ids: '("ev:sdlc-design-assessed")
+                             active-defeaters: (if unique-design? '() '(competing-design-alternatives))
+                             premise-ids: (list cut-premise))
+            (make-obligation "sdlc.verification-observed"
+                             title: "Observe verification evidence bound to current cut"
+                             required-evidence-ids: '("ev:sdlc-verification-observed")
+                             premise-ids: (list cut-premise))
+            (make-obligation "sdlc.retirement-impact-audited"
+                             title: "Audit retirement and causal trajectory impact"
+                             required-evidence-ids: '("ev:sdlc-retirement-audited")
+                             premise-ids: (list cut-premise)))
+           extra-ob-specs
+           (list
+            (make-obligation "sdlc.release-approved"
+                             title: "Explicit human governance approval bound to current SDLC cut"
+                             required-evidence-ids: '("ev:sdlc-human-approval")
+                             depends-on: (append '("sdlc.requirements-traced"
+                                                   "sdlc.design-alternatives-assessed"
+                                                   "sdlc.verification-observed"
+                                                   "sdlc.retirement-impact-audited")
+                                                 profile-extras)
+                             active-defeaters: (if approval-live? '() '(missing-human-release-approval))
+                             premise-ids: (list cut-premise))
+            (make-obligation "sdlc.release-published"
+                             title: "Fenced release publication after unique design, verification, and approval"
+                             required-evidence-ids: '("ev:sdlc-release-receipt")
+                             depends-on: '("sdlc.release-approved")
+                             active-defeaters: (if approval-live? '() '(fenced-effect-requires-human-approval))
+                             premise-ids: (list cut-premise)))))
+         (live-evidence
+          (append
+           (if approval-live?
+             (list (make-evidence-fact "ev:sdlc-human-approval"
+                                       (.o (kind := 'human-approval) (change-id := change-id))
+                                       cut: cut-index
+                                       premise-ids: (list cut-premise)
+                                       origin-tier: 'human-decision))
+             '())
+           (if release-published?
+             (list (make-evidence-fact "ev:sdlc-release-receipt"
+                                       (.o (kind := 'sdlc-release-receipt) (change-id := change-id))
+                                       cut: cut-index
+                                       premise-ids: (list cut-premise)
+                                       origin-tier: 'observed-fact))
+             '())
+           extra-evidence))
+         (make-sdlc-task
+          (lambda (ob ev-id)
+            (make-deterministic-task-node
+             (string-append "task:sdlc:" ob) ob ev-id
+             (make-typed-capability-flow (string->symbol (string-append "sdlc-" ob))
+               +sdlc-lifecycle-sig+
+               (lambda (req)
+                 (.o (kind := 'sdlc-obligation-discharged)
+                     (change-id := (.get req change-id))
+                     (obligation-id := (.get req obligation-id)))))
+             (.o (change-id := change-id) (obligation-id := ob))
+             premise-ids: (list cut-premise)
+             read-footprint: (list (string->symbol ob))
+             write-footprint: '()
+             effect-class: 'pure-cas)))
+         (det-tasks
+          (append
+           (if requirements-traced?
+             (list (make-sdlc-task "sdlc.requirements-traced" "ev:sdlc-requirements-traced"))
+             '())
+           (if unique-design?
+             (list (make-sdlc-task "sdlc.design-alternatives-assessed" "ev:sdlc-design-assessed"))
+             '())
+           (if verified?
+             (list (make-sdlc-task "sdlc.verification-observed" "ev:sdlc-verification-observed"))
+             '())
+           (if retirement-clear?
+             (list (make-sdlc-task "sdlc.retirement-impact-audited" "ev:sdlc-retirement-audited"))
+             '())
+           (filter-map
+            (lambda (ob ev-id)
+              (and (member ob observed-obligations)
+                   (make-sdlc-task ob ev-id)))
+            profile-extras extra-ev-ids)))
+         (synthesis-holes
+          (append
+           (if (not verified?)
+             (list (make-synthesis-hole
+                    "hole:sdlc-verification-evidence"
+                    "sdlc.verification-observed"
+                    description: "Synthesize or attach verification checks for the current SDLC cut."
+                    premise-ids: (list cut-premise)
+                    max-branches: 4))
+             '())
+           (if (not requirements-traced?)
+             (list (make-synthesis-hole
+                    "hole:sdlc-requirements-trace"
+                    "sdlc.requirements-traced"
+                    description: "Synthesize missing requirement-to-design traceability links."
+                    premise-ids: (list cut-premise)
+                    max-branches: 4))
+             '())
+           (filter-map
+            (lambda (ob)
+              (and (not (member ob observed-obligations))
+                   (make-synthesis-hole
+                    (string-append "hole:sdlc:" ob)
+                    ob
+                    description: (string-append "Propose bounded evidence or patch for profile obligation " ob)
+                    premise-ids: (list cut-premise)
+                    max-branches: 4)))
+            profile-extras)))
+         (hypotheses (workflow-choice-hypotheses choice-solution)))
+    (.o (:: @ (make-obligation-graph
+               graph-id
+               cut: cut-index
+               obligations: obligations
+               hypotheses: hypotheses
+               evidence: live-evidence
+               det-tasks: det-tasks
+               synthesis-holes: synthesis-holes))
+        (profile := profile)
+        (change-id := change-id)
+        (profile-extra-obligations := profile-extras)
+        (choice-solution := choice-solution)
         (cut-premise := cut-premise))))
 
 ;;; Compute BOTH the native ASCENT obligation fixed-point frontier AND the

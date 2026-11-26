@@ -17,6 +17,7 @@
   (def implementation (make-sdlc-implementation assurance digest))
   (.o profile: SdlcProfile standard-profile: StandardProfile.
       core-standard: SdlcCoreStandard
+      open-security-standard: SdlcOpenSecurityStandard
       profile?: sdlc-profile? standard-profile?: accepts-standard?
       with-standards: sdlc-with-standards contribution: sdlc-contribution
       default-contribution: (sdlc-contribution SdlcProfile)

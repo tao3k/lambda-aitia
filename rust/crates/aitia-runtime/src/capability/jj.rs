@@ -14,6 +14,7 @@ pub(super) fn register(registry: &mut HostCapabilityRegistry) {
     registry.register(Box::new(GitOpsJjApplyDescriptionCapability));
     registry.register(Box::new(GitOpsJjReconcileDescriptionCapability));
     registry.register(Box::new(GitOpsJjRecoverPushCapability));
+    registry.register(Box::new(GitOpsJjPushReviewedCapability));
 }
 
 struct GitOpsJjObserveCutCapability;
@@ -256,6 +257,52 @@ impl HostCapability for GitOpsJjRecoverPushCapability {
             "receipt": receipt,
         }))
         .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+        Ok(HostReceipt::observe(
+            self.capability_id(),
+            self.effect_class(),
+            payload,
+        ))
+    }
+}
+
+struct GitOpsJjPushReviewedCapability;
+
+impl HostCapability for GitOpsJjPushReviewedCapability {
+    fn capability_id(&self) -> &'static str {
+        "gitops.jj.push-reviewed"
+    }
+
+    fn effect_class(&self) -> HostEffectClass {
+        HostEffectClass::FencedEffect
+    }
+
+    fn invoke(&self, frame: &CapabilityFrame) -> Result<HostReceipt, CapabilityError> {
+        let request: serde_json::Value = serde_json::from_str(&frame.payload)
+            .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+        let cut = observe_matching_cut(&request)?;
+        let description = request["description"]
+            .as_str()
+            .ok_or_else(|| CapabilityError::Execution("missing description field".to_owned()))?;
+        let remote = request["remote"]
+            .as_str()
+            .ok_or_else(|| CapabilityError::Execution("missing remote field".to_owned()))?;
+        let bookmark = request["bookmark"]
+            .as_str()
+            .ok_or_else(|| CapabilityError::Execution("missing bookmark field".to_owned()))?;
+        let expected_head = request["expectedRemoteHead"].as_str().map(str::to_owned);
+        let receipt = aitia_jj::push_reviewed_description(
+            &cut,
+            description,
+            remote,
+            bookmark,
+            |destination, head, _identity| {
+                !matches!(destination, aitia_jj::PushRemote::UnresolvedGitHub)
+                    && expected_head.as_deref().is_none_or(|exp| exp == head)
+            },
+        )
+        .map_err(|error| CapabilityError::Execution(error.to_string()))?;
+        let payload = serde_json::to_string(&receipt)
+            .map_err(|error| CapabilityError::Execution(error.to_string()))?;
         Ok(HostReceipt::observe(
             self.capability_id(),
             self.effect_class(),

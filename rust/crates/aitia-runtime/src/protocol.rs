@@ -187,6 +187,7 @@ fn drive_scheme_protocol_inner(
         "reconcile": true,
     });
     const OVERLAY_FIELDS: &[&str] = &[
+        "profile",
         "proposals",
         "proposal",
         "observations",
@@ -195,6 +196,19 @@ fn drive_scheme_protocol_inner(
         "includePrObservation",
         "forbiddenScopes",
         "candidateOffers",
+        "repairRound",
+        "maxRepairRounds",
+        "pushTarget",
+        "changeId",
+        "designAlternatives",
+        "extraObligations",
+        "observedObligations",
+        "requirementsTraced",
+        "verified",
+        "retirementClear",
+        "releasePublished",
+        "refutedDesigns",
+        "requiredDesign",
     ];
     if let Some(extra) = overlay {
         for &field in OVERLAY_FIELDS {

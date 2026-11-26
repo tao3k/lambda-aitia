@@ -133,8 +133,9 @@ build-rust-linked-tests program="aitia-program": (stage-rust-program program)
 [group('rust')]
 test-rust-linked-program: build-rust-linked-tests
     test -x "${AITIA_JJ_BIN:?set AITIA_JJ_BIN}" && test -x "${AITIA_PYTEST_PYTHON:?set AITIA_PYTEST_PYTHON to the verifier Python}"
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --no-run
-    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --test linked_program -- --nocapture
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --test sysml_model --no-run
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --lib --test linked_program -- --skip sysml_model:: --nocapture
+    AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' timeout --foreground --signal=TERM --kill-after=5s 120s cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test sysml_model -- --nocapture
 
 [group('rust')]
 test-rust-project-declaration:

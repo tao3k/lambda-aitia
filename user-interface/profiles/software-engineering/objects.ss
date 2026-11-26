@@ -47,11 +47,42 @@
      formal-method-obligations
      runtime-executed?)))
 
+(def core-software-engineering-project
+  (yuanxuUserProfile
+   'core-software-engineering-project
+   (list
+    (list
+     (yuanxu-user-module-selection
+      'software-engineering 'gitops '(+open-gitops))
+     (yuanxu-user-module-selection
+      'software-engineering 'sdlc '())
+     (yuanxu-user-module-selection
+      'software-engineering 'ADR '(+rfc-relations))
+     (yuanxu-user-module-selection
+      'software-engineering 'assurance '(+causal-evidence))
+     (yuanxu-user-module-selection
+      'software-engineering 'formal-methods '(+quint +lean))))
+   (yuanxu-settings
+    project-kind: 'software-engineering
+    composition: 'aitia-core
+    sdlc-profile: "lambda-aitia/sdlc"
+    formal-method-obligations: '(quint lean)
+    runtime-executed?: #f)
+   '(project-kind
+     composition
+     sdlc-profile
+     formal-method-obligations
+     runtime-executed?)))
+
 (def AitiaModule
   (yuanxu-semantic-module
    (yuanxu-semantic-identity 'software-engineering 'aitia)
    profiles:
    (yuanxu-module-profiles
+    (yuanxu-profile-export
+     'core
+     (.o (:: @ core-software-engineering-project)
+         stages: (.o software-engineering-project: (.o))))
     (yuanxu-profile-export
      'default
      (.o (:: @ default-software-engineering-project)
