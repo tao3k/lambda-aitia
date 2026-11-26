@@ -24,7 +24,7 @@
           }
         ],
         "naming": {
-          "projectKey": "AITIA",
+          "convention": "conventional-commits",
           "types": [
             "build",
             "chore",

@@ -24,7 +24,8 @@
       paths: (json-list row "paths")))
 
 (def (json-workflow-naming input (extra-scopes '()))
-  (.o project-key: (json-required input "projectKey")
+  (.o convention: (hash-get input "convention")
+      project-key: (hash-get input "projectKey")
       primary-language: (hash-get input "primaryLanguage")
       language-sources: (json-list input "languageSources")
       types: (json-list input "types")

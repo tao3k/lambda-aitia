@@ -23,6 +23,7 @@
                  make-org-contract-expectation org-contract-result-passed?)
         (only-in :orgize/languages/org/modules/org-contract/evaluation
                  org-contract-evaluate-definition)
+        (only-in "objects.ss" gitops-resolve-commit-convention)
         "types.ss")
 (export gitops-commit-semantics gitops-commit-title?)
 
@@ -105,9 +106,9 @@
                (string->list value))))
 
 (def (render-commit-title naming proposal)
-  (string-append (.get naming project-key) "-" (.get proposal reference) " "
-                 (.get proposal type) "(" (.get proposal scope) "): "
-                 (.get proposal summary)))
+  (let ((conv (gitops-resolve-commit-convention naming)))
+    (unless conv (error "unknown commit convention"))
+    ((.get conv .render-title) naming proposal)))
 
 (def (summary? value)
   (and (string? value) (positive? (string-length value))
@@ -393,10 +394,14 @@
                                 (list path)))
                           (else #f)))
                       language-paths))
+         (resolved-convention (gitops-resolve-commit-convention naming))
          (well-formed
           (filter-map
            (lambda (proposal)
-             (and (identifier? (.get naming project-key))
+             (and resolved-convention
+                  ((.get resolved-convention .valid-naming?) naming)
+                  (or (not (.get naming project-key))
+                      (identifier? (.get naming project-key)))
                   (identifier? (.get proposal type)) (identifier? (.get proposal scope))
                   (summary? (.get proposal summary)) (reasoning? (.get proposal rationale))
                   (gitops-commit-title? (render-commit-title naming proposal))
@@ -478,6 +483,7 @@
           unresolved-references: unresolved-ref-rows
           conflicting-references: conflicting-ref-rows
           languages: grounded-lang-rows
+          convention: (and resolved-convention (.get resolved-convention identity))
           titles: title-rows
           ;; This is machine custody, never a human commit trailer.
           context: (source-lock-payload-digest

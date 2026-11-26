@@ -42,8 +42,12 @@
         element: (schema-string))))
 
 (def commit-naming-schema
-  (schema-object '("projectKey" "types" "references" "languageSources")
-    (.o projectKey: (schema-string)
+  (schema-object '("types" "references" "languageSources")
+    (.o convention: (schema-enum '("conventional-commits"
+                                   "conventional-commits/1.0.0"
+                                   "project-keyed-conventional"
+                                   "project-keyed-conventional/1.0.0"))
+        projectKey: (schema-string)
         primaryLanguage: (schema-string)
         languageSources: (schema-array (schema-string))
         types: (schema-array (schema-string))

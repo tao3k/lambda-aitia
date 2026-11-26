@@ -79,7 +79,6 @@ def init_repo(
                                 {"requirement": "sdlc.config-audit", "method": "jj.configuration-audit"},
                             ],
                             "naming": {
-                                "projectKey": key,
                                 "primaryLanguage": "en",
                                 "languageSources": ["README.org"],
                                 "types": ["feat"],

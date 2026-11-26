@@ -30,7 +30,8 @@
       paths: (json-list row (key 'paths))))
 
 (def (json-commit-naming input (key values) (extra-scopes '()))
-  (.o project-key: (hash-ref input (key 'projectKey))
+  (.o convention: (hash-get input (key 'convention))
+      project-key: (hash-get input (key 'projectKey))
       primary-language: (hash-get input (key 'primaryLanguage))
       language-sources: (json-list input (key 'languageSources))
       types: (json-list input (key 'types))

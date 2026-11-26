@@ -12,7 +12,8 @@
         GitOpsCommitCut GitOpsCommitObligations GitOpsCommitObservation GitOpsCommitObservations
         GitOpsCommitNaming GitOpsCommitSources GitOpsCommitProposals
         GitOpsModelMappings GitOpsModelProperties
-        gitops-profile? gitops-change? gitops-check? gitops-decision?)
+        gitops-profile? gitops-change? gitops-check? gitops-decision?
+        gitops-commit-convention?)
 
 (define-type (NonEmptyString @ String)
   .element?: (lambda (value)
@@ -58,12 +59,17 @@
 (def (gitops-profile? value)
   (and (object? value) (.slot? value 'gitops-profile?)
        (.ref value 'gitops-profile?)))
+(def (gitops-commit-convention? value)
+  (and (object? value) (.slot? value 'commit-convention?)
+       (.ref value 'commit-convention?) #t))
 (def (gitops-change? value) (element? GitOpsChange value))
 (def (gitops-check? value) (element? GitOpsCheck value))
 (def (gitops-decision? value) (element? GitOpsDecision value))
 
 (define-type (GitOpsProfileType @ Type.)
   .element?: gitops-profile?)
+(define-type (GitOpsCommitConventionType @ Type.)
+  .element?: gitops-commit-convention?)
 (def Predicate (Function (list Bool) (list Any)))
 
 (def GitOpsCommitCut
@@ -84,7 +90,7 @@
   (List (Record source: [String] execution: [GitOpsCommitExecution])))
 
 (def GitOpsCommitNaming
-  (Record project-key: [NonEmptyString] types: [(List NonEmptyString)]
+  (Record project-key: [(Or False NonEmptyString)] types: [(List NonEmptyString)]
           primary-language: [(Or False NonEmptyString)] language-sources: [(List NonEmptyString)]
           scopes: [(List (Record name: [NonEmptyString] paths: [(List NonEmptyString)]))]
           references: [(List (Record identity: [NonEmptyString] source: [NonEmptyString]
@@ -112,6 +118,10 @@
   (.cc (Record profile: [GitOpsProfileType]
                profile?: [Predicate] change?: [Predicate]
                check?: [Predicate] decision?: [Predicate]
+               conventional-commits-convention: [GitOpsCommitConventionType]
+               project-keyed-commit-convention: [GitOpsCommitConventionType]
+               commit-convention?: [Predicate]
+               resolve-commit-convention: [(Function (list (Or False GitOpsCommitConventionType)) (list Any))]
                change: [(Function (list GitOpsChange)
                                   (list Symbol GitOpsEvent NonEmptyString NonEmptyString
                                         NonEmptyString NonEmptyString (Or False UInt)))]

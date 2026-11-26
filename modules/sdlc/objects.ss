@@ -67,6 +67,7 @@
                         changed-baseline: 'review-required)
           tailoring: (.o default: 'unapproved approval: 'explicit-authority
                          prototype-override-is-approval?: #f)
+          commit-convention: "conventional-commits/1.0.0"
           assessment: 'not-evaluated)))
 
 (export sdlc-trace-node sdlc-trace-edge sdlc-trace-rule)

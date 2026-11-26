@@ -10,6 +10,10 @@
 
 (def Config
   (.o profile: OpenGitOpsProfile profile?: gitops-profile?
+      conventional-commits-convention: ConventionalCommitsConvention
+      project-keyed-commit-convention: ProjectKeyedCommitConvention
+      commit-convention?: gitops-commit-convention?
+      resolve-commit-convention: gitops-resolve-commit-convention
       change: gitops-change change?: gitops-change?
       check: gitops-check check?: gitops-check?
       decision?: gitops-decision?
