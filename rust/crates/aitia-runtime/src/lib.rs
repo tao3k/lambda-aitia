@@ -55,7 +55,7 @@ pub use linked::{
     RecordedAgentInputObservation, ReplayAssessmentScope,
 };
 #[cfg(feature = "linked-program")]
-pub use linked::{AitiaProgram, with_linked_program};
+pub use linked::{AitiaProgram, c_abi, with_linked_program};
 #[cfg(feature = "linked-program")]
 mod session;
 #[cfg(feature = "linked-program")]

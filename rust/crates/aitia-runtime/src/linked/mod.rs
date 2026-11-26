@@ -4,6 +4,7 @@
 //! Bind AITIA operations to the compiled Scheme program.
 
 mod binding;
+pub mod c_abi;
 #[cfg(unix)]
 mod context;
 mod review_input;

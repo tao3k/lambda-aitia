@@ -185,8 +185,12 @@ six established and frontier lines of research into one verifiable POO + functio
    SysML v2 and Scheme POO/FunFlow. Python scripts and tests (=pytest=) are invoked from FunFlow
    DAGs as frozen-snapshot =HostRead= leaf capabilities (=python.observe-pytest=) returning
    SHA-256-bound =ObservedFact= receipts, rather than duplicating workflow orchestration in Python.
-3. *Thin In-Process ABI Role for =aitia-python= (and Future C ABI)*:
+3. *Thin In-Process ABI Role for =aitia-python= and C ABI (=include/aitia.h=)*:
    =lambda_aitia_rust= (=rust/crates/aitia-python=) is intentionally frozen as a thin, zero-logic
-   in-process ABI over =AitiaSession= (one resident Gambit runtime thread). Its sole purpose is to
-   eliminate per-call CLI process startup overhead for high-frequency hosts (such as AI Agents),
-   never to grow into a second declarative DSL or orchestration framework.
+   in-process ABI over =AitiaSession= (one resident Gambit runtime thread). The same pre-compiled
+   =cdylib= directly exports the minimal C ABI (=aitia_abi_version=, =aitia_host_capabilities=,
+   =aitia_dispatch_host_frames=, =aitia_session_start=, =aitia_session_call=,
+   =aitia_session_close=, =aitia_buffer_free=; header in =rust/crates/aitia-runtime/include/aitia.h=).
+   Its sole purpose is to eliminate per-call CLI process startup overhead for high-frequency hosts
+   (Python AI Agents, Go, Node, C/C++, Zig, or editor plugins), never to grow into a second
+   declarative DSL or orchestration framework.

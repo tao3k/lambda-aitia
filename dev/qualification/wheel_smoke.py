@@ -593,4 +593,116 @@ except RuntimeError:
 else:
     raise AssertionError("closed Rust session accepted a request")
 
+# Exercise the ultra-thin C ABI exported by the exact same pre-compiled cdylib in a fresh
+# subprocess using pure `ctypes` (no PyO3 import, zero GERBIL_LOADPATH).
+import lambda_aitia_rust as _aitia_mod
+
+c_abi_script = r"""
+import ctypes, json, sys
+
+class AitiaBuffer(ctypes.Structure):
+    _fields_ = [
+        ("status", ctypes.c_int32),
+        ("data", ctypes.c_void_p),
+        ("len", ctypes.c_size_t),
+        ("cap", ctypes.c_size_t),
+    ]
+
+lib = ctypes.CDLL(sys.argv[1])
+lib.aitia_abi_version.restype = ctypes.c_uint32
+lib.aitia_host_capabilities.restype = AitiaBuffer
+lib.aitia_dispatch_host_frames.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+lib.aitia_dispatch_host_frames.restype = AitiaBuffer
+lib.aitia_session_start.argtypes = [ctypes.POINTER(AitiaBuffer)]
+lib.aitia_session_start.restype = ctypes.c_void_p
+lib.aitia_session_call.argtypes = [
+    ctypes.c_void_p,
+    ctypes.c_char_p,
+    ctypes.c_size_t,
+    ctypes.c_char_p,
+    ctypes.c_size_t,
+]
+lib.aitia_session_call.restype = AitiaBuffer
+lib.aitia_session_close.argtypes = [ctypes.c_void_p, ctypes.POINTER(AitiaBuffer)]
+lib.aitia_session_close.restype = ctypes.c_int32
+lib.aitia_buffer_free.argtypes = [AitiaBuffer]
+lib.aitia_buffer_free.restype = None
+
+def take_buf(buf):
+    try:
+        raw = ctypes.string_at(buf.data, buf.len).decode("utf-8") if buf.data and buf.len else ""
+        return buf.status, raw
+    finally:
+        lib.aitia_buffer_free(buf)
+
+assert lib.aitia_abi_version() == 1
+
+st, text = take_buf(lib.aitia_host_capabilities())
+assert st == 0, text
+caps = json.loads(text)
+assert caps["actionAuthorized"] is False
+cap_ids = {c["capability"] for c in caps["capabilities"]}
+assert len(cap_ids) == 12
+assert "python.observe-pytest" in cap_ids
+assert "gitops.jj.push-reviewed" in cap_ids
+
+bad_frame = json.dumps([{"capability": "gitops.jj.apply-description", "effectClass": "fenced-effect", "payload": {}}]).encode()
+st, err_text = take_buf(lib.aitia_dispatch_host_frames(bad_frame, len(bad_frame)))
+assert st != 0 and "fence" in err_text.lower(), err_text
+
+err_buf = AitiaBuffer()
+handle = lib.aitia_session_start(ctypes.byref(err_buf))
+assert handle, f"aitia_session_start failed: {take_buf(err_buf)}"
+try:
+    op = b"workflow_protocol_step"
+    req = json.dumps({
+        "caseId": "aitia/case/sdlc-lifecycle",
+        "project": "c-abi-host",
+        "profile": "lambda-aitia/sdlc/open-security",
+        "changeId": "change:c-abi-1",
+        "designAlternatives": ["zero-trust"],
+        "verified": True,
+        "observedObligations": ["sec.sbom-provenance"],
+    }).encode()
+    st, text = take_buf(lib.aitia_session_call(handle, op, len(op), req, len(req)))
+    assert st == 0, text
+    step = json.loads(text)
+    assert step["state"] == "need-agent-synthesis"
+    assert step["profile"] == "lambda-aitia/sdlc/open-security"
+    assert step["actionAuthorized"] is False
+
+    op2 = b"drive_multi_repo_protocol"
+    req2 = json.dumps({
+        "repos": [
+            {"repoId": "a", "dependsOn": ["b"]},
+            {"repoId": "b", "dependsOn": ["a"]},
+        ]
+    }).encode()
+    st, text = take_buf(lib.aitia_session_call(handle, op2, len(op2), req2, len(req2)))
+    assert st == 0, text
+    cyc = json.loads(text)
+    assert cyc["state"] == "need-human-decision"
+    assert cyc["escalationReason"] == "dependency-cycle"
+    assert cyc["actionAuthorized"] is False
+
+    bad_op = b"no_such_op"
+    st, err_msg = take_buf(lib.aitia_session_call(handle, bad_op, len(bad_op), b"{}", 2))
+    assert st != 0 and "unknown" in err_msg.lower(), err_msg
+finally:
+    close_err = AitiaBuffer()
+    rc = lib.aitia_session_close(handle, ctypes.byref(close_err))
+    assert rc == 0, f"aitia_session_close failed: {take_buf(close_err)}"
+"""
+
+c_abi_env = {
+    k: v
+    for k, v in os.environ.items()
+    if k not in ("GERBIL_LOADPATH", "GERBIL_PATH", "GERBIL_HOME")
+}
+subprocess.run(
+    [sys.executable, "-c", c_abi_script, _aitia_mod.__file__],
+    env=c_abi_env,
+    check=True,
+)
+
 print("AITIA-INSTALLED-RUST-WHEEL-OK")
