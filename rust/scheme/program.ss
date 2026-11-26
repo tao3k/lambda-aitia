@@ -7,7 +7,7 @@
                  aitia-org-contract-evaluate-payload aitia-project-config-validate-payload
                  aitia-evidence-lineage-payload
                  aitia-agent-input-check-payload aitia-agent-input-assess-payload
-                 aitia-pytest-assess-payload aitia-context-operation aitia-nasa-draft-payload
+                 aitia-pytest-assess-payload aitia-context-operation aitia-commit-review-payload
                  aitia-commit-journal-payload aitia-workflow-reconcile-payload
                  aitia-workflow-protocol-step-payload))
 (export main)
@@ -41,9 +41,9 @@
   (c-define (commit-journal request) (int64) int64 "aitia_program_commit_journal" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
      request lambda-aitia/bindings/commit-transport#aitia-commit-journal-payload))
-  (c-define (nasa-draft request) (int64) int64 "aitia_program_nasa_draft" "extern"
+  (c-define (commit-review request) (int64) int64 "aitia_program_commit_review" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/commit-transport#aitia-nasa-draft-payload))
+     request lambda-aitia/bindings/commit-transport#aitia-commit-review-payload))
   (c-define (evidence-lineage request) (int64) int64 "aitia_program_evidence_lineage" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
      request lambda-aitia/bindings/commit-transport#aitia-evidence-lineage-payload))

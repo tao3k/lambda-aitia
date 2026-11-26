@@ -25,6 +25,17 @@
         (check-equal? (hash-ref configured 'primary) "SWE-084")
         (check-equal? (hash-ref (hash-ref configured 'naming) 'projectKey) "EXAMPLE")
         (check-equal? (hash-ref recorded 'project) "tao3k/lambda-aitia")
+        (let* ((sdlc-settings
+                (.o project: "example-sdlc" profile: "lambda-aitia/sdlc" primary: "sdlc.config-audit"
+                    checks: (list (.o requirement: "sdlc.change-record" method: "jj.recorded-change")
+                                  (.o requirement: "sdlc.config-audit" method: "jj.configuration-audit"))
+                    naming: (.o projectKey: "EX" languageSources: '("README.org") types: '("feat" "fix")
+                                scopes: (list (.o name: "gitops" paths: '("modules/gitops")))
+                                references: (list (.o identity: "RFC-1" source: "design.org" element: "work")))))
+               (sdlc-decl (.o schemaVersion: 1 programs: (.o jj: (.o enable: #t settings: sdlc-settings))))
+               (sdlc-configured (select (configure sdlc-decl))))
+          (check-equal? (hash-ref sdlc-configured 'profile) "lambda-aitia/sdlc")
+          (check-equal? (hash-ref sdlc-configured 'primary) "sdlc.config-audit"))
         (check-equal? (select (decode "{\"schemaVersion\":1}")) #f)
         (check-equal? (decode "{\"schemaVersion\":1,\"services\":{\"commit\":{}}}") #f)))
     (test-case "Scheme and JSON use the same project configuration Contract"

@@ -5,7 +5,7 @@
 
 use super::{
     Apply, CommitNarration, CommitProposal, CommitRecovery, apply, attach_revision,
-    nasa_commit_report, prepare, record, recover, recover_attempt,
+    commit_review_report, prepare, record, recover, recover_attempt,
 };
 use crate::{
     HostCapabilityRegistry, HostEffectClass, MAX_REQUEST_BYTES, project, with_linked_program,
@@ -150,7 +150,7 @@ pub(crate) fn execute_commit_action(
     }
     with_linked_program(|program| {
         Ok((|| {
-            let (cut, mut result, _) = nasa_commit_report(
+            let (cut, mut result, _) = commit_review_report(
                 &program,
                 observed,
                 draft,

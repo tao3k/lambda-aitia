@@ -27,7 +27,7 @@ fn projects_commit_scopes_from_sysml_architecture_model() -> Result<(), Box<dyn 
     )?;
     let scopes = extract_declared_scopes(&model)?;
     let names: Vec<&str> = scopes.iter().map(|s| s.name.as_str()).collect();
-    assert_eq!(names, ["gitops", "sysml", "workflow"]);
+    assert_eq!(names, ["gitops", "sdlc", "sysml", "workflow"]);
     let gitops = scopes
         .iter()
         .find(|s| s.name == "gitops")
@@ -641,5 +641,153 @@ fn check_model_readback(
         "{rejected:?}"
     );
     assert_eq!(read(&args, &written), evidence);
+    Ok(())
+}
+
+#[cfg(feature = "linked-program")]
+#[test]
+fn standard_free_sdlc_profile_drives_gitops_commit_and_five_state_protocol()
+-> Result<(), Box<dyn std::error::Error>> {
+    use serde_json::{Value, json};
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    let Some(jj) = std::env::var_os("AITIA_JJ_BIN") else {
+        return Ok(());
+    };
+    let scratch = tempfile::tempdir()?;
+    let root = scratch.path();
+    let run_jj = |args: &[&str]| {
+        let out = Command::new(&jj)
+            .current_dir(root)
+            .args(args)
+            .output()
+            .expect("run jj");
+        assert!(
+            out.status.success(),
+            "jj {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&out.stderr)
+        );
+    };
+    run_jj(&["git", "init", "--colocate"]);
+    std::fs::create_dir_all(root.join(".agents/aita"))?;
+    std::fs::create_dir_all(root.join("src"))?;
+    std::fs::write(
+        root.join(".agents/aita/project.json"),
+        serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "programs": {
+                "jj": {
+                    "enable": true,
+                    "settings": {
+                        "project": "sdlc-core-demo",
+                        "profile": "lambda-aitia/sdlc",
+                        "primary": "sdlc.config-audit",
+                        "checks": [
+                            {"requirement": "sdlc.change-record", "method": "jj.recorded-change"},
+                            {"requirement": "sdlc.config-audit", "method": "jj.configuration-audit"}
+                        ],
+                        "naming": {
+                            "projectKey": "CORE",
+                            "primaryLanguage": "en",
+                            "languageSources": ["README.org"],
+                            "types": ["feat", "fix"],
+                            "scopes": [{"name": "core", "paths": ["src", ".agents/aita", "README.org", "work.org"]}],
+                            "references": [{"identity": "RFC-1", "source": "work.org", "element": "work"}]
+                        }
+                    }
+                }
+            }
+        }))?,
+    )?;
+    std::fs::write(root.join("README.org"), "* Core\nEnglish readme.\n")?;
+    std::fs::write(
+        root.join("work.org"),
+        "* Core RFC\n:PROPERTIES:\n:ID: work\n:ENGINEERING_ID: RFC-1\n:END:\n",
+    )?;
+    std::fs::write(root.join("src/main.rs"), "fn main() {}\n")?;
+    run_jj(&["describe", "-m", "initial standard-free sdlc cut"]);
+
+    // 1. Standard-free `aitia jj commit` works with ZERO NASA clauses.
+    let commit_out = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args(["jj", "commit"])
+        .output()?;
+    assert!(
+        commit_out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&commit_out.stderr)
+    );
+    let commit_json: Value = serde_json::from_slice(&commit_out.stdout)?;
+    assert_eq!(commit_json["policy"]["profile"], "lambda-aitia/sdlc");
+    assert_eq!(commit_json["policy"]["primary"], "sdlc.config-audit");
+    let supported = commit_json["review"]["supported"].as_array().unwrap();
+    assert!(supported.iter().any(|row| row[1] == "sdlc.change-record"));
+    assert!(supported.iter().any(|row| row[1] == "sdlc.config-audit"));
+
+    // 2. `aitia flow run` without proposals -> need-agent-synthesis (model-check-gap) + repairTasks.
+    let flow_missing = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args(["flow", "run"])
+        .output()?;
+    assert!(
+        flow_missing.status.success(),
+        "{}",
+        String::from_utf8_lossy(&flow_missing.stderr)
+    );
+    let missing_json: Value = serde_json::from_slice(&flow_missing.stdout)?;
+    assert_eq!(missing_json["profile"], "lambda-aitia/sdlc");
+    assert_eq!(missing_json["state"], "need-agent-synthesis");
+    assert_eq!(missing_json["handoffTarget"], "agent-synthesis");
+    assert_eq!(missing_json["gapKind"], "model-check-gap");
+    assert_eq!(missing_json["actionAuthorized"], false);
+    assert!(
+        !missing_json["repairTasks"].as_array().unwrap().is_empty(),
+        "expected structured Schwarz repairTasks"
+    );
+
+    // 3. `aitia flow run --proposal-stdin` with valid proposal -> need-human-decision (requirement-gap).
+    let proposal_overlay = json!({
+        "proposals": [{
+            "identity": "CORE-RFC-1",
+            "reference": "RFC-1",
+            "language": "en",
+            "languageSource": "README.org",
+            "type": "feat",
+            "scope": "core",
+            "summary": "Add standard-free core entrypoint",
+            "rationale": "Exercise standard-free SDLC GitOps flow."
+        }]
+    });
+    let mut child = Command::new(env!("CARGO_BIN_EXE_aitia"))
+        .current_dir(root)
+        .args(["flow", "run", "--proposal-stdin"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&proposal_overlay)?)?;
+    let flow_human = child.wait_with_output()?;
+    assert!(
+        flow_human.status.success(),
+        "{}",
+        String::from_utf8_lossy(&flow_human.stderr)
+    );
+    let human_json: Value = serde_json::from_slice(&flow_human.stdout)?;
+    assert_eq!(human_json["profile"], "lambda-aitia/sdlc");
+    assert_eq!(human_json["state"], "need-human-decision");
+    assert_eq!(human_json["handoffTarget"], "human-decision");
+    assert_eq!(human_json["gapKind"], "requirement-gap");
+    assert_eq!(human_json["actionAuthorized"], false);
+    let discharged = human_json["reconciliation"]["dischargedObligations"]
+        .as_array()
+        .unwrap();
+    assert!(discharged.iter().any(|o| o["id"] == "sdlc.change-record"));
+    assert!(discharged.iter().any(|o| o["id"] == "sdlc.config-audit"));
     Ok(())
 }

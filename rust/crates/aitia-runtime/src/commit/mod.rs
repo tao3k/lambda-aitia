@@ -19,4 +19,4 @@ pub(crate) use governance::{
     Apply, CommitRecovery, apply, attach_revision, prepare, record, recover, recover_attempt,
 };
 pub(crate) use push::{push, recover_push};
-pub(crate) use review::{CommitNarration, CommitProposal, nasa_commit_report};
+pub(crate) use review::{CommitNarration, CommitProposal, commit_review_report};

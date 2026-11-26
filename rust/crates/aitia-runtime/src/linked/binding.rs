@@ -29,7 +29,7 @@ unsafe extern "C" {
     fn aitia_program_org_contract_evaluate(request: i64) -> i64;
     fn aitia_program_project_config_validate(request: i64) -> i64;
     fn aitia_program_commit_journal(request: i64) -> i64;
-    fn aitia_program_nasa_draft(request: i64) -> i64;
+    fn aitia_program_commit_review(request: i64) -> i64;
     fn aitia_program_evidence_lineage(request: i64) -> i64;
     fn aitia_program_workflow_reconcile(request: i64) -> i64;
     fn aitia_program_workflow_protocol_step(request: i64) -> i64;
@@ -50,7 +50,7 @@ pub struct AitiaProgram<'runtime> {
     org_contract_evaluate: LinkedObjectExport<'runtime>,
     project_config_validate: LinkedObjectExport<'runtime>,
     commit_journal: LinkedObjectExport<'runtime>,
-    nasa_draft: LinkedObjectExport<'runtime>,
+    commit_review: LinkedObjectExport<'runtime>,
     evidence_lineage: LinkedObjectExport<'runtime>,
     workflow_reconcile: LinkedObjectExport<'runtime>,
     workflow_protocol_step: LinkedObjectExport<'runtime>,
@@ -222,7 +222,7 @@ impl<'runtime> AitiaProgram<'runtime> {
         self.call(&self.workflow_protocol_step, request)
     }
 
-    pub(crate) fn nasa_draft(
+    pub(crate) fn commit_review(
         &self,
         config: &RootedSchemeCollection<'_>,
         request: &serde_json::Value,
@@ -232,7 +232,7 @@ impl<'runtime> AitiaProgram<'runtime> {
         let input = self
             .runtime
             .collection_from_objects(CollectionKind::Pair, &[&review_configuration, &payload])?;
-        let result = self.call_rooted(&self.nasa_draft, &input.into_object())?;
+        let result = self.call_rooted(&self.commit_review, &input.into_object())?;
         super::review_input::from_scheme(result)
     }
 
@@ -603,7 +603,7 @@ pub fn with_linked_program<T>(
         // SAFETY: Scheme owns the rooted request and result.
         let commit_journal = unsafe { runtime.bind_object_export(aitia_program_commit_journal) }?;
         // SAFETY: Scheme owns the rooted request and result.
-        let nasa_draft = unsafe { runtime.bind_object_export(aitia_program_nasa_draft) }?;
+        let commit_review = unsafe { runtime.bind_object_export(aitia_program_commit_review) }?;
         // SAFETY: this symbol belongs to the same initialized linked program.
         let evidence_lineage =
             unsafe { runtime.bind_object_export(aitia_program_evidence_lineage) }?;
@@ -634,7 +634,7 @@ pub fn with_linked_program<T>(
             org_contract_evaluate,
             project_config_validate,
             commit_journal,
-            nasa_draft,
+            commit_review,
             evidence_lineage,
             workflow_reconcile,
             workflow_protocol_step,

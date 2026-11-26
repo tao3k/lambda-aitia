@@ -281,7 +281,10 @@ try:
             )
         )
     )
-    assert step2["state"] == "need-synthesis-or-human"
+    assert step2["state"] == "need-human-decision"
+    assert step2["handoffTarget"] == "human-decision"
+    assert step2["gapKind"] == "requirement-gap"
+    assert step2["profile"] == "lambda-aitia/sdlc"
     assert step2["reconciliation"]["choiceStatus"] == "unique-deduction"
     assert step2["reconciliation"]["choiceWorldCount"] == 1
     assert step2["actionAuthorized"] is False

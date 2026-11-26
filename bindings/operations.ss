@@ -37,6 +37,7 @@
         aitia-agent-input-assess-payload
         aitia-pytest-assess-payload
         aitia-context-operation
+        aitia-commit-review-payload
         aitia-nasa-draft-payload
         aitia-commit-journal-payload
         aitia-workflow-reconcile-payload

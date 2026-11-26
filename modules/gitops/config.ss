@@ -27,6 +27,8 @@
       commit-review-association: gitops-commit-review-association
       commit-model-assessment: gitops-commit-model-assessment
       commit-semantics: gitops-commit-semantics
+      commit-draft-requirements: gitops-commit-draft-requirements
+      commit-description: gitops-commit-description
       nasa-draft-requirements: gitops-nasa-draft-requirements
       nasa-commit-description: gitops-nasa-commit-description
       commit-evidence: gitops-commit-evidence

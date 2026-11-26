@@ -174,6 +174,41 @@
                                    (.ref row 'hypothesis-assessments))))))
                     (.ref matrix 'rows)))))))
 
+(def (json-workflow-checks input)
+  (let ((rows (optional-workflow-list input "checks")))
+    (and (pair? rows)
+         (map (lambda (row)
+                (list (json-required row "requirement")
+                      (json-required row "method")))
+              rows))))
+
+(def (repair-task->json task)
+  (hash (kind (symbol->string (.get task kind)))
+        (holeId (.get task hole-id))
+        (obligationId (.get task obligation-id))
+        (gapKind (symbol->string (.get task gap-kind)))
+        (target (symbol->string (.get task target)))
+        (unscopedPaths (list->vector (.get task unscoped-paths)))
+        (openDiagnostics
+         (list->vector
+          (map (lambda (row) (list->vector (map scalar->json row)))
+               (.get task open-diagnostics))))
+        (allowedScopes (list->vector (.get task allowed-scopes)))
+        (allowedReferences (list->vector (.get task allowed-references)))
+        (allowedTypes (list->vector (.get task allowed-types)))
+        (maxBranches (.get task max-branches))
+        (actionAuthorized #f)))
+
+(def (epistemic-summary->json summary)
+  (and summary
+       (hash (profile (.get summary profile))
+             (choiceStatus (symbol->string (.get summary choice-status)))
+             (worldCount (.get summary world-count))
+             (supportedCount (.get summary supported-count))
+             (staleCount (.get summary stale-count))
+             (openCount (.get summary open-count))
+             (reopenedCount (.get summary reopened-count)))))
+
 (def (reconcile-result->hash project cut graph initial report final-frontier proposal-res)
   (let* ((initial-plan (.get initial funflow-plan))
          (initial-batch (if (and initial-plan (.ref initial-plan 'valid?))
@@ -184,6 +219,7 @@
          (choice-sol (.get graph choice-solution)))
     (hash (schema "lambda-aitia.workflow-reconcile.v1")
           (project project)
+          (profile (if (.slot? graph 'profile) (.ref graph 'profile) "lambda-aitia/sdlc"))
           (commit (.get cut commit))
           (choiceStatus (symbol->string (.get choice-sol choice-status)))
           (choiceWorldCount (.get choice-sol world-count))
@@ -244,6 +280,8 @@
   (let* ((input (read-aitia-json payload))
          (wf (.get lambda-aitia.init.exports modules workflow))
          (project (json-required input "project"))
+         (profile (or (hash-get input "profile") "lambda-aitia/sdlc"))
+         (required-checks (json-workflow-checks input))
          (cut (replay-cut project (json-required input "cut")))
          (sysml-scopes (map json-workflow-scope (optional-workflow-list input "sysmlScopes")))
          (naming (json-workflow-naming (json-required input "naming") sysml-scopes))
@@ -258,6 +296,8 @@
          (run-reconcile? (if (boolean? raw-reconcile) raw-reconcile #t))
          (graph ((.get wf gitops-commit-graph)
                  naming cut sources paths proposals
+                 profile: profile
+                 required-checks: required-checks
                  observations: observations
                  approval-live?: approval-live?
                  candidate-offers: candidate-offers
@@ -278,6 +318,8 @@
   (let* ((input (read-aitia-json payload))
          (wf (.get lambda-aitia.init.exports modules workflow))
          (project (json-required input "project"))
+         (profile (or (hash-get input "profile") "lambda-aitia/sdlc"))
+         (required-checks (json-workflow-checks input))
          (case-id (or (hash-get input "caseId") "aitia/case/gitops-commit"))
          (directory (or (hash-get input "directory") "."))
          (requested-paths (optional-workflow-list input "requestedPaths"))
@@ -311,6 +353,8 @@
          (raw-reconcile (hash-get input "reconcile"))
          (run-reconcile? (if (boolean? raw-reconcile) raw-reconcile #t))
          (ctx (.o (case-id := case-id)
+                  (profile := profile)
+                  (required-checks := required-checks)
                   (directory := directory)
                   (requested-paths := requested-paths)
                   (model-check-enabled? := model-check-enabled?)
@@ -333,9 +377,15 @@
          (cid (.get step case-id)))
     (json->string
      (hash (schema "lambda-aitia.workflow-protocol-step.v1")
+           (profile (.get step profile))
            (state (symbol->string (.get step state)))
+           (handoffTarget (symbol->string (.get step handoff-target)))
+           (gapKind (symbol->string (.get step gap-kind)))
            (caseId (if (symbol? cid) (symbol->string cid) cid))
            (frames (list->vector (map host-frame->json (.get step frames))))
+           (repairTasks (list->vector (map repair-task->json (.get step repair-tasks))))
+           (epistemicSummary
+            (or (epistemic-summary->json (.get step epistemic-summary)) (void)))
            (reconciliation
             (if (.get step graph)
               (reconcile-result->hash

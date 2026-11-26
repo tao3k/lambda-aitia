@@ -21,7 +21,9 @@ package AitiaProjectArchitecture {
         attribute :>> ownedPaths = (
             "modules/gitops",
             "modules/project-config",
+            "modules/sdlc",
             "modules/workflow",
+            "user-interface/scenarios/github-gitops",
             "rust/Cargo.toml",
             "rust/Cargo.lock",
             "rust/workspace.just",
@@ -40,6 +42,17 @@ package AitiaProjectArchitecture {
             "gerbil.pkg",
             "AGENTS.md",
             "justfile"
+        );
+    }
+
+    part sdlcScope : CommitScope {
+        doc /* Standard-free SDLC core ontology, obligations, and pluggable standard profiles. */
+        attribute :>> scopeName = "sdlc";
+        attribute :>> ownedPaths = (
+            "modules/sdlc",
+            "t/yanxu/modules/sdlc",
+            "user-interface/profiles/nasa",
+            "user-interface/profiles/software-engineering"
         );
     }
 

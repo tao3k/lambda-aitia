@@ -10,6 +10,7 @@
 
 (export AitiaWorkflowDomain.
         GitOpsCommitWorkflowDomain.
+        GitOpsNasaCommitWorkflowDomain.
         SdlcLifecycleWorkflowDomain.
         ChoiceFlowPlan.)
 
@@ -22,16 +23,32 @@
   raw-tool-calls-allowed?: #f
   action-authorized?: #f)
 
+;;; Standard-free SDLC Core GitOps workflow domain (zero NASA hard-coding).
 (.def (GitOpsCommitWorkflowDomain. @ AitiaWorkflowDomain.)
   domain-id: 'aitia/gitops-commit
-  obligation-ids: '("SWE-083"
-                    "SWE-084"
+  profile-id: "lambda-aitia/sdlc"
+  default-checks: '(("sdlc.change-record" "jj.recorded-change")
+                    ("sdlc.config-audit" "jj.configuration-audit"))
+  obligation-ids: '("sdlc.change-record"
+                    "sdlc.config-audit"
                     "gitops.commit-semantics"
                     "gitops.commit-review-approved"
                     "gitops.commit-applied")
   synthesis-hole-id: "hole:gitops-commit-narration-or-scope"
   human-gate-obligation: "gitops.commit-review-approved"
   fenced-effect-obligation: "gitops.commit-applied")
+
+;;; NASA NPR 7150.2D Profile specialization via pure POO prototype inheritance.
+(.def (GitOpsNasaCommitWorkflowDomain. @ GitOpsCommitWorkflowDomain.)
+  domain-id: 'aitia/gitops-commit-nasa
+  profile-id: "nasa/sdlc/npr-7150.2"
+  default-checks: '(("SWE-083" "jj.recorded-change")
+                    ("SWE-084" "jj.configuration-audit"))
+  obligation-ids: '("SWE-083"
+                    "SWE-084"
+                    "gitops.commit-semantics"
+                    "gitops.commit-review-approved"
+                    "gitops.commit-applied"))
 
 (.def (SdlcLifecycleWorkflowDomain. @ AitiaWorkflowDomain.)
   domain-id: 'aitia/sdlc-lifecycle

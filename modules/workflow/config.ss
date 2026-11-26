@@ -52,6 +52,7 @@
 (def Config
   (.o domain-prototype: AitiaWorkflowDomain.
       gitops-commit-domain: GitOpsCommitWorkflowDomain.
+      gitops-nasa-commit-domain: GitOpsNasaCommitWorkflowDomain.
       sdlc-lifecycle-domain: SdlcLifecycleWorkflowDomain.
       choice-flow-plan-prototype: ChoiceFlowPlan.
       profiles: WorkflowCaseProfiles.

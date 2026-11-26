@@ -42,6 +42,10 @@
         EpistemicVerdictKind
         EpistemicProbeEvidence
         WorkflowProtocolState
+        WorkflowHandoffTarget
+        WorkflowGapKind
+        WorkflowCheckSpecList
+        OptionalCheckSpecList
         HostEffectClassKind
         HostFrameSpecType
         WorkflowProtocolStepType
@@ -171,7 +175,23 @@
           detail: [NonEmptyString]))
 
 (def WorkflowProtocolState
-  (Enum need-host-frames need-synthesis-or-human need-fenced-frames quiescent))
+  (Enum need-host-frames
+        need-agent-synthesis
+        need-human-decision
+        need-fenced-frames
+        quiescent))
+
+(def WorkflowHandoffTarget
+  (Enum host-probe agent-synthesis human-decision host-fenced-effect none))
+
+(def WorkflowGapKind
+  (Enum model-reality-gap model-check-gap requirement-gap none))
+
+(def WorkflowCheckSpecList
+  (List (List NonEmptyString)))
+
+(def OptionalCheckSpecList
+  (Or False WorkflowCheckSpecList))
 
 (def HostEffectClassKind
   (Enum host-read fenced-effect))
@@ -238,6 +258,7 @@
 (def WorkflowScopeContract
   (.cc (Record domain-prototype: [WorkflowDomainProfileType]
                gitops-commit-domain: [WorkflowDomainProfileType]
+               gitops-nasa-commit-domain: [WorkflowDomainProfileType]
                sdlc-lifecycle-domain: [WorkflowDomainProfileType]
                choice-flow-plan-prototype: [ChoiceFlowPlanType]
                profiles: [Object]
@@ -298,6 +319,8 @@
                           (list GitOpsCommitNaming GitOpsCommitCut GitOpsCommitSources
                                 (List NonEmptyString) GitOpsCommitProposals)
                           keywords: (list (cons 'graph-id: NonEmptyString)
+                                          (cons 'profile: NonEmptyString)
+                                          (cons 'required-checks: OptionalCheckSpecList)
                                           (cons 'cut-index: UInt)
                                           (cons 'observations: (List GitOpsCommitObservation))
                                           (cons 'approval-live?: Bool)

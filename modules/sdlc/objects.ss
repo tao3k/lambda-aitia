@@ -4,13 +4,35 @@
 
 (import (only-in :clan/poo/type validate)
         (only-in :clan/poo/object .o .ref)
+        (only-in :tao3k/yuanxu/module-system/feature/source-lock-feature
+                 source-lock-payload-digest)
         (only-in :tao3k/agentic-ai-lab/modules/governance/objects
                  AgenticAILabGovernanceProfile.)
         "types.ss")
-(export StandardProfile. SdlcProfile)
+(export StandardProfile. SdlcCoreStandard SdlcProfile)
 (def StandardProfile.
   (.o (:: @ (.ref SdlcStandard 'proto)) kind: 'lambda-aitia.sdlc-standard coverage: 'partial
       requirements: '() assessment: 'not-evaluated))
+(def SdlcCoreStandard
+  (.o (:: @ StandardProfile.)
+      identity: "lambda-aitia/sdlc"
+      edition: "1"
+      source-url: "https://github.com/tao3k/lambda-aitia/blob/main/modules/sdlc/README.org"
+      source-lock-digest: (source-lock-payload-digest (string->utf8 "lambda-aitia/sdlc:v1"))
+      coverage: 'complete
+      requirements:
+      (list (.o identity: "sdlc.change-record"
+                title: "Record complete working-copy change inventory at current cut"
+                method: "jj.recorded-change")
+            (.o identity: "sdlc.config-audit"
+                title: "Audit recorded project and VCS configuration at current cut"
+                method: "jj.configuration-audit")
+            (.o identity: "sdlc.traceability"
+                title: "Bind change to an admitted engineering reference and scope")
+            (.o identity: "sdlc.verification-observed"
+                title: "Observe required verification checks against current cut")
+            (.o identity: "sdlc.release-approval"
+                title: "Explicit human approval bound to current cut"))))
 (def sdlc-ontology
   (.o entities: '(LifecycleActivity Requirement Artifact Verification Evidence
                  Review Decision Baseline Standard TailoringRequest Approval)

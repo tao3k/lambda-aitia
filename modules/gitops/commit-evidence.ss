@@ -24,8 +24,9 @@
         "types.ss")
 (export gitops-commit-evidence gitops-admit-commit-observation
         gitops-assess-replay-observation gitops-replay-receipt gitops-model-gaps
-        gitops-commit-check-receipt gitops-nasa-draft-requirements
-        gitops-nasa-commit-description
+        gitops-commit-check-receipt
+        gitops-commit-draft-requirements gitops-commit-description
+        gitops-nasa-draft-requirements gitops-nasa-commit-description
         gitops-commit-model-assessment)
 
 (def (gitops-commit-model-assessment enabled? paths observation)
@@ -335,11 +336,13 @@
                   (.ref assessment-value (cdr relation)))))))
    draft-relations))
 
-(def (gitops-nasa-draft-requirements policy cut candidates)
+(def (gitops-commit-draft-requirements policy cut candidates)
   (let-values (((assessment-value rejected unique?) (assess-commit-draft policy cut candidates)))
     (.o context: (draft-context policy cut assessment-value)
         clauses: (draft-clauses assessment-value)
         assessment: assessment-value rejected-count: rejected unique-evidence?: unique?)))
+
+(def gitops-nasa-draft-requirements gitops-commit-draft-requirements)
 
 (def (draft-org-matches? source clauses)
   (let* ((graph (org-source-element-graph source))
@@ -395,8 +398,8 @@
            (and (= (length results) (length clauses))
                 (andmap org-contract-result-passed? results))))))
 
-(def (gitops-nasa-commit-description policy cut candidates title narration draft-org context
-                                    preview?: (preview? #f))
+(def (gitops-commit-description policy cut candidates title narration draft-org context
+                                preview?: (preview? #f))
   (unless (gitops-commit-title? title)
     (error "Invalid commit narration"))
   (let-values (((assessment-value rejected unique?) (assess-commit-draft policy cut candidates)))
@@ -425,3 +428,5 @@
       (.o context: current-context assessment: assessment-value rejected-count: rejected
           preview-description: (and valid? rendered)
           draft-valid?: valid? description: description-value description-digest: digest))))
+
+(def gitops-nasa-commit-description gitops-commit-description)

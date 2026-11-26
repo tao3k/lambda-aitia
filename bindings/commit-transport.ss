@@ -14,6 +14,7 @@
         "transport-common.ss")
 (export aitia-evidence-lineage-payload
         aitia-commit-journal-payload
+        aitia-commit-review-payload
         aitia-nasa-draft-payload)
 
 (def (optional-json-list object field)
@@ -265,7 +266,7 @@
 (def (json-narration-row row)
   (list (json-required row "obligation") (json-required row "text")))
 
-(def (aitia-nasa-draft-payload request)
+(def (aitia-commit-review-payload request)
   (let ((configuration (car request)) (input (cdr request)))
     (unless configuration (error "No commit policy in the recorded project"))
     (let* ((selection (.get configuration selection))
@@ -322,7 +323,7 @@
            (narration (and draft (json-required draft "narration")))
            (review (cond
                     ((and draft title-row)
-                     ((.get gitops nasa-commit-description)
+                     ((.get gitops commit-description)
                       policy cut candidates (cadr title-row)
                       (.o change: (json-required narration "change")
                           evidence: (map json-narration-row (json-list narration "evidence"))
@@ -331,9 +332,9 @@
                       (json-required draft "context")
                       preview?: (eq? (hash-get input "preview") #t)))
                     (draft
-                     (.cc ((.get gitops nasa-draft-requirements) policy cut candidates)
+                     (.cc ((.get gitops commit-draft-requirements) policy cut candidates)
                           draft-valid?: #f preview-description: #f description: #f description-digest: #f))
-                    (else ((.get gitops nasa-draft-requirements) policy cut candidates))))
+                    (else ((.get gitops commit-draft-requirements) policy cut candidates))))
            (assessment (.get review assessment)))
       (def (rows key)
         (list->vector (map list->vector (.ref assessment key))))
@@ -367,3 +368,5 @@
             (previewDescription (if draft (or (.get review preview-description) (void)) (void)))
             (description (if draft (or (.get review description) (void)) (void)))
             (descriptionDigest (if draft (or (.get review description-digest) (void)) (void)))))))
+
+(def aitia-nasa-draft-payload aitia-commit-review-payload)

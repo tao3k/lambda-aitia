@@ -54,6 +54,8 @@ pub fn drive_scheme_protocol(
     let mut state = serde_json::json!({
         "caseId": case_id,
         "project": project,
+        "profile": policy["profile"],
+        "checks": policy["checks"],
         "directory": cut.workspace_root().to_string_lossy().into_owned(),
         "requestedPaths": project::review_source_paths(policy)?,
         "modelCheckEnabled": cfg.model_check_enabled(),

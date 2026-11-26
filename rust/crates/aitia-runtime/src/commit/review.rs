@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-//! Commit narration contract types and NASA commit review report assembly.
+//! Commit narration contract types and standard-agnostic commit review report assembly.
 
 use super::{
     Result, check_execution_identity, dispatch_capability, review_cut_value, review_input_digest,
@@ -73,7 +73,7 @@ fn observe_commit_provider(
     Ok((bookmarks, observation))
 }
 
-pub(crate) fn nasa_commit_report(
+pub(crate) fn commit_review_report(
     program: &AitiaProgram<'_>,
     observed: (WorkspaceCut, aitia_jj::RecordedProjectSources),
     draft: Option<&CommitNarration>,
@@ -197,7 +197,7 @@ pub(crate) fn nasa_commit_report(
     if payload_size.0 + source.len() + "\"projectSources\":,".len() > MAX_REQUEST_BYTES as usize {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "AITIA input exceeds 4 MiB").into());
     }
-    let review = program.nasa_draft(&review_configuration, &request)?;
+    let review = program.commit_review(&review_configuration, &request)?;
     if observe_workspace(cut.workspace_root())? != cut {
         return Err(aitia_jj::JjObservationError::ChangedOperation.into());
     }

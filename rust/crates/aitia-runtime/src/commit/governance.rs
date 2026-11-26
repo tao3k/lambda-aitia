@@ -157,12 +157,12 @@ pub(crate) fn prepare(
     report: &mut Value,
 ) -> Result<()> {
     let (project, context, _, payload) = reviewed_frame(cut, report)?;
-    let record = dispatch_capability(
+    let record: DescriptionRecovery = serde_json::from_value(dispatch_capability(
         "gitops.jj.prepare-description",
         HostEffectClass::FencedEffect,
         &payload,
         Some(context.to_owned()),
-    )?;
+    )?)?;
     let intent = journal(
         program,
         json!({
@@ -174,7 +174,7 @@ pub(crate) fn prepare(
     )?;
     attach_revision(cut, report)?;
     report["intent"] = intent;
-    report["attempt"] = record;
+    report["attempt"] = serde_json::to_value(&record)?;
     Ok(())
 }
 

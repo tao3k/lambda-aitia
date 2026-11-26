@@ -58,7 +58,7 @@
 (def commit-settings-schema
   (schema-object '("project" "profile" "primary" "checks" "naming")
     (.o project: (schema-string)
-        profile: (schema-enum '("nasa/sdlc/npr-7150.2"))
+        profile: (schema-enum '("lambda-aitia/sdlc" "nasa/sdlc/npr-7150.2"))
         primary: (schema-string)
         governance: (schema-enum '("signed"))
         naming: commit-naming-schema

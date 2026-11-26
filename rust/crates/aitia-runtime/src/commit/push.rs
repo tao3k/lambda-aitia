@@ -3,7 +3,7 @@
 
 //! Reviewed Git push verification, route matching, and push recovery.
 
-use super::{Apply, Result, description, dispatch_capability, err, nasa_commit_report};
+use super::{Apply, Result, commit_review_report, description, dispatch_capability, err};
 use crate::{HostEffectClass, with_linked_program};
 use aitia_jj::DescriptionRecovery;
 use serde::Deserialize;
@@ -64,7 +64,7 @@ pub(crate) fn push(input: &str, remote: &str, bookmark: &str) -> Result<Value> {
     // A verified description rewrite changes repository identity, not the
     // original review. Current Scheme rules must still accept its exact context.
     let (checked, report, reviewed_routes) = with_linked_program(|program| {
-        Ok(nasa_commit_report(
+        Ok(commit_review_report(
             &program,
             observed,
             Some(&input.draft),

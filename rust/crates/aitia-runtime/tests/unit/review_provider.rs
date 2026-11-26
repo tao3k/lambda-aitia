@@ -260,7 +260,7 @@ fn changed_pull_target_reopens_review_in_the_linked_scheme_program() {
     crate::with_linked_program(|program| {
         let (configuration, _) = program.resolve_project_config(&sources.to_string())?;
         request["providerReview"] = json!(observe("old-base"));
-        let old = program.nasa_draft(&configuration, &request)?;
+        let old = program.commit_review(&configuration, &request)?;
         assert_eq!(old["pullRequest"]["targetRevision"], "old-base");
         assert_eq!(old["draftValid"], true);
         let prose = old["previewDescription"].as_str().unwrap();
@@ -268,21 +268,21 @@ fn changed_pull_target_reopens_review_in_the_linked_scheme_program() {
 
         request["draft"]["context"] = old["context"].clone();
         request["preview"] = json!(false);
-        let current = program.nasa_draft(&configuration, &request)?;
+        let current = program.commit_review(&configuration, &request)?;
         assert_eq!(current["description"], prose);
         request["providerReview"] = json!(observe("new-base"));
-        let rejected = program.nasa_draft(&configuration, &request)?;
+        let rejected = program.commit_review(&configuration, &request)?;
         assert_eq!(rejected["pullRequest"]["targetRevision"], "new-base");
         assert_eq!(rejected["draftValid"], false);
         assert!(rejected["description"].is_null());
         assert_ne!(rejected["context"], old["context"]);
 
         request["preview"] = json!(true);
-        let refreshed = program.nasa_draft(&configuration, &request)?;
+        let refreshed = program.commit_review(&configuration, &request)?;
         assert_eq!(refreshed["previewDescription"], prose);
         request["draft"]["context"] = refreshed["context"].clone();
         request["preview"] = json!(false);
-        let admitted = program.nasa_draft(&configuration, &request)?;
+        let admitted = program.commit_review(&configuration, &request)?;
         assert_eq!(admitted["draftValid"], true);
         assert_eq!(admitted["description"], prose);
         Ok(())

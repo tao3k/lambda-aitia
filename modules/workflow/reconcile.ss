@@ -217,13 +217,81 @@
                (eq? (.get obs outcome) 'passed)))
         observations))
 
+(def (resolve-gitops-check-specs profile required-checks)
+  (cond
+   ((and (list? required-checks) (pair? required-checks))
+    required-checks)
+   ((equal? profile "nasa/sdlc/npr-7150.2")
+    '(("SWE-083" "jj.recorded-change")
+      ("SWE-084" "jj.configuration-audit")))
+   (else
+    '(("sdlc.change-record" "jj.recorded-change")
+      ("sdlc.config-audit" "jj.configuration-audit")))))
+
+(def (check-evidence-id req-id)
+  (string-append "ev:" req-id))
+
+(def (check-spec-title req-id method)
+  (cond
+   ((equal? method "jj.recorded-change")
+    (string-append "Record complete working-copy change inventory at current cut (" req-id ")"))
+   ((equal? method "jj.configuration-audit")
+    (string-append "Audit recorded project and VCS configuration at current cut (" req-id ")"))
+   (else
+    (string-append "Observe deterministic verification check " method " for " req-id))))
+
+(def (make-check-evidence-fact req-id method commit-id paths cut-index cut-premise)
+  (let ((payload
+         (if (equal? method "jj.recorded-change")
+           (.o (kind := 'observed-cut) (commit := commit-id) (paths := paths))
+           (.o (kind := 'audited-config) (commit := commit-id)))))
+    (make-evidence-fact
+     (check-evidence-id req-id)
+     payload
+     cut: cut-index
+     premise-ids: (list cut-premise)
+     origin-tier: 'observed-fact)))
+
+(def (make-check-task-node req-id method commit-id paths cut-premise)
+  (if (equal? method "jj.recorded-change")
+    (make-deterministic-task-node
+     (string-append "task:" method ":" req-id)
+     req-id
+     (check-evidence-id req-id)
+     (make-typed-capability-flow 'jj-observe-cut +cut-observe-sig+
+       (lambda (req)
+         (.o (kind := 'observed-cut)
+             (commit := (.get req commit))
+             (paths := (.get req paths)))))
+     (.o (commit := commit-id) (paths := paths))
+     premise-ids: (list cut-premise)
+     read-footprint: '(workspace-tree)
+     write-footprint: '()
+     effect-class: 'verified-epistemic)
+    (make-deterministic-task-node
+     (string-append "task:" method ":" req-id)
+     req-id
+     (check-evidence-id req-id)
+     (make-typed-capability-flow 'jj-config-audit +config-audit-sig+
+       (lambda (req)
+         (.o (kind := 'audited-config)
+             (commit := (.get req commit)))))
+     (.o (commit := commit-id))
+     premise-ids: (list cut-premise)
+     read-footprint: '(jj-configuration)
+     write-footprint: '()
+     effect-class: 'verified-epistemic)))
+
 ;;; Build an immutable Lab `ObligationGraph.` directly from Lambda Aitia's
-;;; two-stage native `gerbil-ascent` pipeline:
+;;; two-stage native `gerbil-ascent` pipeline, dynamically parameterized by the
+;;; selected SDLC Core or Standard Profile (`profile` + `required-checks`):
 ;;;   Stage 1: stratified `gitops-commit-semantics` + `gitops-commit-evidence`
 ;;;   Stage 2: Lean-verified `relational-choice-program` (`workflow-solve-gitops-choices`)
 (def (workflow-gitops-commit-graph
       naming cut sources paths proposals
       graph-id: (graph-id "aitia.gitops-commit")
+      profile: (profile "lambda-aitia/sdlc")
+      required-checks: (required-checks #f)
       cut-index: (cut-index 1)
       observations: (observations '())
       approval-live?: (approval-live? #f)
@@ -235,6 +303,9 @@
       extra-tasks: (extra-tasks '()))
   (let* ((commit-id (.get cut commit))
          (cut-premise (string-append "premise:cut:" commit-id))
+         (check-specs (resolve-gitops-check-specs profile required-checks))
+         (check-ids (map car check-specs))
+         (check-ev-ids (map check-evidence-id check-ids))
          (semantics (gitops-commit-semantics naming cut sources paths proposals))
          (choice-solution (workflow-solve-gitops-choices
                            semantics cut
@@ -242,31 +313,22 @@
                            candidate-offers: candidate-offers
                            forbidden-scopes: forbidden-scopes
                            state-budget: state-budget))
-         (evidence-view (gitops-commit-evidence cut '("SWE-083" "SWE-084") observations))
-         (swe-83-ok? (and (observation-for-obligation observations "SWE-083") #t))
-         (swe-84-ok? (and (observation-for-obligation observations "SWE-084") #t))
+         (evidence-view (gitops-commit-evidence cut check-ids observations))
          (eligible-rows (.get semantics eligible))
          (eligible? (and (pair? eligible-rows)
                          (null? (.get semantics open))
                          (null? (.get semantics unscoped-paths))))
+         (live-check-evidence
+          (filter-map
+           (lambda (spec)
+             (let ((req-id (car spec))
+                   (method (cadr spec)))
+               (and (observation-for-obligation observations req-id)
+                    (make-check-evidence-fact req-id method commit-id paths cut-index cut-premise))))
+           check-specs))
          (live-evidence
           (append
-           (if swe-83-ok?
-             (list (make-evidence-fact
-                    "ev:SWE-083"
-                    (.o (kind := 'observed-cut) (commit := commit-id) (paths := paths))
-                    cut: cut-index
-                    premise-ids: (list cut-premise)
-                    origin-tier: 'observed-fact))
-             '())
-           (if swe-84-ok?
-             (list (make-evidence-fact
-                    "ev:SWE-084"
-                    (.o (kind := 'audited-config) (commit := commit-id))
-                    cut: cut-index
-                    premise-ids: (list cut-premise)
-                    origin-tier: 'observed-fact))
-             '())
+           live-check-evidence
            (if approval-live?
              (list (make-evidence-fact
                     "ev:gitops-human-approval"
@@ -275,68 +337,47 @@
                     premise-ids: (list cut-premise)
                     origin-tier: 'human-decision))
              '())))
+         (check-obligations
+          (map (lambda (spec)
+                 (let ((req-id (car spec))
+                       (method (cadr spec)))
+                   (make-obligation
+                    req-id
+                    title: (check-spec-title req-id method)
+                    required-evidence-ids: (list (check-evidence-id req-id))
+                    premise-ids: (list cut-premise))))
+               check-specs))
          (obligations
-          (list
-           (make-obligation
-            "SWE-083"
-            title: "Record complete working-copy change inventory at current cut"
-            required-evidence-ids: '("ev:SWE-083")
-            premise-ids: (list cut-premise))
-           (make-obligation
-            "SWE-084"
-            title: "Audit recorded project and VCS configuration at current cut"
-            required-evidence-ids: '("ev:SWE-084")
-            premise-ids: (list cut-premise))
-           (make-obligation
-            "gitops.commit-semantics"
-            title: "Ground commit title, scope, reference, and language via native ASCENT"
-            required-evidence-ids: '("ev:gitops-commit-semantics")
-            depends-on: '("SWE-083" "SWE-084")
-            premise-ids: (list cut-premise))
-           (make-obligation
-            "gitops.commit-review-approved"
-            title: "Human audit decision bound to current cut and rendered preview"
-            required-evidence-ids: '("ev:gitops-human-approval")
-            depends-on: '("gitops.commit-semantics")
-            active-defeaters: (if approval-live? '() '(missing-signed-commit-approval))
-            premise-ids: (list cut-premise))
-           (make-obligation
-            "gitops.commit-applied"
-            title: "Apply reviewed commit through fenced durable admission"
-            required-evidence-ids: '("ev:gitops-commit-receipt")
-            depends-on: '("gitops.commit-review-approved")
-            active-defeaters: (if approval-live? '() '(fenced-effect-requires-human-approval))
-            premise-ids: (list cut-premise))))
+          (append
+           check-obligations
+           (list
+            (make-obligation
+             "gitops.commit-semantics"
+             title: "Ground commit title, scope, reference, and language via native ASCENT"
+             required-evidence-ids: '("ev:gitops-commit-semantics")
+             depends-on: check-ids
+             premise-ids: (list cut-premise))
+            (make-obligation
+             "gitops.commit-review-approved"
+             title: "Human audit decision bound to current cut and rendered preview"
+             required-evidence-ids: '("ev:gitops-human-approval")
+             depends-on: '("gitops.commit-semantics")
+             active-defeaters: (if approval-live? '() '(missing-signed-commit-approval))
+             premise-ids: (list cut-premise))
+            (make-obligation
+             "gitops.commit-applied"
+             title: "Apply reviewed commit through fenced durable admission"
+             required-evidence-ids: '("ev:gitops-commit-receipt")
+             depends-on: '("gitops.commit-review-approved")
+             active-defeaters: (if approval-live? '() '(fenced-effect-requires-human-approval))
+             premise-ids: (list cut-premise)))))
+         (check-tasks
+          (map (lambda (spec)
+                 (make-check-task-node (car spec) (cadr spec) commit-id paths cut-premise))
+               check-specs))
          (det-tasks
           (append
-           (list
-            (make-deterministic-task-node
-             "task:jj-observe-cut"
-             "SWE-083"
-             "ev:SWE-083"
-             (make-typed-capability-flow 'jj-observe-cut +cut-observe-sig+
-               (lambda (req)
-                 (.o (kind := 'observed-cut)
-                     (commit := (.get req commit))
-                     (paths := (.get req paths)))))
-             (.o (commit := commit-id) (paths := paths))
-             premise-ids: (list cut-premise)
-             read-footprint: '(workspace-tree)
-             write-footprint: '()
-             effect-class: 'verified-epistemic)
-            (make-deterministic-task-node
-             "task:jj-config-audit"
-             "SWE-084"
-             "ev:SWE-084"
-             (make-typed-capability-flow 'jj-config-audit +config-audit-sig+
-               (lambda (req)
-                 (.o (kind := 'audited-config)
-                     (commit := (.get req commit)))))
-             (.o (commit := commit-id))
-             premise-ids: (list cut-premise)
-             read-footprint: '(jj-configuration)
-             write-footprint: '()
-             effect-class: 'verified-epistemic))
+           check-tasks
            (if eligible?
              (list
               (make-deterministic-task-node
@@ -349,7 +390,7 @@
                        (commit := (.get req commit))
                        (eligible := (.get req eligible)))))
                (.o (commit := commit-id) (eligible := eligible-rows))
-               required-evidence-ids: '("ev:SWE-083" "ev:SWE-084")
+               required-evidence-ids: check-ev-ids
                premise-ids: (list cut-premise)
                read-footprint: '(commit-semantics)
                write-footprint: '()
@@ -392,6 +433,8 @@
                det-tasks: det-tasks
                synthesis-holes: synthesis-holes
                cedar-grant-live?: cedar-grant-live?))
+        (profile := profile)
+        (check-obligation-ids := check-ids)
         (semantics-assessment := semantics)
         (choice-solution := choice-solution)
         (evidence-assessment := evidence-view)
@@ -587,21 +630,23 @@
             (action-authorized? := #f))))
      ((eq? mode 'invoke-typed-synthesis-oracle)
       (let* ((hole (car (.ref frontier 'ready-synthesis-holes)))
-             (g-marked (obligation-graph-mark-hole-attempted graph hole))
              (hyps (.ref frontier 'unrefuted-hypotheses)))
         (if (not (procedure? oracle-fn))
+          ;; Pause cleanly at the synthesis frontier without consuming the hole,
+          ;; so external AI-Native Mixed-Initiative callers receive live repairTasks.
           (let ((g-inbox (obligation-graph-add-human-inbox
-                          g-marked
+                          graph
                           (.o (kind := 'synthesis-hole-no-oracle)
                               (hole-id := (.ref hole 'hole-id))))))
             (.o (graph := g-inbox)
                 (frontier := frontier)
                 (mode := mode)
-                (quiescent? := #f)
+                (quiescent? := #t)
                 (llm-calls-used := 0)
                 (det-tasks-executed := 0)
                 (action-authorized? := #f)))
-          (let* ((proposal (oracle-fn hole frontier hyps))
+          (let* ((g-marked (obligation-graph-mark-hole-attempted graph hole))
+                 (proposal (oracle-fn hole frontier hyps))
                  (checked (and proposal
                                (workflow-admit-proposal
                                 g-marked proposal
@@ -715,18 +760,44 @@
          (premise-id := premise-id)
          (cut := next-cut)))))
 
-;;; Scheme-owned 4-state Inversion-of-Control protocol step (RFC 0008):
-;;;   1. `need-host-frames`: Scheme declares missing read-only HostCapability frames;
-;;;      Rust dispatches them blindly via `HostCapabilityRegistry::dispatch_batch`.
-;;;   2. `need-synthesis-or-human`: all HostRead receipts present, but graph has open
-;;;      synthesis holes, competing worlds, or human audit gates.
-;;;   3. `need-fenced-frames`: unique grounded world with live approval awaiting a
-;;;      fenced effect frame (`action-authorized?: #f` at plan boundary).
-;;;   4. `quiescent`: all obligations discharged with zero open holes or human gates.
+;;; Scheme-owned 5-state AI-Native Mixed-Initiative Inversion-of-Control protocol (RFC 0008):
+;;;   1. `need-host-frames` (`host-probe` / `model-reality-gap`): missing read-only HostRead
+;;;      observations; Rust dispatches automatically without interrupting the human.
+;;;   2. `need-agent-synthesis` (`agent-synthesis` / `model-check-gap`): machine-checkable
+;;;      synthesis holes (unscoped paths, missing narration/reference) emitted as Schwarz-style
+;;;      local repair tasks for the AI Agent.
+;;;   3. `need-human-decision` (`human-decision` / `requirement-gap`): irreducible competing
+;;;      worlds, unsatisfiable contradiction, or explicit human governance approval gate.
+;;;   4. `need-fenced-frames` (`host-fenced-effect` / `none`): unique grounded world with live
+;;;      approval awaiting a fenced effect frame (`action-authorized?: #f` at plan boundary).
+;;;   5. `quiescent` (`none` / `none`): all obligations discharged with zero open holes or gates.
+(def (build-agent-repair-tasks holes semantics naming)
+  (let ((allowed-scopes (map (lambda (s) (.get s name)) (.get naming scopes)))
+        (allowed-refs (map (lambda (r) (.get r identity)) (.get naming references)))
+        (allowed-types (.get naming types))
+        (unscoped (.get semantics unscoped-paths))
+        (sem-open (.get semantics open)))
+    (map (lambda (h)
+           (.o (kind := 'lambda-aitia.workflow.repair-task.v1)
+               (hole-id := (.ref h 'hole-id))
+               (obligation-id := (.ref h 'obligation-id))
+               (gap-kind := 'model-check-gap)
+               (target := 'agent-synthesis)
+               (unscoped-paths := unscoped)
+               (open-diagnostics := sem-open)
+               (allowed-scopes := allowed-scopes)
+               (allowed-references := allowed-refs)
+               (allowed-types := allowed-types)
+               (max-branches := (.ref h 'max-branches))
+               (action-authorized? := #f)))
+         holes)))
+
 (def (workflow-plan-protocol-step ctx)
   (unless (object? ctx)
     (error "workflow-plan-protocol-step expects a POO protocol context" ctx))
   (let* ((case-id (opt-ref ctx 'case-id 'aitia/case/gitops-commit))
+         (profile (opt-ref ctx 'profile "lambda-aitia/sdlc"))
+         (required-checks (opt-ref ctx 'required-checks #f))
          (directory (opt-ref ctx 'directory "."))
          (requested-paths (opt-ref ctx 'requested-paths '()))
          (model-check-enabled? (opt-ref ctx 'model-check-enabled? #t))
@@ -762,9 +833,14 @@
     (if (pair? missing-frames)
       (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
           (schema := "lambda-aitia.workflow-protocol-step.v1")
+          (profile := profile)
           (state := 'need-host-frames)
+          (handoff-target := 'host-probe)
+          (gap-kind := 'model-reality-gap)
           (case-id := case-id)
           (frames := missing-frames)
+          (repair-tasks := '())
+          (epistemic-summary := #f)
           (graph := #f)
           (initial-frontier := #f)
           (report := #f)
@@ -784,6 +860,8 @@
              (proposal (opt-ref ctx 'proposal #f))
              (graph (workflow-gitops-commit-graph
                      naming cut sources paths proposals
+                     profile: profile
+                     required-checks: required-checks
                      observations: observations
                      approval-live?: approval-live?
                      candidate-offers: candidate-offers
@@ -793,6 +871,8 @@
              (report (if run-reconcile? (workflow-reconcile graph) #f))
              (final-frontier (if report (.ref report 'final-frontier) (.get initial frontier)))
              (choice-sol (.get graph choice-solution))
+             (semantics (.get graph semantics-assessment))
+             (evidence-view (.get graph evidence-assessment))
              (unsat (.ref final-frontier 'unsatisfied-obligations))
              (blocked (.ref final-frontier 'blocked-on-human-obligations))
              (holes (.ref final-frontier 'ready-synthesis-holes))
@@ -806,8 +886,34 @@
                      (null? blocked)
                      (null? holes))
                 'need-fenced-frames)
+               ((and (pair? holes)
+                     (not (eq? (.get choice-sol choice-status) 'unsatisfiable)))
+                'need-agent-synthesis)
                (else
-                'need-synthesis-or-human)))
+                'need-human-decision)))
+             (handoff-target
+              (case state
+                ((quiescent) 'none)
+                ((need-fenced-frames) 'host-fenced-effect)
+                ((need-agent-synthesis) 'agent-synthesis)
+                (else 'human-decision)))
+             (gap-kind
+              (case state
+                ((quiescent need-fenced-frames) 'none)
+                ((need-agent-synthesis) 'model-check-gap)
+                (else 'requirement-gap)))
+             (repair-tasks
+              (if (eq? state 'need-agent-synthesis)
+                (build-agent-repair-tasks holes semantics naming)
+                '()))
+             (epistemic-summary
+              (.o (profile := profile)
+                  (choice-status := (.get choice-sol choice-status))
+                  (world-count := (.get choice-sol world-count))
+                  (supported-count := (length (.get evidence-view supported)))
+                  (stale-count := (length (.get evidence-view stale)))
+                  (open-count := (length (.get evidence-view open)))
+                  (reopened-count := (length (.get evidence-view reopened)))))
              (fenced-frames
               (if (eq? state 'need-fenced-frames)
                 (list (.o (capability := "gitops.jj.apply-description")
@@ -818,9 +924,14 @@
                 '())))
         (.o (kind := 'lambda-aitia.workflow.protocol-step.v1)
             (schema := "lambda-aitia.workflow-protocol-step.v1")
+            (profile := profile)
             (state := state)
+            (handoff-target := handoff-target)
+            (gap-kind := gap-kind)
             (case-id := case-id)
             (frames := fenced-frames)
+            (repair-tasks := repair-tasks)
+            (epistemic-summary := epistemic-summary)
             (graph := graph)
             (initial-frontier := initial)
             (report := report)

@@ -138,6 +138,11 @@
                commit-semantics: [(Function (list Object)
                  (list GitOpsCommitNaming GitOpsCommitCut GitOpsCommitSources
                        (List NonEmptyString) GitOpsCommitProposals))]
+               commit-draft-requirements: [(Function (list Object)
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates))]
+               commit-description: [(Function (list Object)
+                 (list Object GitOpsCommitCut GitOpsCommitCandidates String GitOpsCommitNarration String String)
+                 keywords: (list (cons 'preview?: Bool)))]
                nasa-draft-requirements: [(Function (list Object)
                  (list Object GitOpsCommitCut GitOpsCommitCandidates))]
                nasa-commit-description: [(Function (list Object)
