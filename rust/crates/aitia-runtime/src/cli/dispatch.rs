@@ -18,6 +18,9 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
     match command {
         Some("flow") => flow::run(&utf8_args(args, "flow")?),
         Some("jj") => jj::run(&utf8_args(args, "JJ")?),
+        Some("serve-marlin-grpc") => crate::commit::grpc_gateway::run_serve_marlin_grpc_cli(
+            &utf8_args(args, "serve-marlin-grpc")?,
+        ),
         Some("check") => {
             ensure_no_extra_args(args)?;
             let (receipt, matched) =

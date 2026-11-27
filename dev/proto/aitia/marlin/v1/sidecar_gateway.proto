@@ -1,0 +1,69 @@
+// SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+// SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+syntax = "proto3";
+
+package aitia.marlin.v1;
+
+// Canonical gRPC boundary between `tao3k/marlin-agent-core` Gateway and the
+// process-isolated `aitia serve-marlin-grpc` governance daemon (RFC 0024).
+//
+// Security invariants (aligned with Deterministic Engineering SM24 / SM25 / SM26):
+// - Non-loopback binds refuse startup without a non-blank, non-default Bearer token.
+// - Constant-time non-blank Bearer verification; blank "Bearer " fails closed (UNAUTHENTICATED).
+// - Active Operator E-Stop blocks all audit/capture/receipt RPCs (FAILED_PRECONDITION).
+// - Every RPC response preserves `action_authorized = false`.
+service AitiaSidecarGateway {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc CaptureDetachedContext(CaptureDetachedContextRequest) returns (JsonEnvelopeResponse);
+  rpc AssessSidecarAuditAscent(AssessSidecarAuditRequest) returns (JsonEnvelopeResponse);
+  rpc VerifyFormalEvidence(VerifyFormalEvidenceRequest) returns (JsonEnvelopeResponse);
+  rpc BuildNasaSidecarReceipt(BuildNasaSidecarReceiptRequest) returns (JsonEnvelopeResponse);
+  rpc TripEmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
+  rpc ResetEmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string schema = 1;
+  string status = 2;
+  string service = 3;
+  bool estop_active = 4;
+  bool action_authorized = 5;
+}
+
+message CaptureDetachedContextRequest {
+  string repo_dir = 1;
+  string base_ref = 2;
+  string profile_json = 3;
+  string deterministic_checks_json = 4;
+}
+
+message AssessSidecarAuditRequest {
+  string request_json = 1;
+}
+
+message VerifyFormalEvidenceRequest {
+  string formal_evidence_json = 1;
+  string expected_context_digest = 2;
+}
+
+message BuildNasaSidecarReceiptRequest {
+  string spec_json = 1;
+}
+
+message JsonEnvelopeResponse {
+  string payload_json = 1;
+  bool action_authorized = 2;
+}
+
+message EmergencyStopRequest {
+  string operator_id = 1;
+  string reason = 2;
+}
+
+message EmergencyStopResponse {
+  bool estop_active = 1;
+  bool action_authorized = 2;
+}

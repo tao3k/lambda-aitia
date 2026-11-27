@@ -691,4 +691,42 @@ theorem deFormalReviewPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2.2
 
+/-- RFC 0024 process-isolated Marlin gRPC sidecar gateway control-plane confinement
+    predicate (aligned with DE SM24 / SM25 / SM26). -/
+def MarlinGrpcGatewayAdmissible
+    (loopbackBind tokenConfigured tokenNonBlank tokenNonDefault
+     estopActive rpcAuthenticated rpcFrameValid actionAuthorized : Bool) : Prop :=
+  (loopbackBind = false → tokenConfigured = true ∧ tokenNonBlank = true ∧ tokenNonDefault = true) ∧
+  (tokenConfigured = true → tokenNonBlank = true) ∧
+  estopActive = false ∧
+  rpcAuthenticated = true ∧
+  rpcFrameValid = true ∧
+  actionAuthorized = false
+
+theorem nonLoopbackWithoutBearerRejected
+    {nb nd estop authed frame auth : Bool} :
+    ¬ MarlinGrpcGatewayAdmissible false false nb nd estop authed frame auth := by
+  intro hValid
+  have hCfg := (hValid.1 rfl).1
+  exact Bool.noConfusion hCfg
+
+theorem blankBearerCredentialRejected
+    {lb nd estop authed frame auth : Bool} :
+    ¬ MarlinGrpcGatewayAdmissible lb true false nd estop authed frame auth := by
+  intro hValid
+  have hNb := hValid.2.1 rfl
+  exact Bool.noConfusion hNb
+
+theorem activeEstopBlocksGatewayRpc
+    {lb cfg nb nd authed frame auth : Bool} :
+    ¬ MarlinGrpcGatewayAdmissible lb cfg nb nd true authed frame auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.1
+
+theorem marlinGrpcGatewayPreservesZeroAuthority
+    {lb cfg nb nd estop authed frame auth : Bool}
+    (hValid : MarlinGrpcGatewayAdmissible lb cfg nb nd estop authed frame auth) :
+    auth = false :=
+  hValid.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

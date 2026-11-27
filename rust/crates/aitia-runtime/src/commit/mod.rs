@@ -10,6 +10,7 @@ pub(crate) mod dsse;
 mod evidence;
 pub(crate) mod formal_evidence;
 pub(crate) mod governance;
+pub(crate) mod grpc_gateway;
 pub(crate) mod merkle;
 mod push;
 mod review;

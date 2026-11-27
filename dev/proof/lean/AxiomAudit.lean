@@ -96,3 +96,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.unresolvedFormalLibraryBlocksReview
 #print axioms GitOps.g2DefectOrPendingOracleBlocksReview
 #print axioms GitOps.deFormalReviewPreservesZeroAuthority
+#print axioms GitOps.nonLoopbackWithoutBearerRejected
+#print axioms GitOps.blankBearerCredentialRejected
+#print axioms GitOps.activeEstopBlocksGatewayRpc
+#print axioms GitOps.marlinGrpcGatewayPreservesZeroAuthority

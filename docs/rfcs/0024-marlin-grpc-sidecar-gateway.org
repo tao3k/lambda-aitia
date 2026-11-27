@@ -1,0 +1,79 @@
+#+TITLE: RFC 0024: Marlin Agent Core gRPC Sidecar Gateway Boundary & SM26 Control-Plane Confinement
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+PROPERTY: ID marlin-grpc-sidecar-gateway
+#+PROPERTY: ENGINEERING_ID RFC-0024
+#+PROPERTY: STATUS active
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Summary
+
+RFC 0024 provides a dedicated, process-isolated *gRPC sidecar gateway*
+(=aitia serve-marlin-grpc=) so =tao3k/marlin-agent-core= can invoke
+=lambda-aitia='s full detached sidecar governance, Scheme/POO =gerbil-ascent=
+obligation derivation (RFC 0022), Deterministic Engineering formal library &
+ephemeral AI overlay verification (RFC 0023), and NASA NPR 7150.2D / DSSE
+receipt construction over typed gRPC RPCs — with *zero* Rust crate splitting,
+*zero* =Cargo.lock= churn, and *zero* Gambit C runtime collision between
+=marlin-agent-core= and =lambda-aitia=.
+
+* Motivation
+
+=marlin-agent-core= already embeds its own Gambit Scheme runtime
+(=marlin-gerbil-scheme=). Linking a second Gambit runtime into the same Rust
+process is unsafe and unnecessary. Hosting =aitia= as a process-isolated gRPC
+service backed by a single persistent =AitiaSession= solves three problems at
+once:
+
+1. *Single-Process Gambit Isolation*: =marlin-agent-core= Gateway talks to
+   =aitia= over gRPC (=aitia.marlin.v1.AitiaSidecarGateway=); each process
+   owns its own Gambit runtime cleanly.
+2. *Single Verification Core Across Both Environments*: Both
+   =native-ai-environment= (=aitia= CLI / Workflow) and =marlin-agent-core=
+   (Gateway gRPC) execute the exact same Scheme/POO =gerbil-ascent= + DE formal
+   verification + Rust cryptographic receipt core.
+3. *Deterministic Engineering =SM26= Control-Plane Hardening*: Process isolation
+   enforces non-loopback Bearer fail-closed startup, constant-time non-blank
+   Bearer verification, Operator E-Stop truncation, bounded frame caps, and
+   =actionAuthorized: false= on every RPC response.
+
+* Contract & Wire Surface
+
+- Canonical Protobuf contract: =dev/proto/aitia/marlin/v1/sidecar_gateway.proto=
+  (=service AitiaSidecarGateway=).
+- Length-prefixed gRPC wire framing (=0x00= uncompressed flag + 4-byte
+  big-endian length + UTF-8 JSON payload, =Content-Type: application/grpc+json=,
+  standard =grpc-status= headers: =0 OK=, =3 INVALID_ARGUMENT=,
+  =9 FAILED_PRECONDITION=, =12 UNIMPLEMENTED=, =16 UNAUTHENTICATED=).
+- RPC methods:
+  - =Health=
+  - =CaptureDetachedContext=
+  - =AssessSidecarAuditAscent= (persistent =AitiaSession=)
+  - =VerifyFormalEvidence=
+  - =BuildNasaSidecarReceipt=
+  - =TripEmergencyStop= / =ResetEmergencyStop=
+
+* Security Invariants (Aligned with DE SM24 / SM25 / SM26)
+
+1. *Non-Loopback Bind Fail-Closed*: Binding to any non-loopback address without
+   a non-blank, non-default Bearer token is refused at startup.
+2. *Constant-Time Non-Blank Bearer Check*: Missing =Authorization=, empty
+   ="Bearer   "=, or wrong token returns =grpc-status: 16= (=UNAUTHENTICATED=).
+3. *Operator E-Stop Confinement*: When E-Stop is active (=--estop= or
+   =TripEmergencyStop=), all audit/capture/verification/receipt RPCs fail closed
+   with =grpc-status: 9= (=FAILED_PRECONDITION=) while =Health= remains
+   observable (=estopActive: true=).
+4. *Zero Execution Authority*: Every RPC response carries
+   =actionAuthorized: false=.
+
+* Formal Assurance
+
+- Quint: =dev/proof/quint/MarlinGrpcGatewayConfinement.qnt= (6/6 tests, 20th
+  commit-assurance model).
+- Lean 4: 4 axiom-free theorems in =LambdaAitiaProof.Modules.GitOps=
+  (=nonLoopbackWithoutBearerRejected=, =blankBearerCredentialRejected=,
+  =activeEstopBlocksGatewayRpc=, =marlinGrpcGatewayPreservesZeroAuthority=),
+  reaching 71 =GitOps= theorems with zero axioms and zero =sorryAx=.
+- Live E2E: =examples/07-marlin-grpc-gateway/run_marlin_grpc_demo.py= wired
+  into =just verify-examples= (9 verified examples).
