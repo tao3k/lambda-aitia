@@ -12,6 +12,7 @@ use super::{
     attestation::{
         enforce_sysml_tuf_policy, verify_attestation_lineage_chain, verify_tuf_root_rotation_chain,
     },
+    dsse::{export_portable_audit_bundle_value, verify_dsse_envelope_value},
     err,
     merkle::verify_repo_merkle_proof,
     transparency::compute_log_root,
@@ -312,6 +313,7 @@ pub fn verify_portable_audit_bundle(
         .last()
         .and_then(|b| b["payload"]["merkleRoot"].as_str())
         .map(str::to_owned);
+    let head_epoch = chain.last().and_then(|b| b["payload"]["epoch"].as_u64());
     let head_digest = lineage["headDigest"]
         .as_str()
         .ok_or_else(|| err("Verified attestation lineage missing headDigest"))?;
@@ -320,6 +322,32 @@ pub fn verify_portable_audit_bundle(
     } else {
         TransparencyAuditSummary::default()
     };
+    let (dsse_verified, dsse_pae_digest) =
+        if let Some(dsse_env) = bundle.get("dsseEnvelope").filter(|v| !v.is_null()) {
+            let dsse_verdict = verify_dsse_envelope_value(dsse_env, latest_root)?;
+            if dsse_verdict["bundleDigest"].as_str() != Some(head_digest) {
+                return Err(err(
+                    "Embedded DSSE envelope bundleDigest does not match verified attestation head",
+                ));
+            }
+            if let Some(expected_epoch) = head_epoch
+                && dsse_verdict["epoch"].as_u64() != Some(expected_epoch)
+            {
+                return Err(err(
+                    "Embedded DSSE envelope epoch does not match verified attestation head",
+                ));
+            }
+            if let Some(expected_mr) = head_merkle_root.as_deref()
+                && dsse_verdict["merkleRoot"].as_str() != Some(expected_mr)
+            {
+                return Err(err(
+                    "Embedded DSSE envelope merkleRoot does not match verified attestation head",
+                ));
+            }
+            (true, dsse_verdict["paeDigest"].as_str().map(str::to_owned))
+        } else {
+            (false, None)
+        };
 
     Ok(json!({
         "schema": "lambda-aitia.offline-audit-verdict.v1",
@@ -343,6 +371,8 @@ pub fn verify_portable_audit_bundle(
         "gossipPeersVerified": transparency.gossip_peers_verified,
         "repoInclusionProofsVerified": transparency.repo_inclusion_proofs_verified,
         "headLogEntryBound": transparency.head_log_entry_bound,
+        "dsseVerified": dsse_verified,
+        "dssePaeDigest": dsse_pae_digest,
         "actionAuthorized": false,
     }))
 }
@@ -373,4 +403,17 @@ pub(crate) fn run_verify_attestation_cli(
         _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into()),
     };
     verify_portable_audit_bundle(bundle, workspace)
+}
+
+pub(crate) fn run_export_audit_bundle_cli(
+    rest: &[&str],
+    spec: &Value,
+    usage: &str,
+) -> Result<Value> {
+    let workspace = match rest {
+        [] => None,
+        ["--workspace", path] => Some(Path::new(*path)),
+        _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, usage).into()),
+    };
+    export_portable_audit_bundle_value(spec, workspace)
 }

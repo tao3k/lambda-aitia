@@ -478,4 +478,42 @@ theorem unifiedAirGapAuditPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2.2
 
+/-- RFC 0019 DSSE in-toto v1 / SLSA v1.0 PAE envelope validity predicate. -/
+def DsseInTotoValid
+    (payloadTypeValid paeBound headDigestMatches : Bool)
+    (distinctActiveSigners threshold epoch minEpoch : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  payloadTypeValid = true ∧
+  paeBound = true ∧
+  headDigestMatches = true ∧
+  threshold ≥ 1 ∧
+  distinctActiveSigners ≥ threshold ∧
+  epoch ≥ minEpoch ∧
+  actionAuthorized = false
+
+theorem dssePayloadTypeConfusionRejected
+    {paeBound headOk : Bool} {signers threshold epoch minEpoch : Nat} {auth : Bool} :
+    ¬ DsseInTotoValid false paeBound headOk signers threshold epoch minEpoch auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.1
+
+theorem dsseDuplicateOrRevokedQuorumRejected
+    {pType paeBound headOk : Bool} {signers threshold epoch minEpoch : Nat} {auth : Bool}
+    (hBelow : signers < threshold) :
+    ¬ DsseInTotoValid pType paeBound headOk signers threshold epoch minEpoch auth := by
+  intro hValid
+  exact Nat.not_le_of_gt hBelow hValid.2.2.2.2.1
+
+theorem dsseHeadDigestMismatchRejected
+    {pType paeBound : Bool} {signers threshold epoch minEpoch : Nat} {auth : Bool} :
+    ¬ DsseInTotoValid pType paeBound false signers threshold epoch minEpoch auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.1
+
+theorem dsseInTotoPreservesZeroAuthority
+    {pType paeBound headOk : Bool} {signers threshold epoch minEpoch : Nat} {auth : Bool}
+    (hValid : DsseInTotoValid pType paeBound headOk signers threshold epoch minEpoch auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

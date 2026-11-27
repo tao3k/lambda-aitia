@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0019 — Standard in-toto v1 / SLSA v1.0 DSSE PAE Interoperability & Audit Bundle Exporter
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-dsse-intoto-slsa-interop
+:ENGINEERING_ID: RFC-0019
+:STATUS: implementation-in-progress
+:END:
+
+RFCs 0010 through 0018 established an end-to-end cryptographic assurance pipeline covering
+multi-repo release attestations, TUF threshold quorums and root rotations, OpenSysML
+`TufPolicy` floors, RFC 6962 Merkle inclusion and consistency proofs, C2SP witness-cosigned
+checkpoints, cross-auditor gossip anti-equivocation, and unified air-gapped auditing.
+
+To interoperate directly with external supply-chain verifiers (in-toto, SLSA v1.0, Sigstore
+Cosign / Rekor, and standard DSSE tooling) without introducing third-party runtime crates,
+RFC 0019 adds:
+
+1. **Standard DSSE v1.0 PAE Envelope Minting & Verification (`commit/dsse.rs`)**:
+   - Projects a verified Aitia release attestation bundle into a canonical **in-toto Statement v1**
+     (`_type = "https://in-toto.io/Statement/v1"`) carrying a **SLSA Provenance v1.0** predicate
+     (`predicateType = "https://slsa.dev/provenance/v1"`), binding every repository subject's
+     SHA-256 digest plus the bundle root digest, `epoch`, `merkleRoot`, `parentBundleDigest`,
+     and explicit `actionAuthorized: false`.
+   - Wraps the canonical statement bytes in a wire-compatible DSSE envelope
+     (`payloadType = "application/vnd.in-toto+json"`, strict RFC 4648 Base64 `payload`,
+     `signatures: [{"keyid": "ed25519:<pk>", "sig": "<base64>"}]`) signed over exact
+     **DSSEv1 Pre-Authentication Encoding (PAE)**:
+     `DSSEv1 <len(type)> <type> <len(body)> <body>`.
+   - Verifies DSSE envelopes fail-closed against a verifier-pinned TUF `TrustRoot`
+     (`lambda-aitia.tuf-trust-root.v1`), rejecting payload-type confusion, non-canonical
+     Base64, forged signatures, duplicate `keyid` quorum inflation, revoked keys, epoch
+     rollback, and `actionAuthorized != false`.
+2. **Self-Verifying Portable Audit Bundle Exporter (`export-audit-bundle`)**:
+   - `export_portable_audit_bundle_json` (exposed via both `aitia flow export-audit-bundle [--workspace <path>]`
+     and PyO3 `lambda_aitia_rust.export_portable_audit_bundle`) assembles a complete
+     `lambda-aitia.portable-audit-bundle.v1`, optionally signs and embeds the head
+     `dsseEnvelope`, and runs full `verify_portable_audit_bundle` self-verification before
+     emitting output so broken or equivocated bundles can never be exported.
+3. **Unified Air-Gapped Verifier Integration (`commit/audit.rs`)**:
+   - When `dsseEnvelope` is present on a portable audit bundle, `verify_portable_audit_bundle`
+     verifies it against the post-rotation TUF `TrustRoot` and requires exact `bundleDigest`,
+     `epoch`, and `merkleRoot` parity with the verified attestation chain head.
+
+* Non-negotiable invariants
+
+- **Exact DSSEv1 PAE Framing**: Changing `payloadType` invalidates every signature even
+  when `payload` bytes are untouched.
+- **TUF Quorum & Anti-Rollback Parity**: DSSE verification enforces the exact same distinct
+  non-revoked `k-of-n` threshold and `minEpoch` rules as native Aitia bundles.
+- **Head-to-DSSE Binding**: An embedded `dsseEnvelope` cannot attest to a different
+  `bundleDigest`, `epoch`, or `merkleRoot` than the verified attestation chain head.
+- **Zero Authority (`actionAuthorized: false`)**: DSSE envelopes, export receipts, and
+  verdicts never grant execution or deployment authority.
+- **Zero New Crates / Thin CLI**: Uses pure safe Rust RFC 4648 Base64 + existing `ring`;
+  keeps `cli/flow.rs <= 75` lines and zero `Cargo.lock` churn.
+
+* Verification gates
+
+- Rust DSSE & exporter module: `rust/crates/aitia-runtime/src/commit/dsse.rs`
+- Unified verifier integration: `rust/crates/aitia-runtime/src/commit/audit.rs`
+- Thin CLI + PyO3 exposure: `cli/flow.rs` + `rust/crates/aitia-python/src/python.rs`
+- Quint formal model: `dev/proof/quint/DsseInTotoEnvelope.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 51 total `GitOps` theorems, zero axioms, zero `sorryAx`)
+- End-to-end Scenario N in `examples/cardano-diamond-release-train/run_diamond_train.py`.

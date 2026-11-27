@@ -76,3 +76,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.unresolvedPeerBlocksUnifiedAudit
 #print axioms GitOps.unboundHeadAttestationBlocksUnifiedAudit
 #print axioms GitOps.unifiedAirGapAuditPreservesZeroAuthority
+#print axioms GitOps.dssePayloadTypeConfusionRejected
+#print axioms GitOps.dsseDuplicateOrRevokedQuorumRejected
+#print axioms GitOps.dsseHeadDigestMismatchRejected
+#print axioms GitOps.dsseInTotoPreservesZeroAuthority

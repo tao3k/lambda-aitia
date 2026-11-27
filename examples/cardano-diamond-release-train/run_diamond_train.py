@@ -1379,6 +1379,106 @@ def main() -> None:
                                     oracle_admitted += 1
             assert oracle_cases == 48 and oracle_admitted == 1, (oracle_cases, oracle_admitted)
 
+            # Scenario N: RFC 0019 Standard in-toto v1 / SLSA v1.0 DSSE PAE Interop & Audit Bundle Exporter
+            # N1. Export standard wire-compatible DSSE envelope from Epoch 6 attestation & verify against rotated_r2
+            dsse_env_json = lambda_aitia_rust.export_dsse_intoto_envelope(
+                json.dumps(att_ep6), json.dumps([seed_b, seed_c])
+            )
+            dsse_env = json.loads(dsse_env_json)
+            assert dsse_env["payloadType"] == "application/vnd.in-toto+json"
+            assert len(dsse_env["signatures"]) == 2
+            decoded_stmt = json.loads(__import__("base64").b64decode(dsse_env["payload"]).decode("utf-8"))
+            assert decoded_stmt["_type"] == "https://in-toto.io/Statement/v1"
+            assert decoded_stmt["predicateType"] == "https://slsa.dev/provenance/v1"
+            assert len(decoded_stmt["subject"]) == 5  # 1 bundle root + 4 repos
+            assert decoded_stmt["predicate"]["runDetails"]["metadata"]["actionAuthorized"] is False
+
+            dsse_verdict = json.loads(
+                lambda_aitia_rust.verify_dsse_intoto_envelope(dsse_env_json, json.dumps(rotated_r2))
+            )
+            assert dsse_verdict["verified"] is True
+            assert dsse_verdict["validSignerCount"] == 2
+            assert dsse_verdict["bundleDigest"] == att_ep6["bundleDigest"]
+            assert dsse_verdict["paeDigest"].startswith("sha256:")
+            assert dsse_verdict["actionAuthorized"] is False
+
+            # N2. DSSE negative controls: payloadType confusion, duplicate keyid inflation, revoked signer
+            confused_dsse = dict(dsse_env, payloadType="application/json")
+            dsse_type_confusion_rejected = False
+            try:
+                lambda_aitia_rust.verify_dsse_intoto_envelope(
+                    json.dumps(confused_dsse), json.dumps(rotated_r2)
+                )
+            except ValueError:
+                dsse_type_confusion_rejected = True
+            assert dsse_type_confusion_rejected, "DSSE payloadType confusion MUST fail closed!"
+
+            dup_dsse = dict(dsse_env, signatures=[dsse_env["signatures"][0], dsse_env["signatures"][0]])
+            dsse_dup_rejected = False
+            try:
+                lambda_aitia_rust.verify_dsse_intoto_envelope(
+                    json.dumps(dup_dsse), json.dumps(rotated_r2)
+                )
+            except ValueError:
+                dsse_dup_rejected = True
+            assert dsse_dup_rejected, "DSSE duplicate keyid inflation MUST fail closed!"
+
+            revoked_r2 = dict(rotated_r2, revokedKeys=list(rotated_r2["revokedKeys"]) + [shared_pk_b])
+            dsse_revoked_rejected = False
+            try:
+                lambda_aitia_rust.verify_dsse_intoto_envelope(dsse_env_json, json.dumps(revoked_r2))
+            except ValueError:
+                dsse_revoked_rejected = True
+            assert dsse_revoked_rejected, "DSSE revoked TUF signer MUST fail closed!"
+
+            # N3. End-to-end CLI `aitia flow export-audit-bundle --workspace` ->
+            #     `aitia flow verify-attestation --workspace` (all 5 cryptographic pillars in one bundle!)
+            export_spec = dict(unified_bundle, dsseSigningSeeds=[seed_b, seed_c])
+            with tempfile.TemporaryDirectory() as dsse_airgap_dir:
+                exported_bundle_str = subprocess.run(
+                    [aitia_bin, "flow", "export-audit-bundle", "--workspace", str(ws_sysml)],
+                    cwd=dsse_airgap_dir,
+                    env=env,
+                    input=json.dumps(export_spec),
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+                exported_bundle = json.loads(exported_bundle_str)
+                assert exported_bundle["dsseEnvelope"]["payloadType"] == "application/vnd.in-toto+json"
+                assert exported_bundle["actionAuthorized"] is False
+
+                full_cli_verdict = json.loads(
+                    subprocess.run(
+                        [aitia_bin, "flow", "verify-attestation", "--workspace", str(ws_sysml)],
+                        cwd=dsse_airgap_dir,
+                        env=env,
+                        input=exported_bundle_str,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    ).stdout
+                )
+            assert full_cli_verdict["verified"] is True
+            assert full_cli_verdict["sysmlPolicyEnforced"] is True
+            assert full_cli_verdict["transparencyVerified"] is True
+            assert full_cli_verdict["dsseVerified"] is True
+            assert full_cli_verdict["dssePaeDigest"] == dsse_verdict["paeDigest"]
+            assert full_cli_verdict["actionAuthorized"] is False
+
+            # Also verify PyO3 export_portable_audit_bundle & tampered embedded DSSE rejection
+            pyo3_exported = json.loads(
+                lambda_aitia_rust.export_portable_audit_bundle(json.dumps(export_spec))
+            )
+            assert pyo3_exported["dsseEnvelope"]["payloadType"] == "application/vnd.in-toto+json"
+            tampered_bundle = dict(exported_bundle, dsseEnvelope=confused_dsse)
+            embedded_dsse_tamper_rejected = False
+            try:
+                lambda_aitia_rust.verify_portable_audit_bundle(json.dumps(tampered_bundle))
+            except ValueError:
+                embedded_dsse_tamper_rejected = True
+            assert embedded_dsse_tamper_rejected, "Tampered embedded DSSE envelope MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -1436,6 +1536,13 @@ def main() -> None:
                 "scenarioM_repoInclusionProofsVerified": unified_cli_verdict["repoInclusionProofsVerified"],
                 "scenarioM_differentialOracleCases": oracle_cases,
                 "scenarioM_differentialOracleAdmitted": oracle_admitted,
+                "scenarioN_dsseInTotoVerified": dsse_verdict["verified"],
+                "scenarioN_dsseTypeConfusionRejected": dsse_type_confusion_rejected,
+                "scenarioN_dsseDuplicateRejected": dsse_dup_rejected,
+                "scenarioN_dsseRevokedRejected": dsse_revoked_rejected,
+                "scenarioN_cliExportRoundTripDsseVerified": full_cli_verdict["dsseVerified"],
+                "scenarioN_embeddedDsseTamperRejected": embedded_dsse_tamper_rejected,
+                "scenarioN_dssePaeDigest": dsse_verdict["paeDigest"],
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

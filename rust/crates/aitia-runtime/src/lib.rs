@@ -42,6 +42,11 @@ pub use commit::attestation::{
 #[cfg(feature = "linked-program")]
 pub use commit::audit::{verify_portable_audit_bundle, verify_portable_audit_bundle_json};
 #[cfg(feature = "linked-program")]
+pub use commit::dsse::{
+    export_dsse_intoto_envelope_json, export_portable_audit_bundle_json,
+    verify_dsse_intoto_envelope_json,
+};
+#[cfg(feature = "linked-program")]
 pub use commit::merkle::{
     compute_links_merkle_root, generate_repo_merkle_proof, generate_repo_merkle_proof_json,
     verify_repo_merkle_proof, verify_repo_merkle_proof_json,

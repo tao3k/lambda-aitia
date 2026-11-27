@@ -454,6 +454,49 @@ fn detect_checkpoint_equivocation(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn export_dsse_intoto_envelope(
+    py: Python<'_>,
+    attestation_json: String,
+    signing_seeds_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::export_dsse_intoto_envelope_json(&attestation_json, &signing_seeds_json)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_dsse_intoto_envelope(
+    py: Python<'_>,
+    envelope_json: String,
+    trust_root_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_dsse_intoto_envelope_json(&envelope_json, &trust_root_json)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+#[pyo3(signature = (spec_json, workspace_sysml_path=None))]
+fn export_portable_audit_bundle(
+    py: Python<'_>,
+    spec_json: String,
+    workspace_sysml_path: Option<String>,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::export_portable_audit_bundle_json(
+            &spec_json,
+            workspace_sysml_path.as_deref().map(std::path::Path::new),
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -474,6 +517,12 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(
         detect_checkpoint_equivocation,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(export_dsse_intoto_envelope, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_dsse_intoto_envelope, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        export_portable_audit_bundle,
         module
     )?)?;
     #[cfg(unix)]
