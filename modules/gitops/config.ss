@@ -6,7 +6,7 @@
 (import (only-in :clan/poo/object .o)
         "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "commit-admission.ss"
         "commit-semantics.ss" "review-association.ss" "review-lineage.ss" "review-query.ss"
-        "sidecar-audit.ss" "diff-governance.ss")
+        "sidecar-audit.ss" "diff-governance.ss" "review-flow.ss")
 (export Config)
 
 (def Config
@@ -44,4 +44,5 @@
       diff-defense-audit: gitops-diff-defense-audit
       make-rule-pack-from-descriptor: rule-pack-from-descriptor
       combine-rule-packs: compose-rule-packs
-      core-g2-rule-pack: de-g2-core-rule-pack))
+      core-g2-rule-pack: de-g2-core-rule-pack
+      review-flow-step: gitops-review-flow-step))

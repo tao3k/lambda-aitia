@@ -24,6 +24,7 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         Some("sidecar") => {
             crate::commit::sidecar_cli::run_sidecar_cli(&utf8_args(args, "sidecar")?)
         }
+        Some("review") => crate::commit::sidecar_cli::run_review_cli(&utf8_args(args, "review")?),
         Some("check") => {
             ensure_no_extra_args(args)?;
             let (receipt, matched) =

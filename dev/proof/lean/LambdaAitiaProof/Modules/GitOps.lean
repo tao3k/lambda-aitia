@@ -846,4 +846,37 @@ theorem subdomainRulePackPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2
 
+/-- FunFlow Progressive Choice Frontier Admissibility (`aitia review` / gRPC `StepReview`):
+    shared prefix forbids fenced effects (`prefixFencedForbidden = true`), fenced tail
+    requires a unique Proven world (`worldCount = 1 ∧ epistemicProven = true ∧ humanApproved = true
+    ∧ stagedDefects = 0`), and receipts always preserve `actionAuthorized = false`. -/
+def FunFlowChoiceFrontierSafe
+    (prefixFencedForbidden epistemicProven humanApproved fencedTailAdmitted actionAuthorized : Bool)
+    (worldCount stagedDefects : Nat) : Prop :=
+  prefixFencedForbidden = true ∧
+  actionAuthorized = false ∧
+  (fencedTailAdmitted = true →
+    epistemicProven = true ∧ worldCount = 1 ∧ humanApproved = true ∧ stagedDefects = 0)
+
+theorem funflowChoicePrefixForbidsFencedEffect
+    {epistemicProven humanApproved fencedTailAdmitted actionAuthorized : Bool}
+    {worldCount stagedDefects : Nat} :
+    ¬ FunFlowChoiceFrontierSafe false epistemicProven humanApproved fencedTailAdmitted actionAuthorized worldCount stagedDefects := by
+  intro hSafe
+  exact Bool.false_ne_true hSafe.1
+
+theorem funflowChoiceFencedTailRequiresUniqueProvenWorld
+    {prefixFencedForbidden epistemicProven humanApproved actionAuthorized : Bool}
+    {worldCount stagedDefects : Nat}
+    (hSafe : FunFlowChoiceFrontierSafe prefixFencedForbidden epistemicProven humanApproved true actionAuthorized worldCount stagedDefects) :
+    epistemicProven = true ∧ worldCount = 1 ∧ humanApproved = true ∧ stagedDefects = 0 :=
+  hSafe.2.2 rfl
+
+theorem funflowChoiceFrontierPreservesZeroAuthority
+    {prefixFencedForbidden epistemicProven humanApproved fencedTailAdmitted actionAuthorized : Bool}
+    {worldCount stagedDefects : Nat}
+    (hSafe : FunFlowChoiceFrontierSafe prefixFencedForbidden epistemicProven humanApproved fencedTailAdmitted actionAuthorized worldCount stagedDefects) :
+    actionAuthorized = false :=
+  hSafe.2.1
+
 end LambdaAitiaProof.Modules.GitOps

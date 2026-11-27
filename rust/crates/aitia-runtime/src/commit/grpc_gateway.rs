@@ -273,6 +273,10 @@ fn dispatch_rpc(
             )?;
             Ok(serde_json::to_string(&report)?)
         })(),
+        "StepReview" => (|| {
+            let step = defense_audit::run_review_flow_step_json(&req, Some(session))?;
+            Ok(serde_json::to_string(&step)?)
+        })(),
         "VerifyFormalEvidence" => (|| {
             let fe = req["formalEvidenceJson"]
                 .as_str()

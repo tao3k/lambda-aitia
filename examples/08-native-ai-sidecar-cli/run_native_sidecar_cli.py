@@ -182,6 +182,29 @@ def main() -> None:
         assert zero_cfg_cap["funflowObservability"]["engineOwner"] == "scheme-poo-ascent-framework"
         assert zero_cfg_cap["actionAuthorized"] is False
 
+        # 0d. Verify ZERO-FLAG single-entry FunFlow Choice `aitia review <dir>` + self-healing choice!
+        _, rev_discover_out, _ = run_cli(cli, ["review", str(upstream_repo)])
+        rev_discover = json.loads(rev_discover_out)
+        assert rev_discover["schema"] == "lambda-aitia.funflow-choice-frontier.v1"
+        assert rev_discover["singleEntrypoint"] == "aitia review"
+        assert rev_discover["sharedPrefix"]["fencedEffectsForbidden"] is True
+        assert rev_discover["fencedTailAdmitted"] is False
+        assert rev_discover["worldCount"] >= 2
+        assert rev_discover["actionAuthorized"] is False
+        choice_ids = [c["choiceId"] for c in rev_discover["choices"]]
+        assert "repair-diff-defects" in choice_ids
+        assert "compose-subdomain-rule-pack" in choice_ids
+        # Self-healing feedback on unknown choice name
+        _, rev_bad_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={"repo": str(upstream_repo), "choice": "typo-choice"},
+        )
+        rev_bad = json.loads(rev_bad_out)
+        assert rev_bad["choiceAccepted"] is False
+        assert "selfHealingHint" in rev_bad
+        assert "repair-diff-defects" in rev_bad["selfHealingHint"]["validChoiceIds"]
+
         # Stage the defective file and verify `--staged` + `--format agent-feedback` + `--format sarif`
         run_git(upstream_repo, "add", "parser.py")
         rc_staged_bad, out_staged_fb, _ = run_cli(

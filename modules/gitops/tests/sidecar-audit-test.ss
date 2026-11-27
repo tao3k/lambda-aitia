@@ -4,7 +4,8 @@
 (import :std/test
         (only-in :clan/poo/object .o .cc .get)
         (only-in "../sidecar-audit.ss" gitops-sidecar-audit-assess)
-        (only-in "../diff-governance.ss" gitops-diff-defense-audit rule-pack-from-descriptor))
+        (only-in "../diff-governance.ss" gitops-diff-defense-audit rule-pack-from-descriptor)
+        (only-in "../review-flow.ss" gitops-review-flow-step))
 (export sidecar-audit-test)
 
 (def +ctx-digest+ "sha256:1111111111111111111111111111111111111111111111111111111111111111")
@@ -286,4 +287,42 @@
         (check-equal? (.get (.get defective-res counts-by-class) subdomain-invariant-violation) 1)
         (check-equal? (.get (.get defective-res temporal-causality) acyclic?) #t)
         (check-equal? (.get defective-res funflow-receipts-count) 1)
-        (check-equal? (.get defective-res action-authorized?) #f)))))
+        (check-equal? (.get defective-res action-authorized?) #f)))
+
+    (test-case "FunFlow progressive review-flow surfaces pre-filled choices, self-healing hints, and guards fenced-tail"
+      (let* ((discover-res
+              (gitops-review-flow-step
+               (.o repo: "."
+                   target-repo: "marlin-agent-core"
+                   context-digest: +ctx-digest+
+                   changed-paths: '("src/lib.rs")
+                   unstaged-diff: "+++ b/src/lib.rs\n@@ -1,1 +1,2 @@\n+let v = res.unwrap_or_default();\n")))
+             (bad-choice-res
+              (gitops-review-flow-step
+               (.o repo: "."
+                   target-repo: "marlin-agent-core"
+                   context-digest: +ctx-digest+
+                   changed-paths: '("src/lib.rs")
+                   choice: "non-existent-choice")))
+             (proven-res
+              (gitops-review-flow-step
+               (.o repo: "."
+                   target-repo: "marlin-agent-core"
+                   context-digest: +ctx-digest+
+                   changed-paths: '("src/lib.rs")
+                   required-lenses: '("correctness" "security")
+                   ai-reports: (list (mk-report "correctness" "native-ai-environment")
+                                     (mk-report "security" "marlin-agent-core"))
+                   conversation-bound?: #t
+                   human-approved?: #t))))
+        (check-equal? (.get discover-res schema) "lambda-aitia.funflow-choice-frontier.v1")
+        (check-equal? (.get (.get discover-res shared-prefix) fenced-effects-forbidden?) #t)
+        (check-equal? (.get discover-res fenced-tail-admitted?) #f)
+        (check-equal? (> (.get discover-res world-count) 1) #t)
+        (check-equal? (.get discover-res action-authorized?) #f)
+        (check-equal? (.get bad-choice-res choice-accepted?) #f)
+        (check-equal? (and (.get bad-choice-res self-healing-hint) #t) #t)
+        (check-equal? (.get proven-res epistemic-status) "Proven")
+        (check-equal? (.get proven-res world-count) 1)
+        (check-equal? (.get proven-res fenced-tail-admitted?) #t)
+        (check-equal? (.get proven-res action-authorized?) #f)))))

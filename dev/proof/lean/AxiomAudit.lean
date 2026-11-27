@@ -111,3 +111,6 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.subdomainRulePackNeverWeakensCoreFloor
 #print axioms GitOps.subdomainAuditRequiresAcyclicCausality
 #print axioms GitOps.subdomainRulePackPreservesZeroAuthority
+#print axioms GitOps.funflowChoicePrefixForbidsFencedEffect
+#print axioms GitOps.funflowChoiceFencedTailRequiresUniqueProvenWorld
+#print axioms GitOps.funflowChoiceFrontierPreservesZeroAuthority

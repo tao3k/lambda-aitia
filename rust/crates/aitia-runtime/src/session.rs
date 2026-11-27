@@ -187,6 +187,15 @@ impl AitiaSession {
         self.call_string(move |program| program.diff_defense_audit(&payload))
     }
 
+    /// Execute one progressive FunFlow Choice review step via Scheme POO + ASCENT.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn review_flow_step(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.review_flow_step(&payload))
+    }
+
     /// Drive the Scheme-owned single-repository 5-state IoC protocol against `directory` inside
     /// this live session without re-initializing the Gambit runtime.
     ///

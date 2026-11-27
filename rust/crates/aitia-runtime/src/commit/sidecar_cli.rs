@@ -11,7 +11,7 @@ use super::{Result, defense_audit, err, formal_evidence, sidecar};
 use crate::MAX_REQUEST_BYTES;
 use serde_json::{Value, json};
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -406,5 +406,43 @@ pub(crate) fn run_sidecar_cli(args: &[String]) -> Result<()> {
         Some(_) => return Err(err(SIDECAR_USAGE)),
     };
     writeln!(io::stdout().lock(), "{output}")?;
+    Ok(())
+}
+
+/// Zero-flag progressive FunFlow Choice single entrypoint for LLMs:
+///   `aitia review`                 -> discover current epistemic frontier in `.`
+///   `aitia review <repo-dir>`      -> discover current epistemic frontier in `<repo-dir>`
+///   `aitia review < choice.json`   -> submit a chosen FunFlow branch (pre-filled template)
+///
+/// Never requires memorizing CLI flags; returns self-healing templates on invalid choices.
+pub(crate) fn run_review_cli(args: &[String]) -> Result<()> {
+    let mut req: Value = if !io::stdin().is_terminal() {
+        let raw = read_bounded_stdin()?;
+        if raw.trim().is_empty() {
+            json!({})
+        } else {
+            serde_json::from_str(&raw).map_err(|e| {
+                err(format!(
+                    "Invalid JSON choice envelope for `aitia review` (pass empty input or `{{}}` to discover templates): {e}"
+                ))
+            })?
+        }
+    } else {
+        json!({})
+    };
+    if let Some(first) = args.first()
+        && first != "--help"
+        && first != "-h"
+        && !first.starts_with('-')
+        && let Some(obj) = req.as_object_mut()
+    {
+        obj.entry("repo".to_owned()).or_insert_with(|| json!(first));
+    }
+    let out = defense_audit::run_review_flow_step_json(&req, None)?;
+    writeln!(
+        io::stdout().lock(),
+        "{}",
+        serde_json::to_string_pretty(&out)?
+    )?;
     Ok(())
 }

@@ -10,7 +10,7 @@
                  aitia-pytest-assess-payload aitia-context-operation aitia-commit-review-payload
                  aitia-commit-journal-payload aitia-workflow-reconcile-payload
                  aitia-workflow-protocol-step-payload aitia-sidecar-audit-assess-payload
-                 aitia-diff-defense-audit-payload))
+                 aitia-diff-defense-audit-payload aitia-review-flow-step-payload))
 (export main)
 
 ;; All operations and their Module bindings are already compiled into this
@@ -62,4 +62,7 @@
      request lambda-aitia/bindings/commit-transport#aitia-sidecar-audit-assess-payload))
   (c-define (diff-defense-audit request) (int64) int64 "aitia_program_diff_defense_audit" "extern"
     (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
-     request lambda-aitia/bindings/commit-transport#aitia-diff-defense-audit-payload)))
+     request lambda-aitia/bindings/commit-transport#aitia-diff-defense-audit-payload))
+  (c-define (review-flow-step request) (int64) int64 "aitia_program_review_flow_step" "extern"
+    (gerbil-scheme-rust/scheme/runtime#gerbil-rs-rooted-call
+     request lambda-aitia/bindings/commit-transport#aitia-review-flow-step-payload)))
