@@ -382,4 +382,63 @@ theorem consistencyProofPreservesZeroAuthority
     actionAuthorized = false :=
   hValid.2.2.2.2
 
+/-- RFC 0017 witness-cosigned checkpoint quorum validity predicate. -/
+def WitnessCheckpointQuorumValid
+    (originMatches originSigValid : Bool)
+    (distinctTrustedActiveWitnesses threshold : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  originMatches = true ∧
+  originSigValid = true ∧
+  threshold ≥ 1 ∧
+  distinctTrustedActiveWitnesses ≥ threshold ∧
+  actionAuthorized = false
+
+/-- RFC 0017 non-repudiable cross-auditor same-size split-view equivocation evidence predicate. -/
+def SplitViewEquivocationEvidence
+    (originMatches originSigValid : Bool)
+    (leftSize rightSize leftRoot rightRoot : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  originMatches = true ∧
+  originSigValid = true ∧
+  leftSize ≥ 1 ∧
+  leftSize = rightSize ∧
+  leftRoot ≠ rightRoot ∧
+  actionAuthorized = false
+
+theorem duplicateWitnessCannotSatisfyQuorum
+    {originMatches originSigValid : Bool}
+    {distinctTrustedActiveWitnesses threshold : Nat}
+    {actionAuthorized : Bool}
+    (hBelow : distinctTrustedActiveWitnesses < threshold) :
+    ¬ WitnessCheckpointQuorumValid
+        originMatches originSigValid distinctTrustedActiveWitnesses threshold actionAuthorized := by
+  intro hValid
+  exact Nat.not_le_of_gt hBelow hValid.2.2.2.1
+
+theorem revokedWitnessExcludedFromCheckpointQuorum
+    {originMatches originSigValid : Bool}
+    {remainingActiveWitnesses threshold : Nat}
+    {actionAuthorized : Bool}
+    (hRevokedDrop : remainingActiveWitnesses < threshold) :
+    ¬ WitnessCheckpointQuorumValid
+        originMatches originSigValid remainingActiveWitnesses threshold actionAuthorized := by
+  intro hValid
+  exact Nat.not_le_of_gt hRevokedDrop hValid.2.2.2.1
+
+theorem sameSizeDistinctRootsYieldEquivocation
+    {size leftRoot rightRoot : Nat}
+    (hPos : size ≥ 1)
+    (hDiff : leftRoot ≠ rightRoot) :
+    SplitViewEquivocationEvidence true true size size leftRoot rightRoot false :=
+  ⟨rfl, rfl, hPos, rfl, hDiff, rfl⟩
+
+theorem equivocationEvidencePreservesZeroAuthority
+    {originMatches originSigValid : Bool}
+    {leftSize rightSize leftRoot rightRoot : Nat}
+    {actionAuthorized : Bool}
+    (hEv : SplitViewEquivocationEvidence
+        originMatches originSigValid leftSize rightSize leftRoot rightRoot actionAuthorized) :
+    actionAuthorized = false :=
+  hEv.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

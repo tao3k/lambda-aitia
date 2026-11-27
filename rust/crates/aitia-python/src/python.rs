@@ -380,6 +380,80 @@ fn verify_consistency_proof(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn sign_checkpoint(
+    py: Python<'_>,
+    origin: String,
+    entries_json: String,
+    origin_seed_hex: String,
+    witness_specs_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::sign_checkpoint_json(
+            &origin,
+            &entries_json,
+            &origin_seed_hex,
+            &witness_specs_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_signed_checkpoint(
+    py: Python<'_>,
+    checkpoint_json: String,
+    policy_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_signed_checkpoint_json(&checkpoint_json, &policy_json)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_checkpoint_transition(
+    py: Python<'_>,
+    first_checkpoint_json: String,
+    second_checkpoint_json: String,
+    proof_json: String,
+    policy_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_checkpoint_transition_json(
+            &first_checkpoint_json,
+            &second_checkpoint_json,
+            &proof_json,
+            &policy_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+#[pyo3(signature = (left_checkpoint_json, right_checkpoint_json, policy_json, proof_json=None))]
+fn detect_checkpoint_equivocation(
+    py: Python<'_>,
+    left_checkpoint_json: String,
+    right_checkpoint_json: String,
+    policy_json: String,
+    proof_json: Option<String>,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::detect_checkpoint_equivocation_json(
+            &left_checkpoint_json,
+            &right_checkpoint_json,
+            &policy_json,
+            proof_json.as_deref(),
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -392,6 +466,16 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(verify_repo_merkle_proof, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(generate_consistency_proof, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(verify_consistency_proof, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(sign_checkpoint, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_signed_checkpoint, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        verify_checkpoint_transition,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        detect_checkpoint_equivocation,
+        module
+    )?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

@@ -68,3 +68,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.consistencyProofRequiresOldRootMatch
 #print axioms GitOps.consistencyProofRequiresNewRootMatch
 #print axioms GitOps.consistencyProofPreservesZeroAuthority
+#print axioms GitOps.duplicateWitnessCannotSatisfyQuorum
+#print axioms GitOps.revokedWitnessExcludedFromCheckpointQuorum
+#print axioms GitOps.sameSizeDistinctRootsYieldEquivocation
+#print axioms GitOps.equivocationEvidencePreservesZeroAuthority

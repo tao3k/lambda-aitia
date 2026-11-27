@@ -52,6 +52,11 @@ pub use commit::transparency::{
     verify_consistency_proof, verify_consistency_proof_json,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::witness::{
+    detect_checkpoint_equivocation_json, sign_checkpoint_json, verify_checkpoint_transition_json,
+    verify_signed_checkpoint_json,
+};
+#[cfg(feature = "linked-program")]
 pub use protocol::{
     DEFAULT_WORKFLOW_CASE, MULTI_REPO_WORKFLOW_CASE, dispatch_host_frames_json,
     drive_multi_repo_protocol, drive_scheme_protocol, drive_single_repo_protocol,

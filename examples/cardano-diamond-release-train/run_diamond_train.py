@@ -1070,6 +1070,138 @@ def main() -> None:
                 truncation_rejected = True
             assert truncation_rejected, "Log truncation MUST fail closed!"
 
+            # Scenario L: RFC 0017 Witness-Cosigned Checkpoints (STH) & Cross-Auditor Gossip Equivocation
+            log_origin = "lambda-aitia.org/cardano-diamond-train/v1"
+            origin_seed = "11" * 32
+            w1_seed, w2_seed, w3_seed = "a1" * 32, "a2" * 32, "a3" * 32
+            sth_2_json = lambda_aitia_rust.sign_checkpoint(
+                log_origin,
+                json.dumps(log_entries[:2]),
+                origin_seed,
+                json.dumps(
+                    [
+                        {"witnessId": "witness-us-east", "seedHex": w1_seed, "timestamp": 1795699100},
+                        {"witnessId": "witness-eu-west", "seedHex": w2_seed, "timestamp": 1795699102},
+                    ]
+                ),
+            )
+            sth_5_json = lambda_aitia_rust.sign_checkpoint(
+                log_origin,
+                json.dumps(log_entries),
+                origin_seed,
+                json.dumps(
+                    [
+                        {"witnessId": "witness-eu-west", "seedHex": w2_seed, "timestamp": 1795699200},
+                        {"witnessId": "witness-ap-northeast", "seedHex": w3_seed, "timestamp": 1795699205},
+                    ]
+                ),
+            )
+            sth_2 = json.loads(sth_2_json)
+            sth_5 = json.loads(sth_5_json)
+            w_pks_2 = {c["publicKey"] for c in sth_2["cosignatures"]}
+            w_pks_5 = {c["publicKey"] for c in sth_5["cosignatures"]}
+            shared_w2_pk = (w_pks_2 & w_pks_5).pop()
+            all_witness_pks = sorted(w_pks_2 | w_pks_5)
+            assert len(all_witness_pks) == 3, all_witness_pks
+
+            witness_policy = {
+                "schema": "lambda-aitia.witness-policy.v1",
+                "origin": log_origin,
+                "originPublicKey": sth_2["originPublicKey"],
+                "witnessThreshold": 2,
+                "allowedWitnessKeys": all_witness_pks,
+                "revokedWitnessKeys": [],
+            }
+            witness_policy_json = json.dumps(witness_policy)
+
+            # L1. Individual STH verification + cosigned 2->5 transition with RFC 6962 consistency proof
+            sth_2_verdict = json.loads(
+                lambda_aitia_rust.verify_signed_checkpoint(sth_2_json, witness_policy_json)
+            )
+            assert sth_2_verdict["verified"] is True and sth_2_verdict["validWitnessCount"] == 2
+            assert sth_2_verdict["actionAuthorized"] is False
+
+            p25_json = lambda_aitia_rust.generate_consistency_proof(json.dumps(log_entries), 2)
+            transition_verdict = json.loads(
+                lambda_aitia_rust.verify_checkpoint_transition(
+                    sth_2_json, sth_5_json, p25_json, witness_policy_json
+                )
+            )
+            assert transition_verdict["verified"] is True
+            assert transition_verdict["firstSize"] == 2 and transition_verdict["secondSize"] == 5
+            assert transition_verdict["firstWitnessCount"] == 2 and transition_verdict["secondWitnessCount"] == 2
+            assert transition_verdict["actionAuthorized"] is False
+
+            # L2. Adversarial witness quorum controls: duplicate witness, revoked witness, cross-origin replay
+            sth_dup = json.loads(sth_2_json)
+            sth_dup["cosignatures"] = [sth_dup["cosignatures"][0], sth_dup["cosignatures"][0]]
+            witness_dup_rejected = False
+            try:
+                lambda_aitia_rust.verify_signed_checkpoint(json.dumps(sth_dup), witness_policy_json)
+            except ValueError:
+                witness_dup_rejected = True
+            assert witness_dup_rejected, "Duplicate witness cosignature inflation MUST fail closed!"
+
+            revoked_witness_policy = dict(witness_policy, revokedWitnessKeys=[shared_w2_pk])
+            witness_revoked_rejected = False
+            try:
+                lambda_aitia_rust.verify_signed_checkpoint(
+                    sth_2_json, json.dumps(revoked_witness_policy)
+                )
+            except ValueError:
+                witness_revoked_rejected = True
+            assert witness_revoked_rejected, "Revoked witness dropping quorum below threshold MUST fail closed!"
+
+            wrong_origin_policy = dict(witness_policy, origin="evil.example/other-log/v1")
+            witness_origin_rejected = False
+            try:
+                lambda_aitia_rust.verify_signed_checkpoint(
+                    sth_2_json, json.dumps(wrong_origin_policy)
+                )
+            except ValueError:
+                witness_origin_rejected = True
+            assert witness_origin_rejected, "Cross-origin checkpoint replay MUST fail closed!"
+
+            # L3. Cross-auditor gossip: epistemic unknown without proof, consistent with proof,
+            #     and non-repudiable EquivocationEvidenceReceipt on same-size split-view fork!
+            gossip_unknown = json.loads(
+                lambda_aitia_rust.detect_checkpoint_equivocation(
+                    sth_2_json, sth_5_json, witness_policy_json
+                )
+            )
+            assert gossip_unknown["status"] == "consistency-proof-required", gossip_unknown
+            assert gossip_unknown["equivocationDetected"] is False
+            assert gossip_unknown["actionAuthorized"] is False
+
+            gossip_consistent = json.loads(
+                lambda_aitia_rust.detect_checkpoint_equivocation(
+                    sth_2_json, sth_5_json, witness_policy_json, p25_json
+                )
+            )
+            assert gossip_consistent["status"] == "consistent", gossip_consistent
+            assert gossip_consistent["equivocationDetected"] is False
+            assert gossip_consistent["actionAuthorized"] is False
+
+            sth_5_evil_json = lambda_aitia_rust.sign_checkpoint(
+                log_origin,
+                json.dumps(equiv_entries),
+                origin_seed,
+                json.dumps([]),
+            )
+            gossip_equiv = json.loads(
+                lambda_aitia_rust.detect_checkpoint_equivocation(
+                    sth_5_json, sth_5_evil_json, witness_policy_json
+                )
+            )
+            assert gossip_equiv["schema"] == "lambda-aitia.checkpoint-equivocation-evidence.v1"
+            assert gossip_equiv["status"] == "equivocation-detected", gossip_equiv
+            assert gossip_equiv["equivocationDetected"] is True
+            assert gossip_equiv["conflictKind"] == "same-size-root-mismatch"
+            assert gossip_equiv["evidenceDigest"].startswith("sha256:")
+            assert gossip_equiv["leftWitnessQuorumMet"] is True
+            assert gossip_equiv["rightWitnessQuorumMet"] is False
+            assert gossip_equiv["actionAuthorized"] is False
+
     print(
         json.dumps(
             {
@@ -1114,6 +1246,13 @@ def main() -> None:
                 "scenarioK_consistencyTransitionsVerified": ["1->2", "2->3", "3->5"],
                 "scenarioK_equivocationRejected": equivocation_rejected,
                 "scenarioK_truncationRejected": truncation_rejected,
+                "scenarioL_cosignedTransitionVerified": transition_verdict["verified"],
+                "scenarioL_witnessDuplicateRejected": witness_dup_rejected,
+                "scenarioL_witnessRevokedRejected": witness_revoked_rejected,
+                "scenarioL_crossOriginRejected": witness_origin_rejected,
+                "scenarioL_gossipUnknownStatus": gossip_unknown["status"],
+                "scenarioL_gossipEquivocationKind": gossip_equiv["conflictKind"],
+                "scenarioL_equivocationEvidenceDigest": gossip_equiv["evidenceDigest"],
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

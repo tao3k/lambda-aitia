@@ -12,6 +12,7 @@ pub(crate) mod merkle;
 mod push;
 mod review;
 pub(crate) mod transparency;
+pub(crate) mod witness;
 
 pub(crate) use common::{
     CommitOutcome, Result, check_execution_identity, description, dispatch_capability, err,
