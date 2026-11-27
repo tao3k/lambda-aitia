@@ -497,6 +497,42 @@ fn export_portable_audit_bundle(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn export_sigstore_bundle_v03(
+    py: Python<'_>,
+    portable_bundle_json: String,
+    trust_root_json: String,
+    federated_policy_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::export_sigstore_bundle_v03_json(
+            &portable_bundle_json,
+            &trust_root_json,
+            &federated_policy_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_sigstore_bundle_v03(
+    py: Python<'_>,
+    sigstore_bundle_json: String,
+    trust_root_json: String,
+    federated_policy_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_sigstore_bundle_v03_json(
+            &sigstore_bundle_json,
+            &trust_root_json,
+            &federated_policy_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -525,6 +561,8 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
         export_portable_audit_bundle,
         module
     )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(export_sigstore_bundle_v03, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_sigstore_bundle_v03, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

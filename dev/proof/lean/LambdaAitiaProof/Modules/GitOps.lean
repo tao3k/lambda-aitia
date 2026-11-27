@@ -516,4 +516,46 @@ theorem dsseInTotoPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2
 
+/-- RFC 0020 Sigstore Bundle v0.3 + federated multi-org witness quorum & freshness predicate. -/
+def SigstoreFederatedBundleValid
+    (dsseValid tlogInclusionValid : Bool)
+    (witnessCount minWitnesses distinctOrgs minDistinctOrgs : Nat)
+    (minTs maxTs notBefore notAfter observedSkew maxSkew : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  dsseValid = true ∧
+  tlogInclusionValid = true ∧
+  witnessCount ≥ minWitnesses ∧
+  distinctOrgs ≥ minDistinctOrgs ∧
+  notBefore ≤ minTs ∧
+  maxTs ≤ notAfter ∧
+  observedSkew ≤ maxSkew ∧
+  actionAuthorized = false
+
+theorem singleOrgCollusionRejectedByFederation
+    {dOk incOk : Bool} {wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew : Nat} {auth : Bool}
+    (hCollusion : orgs < minOrgs) :
+    ¬ SigstoreFederatedBundleValid dOk incOk wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew auth := by
+  intro hValid
+  exact Nat.not_le_of_gt hCollusion hValid.2.2.2.1
+
+theorem excessiveWitnessSkewRejected
+    {dOk incOk : Bool} {wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew : Nat} {auth : Bool}
+    (hSkew : maxSkew < skew) :
+    ¬ SigstoreFederatedBundleValid dOk incOk wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew auth := by
+  intro hValid
+  exact Nat.not_le_of_gt hSkew hValid.2.2.2.2.2.2.1
+
+theorem staleWitnessTimestampRejected
+    {dOk incOk : Bool} {wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew : Nat} {auth : Bool}
+    (hStale : minTs < nb) :
+    ¬ SigstoreFederatedBundleValid dOk incOk wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew auth := by
+  intro hValid
+  exact Nat.not_le_of_gt hStale hValid.2.2.2.2.1
+
+theorem sigstoreFederatedBundlePreservesZeroAuthority
+    {dOk incOk : Bool} {wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew : Nat} {auth : Bool}
+    (hValid : SigstoreFederatedBundleValid dOk incOk wCount minW orgs minOrgs minTs maxTs nb na skew maxSkew auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

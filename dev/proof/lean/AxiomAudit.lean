@@ -80,3 +80,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.dsseDuplicateOrRevokedQuorumRejected
 #print axioms GitOps.dsseHeadDigestMismatchRejected
 #print axioms GitOps.dsseInTotoPreservesZeroAuthority
+#print axioms GitOps.singleOrgCollusionRejectedByFederation
+#print axioms GitOps.excessiveWitnessSkewRejected
+#print axioms GitOps.staleWitnessTimestampRejected
+#print axioms GitOps.sigstoreFederatedBundlePreservesZeroAuthority

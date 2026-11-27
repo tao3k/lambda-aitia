@@ -11,7 +11,7 @@
 use super::{Result, err};
 use serde_json::{Value, json};
 
-fn leaf_hash(entry: &Value) -> Result<String> {
+pub(crate) fn leaf_hash(entry: &Value) -> Result<String> {
     let canonical = serde_json::to_string(entry)?;
     let mut buf = Vec::with_capacity(1 + canonical.len());
     buf.push(0x00);
@@ -19,7 +19,7 @@ fn leaf_hash(entry: &Value) -> Result<String> {
     Ok(crate::source_tree::sha256(&buf))
 }
 
-fn node_hash(left: &str, right: &str) -> String {
+pub(crate) fn node_hash(left: &str, right: &str) -> String {
     let mut buf = Vec::with_capacity(1 + left.len() + 1 + right.len());
     buf.push(0x01);
     buf.extend_from_slice(left.as_bytes());
@@ -28,13 +28,13 @@ fn node_hash(left: &str, right: &str) -> String {
     crate::source_tree::sha256(&buf)
 }
 
-const fn largest_power_of_two_less_than(n: usize) -> usize {
+pub(crate) const fn largest_power_of_two_less_than(n: usize) -> usize {
     debug_assert!(n > 1);
     let p = (n - 1).next_power_of_two();
     if p >= n { p >> 1 } else { p }
 }
 
-fn mth(leaves: &[String]) -> String {
+pub(crate) fn mth(leaves: &[String]) -> String {
     match leaves {
         [] => unreachable!("mth called on empty slice"),
         [only] => only.clone(),

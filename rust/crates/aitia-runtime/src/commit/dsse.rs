@@ -40,7 +40,7 @@ fn hex_decode<const N: usize>(value: &str) -> Result<[u8; N]> {
     Ok(out)
 }
 
-fn base64_encode(input: &[u8]) -> String {
+pub(crate) fn base64_encode(input: &[u8]) -> String {
     let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
     let mut chunks = input.chunks_exact(3);
     for c in &mut chunks {
@@ -82,7 +82,7 @@ const fn b64_val(byte: u8) -> Option<u8> {
     }
 }
 
-fn base64_decode_strict(input: &str) -> Result<Vec<u8>> {
+pub(crate) fn base64_decode_strict(input: &str) -> Result<Vec<u8>> {
     let bytes = input.as_bytes();
     if bytes.is_empty() || !bytes.len().is_multiple_of(4) {
         return Err(err("Invalid RFC 4648 Base64 length"));

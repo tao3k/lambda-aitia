@@ -52,6 +52,8 @@ pub use commit::merkle::{
     verify_repo_merkle_proof, verify_repo_merkle_proof_json,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::sigstore::{export_sigstore_bundle_v03_json, verify_sigstore_bundle_v03_json};
+#[cfg(feature = "linked-program")]
 pub use commit::transparency::{
     compute_log_root, generate_consistency_proof, generate_consistency_proof_json,
     verify_consistency_proof, verify_consistency_proof_json,

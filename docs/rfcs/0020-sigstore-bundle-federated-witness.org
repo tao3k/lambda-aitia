@@ -1,0 +1,71 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0020 — Sigstore Bundle v0.3 Wire Envelope, Federated Witness Quorums & Offline Timestamp Freshness
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-sigstore-bundle-federated-witness
+:ENGINEERING_ID: RFC-0020
+:STATUS: implementation-in-progress
+:END:
+
+RFC 0017 introduced witness-cosigned checkpoints with a `k-of-n` distinct key threshold,
+and RFC 0019 introduced standard in-toto v1 / SLSA v1.0 DSSEv1 PAE envelopes. Two critical
+real-world supply-chain gaps remain in enterprise and multi-cloud deployments:
+
+1. **Single-Organization Witness Collusion**: A plain `2-of-3` witness threshold can still
+   be satisfied by two compromised witness keys operated by the *same* cloud provider or
+   organization.
+2. **Offline Timestamp Freshness & Clock-Skew Stitching**: Without explicit bounds on
+   witness cosignature timestamps, an attacker can replay stale cosigned checkpoints or
+   stitch an old witness cosignature together with a recent one to bypass freshness SLAs.
+3. **Standard Sigstore Bundle v0.3 Packaging**: Downstream Sigstore / Cosign ecosystems
+   expect the canonical `application/vnd.dev.sigstore.bundle.v0.3+json` wire envelope
+   combining `verificationMaterial` (`tlogEntries` with RFC 6962 §2.1.1 audit inclusion
+   proofs + timestamp verification data) alongside `dsseEnvelope`.
+
+RFC 0020 closes all three gaps offline with zero network calls and zero new runtime crates:
+
+- **Federated Multi-Organization Witness Policy (`lambda-aitia.federated-witness-policy.v1`)**:
+  Maps every trusted witness public key to an explicit organization (`witnessOrgs`),
+  enforcing:
+  1. Distinct non-revoked trusted witnesses `>= minWitnesses` (`>= 1`).
+  2. Distinct trusted organizations represented `>= minDistinctOrgs` (`>= 1`).
+  3. Every counted witness cosignature timestamp within verifier-pinned `[notBefore, notAfter]`.
+  4. Inter-witness timestamp spread `max(ts) - min(ts) <= maxSkewSeconds`, yielding a
+     deterministic offline `medianTimestamp`.
+- **Sigstore Bundle v0.3 Wire Envelope (`commit/sigstore.rs`)**:
+  - `export_sigstore_bundle_v03_json`: Computes a genuine RFC 6962 §2.1.1 `O(log N)`
+    Merkle audit inclusion proof for the head attestation entry inside the transparency log,
+    embeds `verificationMaterial` (`tlogEntries`, `timestampVerificationData`,
+    `signedCheckpoint`, `actionAuthorized: false`) + `dsseEnvelope`, and self-verifies the
+    resulting Sigstore Bundle v0.3 before returning.
+  - `verify_sigstore_bundle_v03_json`: Verifies `mediaType`, DSSEv1 PAE against TUF
+    `TrustRoot`, federated multi-org witness quorum + timestamp window + skew bounds,
+    RFC 6962 §2.1.1 audit inclusion proof against `signedCheckpoint.rootHash`, and exact
+    `bundleDigest` / `merkleRoot` parity between the transparency log leaf and DSSE statement.
+
+* Non-negotiable invariants
+
+- **Anti-Collusion Org Diversity**: Multiple keys belonging to one organization contribute
+  at most `1` toward `minDistinctOrgs`.
+- **Bounded Offline Freshness**: Stale (`ts < notBefore`), future-dated (`ts > notAfter`),
+  or excessively skewed (`maxTs - minTs > maxSkewSeconds`) witness cosignatures fail closed.
+- **Genuine RFC 6962 §2.1.1 Audit Path**: `tlogEntries[0].inclusionProof.hashes` must
+  cryptographically fold `leaf_hash(canonicalizedBody)` at `logIndex` to `rootHash`.
+- **Zero Authority (`actionAuthorized: false`)**: Sigstore v0.3 bundles and verdicts never
+  authorize execution, deployment, or remote mutation.
+- **Zero New Crates / Zero `unsafe` in PyO3**: Reuses `ring` + `commit::transparency` +
+  `commit::dsse`; keeps `cli/flow.rs` untouched (69/75 lines) and zero `Cargo.lock` churn.
+
+* Verification gates
+
+- Rust Sigstore v0.3 & federated witness module: `rust/crates/aitia-runtime/src/commit/sigstore.rs`
+- PyO3 bindings: `rust/crates/aitia-python/src/python.rs` (`export_sigstore_bundle_v03`,
+  `verify_sigstore_bundle_v03`)
+- Quint formal model: `dev/proof/quint/SigstoreFederatedWitness.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 55 total `GitOps` theorems, zero axioms, zero `sorryAx`)
+- End-to-end Scenario O in `examples/cardano-diamond-release-train/run_diamond_train.py`.

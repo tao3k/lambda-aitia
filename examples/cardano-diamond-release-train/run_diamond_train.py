@@ -1479,6 +1479,111 @@ def main() -> None:
                 embedded_dsse_tamper_rejected = True
             assert embedded_dsse_tamper_rejected, "Tampered embedded DSSE envelope MUST fail closed!"
 
+            # Scenario O: RFC 0020 Sigstore Bundle v0.3 + Federated Multi-Org Witness Quorum +
+            #             Offline Timestamp Freshness/Skew Bounds + RFC 6962 §2.1.1 Audit Inclusion Proof
+            w_id_to_pk = {c["witnessId"]: c["publicKey"] for c in sth_2["cosignatures"] + sth_5["cosignatures"]}
+            federated_policy = {
+                "schema": "lambda-aitia.federated-witness-policy.v1",
+                "origin": log_origin,
+                "originPublicKey": sth_5["originPublicKey"],
+                "minWitnesses": 2,
+                "minDistinctOrgs": 2,
+                "notBefore": 1795699000,
+                "notAfter": 1795699500,
+                "maxSkewSeconds": 30,
+                "witnessOrgs": {
+                    w_id_to_pk["witness-us-east"]: "org-us",
+                    w_id_to_pk["witness-eu-west"]: "org-eu",
+                    w_id_to_pk["witness-ap-northeast"]: "org-ap",
+                },
+                "revokedWitnessKeys": [],
+            }
+            federated_policy_json = json.dumps(federated_policy)
+            rotated_r2_json = json.dumps(rotated_r2)
+
+            # O1. Export genuine wire-compatible Sigstore Bundle v0.3 & verify offline
+            sigstore_v03_json = lambda_aitia_rust.export_sigstore_bundle_v03(
+                exported_bundle_str, rotated_r2_json, federated_policy_json
+            )
+            sigstore_v03 = json.loads(sigstore_v03_json)
+            assert sigstore_v03["mediaType"] == "application/vnd.dev.sigstore.bundle.v0.3+json"
+            assert sigstore_v03["verificationMaterial"]["actionAuthorized"] is False
+            assert len(sigstore_v03["verificationMaterial"]["tlogEntries"][0]["inclusionProof"]["hashes"]) == 3
+
+            sigstore_verdict = json.loads(
+                lambda_aitia_rust.verify_sigstore_bundle_v03(
+                    sigstore_v03_json, rotated_r2_json, federated_policy_json
+                )
+            )
+            assert sigstore_verdict["verified"] is True
+            assert sigstore_verdict["validWitnessCount"] == 2
+            assert sigstore_verdict["distinctOrgCount"] == 2
+            assert sigstore_verdict["observedSkewSeconds"] == 5
+            assert sigstore_verdict["tlogInclusionProofVerified"] is True
+            assert sigstore_verdict["tlogInclusionProofHashes"] == 3
+            assert sigstore_verdict["actionAuthorized"] is False
+
+            # O2. Negative controls: single-org collusion, excessive clock skew, stale timestamp, tampered tlog path
+            colluding_policy = dict(
+                federated_policy,
+                witnessOrgs={pk: "org-single-cloud" for pk in federated_policy["witnessOrgs"]},
+            )
+            single_org_collusion_rejected = False
+            try:
+                lambda_aitia_rust.verify_sigstore_bundle_v03(
+                    sigstore_v03_json, rotated_r2_json, json.dumps(colluding_policy)
+                )
+            except ValueError as exc:
+                single_org_collusion_rejected = "single-org collusion blocked" in str(exc)
+            assert single_org_collusion_rejected, "Single-org witness collusion MUST fail closed!"
+
+            skewed_sth_5 = json.loads(
+                lambda_aitia_rust.sign_checkpoint(
+                    log_origin,
+                    json.dumps(log_entries),
+                    origin_seed,
+                    json.dumps(
+                        [
+                            {"witnessId": "witness-eu-west", "seedHex": w2_seed, "timestamp": 1795699100},
+                            {"witnessId": "witness-ap-northeast", "seedHex": w3_seed, "timestamp": 1795699250},
+                        ]
+                    ),
+                )
+            )
+            skewed_bundle = json.loads(sigstore_v03_json)
+            skewed_bundle["verificationMaterial"]["signedCheckpoint"] = skewed_sth_5
+            skew_rejected = False
+            try:
+                lambda_aitia_rust.verify_sigstore_bundle_v03(
+                    json.dumps(skewed_bundle), rotated_r2_json, federated_policy_json
+                )
+            except ValueError as exc:
+                skew_rejected = "exceeds maxSkewSeconds" in str(exc)
+            assert skew_rejected, "Excessive inter-witness clock skew MUST fail closed!"
+
+            stale_policy = dict(federated_policy, notBefore=1795699300)
+            stale_ts_rejected = False
+            try:
+                lambda_aitia_rust.verify_sigstore_bundle_v03(
+                    sigstore_v03_json, rotated_r2_json, json.dumps(stale_policy)
+                )
+            except ValueError as exc:
+                stale_ts_rejected = "outside freshness window" in str(exc)
+            assert stale_ts_rejected, "Stale witness timestamp MUST fail closed!"
+
+            tampered_tlog = json.loads(sigstore_v03_json)
+            tampered_tlog["verificationMaterial"]["tlogEntries"][0]["inclusionProof"]["hashes"][0] = (
+                "sha256:" + ("0" * 64)
+            )
+            tlog_path_tamper_rejected = False
+            try:
+                lambda_aitia_rust.verify_sigstore_bundle_v03(
+                    json.dumps(tampered_tlog), rotated_r2_json, federated_policy_json
+                )
+            except ValueError as exc:
+                tlog_path_tamper_rejected = "rootHash mismatch" in str(exc)
+            assert tlog_path_tamper_rejected, "Tampered RFC 6962 §2.1.1 audit path MUST fail closed!"
+
     print(
         json.dumps(
             {
@@ -1543,6 +1648,14 @@ def main() -> None:
                 "scenarioN_cliExportRoundTripDsseVerified": full_cli_verdict["dsseVerified"],
                 "scenarioN_embeddedDsseTamperRejected": embedded_dsse_tamper_rejected,
                 "scenarioN_dssePaeDigest": dsse_verdict["paeDigest"],
+                "scenarioO_sigstoreV03Verified": sigstore_verdict["verified"],
+                "scenarioO_federatedDistinctOrgs": sigstore_verdict["distinctOrgCount"],
+                "scenarioO_medianTimestamp": sigstore_verdict["medianTimestamp"],
+                "scenarioO_tlogAuditPathHashes": sigstore_verdict["tlogInclusionProofHashes"],
+                "scenarioO_singleOrgCollusionRejected": single_org_collusion_rejected,
+                "scenarioO_clockSkewRejected": skew_rejected,
+                "scenarioO_staleTimestampRejected": stale_ts_rejected,
+                "scenarioO_tlogAuditPathTamperRejected": tlog_path_tamper_rejected,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,
