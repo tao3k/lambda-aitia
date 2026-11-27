@@ -600,4 +600,44 @@ theorem detachedSidecarAuditPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2.2
 
+/-- RFC 0022 linked Scheme/POO gerbil-ascent -> Native AI / Marlin Agent Core closure predicate. -/
+def SchemeAscentSidecarClosure
+    (missingLenses ascentBlockers : Nat)
+    (allEnginesSanctioned : Bool)
+    (actionAuthorized : Bool) : Prop :=
+  missingLenses = 0 ∧
+  allEnginesSanctioned = true ∧
+  ascentBlockers = 0 ∧
+  actionAuthorized = false
+
+theorem ascentMissingLensBlocksClosure
+    {missing blockers : Nat} {sanctioned auth : Bool}
+    (hMissing : missing > 0) :
+    ¬ SchemeAscentSidecarClosure missing blockers sanctioned auth := by
+  intro hValid
+  have hZero : missing = 0 := hValid.1
+  rw [hZero] at hMissing
+  exact Nat.not_lt_zero 0 hMissing
+
+theorem unsanctionedEngineBindingBlocksClosure
+    {missing blockers : Nat} {auth : Bool} :
+    ¬ SchemeAscentSidecarClosure missing blockers false auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.1
+
+theorem ascentBlockerPreventsMarlinPromotion
+    {missing blockers : Nat} {sanctioned auth : Bool}
+    (hBlocked : blockers > 0) :
+    ¬ SchemeAscentSidecarClosure missing blockers sanctioned auth := by
+  intro hValid
+  have hZero : blockers = 0 := hValid.2.2.1
+  rw [hZero] at hBlocked
+  exact Nat.not_lt_zero 0 hBlocked
+
+theorem schemeAscentBridgePreservesZeroAuthority
+    {missing blockers : Nat} {sanctioned auth : Bool}
+    (hValid : SchemeAscentSidecarClosure missing blockers sanctioned auth) :
+    auth = false :=
+  hValid.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

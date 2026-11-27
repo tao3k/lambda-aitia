@@ -88,3 +88,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.staleAiContextBlocksDetachedAudit
 #print axioms GitOps.unaddressedHighFindingBlocksDetachedAudit
 #print axioms GitOps.detachedSidecarAuditPreservesZeroAuthority
+#print axioms GitOps.ascentMissingLensBlocksClosure
+#print axioms GitOps.unsanctionedEngineBindingBlocksClosure
+#print axioms GitOps.ascentBlockerPreventsMarlinPromotion
+#print axioms GitOps.schemeAscentBridgePreservesZeroAuthority

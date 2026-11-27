@@ -225,143 +225,210 @@ def main() -> None:
         assert context["actionAuthorized"] is False
         handoffs = context["aiEngineHandoffs"]
 
-        # 4. Run multi-lens audit across the TWO sanctioned AI engine bindings:
-        #    - Mode 1 (Native AI Host Environment via ASCENT directive): correctness + security
-        #    - Mode 2 (Marlin Agent Core handoff boundary): api-regression + nasa-swe146
-        ai_reports = [
-            execute_native_host_llm_lens(handoffs["nativeHostLlm"], "correctness"),
-            execute_native_host_llm_lens(handoffs["nativeHostLlm"], "security"),
-            execute_marlin_agent_core_lens(handoffs["marlinAgentCore"], "api-regression"),
-            execute_marlin_agent_core_lens(handoffs["marlinAgentCore"], "nasa-swe146"),
-        ]
-
-        # 5. Bind redacted Conversation Audit Transcript (SWE-146 provenance without secret leaks)
-        conversation = {
-            "schema": "lambda-aitia.conversation-transcript.v1",
-            "contextDigest": context["contextDigest"],
-            "redactionMode": "redacted-summary",
-            "turns": [
-                {
-                    "turnId": 1,
-                    "role": "human",
-                    "summary": "Harden token comparison against timing side channels without changing public signature.",
-                    "contentDigest": sha256_prefixed("turn-1-human-request"),
-                },
-                {
-                    "turnId": 2,
-                    "role": "assistant",
-                    "modelId": "host-agent-ascent-guided-v1",
-                    "summary": "Replaced == with hmac.compare_digest and added empty-string fail-closed guard.",
-                    "contentDigest": sha256_prefixed("turn-2-assistant-patch"),
-                },
-                {
-                    "turnId": 3,
-                    "role": "human",
-                    "summary": "Reviewed SEC-001 finding; confirmed empty-input guard is in-place and unittest green.",
-                    "contentDigest": sha256_prefixed("turn-3-human-review"),
-                },
-            ],
-            "actionAuthorized": False,
-        }
-        conv_digest = sha256_prefixed(json.dumps(conversation, sort_keys=True, separators=(",", ":")))
-
-        human_decision_ok = {
-            "schema": "lambda-aitia.human-audit-decision.v1",
-            "contextDigest": context["contextDigest"],
-            "conversationDigest": conv_digest,
-            "reviewerId": "maintainer@hardenedlinux.org",
-            "decision": "approve-commit",
-            "dispositions": [
-                {
-                    "findingId": "SEC-001",
-                    "status": "fixed-verified",
-                    "rationale": "Empty secret/token guard added at line 4 before hmac.compare_digest and verified by unittest.",
-                }
-            ],
-            "actionAuthorized": False,
-        }
-
-        # Negative Control 2: Unapproved ad-hoc CLI/HTTP engineBinding MUST fail closed!
-        rogue_reports = json.loads(json.dumps(ai_reports))
-        rogue_reports[0]["engineBinding"] = "ad-hoc-cli-http-wrapper"
-        rogue_binding_rejected = False
+        # 3b. RFC 0022: Invoke LIVE linked Scheme/POO `gerbil-ascent` engine via persistent
+        #     `Session` (keeps the Gerbil runtime alive across multi-stage audit rounds!).
+        session = lambda_aitia_rust.Session()
         try:
-            lambda_aitia_rust.verify_ai_audit_and_conversation(
-                context_json,
-                json.dumps(rogue_reports),
-                json.dumps(conversation),
-                json.dumps(human_decision_ok),
-                profile_json,
+            scheme_pre = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": [],
+                            "conversationBound": False,
+                            "humanApproved": False,
+                            "dispositions": [],
+                        }
+                    )
+                )
             )
-        except ValueError as exc:
-            rogue_binding_rejected = "sanctioned engineBinding" in str(exc)
-        assert rogue_binding_rejected, "Unapproved ad-hoc CLI engineBinding MUST fail closed!"
+            assert scheme_pre["schema"] == "lambda-aitia.scheme-ascent-sidecar-assessment.v1"
+            assert scheme_pre["admissible"] is False
+            assert scheme_pre["actionAuthorized"] is False
+            assert scheme_pre["nextHandoffMode"] == "dispatch-ai-audit-lenses"
+            assert scheme_pre["missingLenses"] == [
+                "api-regression",
+                "correctness",
+                "nasa-swe146",
+                "security",
+            ]
+            assert scheme_pre["openObligations"] == ["SWE-087", "SWE-146"]
+            assert scheme_pre["marlinHandoff"]["boundary"] == "marlin-agent-core"
+            assert scheme_pre["ascentDirective"]["engineBinding"] == "native-ai-environment"
 
-        # Negative Control 3: Unaddressed High-severity finding MUST fail closed!
-        unaddressed_decision = dict(human_decision_ok, dispositions=[])
-        unaddressed_rejected = False
-        try:
-            lambda_aitia_rust.verify_ai_audit_and_conversation(
-                context_json,
-                json.dumps(ai_reports),
-                json.dumps(conversation),
-                json.dumps(unaddressed_decision),
-                profile_json,
+            # 4. Run multi-lens audit across the TWO sanctioned AI engine bindings driven by
+            #    Scheme ASCENT's derived handoffs:
+            #    - Mode 1 (Native AI Host Environment via ASCENT directive): correctness + security
+            #    - Mode 2 (Marlin Agent Core handoff boundary): api-regression + nasa-swe146
+            ai_reports = [
+                execute_native_host_llm_lens(handoffs["nativeHostLlm"], "correctness"),
+                execute_native_host_llm_lens(handoffs["nativeHostLlm"], "security"),
+                execute_marlin_agent_core_lens(handoffs["marlinAgentCore"], "api-regression"),
+                execute_marlin_agent_core_lens(handoffs["marlinAgentCore"], "nasa-swe146"),
+            ]
+
+            # 5. Bind redacted Conversation Audit Transcript (SWE-146 provenance without secret leaks)
+            conversation = {
+                "schema": "lambda-aitia.conversation-transcript.v1",
+                "contextDigest": context["contextDigest"],
+                "redactionMode": "redacted-summary",
+                "turns": [
+                    {
+                        "turnId": 1,
+                        "role": "human",
+                        "summary": "Harden token comparison against timing side channels without changing public signature.",
+                        "contentDigest": sha256_prefixed("turn-1-human-request"),
+                    },
+                    {
+                        "turnId": 2,
+                        "role": "assistant",
+                        "modelId": "host-agent-ascent-guided-v1",
+                        "summary": "Replaced == with hmac.compare_digest and added empty-string fail-closed guard.",
+                        "contentDigest": sha256_prefixed("turn-2-assistant-patch"),
+                    },
+                    {
+                        "turnId": 3,
+                        "role": "human",
+                        "summary": "Reviewed SEC-001 finding; confirmed empty-input guard is in-place and unittest green.",
+                        "contentDigest": sha256_prefixed("turn-3-human-review"),
+                    },
+                ],
+                "actionAuthorized": False,
+            }
+            conv_digest = sha256_prefixed(json.dumps(conversation, sort_keys=True, separators=(",", ":")))
+
+            human_decision_ok = {
+                "schema": "lambda-aitia.human-audit-decision.v1",
+                "contextDigest": context["contextDigest"],
+                "conversationDigest": conv_digest,
+                "reviewerId": "maintainer@hardenedlinux.org",
+                "decision": "approve-commit",
+                "dispositions": [
+                    {
+                        "findingId": "SEC-001",
+                        "status": "fixed-verified",
+                        "rationale": "Empty secret/token guard added at line 4 before hmac.compare_digest and verified by unittest.",
+                    }
+                ],
+                "actionAuthorized": False,
+            }
+
+            # Negative Control 2: Unapproved ad-hoc CLI/HTTP engineBinding MUST fail closed!
+            rogue_reports = json.loads(json.dumps(ai_reports))
+            rogue_reports[0]["engineBinding"] = "ad-hoc-cli-http-wrapper"
+            rogue_binding_rejected = False
+            try:
+                lambda_aitia_rust.verify_ai_audit_and_conversation(
+                    context_json,
+                    json.dumps(rogue_reports),
+                    json.dumps(conversation),
+                    json.dumps(human_decision_ok),
+                    profile_json,
+                )
+            except ValueError as exc:
+                rogue_binding_rejected = "sanctioned engineBinding" in str(exc)
+            assert rogue_binding_rejected, "Unapproved ad-hoc CLI engineBinding MUST fail closed!"
+
+            # Negative Control 3: Unaddressed High-severity finding MUST fail closed!
+            unaddressed_decision = dict(human_decision_ok, dispositions=[])
+            unaddressed_rejected = False
+            try:
+                lambda_aitia_rust.verify_ai_audit_and_conversation(
+                    context_json,
+                    json.dumps(ai_reports),
+                    json.dumps(conversation),
+                    json.dumps(unaddressed_decision),
+                    profile_json,
+                )
+            except ValueError as exc:
+                unaddressed_rejected = "Unaddressed critical/high AI finding" in str(exc)
+            assert unaddressed_rejected, "Unaddressed High finding MUST fail closed!"
+
+            # Negative Control 4: AI self-approval (missing human approve-commit) MUST fail closed!
+            ai_self_approve = dict(human_decision_ok, decision="ai-auto-approved")
+            self_approve_rejected = False
+            try:
+                lambda_aitia_rust.verify_ai_audit_and_conversation(
+                    context_json,
+                    json.dumps(ai_reports),
+                    json.dumps(conversation),
+                    json.dumps(ai_self_approve),
+                    profile_json,
+                )
+            except ValueError as exc:
+                self_approve_rejected = "did not approve commit" in str(exc)
+            assert self_approve_rejected, "AI self-approval MUST fail closed!"
+
+            # Negative Control 5: Stale AI audit after 1-line code edit MUST fail closed!
+            (upstream_repo / "src" / "token_parser.py").write_text(
+                "import hmac\n\n"
+                "def verify_token(expected: str, provided: str) -> bool:\n"
+                "    # drift after audit\n"
+                "    if not expected or not provided:\n"
+                "        return False\n"
+                "    return hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8'))\n",
+                encoding="utf-8",
             )
-        except ValueError as exc:
-            unaddressed_rejected = "Unaddressed critical/high AI finding" in str(exc)
-        assert unaddressed_rejected, "Unaddressed High finding MUST fail closed!"
-
-        # Negative Control 4: AI self-approval (missing human approve-commit) MUST fail closed!
-        ai_self_approve = dict(human_decision_ok, decision="ai-auto-approved")
-        self_approve_rejected = False
-        try:
-            lambda_aitia_rust.verify_ai_audit_and_conversation(
-                context_json,
-                json.dumps(ai_reports),
-                json.dumps(conversation),
-                json.dumps(ai_self_approve),
-                profile_json,
+            drifted_ctx_json = lambda_aitia_rust.capture_detached_audit_context(
+                str(upstream_repo), "HEAD", profile_json, json.dumps(det_checks)
             )
-        except ValueError as exc:
-            self_approve_rejected = "did not approve commit" in str(exc)
-        assert self_approve_rejected, "AI self-approval MUST fail closed!"
+            stale_audit_rejected = False
+            try:
+                lambda_aitia_rust.verify_ai_audit_and_conversation(
+                    drifted_ctx_json,
+                    json.dumps(ai_reports),
+                    json.dumps(conversation),
+                    json.dumps(human_decision_ok),
+                    profile_json,
+                )
+            except ValueError as exc:
+                stale_audit_rejected = "Stale AI audit report rejected" in str(exc)
+            assert stale_audit_rejected, "Stale AI audit after code edit MUST fail closed!"
 
-        # Negative Control 5: Stale AI audit after 1-line code edit MUST fail closed!
-        (upstream_repo / "src" / "token_parser.py").write_text(
-            "import hmac\n\n"
-            "def verify_token(expected: str, provided: str) -> bool:\n"
-            "    # drift after audit\n"
-            "    if not expected or not provided:\n"
-            "        return False\n"
-            "    return hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8'))\n",
-            encoding="utf-8",
-        )
-        drifted_ctx_json = lambda_aitia_rust.capture_detached_audit_context(
-            str(upstream_repo), "HEAD", profile_json, json.dumps(det_checks)
-        )
-        stale_audit_rejected = False
-        try:
-            lambda_aitia_rust.verify_ai_audit_and_conversation(
-                drifted_ctx_json,
-                json.dumps(ai_reports),
-                json.dumps(conversation),
-                json.dumps(human_decision_ok),
-                profile_json,
+            # Restore audited code snapshot
+            (upstream_repo / "src" / "token_parser.py").write_text(
+                "import hmac\n\n"
+                "def verify_token(expected: str, provided: str) -> bool:\n"
+                "    if not expected or not provided:\n"
+                "        return False\n"
+                "    return hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8'))\n",
+                encoding="utf-8",
             )
-        except ValueError as exc:
-            stale_audit_rejected = "Stale AI audit report rejected" in str(exc)
-        assert stale_audit_rejected, "Stale AI audit after code edit MUST fail closed!"
 
-        # Restore audited code snapshot
-        (upstream_repo / "src" / "token_parser.py").write_text(
-            "import hmac\n\n"
-            "def verify_token(expected: str, provided: str) -> bool:\n"
-            "    if not expected or not provided:\n"
-            "        return False\n"
-            "    return hmac.compare_digest(expected.encode('utf-8'), provided.encode('utf-8'))\n",
-            encoding="utf-8",
-        )
+            # 5b. RFC 0022: Re-evaluate via the SAME LIVE linked Scheme/POO `gerbil-ascent` Session
+            #     AFTER dual-mode AI audit + redacted conversation + human disposition ->
+            #     admissible=True, 4/4 NASA obligations supported, zero blockers, actionAuthorized=False!
+            scheme_post = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": ai_reports,
+                            "conversationBound": True,
+                            "humanApproved": True,
+                            "dispositions": human_decision_ok["dispositions"],
+                        }
+                    )
+                )
+            )
+            assert scheme_post["admissible"] is True, scheme_post
+            assert scheme_post["blockers"] == []
+            assert scheme_post["openObligations"] == []
+            assert scheme_post["supportedObligations"] == ["SWE-083", "SWE-084", "SWE-087", "SWE-146"]
+            assert scheme_post["nextHandoffMode"] == "ready-for-sidecar-commit"
+            assert scheme_post["actionAuthorized"] is False
+        finally:
+            session.close()
 
         # 6. Build dual-surface NASA Sidecar Commit Bundle + wire-compatible DSSE envelope
         seed_1, seed_2 = "71" * 32, "72" * 32
@@ -428,6 +495,9 @@ def main() -> None:
             {
                 "example": "06-detached-external-repo-audit",
                 "upstreamRepoInitializedWithAitia": False,
+                "schemeAscentPreOpenObligations": scheme_pre["openObligations"],
+                "schemeAscentPostAdmissible": scheme_post["admissible"],
+                "schemeAscentPostSupportedObligations": scheme_post["supportedObligations"],
                 "sanctionedEngineBindings": bundle["verdict"]["engineBindingsUsed"],
                 "upstreamPollutionRejected": pollution_rejected,
                 "unapprovedCliBindingRejected": rogue_binding_rejected,

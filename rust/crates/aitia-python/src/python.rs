@@ -56,6 +56,10 @@ impl PythonSession {
         self.call(py, request, AitiaSession::workflow_protocol_step)
     }
 
+    fn sidecar_audit_assess(&self, py: Python<'_>, request: String) -> PyResult<String> {
+        self.call(py, request, AitiaSession::sidecar_audit_assess)
+    }
+
     #[pyo3(signature = (directory=".", case_id="aitia/case/gitops-commit", overlay=None, execute_fenced=false))]
     fn drive_protocol(
         &self,
@@ -584,6 +588,15 @@ fn build_nasa_sidecar_receipt(py: Python<'_>, spec_json: String) -> PyResult<Str
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn assess_sidecar_audit_ascent(py: Python<'_>, request_json: String) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::assess_sidecar_audit_ascent_json(&request_json)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -623,6 +636,7 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
         module
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(build_nasa_sidecar_receipt, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(assess_sidecar_audit_ascent, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

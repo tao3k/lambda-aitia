@@ -159,6 +159,15 @@ impl AitiaSession {
         self.call_string(move |program| program.workflow_protocol_step(&payload))
     }
 
+    /// Evaluate detached sidecar NASA obligations and Native AI / Marlin handoffs via Scheme ASCENT.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn sidecar_audit_assess(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.sidecar_audit_assess(&payload))
+    }
+
     /// Drive the Scheme-owned single-repository 5-state IoC protocol against `directory` inside
     /// this live session without re-initializing the Gambit runtime.
     ///

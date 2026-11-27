@@ -891,3 +891,15 @@ pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
         "actionAuthorized": false,
     }))?)
 }
+
+/// Evaluate detached sidecar audit obligations, missing lenses, and dual-mode sanctioned
+/// AI engine handoffs (`native-ai-environment` ASCENT directive + `marlin-agent-core` frame)
+/// directly through the linked Scheme/POO `gerbil-ascent` engine (RFC 0022).
+///
+/// # Errors
+/// Fails closed if the linked Scheme program rejects the input or returns a runtime error.
+pub fn assess_sidecar_audit_ascent_json(request_json: &str) -> Result<String> {
+    Ok(crate::with_linked_program(|program| {
+        program.sidecar_audit_assess(request_json)
+    })?)
+}

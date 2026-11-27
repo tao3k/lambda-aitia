@@ -53,8 +53,8 @@ pub use commit::merkle::{
 };
 #[cfg(feature = "linked-program")]
 pub use commit::sidecar::{
-    build_nasa_sidecar_receipt_json, capture_detached_audit_context_json,
-    verify_ai_audit_and_conversation_json,
+    assess_sidecar_audit_ascent_json, build_nasa_sidecar_receipt_json,
+    capture_detached_audit_context_json, verify_ai_audit_and_conversation_json,
 };
 #[cfg(feature = "linked-program")]
 pub use commit::sigstore::{export_sigstore_bundle_v03_json, verify_sigstore_bundle_v03_json};

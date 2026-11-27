@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0022 — Native Scheme/POO ASCENT Sidecar Audit Derivation & Linked Marlin Agent Core Bridge
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-scheme-ascent-sidecar-marlin-bridge
+:ENGINEERING_ID: RFC-0022
+:STATUS: implementation-in-progress
+:END:
+
+RFC 0021 established the Rust cryptographic sidecar kernel (`commit/sidecar.rs`) and the
+two sanctioned AI engine connection modes (`native-ai-environment` and `marlin-agent-core`).
+To preserve Lambda Aitia's core architectural invariant — **Scheme/POO + `gerbil-ascent`
+owns engineering semantics, while Rust owns read-only host observation, cryptographic
+custody, and thin transport** — RFC 0022 lowers detached sidecar audit obligation
+derivation into a native 3-fragment strictly stratified `gerbil-ascent` engine in
+`modules/gitops/sidecar-audit.ss` and bridges it across the linked Gambit C/Rust/PyO3
+boundary.
+
+* Architecture: Full Scheme ASCENT -> Native AI / Marlin -> Sidecar Vault Loop
+
+1. **Read-Only External Cut (Rust Host)**:
+   `capture_detached_audit_context` reads any uninitialized Git repository and freezes
+   `changedFiles`, `diffDigest`, `deterministicChecks`, and `contextDigest`.
+2. **Native `gerbil-ascent` Obligation & Handoff Derivation (Scheme/POO)**:
+   `gitops-sidecar-audit-assess` (`modules/gitops/sidecar-audit.ss`) executes a
+   pre-admitted 3-fragment stratified Datalog program (`intake-frag`, `review-frag`,
+   `obligation-frag`) deriving:
+   - `upstream-polluted`, `missing-lenses`, `disallowed-engines`, `unaddressed-high-findings`;
+   - NASA NPR 7150.2D per-obligation statuses (`SWE-083`, `SWE-084`, `SWE-087`, `SWE-146`)
+     partitioned into `supported-obligations` vs `open-obligations`;
+   - `ascent-directive` (`lambda-aitia.ascent-audit-directive.v1`) for **Mode 1
+     (`native-ai-environment`)**;
+   - `marlin-handoff` (`lambda-aitia.marlin-audit-handoff.v1`,
+     `boundary: "marlin-agent-core"`) for **Mode 2 (`marlin-agent-core`)**;
+   - `admissible?` (true iff zero blockers) with `action-authorized?: #f`.
+3. **Linked Scheme -> Rust -> PyO3 Transport**:
+   - Scheme transport `aitia-sidecar-audit-assess-payload` (`bindings/commit-transport.ss`)
+     exported through `rust/scheme/program.ss` (`aitia_program_sidecar_audit_assess`),
+     bound in `linked/binding.rs` (`AitiaProgram::sidecar_audit_assess`), exposed via
+     `commit/sidecar.rs` (`assess_sidecar_audit_ascent_json`) and PyO3
+     (`lambda_aitia_rust.assess_sidecar_audit_ascent`, `#![forbid(unsafe_code)]`).
+4. **Cryptographic Receipt & Clean Upstream Commit**:
+   Once Scheme ASCENT derives `admissible: true` (all 4 NASA obligations supported, zero
+   blockers), Rust mints the clean upstream commit message, NASA Org report, and RFC 0019
+   DSSEv1 PAE in-toto/SLSA envelope stored in the detached Sidecar Vault.
+
+* Verification gates
+
+- Scheme/POO ASCENT module: `modules/gitops/sidecar-audit.ss` (exported via `modules/gitops/config.ss`)
+- Scheme heap-fenced unit suite: `modules/gitops/tests/sidecar-audit-test.ss` (`just test-commit-semantics`)
+- Linked Scheme->Rust->PyO3 bridge: `bindings/commit-transport.ss`, `rust/scheme/program.ss`,
+  `linked/binding.rs`, `commit/sidecar.rs`, `aitia-python/src/python.rs`
+- Quint formal model: `dev/proof/quint/SchemeAscentMarlinBridge.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 63 total `GitOps` theorems, zero axioms, zero `sorryAx`)
+- End-to-end live loop: `examples/06-detached-external-repo-audit/run_external_audit.py`.

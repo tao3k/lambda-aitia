@@ -33,6 +33,7 @@ unsafe extern "C" {
     fn aitia_program_evidence_lineage(request: i64) -> i64;
     fn aitia_program_workflow_reconcile(request: i64) -> i64;
     fn aitia_program_workflow_protocol_step(request: i64) -> i64;
+    fn aitia_program_sidecar_audit_assess(request: i64) -> i64;
     fn aitia_program_agent_input_check(request: i64) -> i64;
     #[cfg(unix)]
     fn aitia_program_agent_input_assess(request: i64) -> i64;
@@ -54,6 +55,7 @@ pub struct AitiaProgram<'runtime> {
     evidence_lineage: LinkedObjectExport<'runtime>,
     workflow_reconcile: LinkedObjectExport<'runtime>,
     workflow_protocol_step: LinkedObjectExport<'runtime>,
+    sidecar_audit_assess: LinkedObjectExport<'runtime>,
     agent_input_check: LinkedObjectExport<'runtime>,
     #[cfg(unix)]
     agent_input_assess: LinkedObjectExport<'runtime>,
@@ -220,6 +222,14 @@ impl<'runtime> AitiaProgram<'runtime> {
     /// Propagates request conversion, rooted call, or Scheme evaluation failures.
     pub fn workflow_protocol_step(&self, request: &str) -> Result<String, NativeError> {
         self.call(&self.workflow_protocol_step, request)
+    }
+
+    /// Derive detached sidecar NASA obligations and Native AI / Marlin handoffs via Scheme ASCENT.
+    ///
+    /// # Errors
+    /// Propagates request conversion, rooted call, or Scheme evaluation failures.
+    pub fn sidecar_audit_assess(&self, request: &str) -> Result<String, NativeError> {
+        self.call(&self.sidecar_audit_assess, request)
     }
 
     pub(crate) fn commit_review(
@@ -613,6 +623,9 @@ pub fn with_linked_program<T>(
         // SAFETY: this symbol belongs to the same initialized linked program.
         let workflow_protocol_step =
             unsafe { runtime.bind_object_export(aitia_program_workflow_protocol_step) }?;
+        // SAFETY: this symbol belongs to the same initialized linked program.
+        let sidecar_audit_assess =
+            unsafe { runtime.bind_object_export(aitia_program_sidecar_audit_assess) }?;
         // SAFETY: The input check uses the same bridge-owned rooted call.
         let agent_input_check =
             unsafe { runtime.bind_object_export(aitia_program_agent_input_check) }?;
@@ -638,6 +651,7 @@ pub fn with_linked_program<T>(
             evidence_lineage,
             workflow_reconcile,
             workflow_protocol_step,
+            sidecar_audit_assess,
             agent_input_check,
             #[cfg(unix)]
             agent_input_assess,
