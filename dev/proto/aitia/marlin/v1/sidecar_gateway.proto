@@ -33,6 +33,7 @@ message StepReviewRequest {
   string choice = 3;
   string disclosure = 4;
   string payload_json = 5;
+  string plan_sexp = 6;
 }
 
 message HealthResponse {

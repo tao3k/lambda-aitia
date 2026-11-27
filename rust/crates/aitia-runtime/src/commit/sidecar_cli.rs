@@ -409,24 +409,31 @@ pub(crate) fn run_sidecar_cli(args: &[String]) -> Result<()> {
     Ok(())
 }
 
+fn parse_review_text_input(raw: &str) -> Result<Value> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(json!({}));
+    }
+    if trimmed.starts_with('(') {
+        return Ok(json!({ "planSexp": trimmed }));
+    }
+    serde_json::from_str(trimmed).map_err(|e| {
+        err(format!(
+            "Invalid JSON or `(aitia-review-plan ...)` S-expression for `aitia review` (pass empty input to discover templates): {e}"
+        ))
+    })
+}
+
 /// Zero-flag progressive FunFlow Choice single entrypoint for LLMs:
-///   `aitia review`                 -> discover current epistemic frontier in `.`
+///   `aitia review`                 -> discover current epistemic frontier + DSL grammar & S-expr template
 ///   `aitia review <repo-dir>`      -> discover current epistemic frontier in `<repo-dir>`
-///   `aitia review < choice.json`   -> submit a chosen FunFlow branch (pre-filled template)
+///   `aitia review <plan.sexp|json>` -> execute & validate an LLM-authored declarative plan file
+///   `aitia review < plan.sexp|json` -> execute & validate piped S-expr or JSON plan
 ///
 /// Never requires memorizing CLI flags; returns self-healing templates on invalid choices.
 pub(crate) fn run_review_cli(args: &[String]) -> Result<()> {
     let mut req: Value = if !io::stdin().is_terminal() {
-        let raw = read_bounded_stdin()?;
-        if raw.trim().is_empty() {
-            json!({})
-        } else {
-            serde_json::from_str(&raw).map_err(|e| {
-                err(format!(
-                    "Invalid JSON choice envelope for `aitia review` (pass empty input or `{{}}` to discover templates): {e}"
-                ))
-            })?
-        }
+        parse_review_text_input(&read_bounded_stdin()?)?
     } else {
         json!({})
     };
@@ -434,9 +441,14 @@ pub(crate) fn run_review_cli(args: &[String]) -> Result<()> {
         && first != "--help"
         && first != "-h"
         && !first.starts_with('-')
-        && let Some(obj) = req.as_object_mut()
     {
-        obj.entry("repo".to_owned()).or_insert_with(|| json!(first));
+        let p = Path::new(first);
+        if p.is_file() {
+            let file_text = fs::read_to_string(p)?;
+            req = parse_review_text_input(&file_text)?;
+        } else if let Some(obj) = req.as_object_mut() {
+            obj.entry("repo".to_owned()).or_insert_with(|| json!(first));
+        }
     }
     let out = defense_audit::run_review_flow_step_json(&req, None)?;
     writeln!(

@@ -114,3 +114,5 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.funflowChoicePrefixForbidsFencedEffect
 #print axioms GitOps.funflowChoiceFencedTailRequiresUniqueProvenWorld
 #print axioms GitOps.funflowChoiceFrontierPreservesZeroAuthority
+#print axioms GitOps.declarativePlanCannotWeakenClosedFloor
+#print axioms GitOps.declarativePlanViolationPrunesAllWorlds

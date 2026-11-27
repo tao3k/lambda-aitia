@@ -325,4 +325,47 @@
         (check-equal? (.get proven-res epistemic-status) "Proven")
         (check-equal? (.get proven-res world-count) 1)
         (check-equal? (.get proven-res fenced-tail-admitted?) #t)
-        (check-equal? (.get proven-res action-authorized?) #f)))))
+        (check-equal? (.get proven-res action-authorized?) #f)))
+
+    (test-case "Declarative S-expr (aitia-review-plan ...) drives native ASCENT relational-choice-solve convergence and rejects floor-weakening clauses"
+      (let* ((sexp-competing
+              "(aitia-review-plan
+                 (scenario \"marlin-sm33-audit\")
+                 (open-branches \"hyp-kernel-safe\" \"hyp-dsl-bypass\")
+                 (rule-pack \"marlin-kernel-pack\" \"marlin-kernel\"
+                   (rule \"no-raw-bypass\" (languages \"rust\") (tokens-all \"raw_bypass\") (detail \"forbid raw bypass\"))))")
+             (sexp-converged
+              "(aitia-review-plan
+                 (scenario \"marlin-sm33-audit\")
+                 (open-branches \"hyp-kernel-safe\" \"hyp-dsl-bypass\")
+                 (probes
+                   (probe \"hyp-kernel-safe\" supports \"SM33 confinement test passed\")
+                   (probe \"hyp-dsl-bypass\" refutes \"static check disproved bypass path\")))")
+             (sexp-forbidden
+              "(aitia-review-plan
+                 (scenario \"evil-bypass\")
+                 (disable-core-floor #t))")
+             (r-comp (gitops-review-flow-step
+                      (.o context-digest: +ctx-digest+
+                          changed-paths: '("crates/kernel/lib.rs")
+                          plan-sexp: sexp-competing)))
+             (r-conv (gitops-review-flow-step
+                      (.o context-digest: +ctx-digest+
+                          changed-paths: '("crates/kernel/lib.rs")
+                          plan-sexp: sexp-converged)))
+             (r-forb (gitops-review-flow-step
+                      (.o context-digest: +ctx-digest+
+                          changed-paths: '("crates/kernel/lib.rs")
+                          plan-sexp: sexp-forbidden))))
+        (check-equal? (.get (.get r-comp plan-validation) validated?) #t)
+        (check-equal? (.get (.get r-comp ascent-choice-solution) choice-status) "competing-worlds")
+        (check-equal? (.get (.get r-comp ascent-choice-solution) world-count) 2)
+        (check-equal? (.get (.get r-comp shared-prefix) rule-packs-applied) '("de-g2-core" "marlin-kernel-pack"))
+        (check-equal? (.get (.get r-conv ascent-choice-solution) choice-status) "unique-deduction")
+        (check-equal? (.get (.get r-conv ascent-choice-solution) world-count) 1)
+        (check-equal? (.get (car (.get (.get r-conv ascent-choice-solution) worlds)) review-branch) "hyp-kernel-safe")
+        (check-equal? (.get (.get r-forb plan-validation) validated?) #f)
+        (check-equal? (.get (.get r-forb plan-validation) core-floor-intact?) #f)
+        (check-equal? (.get (.get r-forb ascent-choice-solution) choice-status) "unsatisfiable")
+        (check-equal? (.get (.get r-forb ascent-choice-solution) world-count) 0)
+        (check-equal? (.get r-forb action-authorized?) #f)))))

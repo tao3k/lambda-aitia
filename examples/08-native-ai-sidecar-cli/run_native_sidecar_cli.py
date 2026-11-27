@@ -204,6 +204,42 @@ def main() -> None:
         assert rev_bad["choiceAccepted"] is False
         assert "selfHealingHint" in rev_bad
         assert "repair-diff-defects" in rev_bad["selfHealingHint"]["validChoiceIds"]
+        assert "dslGrammar" in rev_discover and "sexpPlanTemplate" in rev_discover
+
+        # 0e. Verify declarative `(aitia-review-plan ...)` S-expr file drives native ASCENT
+        #     `relational-choice-solve` convergence (2 competing worlds -> 1 unique-deduction)
+        #     and rejects forbidden `disable-core-floor` with 0 surviving worlds!
+        plan_file = root / "scenario-plan.sexp"
+        plan_file.write_text(
+            f'(aitia-review-plan\n'
+            f'  (scenario "worktree-parser-audit")\n'
+            f'  (repo "{upstream_repo}")\n'
+            f'  (open-branches "hyp-missing-assert" "hyp-external-test-moved")\n'
+            f'  (probes\n'
+            f'    (probe "hyp-missing-assert" supports "parser.py deleted assert without replacement")\n'
+            f'    (probe "hyp-external-test-moved" refutes "no other test file exists in worktree")))\n',
+            encoding="utf-8",
+        )
+        _, rev_plan_out, _ = run_cli(cli, ["review", str(plan_file)])
+        rev_plan = json.loads(rev_plan_out)
+        assert rev_plan["planValidation"]["validated"] is True
+        assert rev_plan["planValidation"]["zeroEvalDatumParser"] is True
+        assert rev_plan["ascentChoiceSolution"]["choiceStatus"] == "unique-deduction"
+        assert rev_plan["ascentChoiceSolution"]["worldCount"] == 1
+        assert rev_plan["ascentChoiceSolution"]["worlds"][0]["reviewBranch"] == "hyp-missing-assert"
+        assert rev_plan["ascentChoiceSolution"]["worlds"][0]["dispatchDecision"] == "repair-mechanical-defects"
+
+        evil_plan = root / "evil-plan.sexp"
+        evil_plan.write_text(
+            f'(aitia-review-plan (repo "{upstream_repo}") (disable-core-floor #t))\n',
+            encoding="utf-8",
+        )
+        _, rev_evil_out, _ = run_cli(cli, ["review", str(evil_plan)])
+        rev_evil = json.loads(rev_evil_out)
+        assert rev_evil["planValidation"]["validated"] is False
+        assert rev_evil["planValidation"]["coreFloorIntact"] is False
+        assert rev_evil["ascentChoiceSolution"]["choiceStatus"] == "unsatisfiable"
+        assert rev_evil["ascentChoiceSolution"]["worldCount"] == 0
 
         # Stage the defective file and verify `--staged` + `--format agent-feedback` + `--format sarif`
         run_git(upstream_repo, "add", "parser.py")

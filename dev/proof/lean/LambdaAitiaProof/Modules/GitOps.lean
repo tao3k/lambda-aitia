@@ -879,4 +879,28 @@ theorem funflowChoiceFrontierPreservesZeroAuthority
     actionAuthorized = false :=
   hSafe.2.1
 
+/-- Declarative LLM Scenario Plan Validation (`(aitia-review-plan ...)`):
+    zero-eval datum parser requires `zeroEvalDatum = true`, `coreFloorIntact = true`,
+    `actionAuthorized = false`, and forces `survivingWorlds = 0` whenever a forbidden
+    core-floor-weakening clause appears. -/
+def DeclarativePlanSafe
+    (zeroEvalDatum coreFloorIntact planValidated actionAuthorized : Bool)
+    (survivingWorlds : Nat) : Prop :=
+  zeroEvalDatum = true ∧
+  actionAuthorized = false ∧
+  (planValidated = true → coreFloorIntact = true) ∧
+  (coreFloorIntact = false → survivingWorlds = 0)
+
+theorem declarativePlanCannotWeakenClosedFloor
+    {zeroEvalDatum actionAuthorized : Bool} {survivingWorlds : Nat} :
+    ¬ DeclarativePlanSafe zeroEvalDatum false true actionAuthorized survivingWorlds := by
+  intro hSafe
+  exact Bool.false_ne_true (hSafe.2.2.1 rfl)
+
+theorem declarativePlanViolationPrunesAllWorlds
+    {zeroEvalDatum planValidated actionAuthorized : Bool} {survivingWorlds : Nat}
+    (hSafe : DeclarativePlanSafe zeroEvalDatum false planValidated actionAuthorized survivingWorlds) :
+    survivingWorlds = 0 :=
+  hSafe.2.2.2 rfl
+
 end LambdaAitiaProof.Modules.GitOps

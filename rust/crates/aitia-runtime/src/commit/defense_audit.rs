@@ -114,21 +114,46 @@ pub(crate) fn audit_git_repo_defense(
     audit_git_repo_defense_with_packs(repo_dir, base_ref, staged_only, &[], &[], None)
 }
 
+fn extract_sexp_clause_str(sexp: &str, clause: &str) -> Option<String> {
+    let needle = format!("({clause} \"");
+    let start = sexp.find(&needle)? + needle.len();
+    let rest = &sexp[start..];
+    let end = rest.find('"')?;
+    let val = &rest[..end];
+    if val.is_empty() {
+        None
+    } else {
+        Some(val.to_owned())
+    }
+}
+
 /// Single-entry progressive FunFlow Choice review step (`aitia review` / gRPC `StepReview`).
 ///
 /// Observes the repository natively via `gix` + `jj-lib`, reads sanitized diff surfaces and
 /// changed paths, binds a deterministic `contextDigest`, and delegates progressive FunFlow
-/// Choice frontier derivation + self-healing feedback to Scheme (`gitops-review-flow-step`).
+/// Choice frontier derivation + native ASCENT Finite-Choice solving + declarative S-expr
+/// plan validation to Scheme (`gitops-review-flow-step`).
 pub(crate) fn run_review_flow_step_json(
     req: &Value,
     session_opt: Option<&AitiaSession>,
 ) -> Result<Value> {
-    let repo_hint = req["repo"].as_str().unwrap_or(".");
-    let repo_dir = Path::new(repo_hint);
-    let base_ref = req["baseRef"].as_str().unwrap_or("HEAD");
+    let plan_sexp = req["planSexp"].as_str();
+    let repo_hint = req["repo"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .or_else(|| plan_sexp.and_then(|s| extract_sexp_clause_str(s, "repo")))
+        .unwrap_or_else(|| ".".to_owned());
+    let repo_dir = Path::new(&repo_hint);
+    let base_ref = req["baseRef"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .or_else(|| plan_sexp.and_then(|s| extract_sexp_clause_str(s, "base-ref")))
+        .unwrap_or_else(|| "HEAD".to_owned());
     let staged_only = req["stagedOnly"].as_bool().unwrap_or(false);
 
-    let vcs = aitia_jj::observe_vcs_sidecar_state(repo_dir, base_ref)
+    let vcs = aitia_jj::observe_vcs_sidecar_state(repo_dir, &base_ref)
         .map_err(|e| err(format!("gix/jj-lib VCS observation failed: {e}")))?;
     let target_repo = req["targetRepo"]
         .as_str()
