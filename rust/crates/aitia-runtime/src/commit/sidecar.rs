@@ -257,12 +257,22 @@ pub fn capture_detached_audit_context_json(
         "contextDigest": context_digest,
         "obligations": nasa_obligations,
         "requiredLenses": required_lenses_vec,
+        "formalLibraryGuidance": {
+            "generalCaseMode": "upstream-library-reuse",
+            "specialCaseMode": "ephemeral-ai-overlay",
+            "quintLibrary": "@deterministic-engineering/quint-models",
+            "quintResolver": "@deterministic-engineering/quint-modules-resolver",
+            "leanLibrary": "@deterministic-engineering/lean-models",
+            "ephemeralRequiresCountermodel": true,
+            "ephemeralSidecarOnly": true,
+        },
         "invariants": [
             "epistemicStatus MUST equal \"hypothesized\"",
             "actionAuthorized MUST equal false",
             "every finding MUST cite a file in changedFiles with non-empty competingHypotheses",
             "openQuestions and contradictions MUST be preserved without probability collapse",
-            "SWE-146 provider, modelId, and promptTemplateDigest MUST be recorded"
+            "SWE-146 provider, modelId, and promptTemplateDigest MUST be recorded",
+            "prefer upstream-library-reuse; ephemeral-ai-overlay MUST include verified @countermodel and stay in sidecar vault"
         ],
     });
     let ai_engine_handoffs = json!({
@@ -819,11 +829,11 @@ fn mint_sidecar_dsse(
 
 /// Build a verified dual-surface NASA Sidecar Commit Bundle (`upstreamCommitMessage` +
 /// `nasaOrgReport` + optional RFC 0019 wire-compatible DSSEv1 PAE in-toto/SLSA envelope)
-/// for an external uninitialized Git repository (RFC 0021).
+/// for an external uninitialized Git repository (RFC 0021 + RFC 0023).
 ///
 /// # Errors
-/// Fails closed if audit/conversation verification fails, the upstream commit headline violates
-/// length/convention constraints, or Ed25519 signing seeds are malformed.
+/// Fails closed if audit/conversation/formal verification fails, the upstream commit headline
+/// violates length/convention constraints, or Ed25519 signing seeds are malformed.
 pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
     let spec: Value = serde_json::from_str(spec_json)?;
     let context = spec
@@ -848,12 +858,25 @@ pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
         .ok_or_else(|| err("Sidecar receipt spec missing commitProposal"))?;
     let profile = parse_profile(profile_val)?;
 
-    let verdict =
+    let mut verdict =
         verify_sidecar_audit_values(context, &ai_reports, conversation, human_decision, &profile)?;
+    let formal_verdict = if let Some(formal) = spec.get("formalEvidence").filter(|v| !v.is_null()) {
+        let ctx_digest = verdict["contextDigest"]
+            .as_str()
+            .ok_or_else(|| err("Verified sidecar verdict missing contextDigest"))?;
+        let fv = super::formal_evidence::verify_formal_evidence(formal, ctx_digest)?;
+        if let Some(obj) = verdict.as_object_mut() {
+            obj.insert("formalEvidence".to_owned(), fv.clone());
+        }
+        Some(fv)
+    } else {
+        None
+    };
     let receipt_core = json!({
         "contextDigest": verdict["contextDigest"],
         "aiAuditDigest": verdict["aiAuditDigest"],
         "conversationDigest": verdict["conversationDigest"],
+        "formalEvidenceDigest": formal_verdict.as_ref().map(|v| v["formalEvidenceDigest"].clone()),
         "reviewerId": verdict["reviewerId"],
         "commitProposal": proposal,
         "actionAuthorized": false,
@@ -862,8 +885,11 @@ pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
         crate::source_tree::sha256(serde_json::to_string(&receipt_core)?.as_bytes());
     let upstream_commit_message = format_upstream_commit(proposal, &profile, &receipt_digest)?;
     let upstream_headline = upstream_commit_message.lines().next().unwrap_or("");
-    let nasa_org_report =
+    let mut nasa_org_report =
         render_nasa_org_report(context, &verdict, &receipt_digest, upstream_headline);
+    if let Some(fv) = &formal_verdict {
+        super::formal_evidence::append_formal_org_section(&mut nasa_org_report, fv);
+    }
 
     let dsse_envelope = if let Some(seeds_val) = spec.get("signingSeeds").filter(|v| !v.is_null()) {
         let seeds: Vec<String> = serde_json::from_value(seeds_val.clone())?;
@@ -894,7 +920,7 @@ pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
 
 /// Evaluate detached sidecar audit obligations, missing lenses, and dual-mode sanctioned
 /// AI engine handoffs (`native-ai-environment` ASCENT directive + `marlin-agent-core` frame)
-/// directly through the linked Scheme/POO `gerbil-ascent` engine (RFC 0022).
+/// directly through the linked Scheme/POO `gerbil-ascent` engine (RFC 0022 + RFC 0023).
 ///
 /// # Errors
 /// Fails closed if the linked Scheme program rejects the input or returns a runtime error.

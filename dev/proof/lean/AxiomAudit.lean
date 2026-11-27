@@ -92,3 +92,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.unsanctionedEngineBindingBlocksClosure
 #print axioms GitOps.ascentBlockerPreventsMarlinPromotion
 #print axioms GitOps.schemeAscentBridgePreservesZeroAuthority
+#print axioms GitOps.vacuousEphemeralOverlayBlocksReview
+#print axioms GitOps.unresolvedFormalLibraryBlocksReview
+#print axioms GitOps.g2DefectOrPendingOracleBlocksReview
+#print axioms GitOps.deFormalReviewPreservesZeroAuthority

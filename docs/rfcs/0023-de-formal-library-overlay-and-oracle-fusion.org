@@ -1,0 +1,103 @@
+#+TITLE: RFC 0023: Deterministic Engineering Formal Library Reuse, Ephemeral AI Overlays, and Mechanical Oracle Fusion
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+PROPERTY: ID de-formal-library-overlay-oracle-fusion
+#+PROPERTY: ENGINEERING_ID RFC-0023
+#+PROPERTY: STATUS active
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Summary
+
+RFC 0023 connects =lambda-aitia='s detached sidecar governance (RFC 0021) and
+native Scheme/POO =gerbil-ascent= derivation engine (RFC 0022) with the
+reusable functional formal libraries and mechanical verification oracles from
+=hardenedlinux/deterministic-engineering= (=Quint= models + =quint-modules-resolver=,
+=Lean 4= / =LeanPoo= libraries + Lake resolver, =G2= 6-language diff-delta
+hallucination auditing, =F3= Quint =guard-probe=, and N-Version dual-oracle
+agreement).
+
+Crucially, RFC 0023 treats formal model verification during AI-assisted Git Code
+Review as a *two-mode functional library discipline*:
+
+1. *=upstream-library-reuse= (General Case)*: Most changes instantiate existing
+   parameterized functional models directly from pinned upstream
+   =@deterministic-engineering/quint-models= and
+   =@deterministic-engineering/lean-models= (=LeanPoo.Proof.reuse= /
+   =ObjectContract.refine=) through their package resolvers.
+2. *=ephemeral-ai-overlay= (Special Project-Specific Case)*: When a target
+   repository diff introduces project-specific invariants not completely covered
+   by generic upstream models, Aitia + AI (in =native-ai-environment= or via
+   =marlin-agent-core= Gateway) synthesize an ephemeral Quint/Lean overlay
+   parameterized over the functional upstream DE library through the pinned
+   package resolvers. Ephemeral AI overlays MUST live exclusively in the
+   external Sidecar Vault (zero pollution in uninitialized upstream Git repos)
+   and MUST satisfy Band-5 anti-vacuity (=MR05= mandatory passing
+   =@countermodel= witness, zero =sorryAx=/axioms, zero synthetic =unsafe=
+   flags, and current =contextDigest= binding).
+
+* Core Invariants
+
+- *Zero Authority (=actionAuthorized: false=)*: Mechanical oracles, formal
+  library reuse, ephemeral AI overlays, and ASCENT derivation never grant
+  runtime execution or push authority.
+- *Two Sanctioned AI Environments Only*:
+  1. =native-ai-environment= (=aitia= CLI / Workflow emitting ASCENT directives
+     and structured DE C1/C2 repair guidance into the host LLM context);
+  2. =marlin-agent-core= (orchestrated execution boundary connected over typed
+     handoff / gRPC without splitting or duplicating Gambit runtimes).
+- *Explicit Epistemic =PendingMethod=*: If a required mechanical oracle (G2,
+  Quint resolver/checker, or Lean prover) is unavailable, derivation emits
+  =de-pending-mechanical-oracle= and =epistemicStatus: "PendingMethod"= — it
+  NEVER silently degrades to admissible.
+- *N-Version Fail-Closed Disagreement*: If an imperative coordinator claims
+  =ADMIT= while declarative Scheme =gerbil-ascent= derives any blocker, closure
+  is deterministically refused with =oracle-disagreement-fail-closed=.
+- *Anti-Vacuity for Ephemeral AI Overlays (=MR05=)*: An AI-authored
+  =ephemeral-ai-overlay= without a verified =@countermodel= witness is rejected
+  with =de-vacuous-ephemeral-overlay=, keeping =SWE-084= and =SWE-146= open.
+
+* Architecture
+
+** Scheme/POO 4-Fragment Stratified =gerbil-ascent= Engine
+
+=modules/gitops/sidecar-audit.ss= extends the 3-fragment engine from RFC 0022
+with a 4th strictly stratified fragment =formal-oracle-frag= composed ahead of
+=obligation-frag=:
+
+- =intake-frag=: upstream pollution, required vs covered lenses, sanctioned AI
+  engine bindings.
+- =review-frag=: critical/high AI findings vs human dispositions, stale
+  reports, missing =SWE-146= provenance, conversation & human-approval flags.
+- =formal-oracle-frag=:
+  - =g2_defect= (DE 6-lang G2 diff-delta / ScopeFence findings);
+  - =redundant_guard_probe= (DE F3 Quint =guard-probe= returning
+    =redundant-or-under-modeled=);
+  - =formal_model= with mode in ={upstream-library-reuse, ephemeral-ai-overlay}=,
+    checked against =model_resolver_ok=, =model_countermodel_ok= (mandatory for
+    =ephemeral-ai-overlay=), =model_proof_clean=, and =model_check_passed=;
+  - =pending_oracle= (explicit =PendingMethod=);
+  - =coordinator_admit_claim= (N-Version disagreement check).
+- =obligation-frag=: derives all blockers, =oracle-disagreement-fail-closed=,
+  open/supported NASA NPR 7150.2D obligations (=SWE-083=, =SWE-084=,
+  =SWE-087=, =SWE-146=), and embeds =formalLibraryGuidance= in both
+  =ascentDirective= and =marlinHandoff=.
+
+** Rust Sidecar & DSSE Evidence Binding
+
+=rust/crates/aitia-runtime/src/commit/sidecar.rs= enforces the same fail-closed
+rules over optional =formalEvidence= (backward-compatible with RFC 0021/0022
+callers) and seals verified formal library / ephemeral overlay provenance into
+the detached NASA Org report and wire-compatible DSSEv1 PAE in-toto/SLSA
+envelope.
+
+** Formal Assurance
+
+- Quint: =dev/proof/quint/DeterministicEngineeringFormalReview.qnt= (6/6 tests,
+  19th commit-assurance model).
+- Lean 4: 4 axiom-free theorems in =LambdaAitiaProof.Modules.GitOps=
+  (=vacuousEphemeralOverlayBlocksReview=,
+  =unresolvedFormalLibraryBlocksReview=,
+  =g2DefectOrPendingOracleBlocksReview=,
+  =deFormalReviewPreservesZeroAuthority=), reaching 67 =GitOps= theorems with
+  zero axioms and zero =sorryAx=.

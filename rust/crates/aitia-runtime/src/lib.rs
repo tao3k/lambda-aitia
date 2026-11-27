@@ -47,6 +47,8 @@ pub use commit::dsse::{
     verify_dsse_intoto_envelope_json,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::formal_evidence::verify_de_formal_evidence_json;
+#[cfg(feature = "linked-program")]
 pub use commit::merkle::{
     compute_links_merkle_root, generate_repo_merkle_proof, generate_repo_merkle_proof_json,
     verify_repo_merkle_proof, verify_repo_merkle_proof_json,

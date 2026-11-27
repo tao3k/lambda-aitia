@@ -8,6 +8,7 @@ pub(crate) mod audit;
 mod common;
 pub(crate) mod dsse;
 mod evidence;
+pub(crate) mod formal_evidence;
 pub(crate) mod governance;
 pub(crate) mod merkle;
 mod push;

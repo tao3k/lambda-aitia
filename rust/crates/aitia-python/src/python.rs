@@ -597,6 +597,22 @@ fn assess_sidecar_audit_ascent(py: Python<'_>, request_json: String) -> PyResult
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn verify_de_formal_evidence(
+    py: Python<'_>,
+    formal_evidence_json: String,
+    expected_context_digest: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_de_formal_evidence_json(
+            &formal_evidence_json,
+            &expected_context_digest,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -637,6 +653,7 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(build_nasa_sidecar_receipt, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(assess_sidecar_audit_ascent, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(verify_de_formal_evidence, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

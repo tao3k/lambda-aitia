@@ -640,4 +640,55 @@ theorem schemeAscentBridgePreservesZeroAuthority
     auth = false :=
   hValid.2.2.2
 
+/-- RFC 0023 Deterministic Engineering formal library reuse (`upstream-library-reuse`),
+    ephemeral AI overlay anti-vacuity (`ephemeral-ai-overlay` requiring `@countermodel`
+    and sidecar vault isolation), G2 mechanical defect / F3 guard-probe / PendingMethod
+    closure predicate. -/
+def DeFormalReviewClosure
+    (ephemeralOverlay resolverPinned countermodelVerified sidecarVaultOnly proofClean modelPassed : Bool)
+    (g2Defects redundantGuardProbes pendingOracles : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  resolverPinned = true ∧
+  proofClean = true ∧
+  modelPassed = true ∧
+  (ephemeralOverlay = true → countermodelVerified = true ∧ sidecarVaultOnly = true) ∧
+  g2Defects = 0 ∧
+  redundantGuardProbes = 0 ∧
+  pendingOracles = 0 ∧
+  actionAuthorized = false
+
+theorem vacuousEphemeralOverlayBlocksReview
+    {pinned vault clean passed auth : Bool} {g2 probes pending : Nat} :
+    ¬ DeFormalReviewClosure true pinned false vault clean passed g2 probes pending auth := by
+  intro hValid
+  have hCm := (hValid.2.2.2.1 rfl).1
+  exact Bool.noConfusion hCm
+
+theorem unresolvedFormalLibraryBlocksReview
+    {eph cm vault clean passed auth : Bool} {g2 probes pending : Nat} :
+    ¬ DeFormalReviewClosure eph false cm vault clean passed g2 probes pending auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.1
+
+theorem g2DefectOrPendingOracleBlocksReview
+    {eph pinned cm vault clean passed auth : Bool} {g2 probes pending : Nat}
+    (hFail : g2 > 0 ∨ pending > 0) :
+    ¬ DeFormalReviewClosure eph pinned cm vault clean passed g2 probes pending auth := by
+  intro hValid
+  cases hFail with
+  | inl hG2 =>
+    have hZero : g2 = 0 := hValid.2.2.2.2.1
+    rw [hZero] at hG2
+    exact Nat.not_lt_zero 0 hG2
+  | inr hPend =>
+    have hZero : pending = 0 := hValid.2.2.2.2.2.2.1
+    rw [hZero] at hPend
+    exact Nat.not_lt_zero 0 hPend
+
+theorem deFormalReviewPreservesZeroAuthority
+    {eph pinned cm vault clean passed auth : Bool} {g2 probes pending : Nat}
+    (hValid : DeFormalReviewClosure eph pinned cm vault clean passed g2 probes pending auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

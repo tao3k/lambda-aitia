@@ -400,9 +400,207 @@ def main() -> None:
                 encoding="utf-8",
             )
 
-            # 5b. RFC 0022: Re-evaluate via the SAME LIVE linked Scheme/POO `gerbil-ascent` Session
-            #     AFTER dual-mode AI audit + redacted conversation + human disposition ->
-            #     admissible=True, 4/4 NASA obligations supported, zero blockers, actionAuthorized=False!
+            # 5b. RFC 0023: Deterministic Engineering Formal Library Reuse (`upstream-library-reuse`)
+            #     + Project-Specific Ephemeral AI Overlay (`ephemeral-ai-overlay`) + Controls 6–9!
+            resolver_digest = sha256_prefixed("de-quint-lean-resolvers-pinned-v1")
+            upstream_quint_model = {
+                "modelId": "oauth-token-lifecycle",
+                "mode": "upstream-library-reuse",
+                "libraryPackage": "@deterministic-engineering/quint-models",
+                "resolverDigest": resolver_digest,
+                "contextDigest": context["contextDigest"],
+                "countermodelVerified": True,
+                "proofClean": True,
+                "passed": True,
+                "storedInSidecarVault": True,
+            }
+            upstream_lean_model = {
+                "modelId": "SubprocessEnvScrubAndAuthTiming",
+                "mode": "upstream-library-reuse",
+                "libraryPackage": "@deterministic-engineering/lean-models",
+                "resolverDigest": resolver_digest,
+                "contextDigest": context["contextDigest"],
+                "countermodelVerified": False,
+                "proofClean": True,
+                "passed": True,
+                "storedInSidecarVault": True,
+            }
+            ephemeral_ai_overlay = {
+                "modelId": "TokenParserTimingOverlay.qnt",
+                "mode": "ephemeral-ai-overlay",
+                "libraryPackage": "@deterministic-engineering/quint-models",
+                "resolverDigest": resolver_digest,
+                "contextDigest": context["contextDigest"],
+                "countermodelVerified": True,
+                "proofClean": True,
+                "passed": True,
+                "storedInSidecarVault": True,
+            }
+            essential_guard_probes = [
+                {"probeId": "empty-secret-guard", "verdict": "essential"},
+            ]
+
+            # Negative Control 6: Vacuous `ephemeral-ai-overlay` missing MR05 @countermodel MUST fail closed!
+            vacuous_overlay = dict(ephemeral_ai_overlay, countermodelVerified=False)
+            scheme_vacuous = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": ai_reports,
+                            "conversationBound": True,
+                            "humanApproved": True,
+                            "dispositions": human_decision_ok["dispositions"],
+                            "formalModels": [vacuous_overlay],
+                        }
+                    )
+                )
+            )
+            assert scheme_vacuous["admissible"] is False
+            assert "de-vacuous-ephemeral-overlay" in scheme_vacuous["blockers"]
+            vacuous_overlay_rejected = False
+            try:
+                lambda_aitia_rust.verify_de_formal_evidence(
+                    json.dumps(
+                        {
+                            "schema": "lambda-aitia.de-formal-evidence.v1",
+                            "actionAuthorized": False,
+                            "pendingOracles": [],
+                            "g2Findings": [],
+                            "guardProbes": essential_guard_probes,
+                            "formalModels": [vacuous_overlay],
+                        }
+                    ),
+                    context["contextDigest"],
+                )
+            except ValueError as exc:
+                vacuous_overlay_rejected = "MR05 @countermodel" in str(exc)
+            assert vacuous_overlay_rejected, "Vacuous ephemeral AI overlay MUST fail closed!"
+
+            # Negative Control 7: DE G2 diff-delta defect + redundant F3 guard-probe MUST fail closed!
+            scheme_g2_bad = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": ai_reports,
+                            "conversationBound": True,
+                            "humanApproved": True,
+                            "dispositions": human_decision_ok["dispositions"],
+                            "g2Findings": [
+                                {
+                                    "id": "G2-001",
+                                    "rule": "unwrap-or-default-silent-fallback",
+                                    "hallucinationClass": "silent-fallback",
+                                }
+                            ],
+                            "guardProbes": [
+                                {
+                                    "probeId": "redundant-dup-check",
+                                    "verdict": "redundant-or-under-modeled",
+                                }
+                            ],
+                        }
+                    )
+                )
+            )
+            assert scheme_g2_bad["admissible"] is False
+            assert "de-g2-mechanical-defect" in scheme_g2_bad["blockers"]
+            assert "de-redundant-guard-probe" in scheme_g2_bad["blockers"]
+            g2_defect_rejected = True
+
+            # Negative Control 8: Pending mechanical oracle MUST emit PendingMethod (never silently pass)!
+            scheme_pending = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": ai_reports,
+                            "conversationBound": True,
+                            "humanApproved": True,
+                            "dispositions": human_decision_ok["dispositions"],
+                            "pendingOracles": ["quint-modules-resolver"],
+                        }
+                    )
+                )
+            )
+            assert scheme_pending["admissible"] is False
+            assert scheme_pending["epistemicStatus"] == "PendingMethod"
+            assert "de-pending-mechanical-oracle" in scheme_pending["blockers"]
+            pending_oracle_rejected = True
+
+            # Negative Control 9: N-Version disagreement (coordinator claims ADMIT despite ASCENT blocker)!
+            scheme_disagree = json.loads(
+                session.sidecar_audit_assess(
+                    json.dumps(
+                        {
+                            "targetRepo": profile["targetRepo"],
+                            "nasaProfile": profile["nasaProfile"],
+                            "contextDigest": context["contextDigest"],
+                            "changedPaths": context["changedFiles"],
+                            "forbiddenPrefixes": profile["forbiddenUpstreamPrefixes"],
+                            "requiredLenses": profile["requiredAuditLenses"],
+                            "aiReports": ai_reports,
+                            "conversationBound": True,
+                            "humanApproved": True,
+                            "dispositions": human_decision_ok["dispositions"],
+                            "g2Findings": [
+                                {
+                                    "id": "G2-002",
+                                    "rule": "diff-deleted-assertion",
+                                    "hallucinationClass": "floor-weakening",
+                                }
+                            ],
+                            "coordinatorClaimedAdmit": True,
+                        }
+                    )
+                )
+            )
+            assert scheme_disagree["admissible"] is False
+            assert scheme_disagree["oracleDisagreement"] is True
+            assert "oracle-disagreement-fail-closed" in scheme_disagree["blockers"]
+            oracle_disagreement_rejected = True
+
+            # 5c. RFC 0022 + 0023: Re-evaluate via the SAME LIVE linked Scheme/POO `gerbil-ascent`
+            #     Session AFTER dual-mode AI audit + BOTH DE formal library reuse & verified ephemeral
+            #     AI overlay + redacted conversation + human disposition -> admissible=True, Proven!
+            formal_evidence = {
+                "schema": "lambda-aitia.de-formal-evidence.v1",
+                "actionAuthorized": False,
+                "pendingOracles": [],
+                "g2Findings": [],
+                "guardProbes": essential_guard_probes,
+                "formalModels": [
+                    upstream_quint_model,
+                    upstream_lean_model,
+                    ephemeral_ai_overlay,
+                ],
+            }
+            formal_verdict = json.loads(
+                lambda_aitia_rust.verify_de_formal_evidence(
+                    json.dumps(formal_evidence), context["contextDigest"]
+                )
+            )
+            assert formal_verdict["verified"] is True
+            assert formal_verdict["upstreamReuseCount"] == 2
+            assert formal_verdict["ephemeralOverlayCount"] == 1
+            assert formal_verdict["actionAuthorized"] is False
+
             scheme_post = json.loads(
                 session.sidecar_audit_assess(
                     json.dumps(
@@ -417,14 +615,24 @@ def main() -> None:
                             "conversationBound": True,
                             "humanApproved": True,
                             "dispositions": human_decision_ok["dispositions"],
+                            "guardProbes": essential_guard_probes,
+                            "formalModels": formal_evidence["formalModels"],
+                            "coordinatorClaimedAdmit": True,
                         }
                     )
                 )
             )
             assert scheme_post["admissible"] is True, scheme_post
+            assert scheme_post["epistemicStatus"] == "Proven"
+            assert scheme_post["oracleDisagreement"] is False
             assert scheme_post["blockers"] == []
             assert scheme_post["openObligations"] == []
             assert scheme_post["supportedObligations"] == ["SWE-083", "SWE-084", "SWE-087", "SWE-146"]
+            assert scheme_post["admittedFormalModels"] == [
+                ["SubprocessEnvScrubAndAuthTiming", "upstream-library-reuse"],
+                ["TokenParserTimingOverlay.qnt", "ephemeral-ai-overlay"],
+                ["oauth-token-lifecycle", "upstream-library-reuse"],
+            ]
             assert scheme_post["nextHandoffMode"] == "ready-for-sidecar-commit"
             assert scheme_post["actionAuthorized"] is False
         finally:
@@ -440,6 +648,7 @@ def main() -> None:
                     "conversation": conversation,
                     "humanDecision": human_decision_ok,
                     "profile": profile,
+                    "formalEvidence": formal_evidence,
                     "commitProposal": {
                         "type": "fix",
                         "scope": "auth",
@@ -504,6 +713,11 @@ def main() -> None:
                 "unaddressedHighFindingRejected": unaddressed_rejected,
                 "aiSelfApprovalRejected": self_approve_rejected,
                 "staleAiAuditRejected": stale_audit_rejected,
+                "vacuousEphemeralOverlayRejected": vacuous_overlay_rejected,
+                "g2DefectAndRedundantProbeRejected": g2_defect_rejected,
+                "pendingOracleRejected": pending_oracle_rejected,
+                "oracleDisagreementRejected": oracle_disagreement_rejected,
+                "admittedFormalModels": scheme_post["admittedFormalModels"],
                 "lensesCovered": bundle["verdict"]["lensesCovered"],
                 "nasaObligationsSupported": bundle["verdict"]["nasaObligationsSupported"],
                 "preservedCompetingHypotheses": bundle["verdict"]["preservedCompetingHypothesesCount"],
