@@ -84,3 +84,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.excessiveWitnessSkewRejected
 #print axioms GitOps.staleWitnessTimestampRejected
 #print axioms GitOps.sigstoreFederatedBundlePreservesZeroAuthority
+#print axioms GitOps.upstreamPollutionBlocksDetachedAudit
+#print axioms GitOps.staleAiContextBlocksDetachedAudit
+#print axioms GitOps.unaddressedHighFindingBlocksDetachedAudit
+#print axioms GitOps.detachedSidecarAuditPreservesZeroAuthority

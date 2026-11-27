@@ -52,6 +52,11 @@ pub use commit::merkle::{
     verify_repo_merkle_proof, verify_repo_merkle_proof_json,
 };
 #[cfg(feature = "linked-program")]
+pub use commit::sidecar::{
+    build_nasa_sidecar_receipt_json, capture_detached_audit_context_json,
+    verify_ai_audit_and_conversation_json,
+};
+#[cfg(feature = "linked-program")]
 pub use commit::sigstore::{export_sigstore_bundle_v03_json, verify_sigstore_bundle_v03_json};
 #[cfg(feature = "linked-program")]
 pub use commit::transparency::{

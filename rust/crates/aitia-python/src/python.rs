@@ -533,6 +533,57 @@ fn verify_sigstore_bundle_v03(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn capture_detached_audit_context(
+    py: Python<'_>,
+    repo_dir: String,
+    base_ref: String,
+    profile_json: String,
+    deterministic_checks_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::capture_detached_audit_context_json(
+            std::path::Path::new(&repo_dir),
+            &base_ref,
+            &profile_json,
+            &deterministic_checks_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn verify_ai_audit_and_conversation(
+    py: Python<'_>,
+    context_json: String,
+    ai_reports_json: String,
+    conversation_json: String,
+    human_decision_json: String,
+    profile_json: String,
+) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::verify_ai_audit_and_conversation_json(
+            &context_json,
+            &ai_reports_json,
+            &conversation_json,
+            &human_decision_json,
+            &profile_json,
+        )
+        .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
+#[pyfunction]
+fn build_nasa_sidecar_receipt(py: Python<'_>, spec_json: String) -> PyResult<String> {
+    py.detach(move || {
+        aitia_runtime::build_nasa_sidecar_receipt_json(&spec_json)
+            .map_err(|error| error.to_string())
+    })
+    .map_err(pyo3::exceptions::PyValueError::new_err)
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
@@ -563,6 +614,15 @@ fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(export_sigstore_bundle_v03, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(verify_sigstore_bundle_v03, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        capture_detached_audit_context,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        verify_ai_audit_and_conversation,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(build_nasa_sidecar_receipt, module)?)?;
     #[cfg(unix)]
     module.add_function(pyo3::wrap_pyfunction!(capture_source_tree, module)?)?;
     #[cfg(unix)]

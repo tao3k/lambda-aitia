@@ -317,6 +317,7 @@ check-quint-commit:
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/UnifiedAirGapAudit.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/DsseInTotoEnvelope.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/SigstoreFederatedWitness.qnt
+    quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/DetachedSidecarAudit.qnt
 
 # Exercise the assurance-objective selection and evidence-currentness cases.
 [group('check')]
@@ -518,7 +519,8 @@ verify-examples:
       examples/02-sysml-multi-repo-gitops/run_workspace_demo.py \
       examples/03-python-leaf-pytest-capability/run_leaf_pytest.py \
       examples/04-agent-repair-loop/run_agent_loop.py \
-      examples/05-c-abi-inprocess/run_c_abi.py; do
+      examples/05-c-abi-inprocess/run_c_abi.py \
+      examples/06-detached-external-repo-audit/run_external_audit.py; do
       echo "=== $script ==="
       env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME \
         AITIA_BIN="$cli" AITIA_CDYLIB="$cdylib" PYTHONPATH="$pypath" \

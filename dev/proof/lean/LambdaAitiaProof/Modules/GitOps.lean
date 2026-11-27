@@ -558,4 +558,46 @@ theorem sigstoreFederatedBundlePreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2.2
 
+/-- RFC 0021 detached sidecar AI audit & NASA commit provenance validity predicate. -/
+def DetachedSidecarAuditValid
+    (upstreamPollutionFree lensesCovered swe146Provenance conversationBound humanApproved : Bool)
+    (currentContext aiAuditContext unaddressedHighFindings : Nat)
+    (actionAuthorized : Bool) : Prop :=
+  upstreamPollutionFree = true ∧
+  currentContext = aiAuditContext ∧
+  lensesCovered = true ∧
+  swe146Provenance = true ∧
+  conversationBound = true ∧
+  unaddressedHighFindings = 0 ∧
+  humanApproved = true ∧
+  actionAuthorized = false
+
+theorem upstreamPollutionBlocksDetachedAudit
+    {lenses prov conv human : Bool} {curCtx aiCtx unaddressed : Nat} {auth : Bool} :
+    ¬ DetachedSidecarAuditValid false lenses prov conv human curCtx aiCtx unaddressed auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.1
+
+theorem staleAiContextBlocksDetachedAudit
+    {clean lenses prov conv human : Bool} {curCtx aiCtx unaddressed : Nat} {auth : Bool}
+    (hStale : curCtx ≠ aiCtx) :
+    ¬ DetachedSidecarAuditValid clean lenses prov conv human curCtx aiCtx unaddressed auth := by
+  intro hValid
+  exact hStale hValid.2.1
+
+theorem unaddressedHighFindingBlocksDetachedAudit
+    {clean lenses prov conv human : Bool} {curCtx aiCtx unaddressed : Nat} {auth : Bool}
+    (hUnaddressed : unaddressed > 0) :
+    ¬ DetachedSidecarAuditValid clean lenses prov conv human curCtx aiCtx unaddressed auth := by
+  intro hValid
+  have hZero : unaddressed = 0 := hValid.2.2.2.2.2.1
+  rw [hZero] at hUnaddressed
+  exact Nat.not_lt_zero 0 hUnaddressed
+
+theorem detachedSidecarAuditPreservesZeroAuthority
+    {clean lenses prov conv human : Bool} {curCtx aiCtx unaddressed : Nat} {auth : Bool}
+    (hValid : DetachedSidecarAuditValid clean lenses prov conv human curCtx aiCtx unaddressed auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

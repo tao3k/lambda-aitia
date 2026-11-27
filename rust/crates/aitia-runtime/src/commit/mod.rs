@@ -12,6 +12,7 @@ pub(crate) mod governance;
 pub(crate) mod merkle;
 mod push;
 mod review;
+pub(crate) mod sidecar;
 pub(crate) mod sigstore;
 pub(crate) mod transparency;
 pub(crate) mod witness;
