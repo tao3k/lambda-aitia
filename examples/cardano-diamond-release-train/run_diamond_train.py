@@ -1202,6 +1202,183 @@ def main() -> None:
             assert gossip_equiv["rightWitnessQuorumMet"] is False
             assert gossip_equiv["actionAuthorized"] is False
 
+            # Scenario M: RFC 0018 Unified Witness-Backed Air-Gapped Audit Bundle (CLI + PyO3)
+            #             & Exhaustive 48-Case Quint <-> Rust Differential Oracle
+            p25_obj = json.loads(p25_json)
+            unified_bundle = dict(
+                inproc_bundle,
+                transparencyLog={
+                    "witnessPolicy": witness_policy,
+                    "priorCheckpoint": sth_2,
+                    "checkpoint": sth_5,
+                    "consistencyProof": p25_obj,
+                    "entries": log_entries,
+                    "repoInclusionProofs": [merkle_proof],
+                    "peerCheckpoints": [
+                        {"checkpoint": sth_2, "consistencyProof": p25_obj},
+                        {"checkpoint": sth_5},
+                    ],
+                },
+            )
+            # M1. Verify unified bundle via BOTH air-gapped CLI (with pinned workspace.sysml in empty dir)
+            #     and in-process PyO3 wheel!
+            with tempfile.TemporaryDirectory() as unified_airgap_dir:
+                unified_cli_verdict = json.loads(
+                    subprocess.run(
+                        [aitia_bin, "flow", "verify-attestation", "--workspace", str(ws_sysml)],
+                        cwd=unified_airgap_dir,
+                        env=env,
+                        input=json.dumps(unified_bundle),
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    ).stdout
+                )
+            assert unified_cli_verdict["verified"] is True
+            assert unified_cli_verdict["airGapped"] is True
+            assert unified_cli_verdict["sysmlPolicyEnforced"] is True
+            assert unified_cli_verdict["transparencyVerified"] is True
+            assert unified_cli_verdict["consistencyTransitionVerified"] is True
+            assert unified_cli_verdict["headLogEntryBound"] is True
+            assert unified_cli_verdict["checkpointTreeSize"] == 5
+            assert unified_cli_verdict["checkpointWitnessCount"] == 2
+            assert unified_cli_verdict["gossipPeersVerified"] == 2
+            assert unified_cli_verdict["repoInclusionProofsVerified"] == 1
+            assert unified_cli_verdict["actionAuthorized"] is False
+
+            unified_pyo3_verdict = json.loads(
+                lambda_aitia_rust.verify_portable_audit_bundle(json.dumps(unified_bundle))
+            )
+            assert unified_pyo3_verdict["transparencyVerified"] is True
+            assert unified_pyo3_verdict["headLogEntryBound"] is True
+            assert unified_pyo3_verdict["gossipPeersVerified"] == 2
+            assert unified_pyo3_verdict["repoInclusionProofsVerified"] == 1
+            assert unified_pyo3_verdict["actionAuthorized"] is False
+
+            # M2. Exhaustive 48-case Quint <-> Rust Differential Oracle:
+            #     2 (witness) x 2 (consistency) x 2 (headBound) x 2 (merkle) x 3 (gossip) = 48 cases
+            #     compared directly against pure Quint predicate `UnifiedAirGapAudit::unifiedAdmissible`.
+            sth_5_evil = json.loads(sth_5_evil_json)
+            bad_p25 = dict(p25_obj, proofHashes=["sha256:" + ("0" * 64)] * len(p25_obj["proofHashes"]))
+            unbound_entries = json.loads(json.dumps(log_entries))
+            unbound_entries[1]["bundleDigest"] = "sha256:" + ("e" * 64)
+            sth_2_unbound = json.loads(
+                lambda_aitia_rust.sign_checkpoint(
+                    log_origin,
+                    json.dumps(unbound_entries[:2]),
+                    origin_seed,
+                    json.dumps(
+                        [
+                            {"witnessId": "witness-us-east", "seedHex": w1_seed, "timestamp": 1795699100},
+                            {"witnessId": "witness-eu-west", "seedHex": w2_seed, "timestamp": 1795699102},
+                        ]
+                    ),
+                )
+            )
+            sth_5_unbound = json.loads(
+                lambda_aitia_rust.sign_checkpoint(
+                    log_origin,
+                    json.dumps(unbound_entries),
+                    origin_seed,
+                    json.dumps(
+                        [
+                            {"witnessId": "witness-eu-west", "seedHex": w2_seed, "timestamp": 1795699200},
+                            {"witnessId": "witness-ap-northeast", "seedHex": w3_seed, "timestamp": 1795699205},
+                        ]
+                    ),
+                )
+            )
+            p25_unbound = json.loads(
+                lambda_aitia_rust.generate_consistency_proof(json.dumps(unbound_entries), 2)
+            )
+            oracle_cases = 0
+            oracle_admitted = 0
+            for witness_ok in (True, False):
+                for cons_ok in (True, False):
+                    for head_bound in (True, False):
+                        for merkle_ok in (True, False):
+                            for gossip_mode in ("consistent", "equivocation", "unresolved"):
+                                expected = (
+                                    witness_ok
+                                    and cons_ok
+                                    and head_bound
+                                    and merkle_ok
+                                    and (gossip_mode == "consistent")
+                                )
+                                cp_prior = sth_2 if head_bound else sth_2_unbound
+                                cp_cur = sth_5 if head_bound else sth_5_unbound
+                                cur_entries = log_entries if head_bound else unbound_entries
+                                cur_p25 = p25_obj if head_bound else p25_unbound
+                                if not cons_ok:
+                                    cur_p25 = bad_p25
+                                if not witness_ok:
+                                    cp_cur = json.loads(json.dumps(cp_cur))
+                                    cp_cur["cosignatures"] = [cp_cur["cosignatures"][0], cp_cur["cosignatures"][0]]
+                                cur_merkle = merkle_proof if merkle_ok else tampered_proof
+                                if gossip_mode == "consistent":
+                                    peers = [{"checkpoint": cp_cur}]
+                                elif gossip_mode == "equivocation":
+                                    peers = [{"checkpoint": sth_5_evil}]
+                                else:
+                                    peers = [{"checkpoint": cp_prior}]
+                                case_bundle = dict(
+                                    inproc_bundle,
+                                    transparencyLog={
+                                        "witnessPolicy": witness_policy,
+                                        "priorCheckpoint": cp_prior,
+                                        "checkpoint": cp_cur,
+                                        "consistencyProof": cur_p25,
+                                        "entries": cur_entries,
+                                        "repoInclusionProofs": [cur_merkle],
+                                        "peerCheckpoints": peers,
+                                    },
+                                )
+                                err_msg = ""
+                                try:
+                                    res = json.loads(
+                                        lambda_aitia_rust.verify_portable_audit_bundle(
+                                            json.dumps(case_bundle)
+                                        )
+                                    )
+                                    actual = bool(res["verified"] and res["transparencyVerified"])
+                                    assert res["actionAuthorized"] is False
+                                except ValueError as exc:
+                                    actual = False
+                                    err_msg = str(exc)
+                                if (
+                                    witness_ok
+                                    and cons_ok
+                                    and not head_bound
+                                    and merkle_ok
+                                    and gossip_mode == "consistent"
+                                ):
+                                    assert "commit to the verified attestation chain head" in err_msg, err_msg
+                                if (
+                                    witness_ok
+                                    and cons_ok
+                                    and head_bound
+                                    and merkle_ok
+                                    and gossip_mode == "equivocation"
+                                ):
+                                    assert "peer gossip equivocation" in err_msg, err_msg
+                                if (
+                                    witness_ok
+                                    and cons_ok
+                                    and head_bound
+                                    and merkle_ok
+                                    and gossip_mode == "unresolved"
+                                ):
+                                    assert "lacks consistency proof" in err_msg, err_msg
+                                assert actual is expected, (
+                                    f"Oracle mismatch on witness={witness_ok} cons={cons_ok} "
+                                    f"head={head_bound} merkle={merkle_ok} gossip={gossip_mode}: "
+                                    f"actual={actual} expected={expected}"
+                                )
+                                oracle_cases += 1
+                                if actual:
+                                    oracle_admitted += 1
+            assert oracle_cases == 48 and oracle_admitted == 1, (oracle_cases, oracle_admitted)
+
     print(
         json.dumps(
             {
@@ -1253,6 +1430,12 @@ def main() -> None:
                 "scenarioL_gossipUnknownStatus": gossip_unknown["status"],
                 "scenarioL_gossipEquivocationKind": gossip_equiv["conflictKind"],
                 "scenarioL_equivocationEvidenceDigest": gossip_equiv["evidenceDigest"],
+                "scenarioM_unifiedCliAirGapVerified": unified_cli_verdict["transparencyVerified"],
+                "scenarioM_unifiedPyO3AirGapVerified": unified_pyo3_verdict["transparencyVerified"],
+                "scenarioM_gossipPeersVerified": unified_cli_verdict["gossipPeersVerified"],
+                "scenarioM_repoInclusionProofsVerified": unified_cli_verdict["repoInclusionProofsVerified"],
+                "scenarioM_differentialOracleCases": oracle_cases,
+                "scenarioM_differentialOracleAdmitted": oracle_admitted,
                 "verifiedRemoteHeads": verified_heads,
             },
             indent=2,

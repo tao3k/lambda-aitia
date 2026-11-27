@@ -72,3 +72,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.revokedWitnessExcludedFromCheckpointQuorum
 #print axioms GitOps.sameSizeDistinctRootsYieldEquivocation
 #print axioms GitOps.equivocationEvidencePreservesZeroAuthority
+#print axioms GitOps.gossipEquivocationBlocksUnifiedAudit
+#print axioms GitOps.unresolvedPeerBlocksUnifiedAudit
+#print axioms GitOps.unboundHeadAttestationBlocksUnifiedAudit
+#print axioms GitOps.unifiedAirGapAuditPreservesZeroAuthority

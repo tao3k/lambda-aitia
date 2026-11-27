@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0018 — Unified Witness-Backed Air-Gapped Audit Verification & Differential Oracle
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-unified-witness-airgap-audit
+:ENGINEERING_ID: RFC-0018
+:STATUS: implementation-in-progress
+:END:
+
+RFCs 0014 through 0017 built four orthogonal offline verification primitives:
+
+- **RFC 0014** (`commit/audit.rs`): Air-gapped TUF root rotation chain, multi-epoch
+  attestation lineage, verifier-pinned OpenSysML `TufPolicy` floor, and full repo inventory.
+- **RFC 0015** (`commit/merkle.rs`): RFC 6962 `O(log N)` per-repository Merkle inclusion
+  proofs against an attestation's `merkleRoot`.
+- **RFC 0016** (`commit/transparency.rs`): RFC 6962 §2.1.2 `O(log N)` append-only
+  transparency log consistency proofs defeating historical rewrite and truncation.
+- **RFC 0017** (`commit/witness.rs`): C2SP-style witness-cosigned Signed Tree Heads (STH)
+  and cross-auditor gossip split-view equivocation detection.
+
+Until RFC 0018, a downstream air-gapped auditor still had to orchestrate these four layers
+manually, risking omission of the binding link between the verified TUF attestation head
+(`headDigest`, `headMerkleRoot`) and the witness-cosigned transparency log checkpoint root,
+or failing to reject an audit bundle when a peer-gossiped checkpoint exposes equivocation.
+
+RFC 0018 unifies all four cryptographic layers inside the existing
+`verify_portable_audit_bundle` boundary (consumed identically by `aitia flow verify-attestation`
+and PyO3 `lambda_aitia_rust.verify_portable_audit_bundle`) and backs it with an exhaustive
+Quint↔Rust differential oracle.
+
+* Unified cryptographic binding chain
+
+When a `lambda-aitia.portable-audit-bundle.v1` carries an optional `transparencyLog` object,
+the offline verifier enforces a strict end-to-end chain without network access, JJ/Git, or
+Scheme VM boot:
+
+1. **TUF & OpenSysML Floor (RFC 0014)**: Verify `pinnedGenesisRoot`, `rootRotations`,
+   verifier-pinned `workspace.sysml` `TufPolicy`, `attestationChain`, and `expectedRepoIds`.
+2. **Witness-Cosigned STH (RFC 0017)**: Verify `transparencyLog.checkpoint` under
+   `transparencyLog.witnessPolicy` (origin match, operator Ed25519 signature, distinct
+   non-revoked `k-of-n` witness quorum).
+3. **Append-Only Consistency Transition (RFC 0016 + 0017)**: Whenever `priorCheckpoint` or
+   `consistencyProof` is present, require both and verify the cosigned transition
+   `priorCheckpoint -> checkpoint`.
+4. **Head-to-Log Cryptographic Binding**: When `transparencyLog.entries` is supplied,
+   recompute the RFC 6962 MTH over `entries`, require `entries.len() == checkpoint.treeSize`
+   and `mth(entries) == checkpoint.rootHash`, and require an entry committing to both
+   `headDigest` and `headMerkleRoot`.
+5. **Per-Repo Merkle Inclusion Proofs (RFC 0015)**: Verify every proof in
+   `transparencyLog.repoInclusionProofs` against `headMerkleRoot` and `headDigest`.
+6. **Cross-Auditor Gossip Anti-Equivocation Gate (RFC 0017)**: Compare `checkpoint` against
+   every peer observation in `transparencyLog.peerCheckpoints`. Any `equivocation-detected`
+   or unresolved `consistency-proof-required` peer observation fails the offline audit closed.
+
+* Non-negotiable invariants
+
+- **Zero Gap Binding**: No layer can be silently skipped when `transparencyLog` is present;
+  partial pairs (e.g. `priorCheckpoint` without `consistencyProof`) fail closed.
+- **Zero Authority (`actionAuthorized: false`)**: Unified offline verdicts remain pure
+  verification facts and never authorize execution, deployment, or remote mutation.
+- **Backward Compatibility**: Bundles without `transparencyLog` preserve existing RFC 0014
+  semantics with explicit `transparencyVerified: false`.
+- **Differential Oracle Parity**: Every combination of witness quorum, consistency, gossip
+  conflict, and Merkle inclusion fault in the Rust differential oracle matches the pure
+  Quint specification `UnifiedAirGapAudit.qnt`.
+
+* Verification gates
+
+- Rust unified verifier: `rust/crates/aitia-runtime/src/commit/audit.rs`
+- Rust differential oracle: `rust/crates/aitia-runtime/tests/unit/transparency_oracle.rs`
+- Quint formal model: `dev/proof/quint/UnifiedAirGapAudit.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 47 total `GitOps` theorems, zero axioms, zero `sorryAx`)
+- End-to-end Scenario M in `examples/cardano-diamond-release-train/run_diamond_train.py`.

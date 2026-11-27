@@ -441,4 +441,41 @@ theorem equivocationEvidencePreservesZeroAuthority
     actionAuthorized = false :=
   hEv.2.2.2.2.2
 
+/-- RFC 0018 unified witness-backed air-gapped audit admissibility predicate. -/
+def UnifiedAirGapAuditValid
+    (tufChainValid witnessQuorumMet consistencyValid headBoundToLog merkleInclusionValid : Bool)
+    (gossipEquivocationDetected gossipUnresolvedPeer actionAuthorized : Bool) : Prop :=
+  tufChainValid = true ∧
+  witnessQuorumMet = true ∧
+  consistencyValid = true ∧
+  headBoundToLog = true ∧
+  merkleInclusionValid = true ∧
+  gossipEquivocationDetected = false ∧
+  gossipUnresolvedPeer = false ∧
+  actionAuthorized = false
+
+theorem gossipEquivocationBlocksUnifiedAudit
+    {tuf witness cons headBound merkle unresolved auth : Bool} :
+    ¬ UnifiedAirGapAuditValid tuf witness cons headBound merkle true unresolved auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.2.2.2.1
+
+theorem unresolvedPeerBlocksUnifiedAudit
+    {tuf witness cons headBound merkle equiv auth : Bool} :
+    ¬ UnifiedAirGapAuditValid tuf witness cons headBound merkle equiv true auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.2.2.2.2.1
+
+theorem unboundHeadAttestationBlocksUnifiedAudit
+    {tuf witness cons merkle equiv unresolved auth : Bool} :
+    ¬ UnifiedAirGapAuditValid tuf witness cons false merkle equiv unresolved auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.2.1
+
+theorem unifiedAirGapAuditPreservesZeroAuthority
+    {tuf witness cons headBound merkle equiv unresolved auth : Bool}
+    (hValid : UnifiedAirGapAuditValid tuf witness cons headBound merkle equiv unresolved auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps
