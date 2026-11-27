@@ -729,4 +729,40 @@ theorem marlinGrpcGatewayPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2
 
+/-- RFC 0025 native AI host CLI workflow (`aitia sidecar ...`) closure predicate
+    with vault-outside-repo confinement and zero execution authority. -/
+def NativeSidecarCliAdmissible
+    (upstreamClean contextCaptured ascentAdmissible formalVerified
+     vaultOutsideRepo actionAuthorized : Bool) : Prop :=
+  upstreamClean = true ∧
+  contextCaptured = true ∧
+  ascentAdmissible = true ∧
+  formalVerified = true ∧
+  vaultOutsideRepo = true ∧
+  actionAuthorized = false
+
+theorem vaultInsideUpstreamRepoRejected
+    {clean cap asc form auth : Bool} :
+    ¬ NativeSidecarCliAdmissible clean cap asc form false auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.2.2.1
+
+theorem unverifiedFormalEvidenceBlocksCliReceipt
+    {clean cap asc out auth : Bool} :
+    ¬ NativeSidecarCliAdmissible clean cap asc false out auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.2.2.2.1
+
+theorem upstreamPollutionBlocksCliCapture
+    {cap asc form out auth : Bool} :
+    ¬ NativeSidecarCliAdmissible false cap asc form out auth := by
+  intro hValid
+  exact Bool.noConfusion hValid.1
+
+theorem nativeSidecarCliPreservesZeroAuthority
+    {clean cap asc form out auth : Bool}
+    (hValid : NativeSidecarCliAdmissible clean cap asc form out auth) :
+    auth = false :=
+  hValid.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

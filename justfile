@@ -126,6 +126,21 @@ stage-rust-program program="aitia-program":
 build-rust-cli features="linked-program,sysml": stage-rust-program
     AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json' cargo build --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features {{ quote(features) }} --bin aitia
 
+# Build and install release Rust `aitia` CLI into `$PATH` (`~/.local/bin/aitia`)
+# so external Git/worktree repos can run `aitia sidecar ...` and `aitia serve-marlin-grpc`
+# directly with zero `GERBIL_LOADPATH` and zero Python dependency.
+[group('rust')]
+install-local bin_dir=(env_var("HOME") + "/.local/bin"): stage-rust-program
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export AITIA_PROGRAM_MANIFEST='{{ build_root }}/aitia-program/program.json'
+    cargo build --locked --release --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --bin aitia
+    target="${CARGO_TARGET_DIR:-rust/target}"
+    mkdir -p "{{ bin_dir }}"
+    install -m 0755 "$target/release/aitia" "{{ bin_dir }}/aitia"
+    (cd /tmp && env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME "{{ bin_dir }}/aitia" sidecar --help >/dev/null)
+    printf '{"installedCli":"%s","zeroGerbilLoadpathVerified":true}\n' "{{ bin_dir }}/aitia"
+
 [group('rust')]
 build-rust-linked-tests program="aitia-program": (stage-rust-program program)
     AITIA_PROGRAM_MANIFEST={{ quote(build_root + "/" + program + "/program.json") }} cargo test --locked --manifest-path rust/Cargo.toml -p aitia-runtime --features linked-program,sysml --test linked_program --no-run
@@ -321,6 +336,7 @@ check-quint-commit:
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/SchemeAscentMarlinBridge.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/DeterministicEngineeringFormalReview.qnt
     quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/MarlinGrpcGatewayConfinement.qnt
+    quint_bin="${AITIA_QUINT_BIN:-dev/proof/quint/node_modules/.bin/quint}"; timeout --foreground --signal=TERM --kill-after=3s 60s "$quint_bin" test --backend=typescript dev/proof/quint/NativeSidecarCliWorkflow.qnt
 
 # Exercise the assurance-objective selection and evidence-currentness cases.
 [group('check')]
@@ -524,7 +540,8 @@ verify-examples:
       examples/04-agent-repair-loop/run_agent_loop.py \
       examples/05-c-abi-inprocess/run_c_abi.py \
       examples/06-detached-external-repo-audit/run_external_audit.py \
-      examples/07-marlin-grpc-gateway/run_marlin_grpc_demo.py; do
+      examples/07-marlin-grpc-gateway/run_marlin_grpc_demo.py \
+      examples/08-native-ai-sidecar-cli/run_native_sidecar_cli.py; do
       echo "=== $script ==="
       env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME \
         AITIA_BIN="$cli" AITIA_CDYLIB="$cdylib" PYTHONPATH="$pypath" \

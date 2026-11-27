@@ -100,3 +100,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.blankBearerCredentialRejected
 #print axioms GitOps.activeEstopBlocksGatewayRpc
 #print axioms GitOps.marlinGrpcGatewayPreservesZeroAuthority
+#print axioms GitOps.vaultInsideUpstreamRepoRejected
+#print axioms GitOps.unverifiedFormalEvidenceBlocksCliReceipt
+#print axioms GitOps.upstreamPollutionBlocksCliCapture
+#print axioms GitOps.nativeSidecarCliPreservesZeroAuthority

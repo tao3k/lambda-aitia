@@ -21,6 +21,9 @@ pub fn run_cli() -> Result<(), Box<dyn std::error::Error>> {
         Some("serve-marlin-grpc") => crate::commit::grpc_gateway::run_serve_marlin_grpc_cli(
             &utf8_args(args, "serve-marlin-grpc")?,
         ),
+        Some("sidecar") => {
+            crate::commit::sidecar_cli::run_sidecar_cli(&utf8_args(args, "sidecar")?)
+        }
         Some("check") => {
             ensure_no_extra_args(args)?;
             let (receipt, matched) =
