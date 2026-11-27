@@ -739,15 +739,17 @@
       ht))
    (else val)))
 
-(def (choice-branch->json c)
-  (hash (choiceId (.get c choice-id))
-        (effectClass (.get c effect-class))
-        (title (.get c title))
-        (whyOpen (.get c why-open))
-        (admitted (.get c admitted?))
-        (constraints (list->vector (.get c constraints)))
-        (template (poo-template->json (.get c template)))
-        (actionAuthorized (.get c action-authorized?))))
+(def (choice-branch->json c include-template?)
+  (let ((obj (hash (choiceId (.get c choice-id))
+                   (effectClass (.get c effect-class))
+                   (title (.get c title))
+                   (whyOpen (.get c why-open))
+                   (admitted (.get c admitted?))
+                   (constraints (list->vector (.get c constraints)))
+                   (actionAuthorized (.get c action-authorized?)))))
+    (when include-template?
+      (hash-put! obj 'template (poo-template->json (.get c template))))
+    obj))
 
 (def (json-probe-descriptor row)
   (.o branch: (or (hash-get row "branch") "")
@@ -809,7 +811,9 @@
                       (choice (hash (type "string") (description "Optional FunFlow choiceId from Turn 1")))
                       (disclosure (hash (type "string") (enum (vector "frontier" "causal" "deep-spec"))))
                       (openBranches (hash (type "array") (items (hash (type "string")))))
-                      (refutedBranches (hash (type "array") (items (hash (type "string")))))))
+                      (refutedBranches (hash (type "array") (items (hash (type "string")))))
+                      (quintOverlayName (hash (type "string") (description "Optional safe `.qnt` basename for ephemeral sidecar-vault Quint overlay (default \"EphemeralOverlay.qnt\")")))
+                      (quintOverlaySource (hash (type "string") (description "Optional Quint 0.33 `.qnt` ephemeral overlay source containing `// @countermodel`, >=1 positive invariant `run ...Test`, and >=1 `*Countermodel*Test` negative-control trace; machine-executed live by `quint` inside an isolated sidecar vault")))))
                (additionalProperties #t)))))
 
 (def (aitia-review-flow-step-payload payload)
@@ -858,6 +862,8 @@
              (sh (.get res self-healing-hint))
              (dsl-g (.get res dsl-grammar))
              (sexp-t (.get res sexp-plan-template))
+             (qnt-t (.get res quint-overlay-template))
+             (emit-kit? (.get res emit-teaching-kit?))
              (out
               (hash (schema (.get res schema))
                     (engineOwner (.get res engine-owner))
@@ -866,6 +872,7 @@
                     (choiceAccepted (.get res choice-accepted?))
                     (requestedChoice (.get res requested-choice))
                     (disclosureLevel disclosure)
+                    (compactChoices (not emit-kit?))
                     (planValidation (plan-validation->json (.get res plan-validation)))
                     (ascentChoiceSolution (ascent-choice-solution->json (.get res ascent-choice-solution)))
                     (recommendedFormalModels
@@ -902,12 +909,14 @@
                                    (openQuestion (.get h open-question))))
                            (.get res competing-hypotheses))))
                     (diffFindings (list->vector (map g2-finding->json (.get diff-res g2-findings))))
-                    (choices (list->vector (map choice-branch->json (.get res choices))))
+                    (choices (list->vector (map (lambda (c) (choice-branch->json c emit-kit?)) (.get res choices))))
                     (actionAuthorized (.get res action-authorized?)))))
         (when dsl-g
           (hash-put! out 'dslGrammar (list->vector dsl-g)))
         (when sexp-t
           (hash-put! out 'sexpPlanTemplate sexp-t))
+        (when qnt-t
+          (hash-put! out 'quintOverlayTemplate qnt-t))
         (when sh
           (hash-put! out 'selfHealingHint
                      (hash (rejectedChoice (.get sh rejected-choice))

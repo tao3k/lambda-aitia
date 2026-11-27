@@ -673,6 +673,27 @@
      "      (tokens-all \"forbidden_pattern\")\n"
      "      (detail \"Describe domain-specific invariant\"))))")))
 
+(def (render-quint-overlay-template recs)
+  (let* ((qrec (let loop ((xs recs))
+                 (cond
+                  ((null? xs) #f)
+                  ((equal? (.get (car xs) formal-kind) "quint") (car xs))
+                  (else (loop (cdr xs))))))
+         (extends-id (if qrec (.get qrec model-id) "agent-ifc-capability")))
+    (string-append
+     "// @quint-extends " extends-id "\n"
+     "// @countermodel\n"
+     "module EphemeralOverlay {\n"
+     "  var inputValid: bool\n"
+     "  var authorized: bool\n\n"
+     "  def failClosedInv: bool = authorized implies inputValid\n\n"
+     "  action init = all { inputValid' = false, authorized' = false }\n"
+     "  action acceptValid = all { inputValid' = true, authorized' = true }\n"
+     "  action buggyFallback = all { inputValid' = false, authorized' = true }\n\n"
+     "  run safePathTest = init.then(acceptValid).expect(failClosedInv)\n"
+     "  run mr05CountermodelTest = init.then(buggyFallback).expect(not(failClosedInv))\n"
+     "}")))
+
 ;; ── Single-Source-of-Truth Tool-Calling JSON Schema Projection ─────────────
 
 (def (gitops-review-tool-schema)
@@ -682,7 +703,7 @@
       (read-only? := #t)
       (action-authorized? := #f)
       (description
-       := "Read-only FunFlow/ASCENT SDLC Git/JJ review oracle. Turn 1: call with {} or {repo} to discover live gix/jj-lib diff state, DE G2 findings, recommended DE Quint/Lean models, dslGrammar, and a repo-tailored (aitia-review-plan ...) sexpPlanTemplate. Turn 2+: pass planSexp (zero-eval S-expr) with open-branches, probes (supports/refutes), subdomain rule-pack, and formal-model choices to converge worlds via ASCENT relational-choice-solve. Never executes writes.")))
+       := "Read-only FunFlow/ASCENT SDLC Git/JJ review oracle. Turn 1: call with {} or {repo} to discover live gix/jj-lib diff state, DE G2 findings, recommended DE Quint/Lean models, dslGrammar, repo-tailored (aitia-review-plan ...) sexpPlanTemplate, and quintOverlayTemplate. Turn 2+: pass planSexp (zero-eval S-expr) with open-branches, probes (supports/refutes), subdomain rule-pack, and optional quintOverlaySource (Quint 0.33 module with // @countermodel + positive & *Countermodel*Test traces, executed live in an isolated sidecar vault) to converge worlds via ASCENT relational-choice-solve. Never executes writes.")))
 
 (def (build-progressive-choices
       repo-hint base-ref ctx-digest diff-res ascent-res fenced-admitted?)
@@ -976,6 +997,9 @@
         (sexp-plan-template := (if emit-teaching-kit?
                                  (render-sexp-plan-template repo-hint base-ref target-repo changed-paths recs)
                                  #f))
+        (quint-overlay-template := (if emit-teaching-kit?
+                                     (render-quint-overlay-template recs)
+                                     #f))
         (choices := choices)
         (self-healing-hint := self-healing)
         (diff-result := diff-res)

@@ -931,4 +931,30 @@ theorem reviewCasHitPreservesZeroAuthority
     actionAuthorized = false :=
   hSafe.2.2.2 rfl
 
+/-- Machine-executed ephemeral Quint MR05 overlay & compact Turn 2+ disclosure safety:
+    an ephemeral overlay cannot be admitted without real machine execution (`machineExecuted = true`),
+    MR05 `@countermodel` verification (`countermodelVerified = true`), and sidecar-vault isolation
+    (`storedInSidecarVault = true`), and compact Turn 2+ disclosure never weakens `coreFloorIntact`
+    or `actionAuthorized = false`. -/
+def MachineOverlayAndCompactDisclosureSafe
+    (machineExecuted countermodelVerified storedInSidecarVault overlayAdmitted
+     compactMode coreFloorIntact actionAuthorized : Bool) : Prop :=
+  actionAuthorized = false ∧
+  coreFloorIntact = true ∧
+  (overlayAdmitted = true →
+    machineExecuted = true ∧ countermodelVerified = true ∧ storedInSidecarVault = true) ∧
+  (compactMode = true → coreFloorIntact = true ∧ actionAuthorized = false)
+
+theorem unexecutedOverlayCannotSelfCertify
+    {cm vault compact floor auth : Bool} :
+    ¬ MachineOverlayAndCompactDisclosureSafe false cm vault true compact floor auth := by
+  intro hSafe
+  exact Bool.false_ne_true (hSafe.2.2.1 rfl).1
+
+theorem compactDisclosurePreservesCoreInvariants
+    {exec cm vault admitted floor auth : Bool}
+    (hSafe : MachineOverlayAndCompactDisclosureSafe exec cm vault admitted true floor auth) :
+    floor = true ∧ auth = false :=
+  hSafe.2.2.2 rfl
+
 end LambdaAitiaProof.Modules.GitOps

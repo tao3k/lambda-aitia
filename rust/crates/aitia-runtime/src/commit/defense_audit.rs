@@ -235,6 +235,57 @@ pub(crate) fn run_review_flow_step_json(
     payload.insert("unstagedDiff".to_owned(), json!(unstaged_diff));
     payload.insert("baseRefDiff".to_owned(), json!(base_ref_diff));
 
+    // Machine-execute optional LLM-authored Quint 0.33 ephemeral overlay strictly inside an
+    // isolated sidecar vault and bind its verified result into Scheme ASCENT (fail-closed!).
+    let overlay_exec = req
+        .get("quintOverlaySource")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .map(|source| {
+            let name = req.get("quintOverlayName").and_then(Value::as_str);
+            super::formal_evidence::run_ephemeral_quint_overlay(source, name, &context_digest)
+        });
+    if let Some(ref exec) = overlay_exec {
+        if exec["passed"].as_bool() == Some(true)
+            && exec["countermodelVerified"].as_bool() == Some(true)
+        {
+            let entry = json!({
+                "modelId": exec["modelId"],
+                "mode": "ephemeral-ai-overlay",
+                "libraryPackage": exec["libraryPackage"],
+                "resolverDigest": exec["resolverDigest"],
+                "contextDigest": context_digest,
+                "countermodelVerified": true,
+                "proofClean": true,
+                "passed": true,
+                "storedInSidecarVault": true,
+            });
+            match payload
+                .get_mut("formalModels")
+                .and_then(Value::as_array_mut)
+            {
+                Some(arr) => arr.push(entry),
+                None => {
+                    payload.insert("formalModels".to_owned(), json!([entry]));
+                }
+            }
+        } else {
+            let oracle_tag = exec
+                .get("pendingOracle")
+                .and_then(Value::as_str)
+                .unwrap_or("quint-ephemeral-overlay-failed");
+            match payload
+                .get_mut("pendingOracles")
+                .and_then(Value::as_array_mut)
+            {
+                Some(arr) => arr.push(json!(oracle_tag)),
+                None => {
+                    payload.insert("pendingOracles".to_owned(), json!([oracle_tag]));
+                }
+            }
+        }
+    }
+
     let req_str = serde_json::to_string(&Value::Object(payload))?;
     let raw_response = match session_opt {
         Some(session) => session
@@ -251,6 +302,9 @@ pub(crate) fn run_review_flow_step_json(
     let mut out: Value = serde_json::from_str(&raw_response)?;
     if let Some(obj) = out.as_object_mut() {
         obj.insert("vcsObservation".to_owned(), serde_json::to_value(&vcs)?);
+        if let Some(exec) = overlay_exec {
+            obj.insert("formalOverlayExecution".to_owned(), exec);
+        }
         obj.insert("actionAuthorized".to_owned(), json!(false));
     }
     Ok(out)

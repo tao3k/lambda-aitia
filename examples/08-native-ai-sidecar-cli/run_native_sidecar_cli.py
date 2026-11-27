@@ -214,11 +214,14 @@ def main() -> None:
         assert "selfHealingHint" in rev_bad
         assert "repair-diff-defects" in rev_bad["selfHealingHint"]["validChoiceIds"]
         assert "dslGrammar" in rev_discover and "sexpPlanTemplate" in rev_discover
+        assert "quintOverlayTemplate" in rev_discover and "@countermodel" in rev_discover["quintOverlayTemplate"]
+        assert rev_discover["compactChoices"] is False
+        assert "template" in rev_discover["choices"][0]
 
         # 0e. Verify declarative `(aitia-review-plan ...)` S-expr file drives native ASCENT
         #     `relational-choice-solve` convergence (2 competing worlds -> 1 unique-deduction),
-        #     omits bulky teaching kit on Turn 2 valid plans, and rejects forbidden
-        #     `disable-core-floor` AND cyclic `(depends-on ...)` with 0 surviving worlds!
+        #     omits bulky teaching kit AND choices[*].template on Turn 2 valid plans, and rejects
+        #     forbidden `disable-core-floor` AND cyclic `(depends-on ...)` with 0 surviving worlds!
         plan_file = root / "scenario-plan.sexp"
         plan_file.write_text(
             f'(aitia-review-plan\n'
@@ -236,11 +239,60 @@ def main() -> None:
         assert rev_plan["planValidation"]["validated"] is True
         assert rev_plan["planValidation"]["acyclic"] is True
         assert rev_plan["planValidation"]["zeroEvalDatumParser"] is True
-        assert "dslGrammar" not in rev_plan and "sexpPlanTemplate" not in rev_plan
+        assert rev_plan["compactChoices"] is True
+        assert all("template" not in c for c in rev_plan["choices"])
+        assert "dslGrammar" not in rev_plan and "sexpPlanTemplate" not in rev_plan and "quintOverlayTemplate" not in rev_plan
         assert rev_plan["ascentChoiceSolution"]["choiceStatus"] == "unique-deduction"
         assert rev_plan["ascentChoiceSolution"]["worldCount"] == 1
         assert rev_plan["ascentChoiceSolution"]["worlds"][0]["reviewBranch"] == "hyp-missing-assert"
         assert rev_plan["ascentChoiceSolution"]["worlds"][0]["dispatchDecision"] == "repair-mechanical-defects"
+
+        # 0f. Verify machine-executed ephemeral Quint MR05 overlay inside isolated sidecar vault:
+        #     (a) vacuous overlay without @countermodel MUST fail closed!
+        vacuous_qnt = (
+            "module VacuousOverlay {\n"
+            "  var ok: bool\n"
+            "  action init = ok' = true\n"
+            "  run trivialTest = init.expect(ok)\n"
+            "}\n"
+        )
+        _, rev_qnt_vac_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={
+                "repo": str(upstream_repo),
+                "planSexp": plan_file.read_text(encoding="utf-8"),
+                "quintOverlayName": "VacuousOverlay.qnt",
+                "quintOverlaySource": vacuous_qnt,
+            },
+        )
+        rev_qnt_vac = json.loads(rev_qnt_vac_out)
+        assert rev_qnt_vac["formalOverlayExecution"]["passed"] is False
+        assert rev_qnt_vac["formalOverlayExecution"]["countermodelVerified"] is False
+        assert rev_qnt_vac["formalOverlayExecution"]["storedInSidecarVault"] is True
+
+        #     (b) valid MR05 overlay (from Turn 1's own quintOverlayTemplate!) passes real quint!
+        _, rev_qnt_ok_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={
+                "repo": str(upstream_repo),
+                "planSexp": plan_file.read_text(encoding="utf-8"),
+                "quintOverlayName": "ParserOverlay.qnt",
+                "quintOverlaySource": rev_discover["quintOverlayTemplate"],
+            },
+        )
+        rev_qnt_ok = json.loads(rev_qnt_ok_out)
+        qexec = rev_qnt_ok["formalOverlayExecution"]
+        assert qexec["machineExecuted"] is True
+        assert qexec["typecheckPassed"] is True
+        assert qexec["testsPassed"] is True
+        assert qexec["passingTestCount"] >= 2
+        assert qexec["countermodelVerified"] is True
+        assert qexec["passed"] is True
+        assert qexec["storedInSidecarVault"] is True
+        assert qexec["actionAuthorized"] is False
+        assert not (upstream_repo / "ParserOverlay.qnt").exists()
 
         cyclic_plan = root / "cyclic-plan.sexp"
         cyclic_plan.write_text(

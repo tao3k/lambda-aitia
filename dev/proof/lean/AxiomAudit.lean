@@ -118,3 +118,5 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.declarativePlanViolationPrunesAllWorlds
 #print axioms GitOps.reviewPlanCycleRejectedFailClosed
 #print axioms GitOps.reviewCasHitPreservesZeroAuthority
+#print axioms GitOps.unexecutedOverlayCannotSelfCertify
+#print axioms GitOps.compactDisclosurePreservesCoreInvariants

@@ -10,6 +10,11 @@
 use super::{Result, err};
 use serde_json::{Value, json};
 use std::fmt::Write as _;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 const FORMAL_EVIDENCE_SCHEMA: &str = "lambda-aitia.de-formal-evidence.v1";
 
@@ -192,4 +197,297 @@ pub fn verify_de_formal_evidence_json(
         &formal,
         expected_context_digest,
     )?)?)
+}
+
+static QUINT_VAULT_COUNTER: AtomicU64 = AtomicU64::new(1);
+const MAX_QUINT_OVERLAY_BYTES: usize = 128 * 1024;
+const QUINT_TIMEOUT_SECS: u64 = 25;
+
+struct EphemeralVaultDir(PathBuf);
+
+impl Drop for EphemeralVaultDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+fn sanitize_quint_basename(raw: Option<&str>) -> String {
+    let base = raw.unwrap_or("EphemeralOverlay.qnt").trim();
+    let stem = base.strip_suffix(".qnt").unwrap_or(base);
+    let cleaned: String = stem
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-'))
+        .take(48)
+        .collect();
+    if cleaned.is_empty() {
+        "EphemeralOverlay.qnt".to_owned()
+    } else {
+        format!("{cleaned}.qnt")
+    }
+}
+
+fn extract_quint_extends(source: &str) -> Option<String> {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("// @quint-extends") {
+            let model = rest.trim().split_whitespace().next().unwrap_or("");
+            if !model.is_empty() {
+                return Some(model.to_owned());
+            }
+        }
+    }
+    None
+}
+
+fn resolve_quint_binary() -> Option<PathBuf> {
+    if let Some(explicit) = std::env::var_os("AITIA_QUINT_BIN").filter(|v| !v.is_empty()) {
+        let p = PathBuf::from(explicit);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    for candidate in [
+        Path::new("/opt/homebrew/bin/quint"),
+        Path::new("/usr/local/bin/quint"),
+        Path::new("dev/proof/quint/node_modules/.bin/quint"),
+    ] {
+        if candidate.is_file() {
+            return Some(candidate.to_path_buf());
+        }
+    }
+    if let Ok(path_var) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            let cand = dir.join("quint");
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
+    }
+    None
+}
+
+fn run_bounded_quint_cmd(
+    quint_bin: &Path,
+    args: &[&str],
+    workdir: &Path,
+) -> std::io::Result<(bool, String)> {
+    let mut cmd = Command::new(quint_bin);
+    cmd.args(args)
+        .current_dir(workdir)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .env_remove("NODE_OPTIONS")
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE");
+    let mut child = cmd.spawn()?;
+    let deadline = Instant::now() + Duration::from_secs(QUINT_TIMEOUT_SECS);
+    loop {
+        if let Some(_status) = child.try_wait()? {
+            let output = child.wait_with_output()?;
+            let mut combined = String::from_utf8_lossy(&output.stdout).into_owned();
+            if !output.stderr.is_empty() {
+                if !combined.is_empty() {
+                    combined.push('\n');
+                }
+                combined.push_str(&String::from_utf8_lossy(&output.stderr));
+            }
+            return Ok((output.status.success(), combined));
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Ok((
+                false,
+                format!("quint timed out after {QUINT_TIMEOUT_SECS}s"),
+            ));
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    }
+}
+
+fn parse_quint_passed_tests(output: &str) -> (Vec<String>, bool) {
+    let mut passed = Vec::new();
+    let mut has_failing = false;
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if trimmed.contains("failing") {
+            has_failing = true;
+        }
+        if let Some(rest) = trimmed.strip_prefix("ok ")
+            && let Some((name, _)) = rest.split_once(" passed")
+        {
+            let clean = name.trim();
+            if !clean.is_empty() {
+                passed.push(clean.to_owned());
+            }
+        }
+    }
+    (passed, has_failing)
+}
+
+/// Machine-execute an LLM-authored Quint 0.33 ephemeral overlay strictly inside an isolated
+/// temporary sidecar vault (never touching the upstream Git repo) and enforce MR05 non-vacuous
+/// `@countermodel` verification. Never grants execution authority (`actionAuthorized: false`).
+pub(crate) fn run_ephemeral_quint_overlay(
+    source: &str,
+    overlay_name: Option<&str>,
+    context_digest: &str,
+) -> Value {
+    let model_id = sanitize_quint_basename(overlay_name);
+    let extends_model = extract_quint_extends(source);
+    let source_digest = crate::source_tree::sha256(source.as_bytes());
+    let cm_annotation = source.contains("@countermodel");
+
+    if source.len() > MAX_QUINT_OVERLAY_BYTES {
+        return json!({
+            "schema": "lambda-aitia.quint-overlay-execution.v1",
+            "modelId": model_id,
+            "extendsModel": extends_model,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/quint-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "typecheckPassed": false,
+            "testsPassed": false,
+            "passingTestCount": 0,
+            "countermodelAnnotationFound": cm_annotation,
+            "countermodelTestFound": false,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": ["Quint overlay source exceeds 128 KiB safety bound"],
+            "actionAuthorized": false,
+        });
+    }
+
+    let Some(quint_bin) = resolve_quint_binary() else {
+        return json!({
+            "schema": "lambda-aitia.quint-overlay-execution.v1",
+            "modelId": model_id,
+            "extendsModel": extends_model,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/quint-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "pendingOracle": "quint",
+            "typecheckPassed": false,
+            "testsPassed": false,
+            "passingTestCount": 0,
+            "countermodelAnnotationFound": cm_annotation,
+            "countermodelTestFound": false,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": ["PendingMethod: local `quint` binary unavailable (set AITIA_QUINT_BIN or install quint)"],
+            "actionAuthorized": false,
+        });
+    };
+
+    let seq = QUINT_VAULT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let vault_dir =
+        std::env::temp_dir().join(format!("aitia-quint-vault-{}-{seq}", std::process::id()));
+    if let Err(e) = fs::create_dir_all(&vault_dir) {
+        return json!({
+            "schema": "lambda-aitia.quint-overlay-execution.v1",
+            "modelId": model_id,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/quint-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "passed": false,
+            "countermodelVerified": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": [format!("Failed to create isolated sidecar vault: {e}")],
+            "actionAuthorized": false,
+        });
+    }
+    let _guard = EphemeralVaultDir(vault_dir.clone());
+    let qnt_path = vault_dir.join(&model_id);
+    if let Err(e) = fs::write(&qnt_path, source) {
+        return json!({
+            "schema": "lambda-aitia.quint-overlay-execution.v1",
+            "modelId": model_id,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/quint-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "passed": false,
+            "countermodelVerified": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": [format!("Failed to write Quint overlay in sidecar vault: {e}")],
+            "actionAuthorized": false,
+        });
+    }
+
+    let qnt_str = qnt_path.to_string_lossy().into_owned();
+    let (tc_ok, tc_out) = run_bounded_quint_cmd(&quint_bin, &["typecheck", &qnt_str], &vault_dir)
+        .unwrap_or_else(|e| (false, format!("failed to spawn quint typecheck: {e}")));
+    let mut diagnostics: Vec<String> = Vec::new();
+    let (tests_ok, passed_tests) = if tc_ok {
+        let (ok, out) = run_bounded_quint_cmd(
+            &quint_bin,
+            &["test", "--backend=typescript", &qnt_str],
+            &vault_dir,
+        )
+        .unwrap_or_else(|e| (false, format!("failed to spawn quint test: {e}")));
+        let (names, has_failing) = parse_quint_passed_tests(&out);
+        if !ok || has_failing {
+            diagnostics.push(out.chars().take(1200).collect());
+        }
+        (ok && !has_failing, names)
+    } else {
+        diagnostics.push(tc_out.chars().take(1200).collect());
+        (false, Vec::new())
+    };
+
+    let cm_test_found = passed_tests
+        .iter()
+        .any(|name| name.to_ascii_lowercase().contains("countermodel"));
+    let has_positive_and_cm = passed_tests.len() >= 2 && cm_test_found;
+    if tc_ok && tests_ok && !cm_annotation {
+        diagnostics.push(
+            "MR05 fail-closed: add `// @countermodel` annotation to prove non-vacuous overlay"
+                .to_owned(),
+        );
+    }
+    if tc_ok && tests_ok && !has_positive_and_cm {
+        diagnostics.push(
+            "MR05 fail-closed: overlay must pass >= 2 Quint `run ...Test` traces including at least one `*Countermodel*Test` negative-control trace"
+                .to_owned(),
+        );
+    }
+
+    let cm_verified = tc_ok && tests_ok && cm_annotation && has_positive_and_cm;
+    let passed = cm_verified;
+    let resolver_digest = crate::source_tree::sha256(
+        format!("quint-overlay-v1:{model_id}:{source_digest}").as_bytes(),
+    );
+
+    json!({
+        "schema": "lambda-aitia.quint-overlay-execution.v1",
+        "modelId": model_id,
+        "extendsModel": extends_model,
+        "mode": "ephemeral-ai-overlay",
+        "libraryPackage": "@deterministic-engineering/quint-models",
+        "storedInSidecarVault": true,
+        "machineExecuted": true,
+        "typecheckPassed": tc_ok,
+        "testsPassed": tests_ok,
+        "passingTestCount": passed_tests.len(),
+        "passingTests": passed_tests,
+        "countermodelAnnotationFound": cm_annotation,
+        "countermodelTestFound": cm_test_found,
+        "countermodelVerified": cm_verified,
+        "passed": passed,
+        "resolverDigest": resolver_digest,
+        "contextDigest": context_digest,
+        "diagnostics": diagnostics,
+        "actionAuthorized": false,
+    })
 }

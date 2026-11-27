@@ -233,7 +233,7 @@ test-commit-semantics path="":
     trap 'rm -f -- "$output"' EXIT
     paths=(modules/gitops/tests modules/project-config/tests)
     if [[ -n {{ quote(path) }} ]]; then paths=({{ quote(path) }}); fi
-    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gerbil {{ gerbil_test_runtime_options }} test "${paths[@]}" 2>&1 | tee "$output"
+    {{ gerbil_env }} timeout --foreground --signal=TERM --kill-after=3s 60s gerbil -:max-heap=2G test "${paths[@]}" 2>&1 | tee "$output"
     grep -q '^MODULE-OK ' "$output"
     grep -q '^HARNESS-OK ' "$output"
     grep -Fxq 'OK' "$output"
