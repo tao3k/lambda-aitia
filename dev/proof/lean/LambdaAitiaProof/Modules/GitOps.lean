@@ -765,4 +765,50 @@ theorem nativeSidecarCliPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2
 
+/-- DE G2 Git diff / Git staged anti-defensive-programming audit & FunFlow
+    observability closure predicate. -/
+def DiffDefenseAuditAdmissible
+    (stagedSilent stagedDeleted stagedWeakened stagedFabricated unstagedDefects : Nat)
+    (funflowTraceEmitted actionAuthorized : Bool) : Prop :=
+  stagedSilent = 0 ∧
+  stagedDeleted = 0 ∧
+  stagedWeakened = 0 ∧
+  stagedFabricated = 0 ∧
+  unstagedDefects = 0 ∧
+  funflowTraceEmitted = true ∧
+  actionAuthorized = false
+
+theorem stagedSilentFallbackBlocksCommit
+    {del weak fab unstaged : Nat} {trace auth : Bool}
+    (hSilent : silent > 0) :
+    ¬ DiffDefenseAuditAdmissible silent del weak fab unstaged trace auth := by
+  intro hValid
+  have hZero : silent = 0 := hValid.1
+  rw [hZero] at hSilent
+  exact Nat.not_lt_zero 0 hSilent
+
+theorem diffDeletedAssertionBlocksCommit
+    {silent weak fab unstaged : Nat} {trace auth : Bool}
+    (hDel : del > 0) :
+    ¬ DiffDefenseAuditAdmissible silent del weak fab unstaged trace auth := by
+  intro hValid
+  have hZero : del = 0 := hValid.2.1
+  rw [hZero] at hDel
+  exact Nat.not_lt_zero 0 hDel
+
+theorem unstagedG2DefectReopensFunFlowFrontier
+    {silent del weak fab : Nat} {trace auth : Bool}
+    (hUnstaged : unstaged > 0) :
+    ¬ DiffDefenseAuditAdmissible silent del weak fab unstaged trace auth := by
+  intro hValid
+  have hZero : unstaged = 0 := hValid.2.2.2.2.1
+  rw [hZero] at hUnstaged
+  exact Nat.not_lt_zero 0 hUnstaged
+
+theorem diffDefenseAuditPreservesZeroAuthority
+    {silent del weak fab unstaged : Nat} {trace auth : Bool}
+    (hValid : DiffDefenseAuditAdmissible silent del weak fab unstaged trace auth) :
+    auth = false :=
+  hValid.2.2.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps

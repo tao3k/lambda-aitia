@@ -85,16 +85,90 @@ def main() -> None:
         run_git(origin_repo, "init", "-b", "main")
         run_git(origin_repo, "config", "user.name", "Native AI Contributor")
         run_git(origin_repo, "config", "user.email", "native-ai@example.org")
-        (origin_repo / "parser.py").write_text("def parse(x):\n    return x\n", encoding="utf-8")
+        (origin_repo / "parser.py").write_text(
+            "def parse(x):\n    assert x is not None\n    return x\n",
+            encoding="utf-8",
+        )
         run_git(origin_repo, "add", ".")
         run_git(origin_repo, "commit", "-m", "chore: initial commit")
         run_git(origin_repo, "worktree", "add", "-b", "fix/parser-guard", str(upstream_repo))
         assert (upstream_repo / ".git").is_file(), "Expected pure Git worktree (.git file)"
         assert not (upstream_repo / ".jj").exists()
+
+        # 0. Inject real AI anti-defensive-programming defects into BOTH unstaged diff & staged index:
+        #    - deleted `assert` (`diff-deleted-assertion` / `floor-weakening`)
+        #    - `except Exception: pass` (`silent-fallback`)
+        #    - `# TODO stub: return True` (`fabricated-evidence`)
         (upstream_repo / "parser.py").write_text(
-            "def parse(x: str) -> str:\n    if not x.strip():\n        raise ValueError('empty')\n    return x.strip()\n",
+            "def parse(x: str) -> str:\n"
+            "    try:\n"
+            "        return x.strip()\n"
+            "    except Exception: pass\n"
+            "def verify_ok() -> bool:\n"
+            "    return True  # TODO stub verified: true\n",
             encoding="utf-8",
         )
+        rc_diff_bad, out_diff_bad, _ = run_cli(
+            cli,
+            ["sidecar", "audit-diff", "--repo", str(upstream_repo), "--format", "json"],
+            expect_ok=False,
+        )
+        assert rc_diff_bad != 0
+        diff_report = json.loads(out_diff_bad)
+        assert diff_report["passed"] is False
+        assert diff_report["unstagedFindingsCount"] >= 3
+        assert diff_report["countsByClass"]["silent-fallback"] >= 1
+        assert diff_report["countsByClass"]["floor-weakening"] >= 1
+        assert diff_report["countsByClass"]["fabricated-evidence"] >= 1
+        assert diff_report["diffDeletedAssertionsCount"] >= 1
+        assert diff_report["repairPacket"]["decision"] == "REFUSE"
+
+        # Stage the defective file and verify `--staged` + `--format agent-feedback` + `--format sarif`
+        run_git(upstream_repo, "add", "parser.py")
+        rc_staged_bad, out_staged_fb, _ = run_cli(
+            cli,
+            [
+                "sidecar",
+                "audit-diff",
+                "--repo",
+                str(upstream_repo),
+                "--staged",
+                "--format",
+                "agent-feedback",
+            ],
+            expect_ok=False,
+        )
+        assert rc_staged_bad != 0
+        fb_pkt = json.loads(out_staged_fb)
+        assert fb_pkt["schema"] == "lambda-aitia.de-g2-repair-packet.v1"
+        assert fb_pkt["decision"] == "REFUSE"
+        assert fb_pkt["actionAuthorized"] is False
+
+        rc_sarif, out_sarif, _ = run_cli(
+            cli,
+            ["sidecar", "audit-diff", "--repo", str(upstream_repo), "--staged", "--format", "sarif"],
+            expect_ok=False,
+        )
+        assert rc_sarif != 0
+        sarif_doc = json.loads(out_sarif)
+        assert sarif_doc["version"] == "2.1.0" and len(sarif_doc["runs"][0]["results"]) >= 3
+
+        # Unstage and replace with clean, non-defensive-hallucination code preserving the assertion!
+        run_git(upstream_repo, "reset", "HEAD", "parser.py")
+        (upstream_repo / "parser.py").write_text(
+            "def parse(x: str) -> str:\n"
+            "    assert x is not None\n"
+            "    if not x.strip():\n"
+            "        raise ValueError('empty')\n"
+            "    return x.strip()\n",
+            encoding="utf-8",
+        )
+        _, clean_diff_out, _ = run_cli(
+            cli,
+            ["sidecar", "audit-diff", "--repo", str(upstream_repo)],
+        )
+        clean_diff = json.loads(clean_diff_out)
+        assert clean_diff["passed"] is True and clean_diff["totalFindings"] == 0
 
         profile = {
             "schema": "lambda-aitia.sidecar-profile.v1",
@@ -125,6 +199,9 @@ def main() -> None:
         ctx = json.loads(cap_out)
         assert ctx["upstreamPollutionFree"] is True
         assert ctx["actionAuthorized"] is False
+        assert ctx["defenseAudit"]["passed"] is True
+        assert ctx["funflowObservability"]["schema"] == "lambda-aitia.funflow-observability-packet.v1"
+        assert ctx["funflowObservability"]["nextFrontier"] == "assess-ascent-and-dispatch-ai-lenses"
         ctx_digest = ctx["contextDigest"]
 
         # 2. `aitia sidecar assess` (Stage 1 pre-audit -> live Scheme gerbil-ascent)
@@ -262,6 +339,8 @@ def main() -> None:
         post = json.loads(post_out)
         assert post["admissible"] is True
         assert post["epistemicStatus"] == "Proven"
+        assert post["funflowTrace"]["schema"] == "lambda-aitia.funflow-ascent-trace.v1"
+        assert post["funflowTrace"]["derivedCounts"]["admittedFormalModels"] == 2
         assert post["supportedObligations"] == ["SWE-083", "SWE-084", "SWE-087", "SWE-146"]
 
         # 5. `aitia sidecar receipt` — Negative Control: vault INSIDE upstream repo MUST fail closed!
@@ -333,7 +412,40 @@ def main() -> None:
         )
         assert rc_unstaged != 0 and "pre-staged changes" in err_unstaged
 
-        # 7. Stage explicit file and execute `aitia sidecar commit` in pure Git worktree!
+        # 7. Negative Control: sneaking a silent-fallback into staged index right before commit MUST fail!
+        (upstream_repo / "parser.py").write_text(
+            "def parse(x: str) -> str:\n"
+            "    assert x is not None\n"
+            "    try:\n"
+            "        return x.strip()\n"
+            "    except Exception: pass\n",
+            encoding="utf-8",
+        )
+        run_git(upstream_repo, "add", "parser.py")
+        rc_sneak, _, err_sneak = run_cli(
+            cli,
+            [
+                "sidecar",
+                "commit",
+                "--repo",
+                str(upstream_repo),
+                "--vault-dir",
+                str(external_vault),
+            ],
+            stdin_payload=receipt_spec,
+            expect_ok=False,
+        )
+        assert rc_sneak != 0 and "DE G2 staged diff anti-defensive-programming gate refused commit" in err_sneak
+
+        # 8. Restore clean audited code, stage explicit file, and execute `aitia sidecar commit`!
+        (upstream_repo / "parser.py").write_text(
+            "def parse(x: str) -> str:\n"
+            "    assert x is not None\n"
+            "    if not x.strip():\n"
+            "        raise ValueError('empty')\n"
+            "    return x.strip()\n",
+            encoding="utf-8",
+        )
         run_git(upstream_repo, "add", "parser.py")
         _, commit_out, _ = run_cli(
             cli,
@@ -364,6 +476,10 @@ def main() -> None:
                 "example": "08-native-ai-sidecar-cli",
                 "pureGitWorktreeNoJj": True,
                 "zeroGerbilLoadpathCliOnly": True,
+                "unstagedAndStagedG2DefectsCaught": True,
+                "sarif210AndRepairPacketEmitted": True,
+                "stagedSilentFallbackCommitBlocked": True,
+                "funflowTraceEmitted": True,
                 "preAuditOpenObligations": pre["openObligations"],
                 "postAuditEpistemicStatus": post["epistemicStatus"],
                 "vacuousOverlayCliRejected": True,

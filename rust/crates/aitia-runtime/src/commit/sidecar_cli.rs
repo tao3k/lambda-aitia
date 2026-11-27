@@ -7,7 +7,7 @@
 //! and no `.agents/aita/`) over the exact same Scheme/POO `gerbil-ascent` + DE formal
 //! verification + NASA/DSSE core used by RFC 0024's Marlin gRPC gateway.
 
-use super::{Result, err, formal_evidence, sidecar};
+use super::{Result, defense_audit, err, formal_evidence, sidecar};
 use crate::MAX_REQUEST_BYTES;
 use serde_json::{Value, json};
 use std::fs;
@@ -15,7 +15,7 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const SIDECAR_USAGE: &str = "usage: aitia sidecar capture --repo <dir> [--base <ref>] --profile <file> [--checks <file>]\n       aitia sidecar assess < assessment-request.json\n       aitia sidecar verify-formal --context-digest <sha256:...> < formal-evidence.json\n       aitia sidecar receipt [--repo <dir>] [--vault-dir <dir>] < receipt-spec.json\n       aitia sidecar commit --repo <dir> --vault-dir <dir> < receipt-spec.json";
+const SIDECAR_USAGE: &str = "usage: aitia sidecar capture --repo <dir> [--base <ref>] --profile <file> [--checks <file>]\n       aitia sidecar audit-diff --repo <dir> [--staged] [--base <ref>] [--format json|agent-feedback|sarif]\n       aitia sidecar assess < assessment-request.json\n       aitia sidecar verify-formal --context-digest <sha256:...> < formal-evidence.json\n       aitia sidecar receipt [--repo <dir>] [--vault-dir <dir>] < receipt-spec.json\n       aitia sidecar commit --repo <dir> --vault-dir <dir> < receipt-spec.json";
 
 fn read_bounded_stdin() -> Result<String> {
     let mut text = String::new();
@@ -160,6 +160,47 @@ fn run_capture(args: &[String]) -> Result<String> {
     )
 }
 
+fn run_audit_diff(args: &[String]) -> Result<(String, bool)> {
+    let mut repo_dir: Option<String> = None;
+    let mut base_ref = "HEAD".to_owned();
+    let mut staged_only = false;
+    let mut format = "json".to_owned();
+    let mut i = 0usize;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--repo" => {
+                i += 1;
+                repo_dir = Some(args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned());
+            }
+            "--base" => {
+                i += 1;
+                base_ref = args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned();
+            }
+            "--staged" => staged_only = true,
+            "--format" => {
+                i += 1;
+                format = args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned();
+            }
+            _ => return Err(err(SIDECAR_USAGE)),
+        }
+        i += 1;
+    }
+    let repo = repo_dir.ok_or_else(|| err("sidecar audit-diff requires --repo <dir>"))?;
+    let report = defense_audit::audit_git_repo_defense(Path::new(&repo), &base_ref, staged_only)?;
+    let passed = report["passed"].as_bool().unwrap_or(false);
+    let rendered = match format.as_str() {
+        "json" => serde_json::to_string(&report)?,
+        "agent-feedback" => serde_json::to_string(&report["repairPacket"])?,
+        "sarif" => serde_json::to_string(&report["sarif"])?,
+        _ => {
+            return Err(err(
+                "Invalid --format (expected json, agent-feedback, or sarif)",
+            ));
+        }
+    };
+    Ok((rendered, passed))
+}
+
 fn run_verify_formal(args: &[String]) -> Result<String> {
     let expected_ctx = match args {
         [flag, digest] if flag == "--context-digest" => digest.as_str(),
@@ -257,6 +298,14 @@ fn run_sidecar_commit(args: &[String]) -> Result<String> {
             }
         }
     }
+    let staged_defense = defense_audit::audit_git_repo_defense(repo_path, "HEAD", true)?;
+    if staged_defense["passed"].as_bool() != Some(true) {
+        return Err(err(format!(
+            "DE G2 staged diff anti-defensive-programming gate refused commit ({} findings): {}",
+            staged_defense["totalFindings"].as_u64().unwrap_or(0),
+            staged_defense["repairPacket"]
+        )));
+    }
 
     let raw_bundle = sidecar::build_nasa_sidecar_receipt_json(&spec_json)?;
     let mut bundle: Value = serde_json::from_str(&raw_bundle)?;
@@ -296,6 +345,16 @@ pub(crate) fn run_sidecar_cli(args: &[String]) -> Result<()> {
             return Ok(());
         }
         Some("capture") => run_capture(&args[1..])?,
+        Some("audit-diff") => {
+            let (out, passed) = run_audit_diff(&args[1..])?;
+            writeln!(io::stdout().lock(), "{out}")?;
+            if !passed {
+                return Err(err(
+                    "DE G2 anti-defensive-programming diff audit refused patch (see repairPacket)",
+                ));
+            }
+            return Ok(());
+        }
         Some("assess") => {
             if args.len() != 1 {
                 return Err(err(SIDECAR_USAGE));

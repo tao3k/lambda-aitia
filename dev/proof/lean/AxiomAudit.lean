@@ -104,3 +104,7 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.unverifiedFormalEvidenceBlocksCliReceipt
 #print axioms GitOps.upstreamPollutionBlocksCliCapture
 #print axioms GitOps.nativeSidecarCliPreservesZeroAuthority
+#print axioms GitOps.stagedSilentFallbackBlocksCommit
+#print axioms GitOps.diffDeletedAssertionBlocksCommit
+#print axioms GitOps.unstagedG2DefectReopensFunFlowFrontier
+#print axioms GitOps.diffDefenseAuditPreservesZeroAuthority

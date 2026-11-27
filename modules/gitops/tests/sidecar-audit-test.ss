@@ -159,7 +159,11 @@
         (check-equal? (.get (.get res formal-library-guidance) general-case-mode)
                       "upstream-library-reuse")
         (check-equal? (.get (.get res formal-library-guidance) special-case-mode)
-                      "ephemeral-ai-overlay")))
+                      "ephemeral-ai-overlay")
+        (check-equal? (.get (.get res funflow-trace) schema)
+                      "lambda-aitia.funflow-ascent-trace.v1")
+        (check-equal? (.get (.get (.get res funflow-trace) derived-counts) admitted-formal-models) 3)
+        (check-equal? (.get (.get res funflow-trace) action-authorized?) #f)))
 
     (test-case "RFC 0023 vacuous ephemeral-ai-overlay missing MR05 @countermodel fails closed"
       (let* ((vacuous (.cc +base-input+

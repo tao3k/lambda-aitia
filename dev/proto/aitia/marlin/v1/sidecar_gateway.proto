@@ -16,6 +16,7 @@ package aitia.marlin.v1;
 service AitiaSidecarGateway {
   rpc Health(HealthRequest) returns (HealthResponse);
   rpc CaptureDetachedContext(CaptureDetachedContextRequest) returns (JsonEnvelopeResponse);
+  rpc AuditDiffDefense(AuditDiffDefenseRequest) returns (JsonEnvelopeResponse);
   rpc AssessSidecarAuditAscent(AssessSidecarAuditRequest) returns (JsonEnvelopeResponse);
   rpc VerifyFormalEvidence(VerifyFormalEvidenceRequest) returns (JsonEnvelopeResponse);
   rpc BuildNasaSidecarReceipt(BuildNasaSidecarReceiptRequest) returns (JsonEnvelopeResponse);
@@ -38,6 +39,12 @@ message CaptureDetachedContextRequest {
   string base_ref = 2;
   string profile_json = 3;
   string deterministic_checks_json = 4;
+}
+
+message AuditDiffDefenseRequest {
+  string repo_dir = 1;
+  string base_ref = 2;
+  bool staged_only = 3;
 }
 
 message AssessSidecarAuditRequest {

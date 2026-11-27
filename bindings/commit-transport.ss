@@ -423,6 +423,30 @@
         (ephemeralRequiresCountermodel (.get guidance ephemeral-requires-countermodel?))
         (ephemeralSidecarOnly (.get guidance ephemeral-sidecar-only?))))
 
+(def (funflow-trace->json trace)
+  (let ((ic (.get trace input-counts))
+        (dc (.get trace derived-counts)))
+    (hash (schema (.get trace schema))
+          (fragments (list->vector (.get trace fragments)))
+          (contextDigest (.get trace context-digest))
+          (epistemicStatus (.get trace epistemic-status))
+          (nextFrontier (.get trace next-frontier))
+          (inputCounts
+           (hash (changedPaths (.get ic changed-paths))
+                 (requiredLenses (.get ic required-lenses))
+                 (aiReports (.get ic ai-reports))
+                 (g2Findings (.get ic g2-findings))
+                 (guardProbes (.get ic guard-probes))
+                 (formalModels (.get ic formal-models))
+                 (pendingOracles (.get ic pending-oracles))))
+          (derivedCounts
+           (hash (blockers (.get dc blockers))
+                 (openObligations (.get dc open-obligations))
+                 (supportedObligations (.get dc supported-obligations))
+                 (g2Defects (.get dc g2-defects))
+                 (admittedFormalModels (.get dc admitted-formal-models))))
+          (actionAuthorized (.get trace action-authorized?)))))
+
 (def (aitia-sidecar-audit-assess-payload payload)
   (assert-aitia-input-budget! payload)
   (let* ((input (read-aitia-json payload))
@@ -478,6 +502,7 @@
            (supportedObligations (list->vector (.get res supported-obligations)))
            (nextHandoffMode (.get res next-handoff-mode))
            (formalLibraryGuidance guidance-json)
+           (funflowTrace (funflow-trace->json (.get res funflow-trace)))
            (ascentDirective
             (hash (schema (.get directive schema))
                   (engineBinding (.get directive engine-binding))

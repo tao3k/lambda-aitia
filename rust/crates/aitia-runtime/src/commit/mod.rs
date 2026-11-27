@@ -6,6 +6,7 @@
 pub(crate) mod attestation;
 pub(crate) mod audit;
 mod common;
+pub(crate) mod defense_audit;
 pub(crate) mod dsse;
 mod evidence;
 pub(crate) mod formal_evidence;

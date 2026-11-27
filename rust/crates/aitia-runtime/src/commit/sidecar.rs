@@ -248,6 +248,8 @@ pub fn capture_detached_audit_context_json(
     });
     let context_digest =
         crate::source_tree::sha256(serde_json::to_string(&canonical_context_core)?.as_bytes());
+    let defense_audit = super::defense_audit::audit_git_repo_defense(repo_dir, base_ref, false)?;
+    let defense_passed = defense_audit["passed"].as_bool().unwrap_or(false);
     let required_lenses_vec: Vec<String> = profile.required_lenses.into_iter().collect();
     let nasa_obligations = json!(["SWE-083", "SWE-084", "SWE-087", "SWE-146"]);
     let ascent_directives = json!({
@@ -257,6 +259,15 @@ pub fn capture_detached_audit_context_json(
         "contextDigest": context_digest,
         "obligations": nasa_obligations,
         "requiredLenses": required_lenses_vec,
+        "defenseAuditSummary": {
+            "passed": defense_passed,
+            "decision": defense_audit["decision"],
+            "stagedFindingsCount": defense_audit["stagedFindingsCount"],
+            "unstagedFindingsCount": defense_audit["unstagedFindingsCount"],
+            "diffDeletedAssertionsCount": defense_audit["diffDeletedAssertionsCount"],
+            "countsByClass": defense_audit["countsByClass"],
+            "reportDigest": defense_audit["reportDigest"],
+        },
         "formalLibraryGuidance": {
             "generalCaseMode": "upstream-library-reuse",
             "specialCaseMode": "ephemeral-ai-overlay",
@@ -272,7 +283,8 @@ pub fn capture_detached_audit_context_json(
             "every finding MUST cite a file in changedFiles with non-empty competingHypotheses",
             "openQuestions and contradictions MUST be preserved without probability collapse",
             "SWE-146 provider, modelId, and promptTemplateDigest MUST be recorded",
-            "prefer upstream-library-reuse; ephemeral-ai-overlay MUST include verified @countermodel and stay in sidecar vault"
+            "prefer upstream-library-reuse; ephemeral-ai-overlay MUST include verified @countermodel and stay in sidecar vault",
+            "all DE G2 git diff and git staged anti-defensive-programming defects MUST be repaired without floor weakening"
         ],
     });
     let ai_engine_handoffs = json!({
@@ -280,6 +292,7 @@ pub fn capture_detached_audit_context_json(
             "engineBinding": "native-ai-environment",
             "schema": "lambda-aitia.native-ai-audit-handoff.v1",
             "ascentDirective": ascent_directives,
+            "repairPacket": defense_audit["repairPacket"],
             "actionAuthorized": false,
         },
         "marlinAgentCore": {
@@ -289,8 +302,25 @@ pub fn capture_detached_audit_context_json(
             "capability": "marlin.agent.audit-detached-diff",
             "contextDigest": context_digest,
             "ascentDirective": ascent_directives,
+            "repairPacket": defense_audit["repairPacket"],
             "actionAuthorized": false,
         },
+    });
+    let funflow_observability = json!({
+        "schema": "lambda-aitia.funflow-observability-packet.v1",
+        "stage": "detached-sidecar-capture",
+        "contextDigest": context_digest,
+        "diffDigest": diff_digest,
+        "defenseAuditDigest": defense_audit["reportDigest"],
+        "defenseAuditPassed": defense_passed,
+        "stagedFindingsCount": defense_audit["stagedFindingsCount"],
+        "unstagedFindingsCount": defense_audit["unstagedFindingsCount"],
+        "nextFrontier": if defense_passed {
+            "assess-ascent-and-dispatch-ai-lenses"
+        } else {
+            "repair-g2-anti-defensive-defects"
+        },
+        "actionAuthorized": false,
     });
 
     Ok(serde_json::to_string(&json!({
@@ -306,6 +336,8 @@ pub fn capture_detached_audit_context_json(
         "deterministicChecksDigest": checks_digest,
         "profileDigest": profile_digest,
         "contextDigest": context_digest,
+        "defenseAudit": defense_audit,
+        "funflowObservability": funflow_observability,
         "aiEngineHandoffs": ai_engine_handoffs,
         "upstreamPollutionFree": true,
         "actionAuthorized": false,

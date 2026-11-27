@@ -11,7 +11,7 @@
 //! verification, Operator E-Stop confinement, bounded request frames, and
 //! `actionAuthorized: false` on every RPC response.
 
-use super::{Result, err, formal_evidence, sidecar};
+use super::{Result, defense_audit, err, formal_evidence, sidecar};
 use crate::{AitiaSession, MAX_REQUEST_BYTES};
 use serde_json::{Value, json};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -241,6 +241,16 @@ fn dispatch_rpc(
                 None => serde_json::to_string(&req)?,
             };
             Ok(session.sidecar_audit_assess(req_json)?)
+        })(),
+        "AuditDiffDefense" => (|| {
+            let repo_dir = req["repoDir"]
+                .as_str()
+                .ok_or_else(|| err("Missing repoDir"))?;
+            let base_ref = req["baseRef"].as_str().unwrap_or("HEAD");
+            let staged_only = req["stagedOnly"].as_bool().unwrap_or(false);
+            let report =
+                defense_audit::audit_git_repo_defense(Path::new(repo_dir), base_ref, staged_only)?;
+            Ok(serde_json::to_string(&report)?)
         })(),
         "VerifyFormalEvidence" => (|| {
             let fe = req["formalEvidenceJson"]
