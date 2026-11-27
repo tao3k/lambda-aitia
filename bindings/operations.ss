@@ -40,6 +40,7 @@
         aitia-commit-review-payload
         aitia-nasa-draft-payload
         aitia-sidecar-audit-assess-payload
+        aitia-diff-defense-audit-payload
         aitia-commit-journal-payload
         aitia-workflow-reconcile-payload
         aitia-workflow-protocol-step-payload)

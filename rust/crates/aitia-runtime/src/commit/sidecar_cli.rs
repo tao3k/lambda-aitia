@@ -15,7 +15,7 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-const SIDECAR_USAGE: &str = "usage: aitia sidecar capture --repo <dir> [--base <ref>] --profile <file> [--checks <file>]\n       aitia sidecar audit-diff --repo <dir> [--staged] [--base <ref>] [--format json|agent-feedback|sarif]\n       aitia sidecar assess < assessment-request.json\n       aitia sidecar verify-formal --context-digest <sha256:...> < formal-evidence.json\n       aitia sidecar receipt [--repo <dir>] [--vault-dir <dir>] < receipt-spec.json\n       aitia sidecar commit --repo <dir> --vault-dir <dir> < receipt-spec.json";
+const SIDECAR_USAGE: &str = "usage: aitia sidecar capture --repo <dir> [--base <ref>] [--profile <file>] [--checks <file>]\n       aitia sidecar audit-diff --repo <dir> [--staged] [--base <ref>] [--rule-pack <file>]... [--funflow-receipts <file>] [--format json|agent-feedback|sarif]\n       aitia sidecar assess < assessment-request.json\n       aitia sidecar verify-formal --context-digest <sha256:...> < formal-evidence.json\n       aitia sidecar receipt [--repo <dir>] [--vault-dir <dir>] < receipt-spec.json\n       aitia sidecar commit --repo <dir> --vault-dir <dir> < receipt-spec.json";
 
 fn read_bounded_stdin() -> Result<String> {
     let mut text = String::new();
@@ -146,8 +146,10 @@ fn run_capture(args: &[String]) -> Result<String> {
         i += 1;
     }
     let repo = repo_dir.ok_or_else(|| err("sidecar capture requires --repo <dir>"))?;
-    let prof_file = profile_path.ok_or_else(|| err("sidecar capture requires --profile <file>"))?;
-    let profile_json = fs::read_to_string(&prof_file)?;
+    let profile_json = match profile_path {
+        Some(path) => fs::read_to_string(&path)?,
+        None => defense_audit::default_sidecar_profile_json(Path::new(&repo)),
+    };
     let checks_json = match checks_path {
         Some(path) => fs::read_to_string(&path)?,
         None => "[]".to_owned(),
@@ -165,6 +167,8 @@ fn run_audit_diff(args: &[String]) -> Result<(String, bool)> {
     let mut base_ref = "HEAD".to_owned();
     let mut staged_only = false;
     let mut format = "json".to_owned();
+    let mut rule_pack_paths: Vec<String> = Vec::new();
+    let mut funflow_receipts_path: Option<String> = None;
     let mut i = 0usize;
     while i < args.len() {
         match args[i].as_str() {
@@ -177,6 +181,15 @@ fn run_audit_diff(args: &[String]) -> Result<(String, bool)> {
                 base_ref = args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned();
             }
             "--staged" => staged_only = true,
+            "--rule-pack" => {
+                i += 1;
+                rule_pack_paths.push(args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned());
+            }
+            "--funflow-receipts" => {
+                i += 1;
+                funflow_receipts_path =
+                    Some(args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned());
+            }
             "--format" => {
                 i += 1;
                 format = args.get(i).ok_or_else(|| err(SIDECAR_USAGE))?.to_owned();
@@ -186,7 +199,33 @@ fn run_audit_diff(args: &[String]) -> Result<(String, bool)> {
         i += 1;
     }
     let repo = repo_dir.ok_or_else(|| err("sidecar audit-diff requires --repo <dir>"))?;
-    let report = defense_audit::audit_git_repo_defense(Path::new(&repo), &base_ref, staged_only)?;
+    let mut rule_packs = Vec::new();
+    for path in &rule_pack_paths {
+        let val: Value = serde_json::from_str(&fs::read_to_string(path)?)?;
+        if let Some(arr) = val.as_array() {
+            rule_packs.extend(arr.iter().cloned());
+        } else {
+            rule_packs.push(val);
+        }
+    }
+    let funflow_receipts: Vec<Value> = match funflow_receipts_path {
+        Some(path) => {
+            let val: Value = serde_json::from_str(&fs::read_to_string(&path)?)?;
+            match val {
+                Value::Array(arr) => arr,
+                other => vec![other],
+            }
+        }
+        None => Vec::new(),
+    };
+    let report = defense_audit::audit_git_repo_defense_with_packs(
+        Path::new(&repo),
+        &base_ref,
+        staged_only,
+        &rule_packs,
+        &funflow_receipts,
+        None,
+    )?;
     let passed = report["passed"].as_bool().unwrap_or(false);
     let rendered = match format.as_str() {
         "json" => serde_json::to_string(&report)?,

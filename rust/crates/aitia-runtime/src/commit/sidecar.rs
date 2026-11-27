@@ -85,7 +85,9 @@ struct ParsedSidecarProfile {
 
 fn parse_profile(profile: &Value) -> Result<ParsedSidecarProfile> {
     if profile["schema"].as_str() != Some(SIDECAR_PROFILE_SCHEMA) {
-        return Err(err("Unsupported sidecar profile schema"));
+        return Err(err(format!(
+            "Unsupported sidecar profile schema (expected `{SIDECAR_PROFILE_SCHEMA}`)"
+        )));
     }
     let target_repo = profile["targetRepo"]
         .as_str()
@@ -158,7 +160,12 @@ pub fn capture_detached_audit_context_json(
     profile_json: &str,
     deterministic_checks_json: &str,
 ) -> Result<String> {
-    let profile_val: Value = serde_json::from_str(profile_json)?;
+    let effective_profile = if profile_json.trim().is_empty() {
+        super::defense_audit::default_sidecar_profile_json(repo_dir)
+    } else {
+        profile_json.to_owned()
+    };
+    let profile_val: Value = serde_json::from_str(&effective_profile)?;
     let profile = parse_profile(&profile_val)?;
     let checks: Vec<Value> = serde_json::from_str(deterministic_checks_json)?;
     for check in &checks {
@@ -176,9 +183,9 @@ pub fn capture_detached_audit_context_json(
         }
     }
 
-    let base_commit = run_git(repo_dir, &["rev-parse", base_ref])?
-        .trim()
-        .to_owned();
+    let vcs_obs = aitia_jj::observe_vcs_sidecar_state(repo_dir, base_ref)
+        .map_err(|e| err(format!("gix/jj-lib repository observation failed: {e}")))?;
+    let base_commit = vcs_obs.base_commit.clone();
     let status_out = run_git(repo_dir, &["status", "--porcelain=v1", "-uall"])?;
     let mut changed_files: BTreeSet<String> = BTreeSet::new();
     for line in status_out.lines() {
@@ -309,12 +316,21 @@ pub fn capture_detached_audit_context_json(
     let funflow_observability = json!({
         "schema": "lambda-aitia.funflow-observability-packet.v1",
         "stage": "detached-sidecar-capture",
+        "engineOwner": defense_audit["engineOwner"],
+        "vcsBackend": vcs_obs.vcs_backend,
+        "hasJjWorkspace": vcs_obs.has_jj_workspace,
+        "isLinkedWorktree": vcs_obs.is_linked_worktree,
         "contextDigest": context_digest,
         "diffDigest": diff_digest,
         "defenseAuditDigest": defense_audit["reportDigest"],
         "defenseAuditPassed": defense_passed,
         "stagedFindingsCount": defense_audit["stagedFindingsCount"],
         "unstagedFindingsCount": defense_audit["unstagedFindingsCount"],
+        "baseRefFindingsCount": defense_audit["baseRefFindingsCount"],
+        "rulePacksApplied": defense_audit["rulePacksApplied"],
+        "coreFloorPreserved": defense_audit["coreFloorPreserved"],
+        "causalTrajectory": defense_audit["causalTrajectory"],
+        "temporalCausality": defense_audit["temporalCausality"],
         "nextFrontier": if defense_passed {
             "assess-ascent-and-dispatch-ai-lenses"
         } else {
@@ -957,7 +973,9 @@ pub fn build_nasa_sidecar_receipt_json(spec_json: &str) -> Result<String> {
 /// # Errors
 /// Fails closed if the linked Scheme program rejects the input or returns a runtime error.
 pub fn assess_sidecar_audit_ascent_json(request_json: &str) -> Result<String> {
-    Ok(crate::with_linked_program(|program| {
-        program.sidecar_audit_assess(request_json)
-    })?)
+    let session = crate::AitiaSession::start()
+        .map_err(|e| err(format!("Failed to attach to AITIA Scheme session: {e}")))?;
+    session
+        .sidecar_audit_assess(request_json.to_owned())
+        .map_err(|e| err(format!("Scheme sidecar audit assess failed: {e}")))
 }

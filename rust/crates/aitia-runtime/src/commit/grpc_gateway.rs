@@ -224,9 +224,7 @@ fn dispatch_rpc(
                 .as_str()
                 .ok_or_else(|| err("Missing repoDir"))?;
             let base_ref = req["baseRef"].as_str().unwrap_or("HEAD");
-            let profile_json = req["profileJson"]
-                .as_str()
-                .ok_or_else(|| err("Missing profileJson"))?;
+            let profile_json = req["profileJson"].as_str().unwrap_or("");
             let checks_json = req["deterministicChecksJson"].as_str().unwrap_or("[]");
             sidecar::capture_detached_audit_context_json(
                 Path::new(repo_dir),
@@ -248,8 +246,31 @@ fn dispatch_rpc(
                 .ok_or_else(|| err("Missing repoDir"))?;
             let base_ref = req["baseRef"].as_str().unwrap_or("HEAD");
             let staged_only = req["stagedOnly"].as_bool().unwrap_or(false);
-            let report =
-                defense_audit::audit_git_repo_defense(Path::new(repo_dir), base_ref, staged_only)?;
+            let rule_packs: Vec<Value> = match req.get("rulePacksJson").and_then(Value::as_str) {
+                Some(s) if !s.trim().is_empty() => serde_json::from_str(s)?,
+                _ => req
+                    .get("rulePacks")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default(),
+            };
+            let funflow_receipts: Vec<Value> =
+                match req.get("funflowReceiptsJson").and_then(Value::as_str) {
+                    Some(s) if !s.trim().is_empty() => serde_json::from_str(s)?,
+                    _ => req
+                        .get("funflowReceipts")
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default(),
+                };
+            let report = defense_audit::audit_git_repo_defense_with_packs(
+                Path::new(repo_dir),
+                base_ref,
+                staged_only,
+                &rule_packs,
+                &funflow_receipts,
+                Some(session),
+            )?;
             Ok(serde_json::to_string(&report)?)
         })(),
         "VerifyFormalEvidence" => (|| {

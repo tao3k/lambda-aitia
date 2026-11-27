@@ -108,3 +108,6 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.diffDeletedAssertionBlocksCommit
 #print axioms GitOps.unstagedG2DefectReopensFunFlowFrontier
 #print axioms GitOps.diffDefenseAuditPreservesZeroAuthority
+#print axioms GitOps.subdomainRulePackNeverWeakensCoreFloor
+#print axioms GitOps.subdomainAuditRequiresAcyclicCausality
+#print axioms GitOps.subdomainRulePackPreservesZeroAuthority

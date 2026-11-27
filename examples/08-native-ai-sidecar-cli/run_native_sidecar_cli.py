@@ -116,12 +116,71 @@ def main() -> None:
         assert rc_diff_bad != 0
         diff_report = json.loads(out_diff_bad)
         assert diff_report["passed"] is False
+        assert diff_report["engineOwner"] == "scheme-poo-ascent-framework"
+        assert diff_report["coreFloorPreserved"] is True
+        assert diff_report["vcsObservation"]["vcsBackend"] == "gix"
+        assert diff_report["vcsObservation"]["isLinkedWorktree"] is True
+        assert diff_report["temporalCausality"]["acyclic"] is True
+        assert len(diff_report["causalTrajectory"]) == 4
         assert diff_report["unstagedFindingsCount"] >= 3
         assert diff_report["countsByClass"]["silent-fallback"] >= 1
         assert diff_report["countsByClass"]["floor-weakening"] >= 1
         assert diff_report["countsByClass"]["fabricated-evidence"] >= 1
         assert diff_report["diffDeletedAssertionsCount"] >= 1
         assert diff_report["repairPacket"]["decision"] == "REFUSE"
+
+        # 0b. Verify composable Scheme POO Subdomain Rule-Pack (`--rule-pack`) adds domain-specific
+        #     checks with ZERO Rust edits while strictly preserving the DE G2 core floor!
+        custom_pack_path = root / "subdomain-pack.json"
+        custom_pack_path.write_text(
+            json.dumps(
+                {
+                    "packId": "marlin-custom-subdomain",
+                    "subdomain": "marlin-kernel",
+                    "sourceMode": "ephemeral-ai-proposed",
+                    "rules": [
+                        {
+                            "ruleId": "forbid-verify-ok-stub",
+                            "hallucinationClass": "subdomain-invariant-violation",
+                            "languages": ["python"],
+                            "tokensAll": ["def verify_ok"],
+                            "detail": "Subdomain pack forbids unverified stub helper `verify_ok`",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        rc_pack, out_pack, _ = run_cli(
+            cli,
+            [
+                "sidecar",
+                "audit-diff",
+                "--repo",
+                str(upstream_repo),
+                "--rule-pack",
+                str(custom_pack_path),
+                "--format",
+                "json",
+            ],
+            expect_ok=False,
+        )
+        assert rc_pack != 0
+        pack_report = json.loads(out_pack)
+        assert pack_report["rulePacksApplied"] == ["de-g2-core", "marlin-custom-subdomain"]
+        assert pack_report["coreFloorPreserved"] is True
+        assert pack_report["countsByClass"]["subdomain-invariant-violation"] >= 1
+        assert pack_report["countsByClass"]["silent-fallback"] >= 1
+
+        # 0c. Verify zero-config `aitia sidecar capture` works without `--profile`!
+        _, zero_cfg_cap_out, _ = run_cli(
+            cli,
+            ["sidecar", "capture", "--repo", str(upstream_repo)],
+        )
+        zero_cfg_cap = json.loads(zero_cfg_cap_out)
+        assert zero_cfg_cap["funflowObservability"]["vcsBackend"] == "gix"
+        assert zero_cfg_cap["funflowObservability"]["engineOwner"] == "scheme-poo-ascent-framework"
+        assert zero_cfg_cap["actionAuthorized"] is False
 
         # Stage the defective file and verify `--staged` + `--format agent-feedback` + `--format sarif`
         run_git(upstream_repo, "add", "parser.py")

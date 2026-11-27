@@ -3,7 +3,8 @@
 
 (import :std/test
         (only-in :clan/poo/object .o .cc .get)
-        (only-in "../sidecar-audit.ss" gitops-sidecar-audit-assess))
+        (only-in "../sidecar-audit.ss" gitops-sidecar-audit-assess)
+        (only-in "../diff-governance.ss" gitops-diff-defense-audit rule-pack-from-descriptor))
 (export sidecar-audit-test)
 
 (def +ctx-digest+ "sha256:1111111111111111111111111111111111111111111111111111111111111111")
@@ -227,4 +228,62 @@
         (check-equal? (.get res oracle-disagreement?) #t)
         (check-equal? (and (member "oracle-disagreement-fail-closed" (.get res blockers)) #t) #t)
         (check-equal? (.get res next-handoff-mode) "resolve-n-version-oracle-disagreement")
-        (check-equal? (.get res action-authorized?) #f)))))
+        (check-equal? (.get res action-authorized?) #f)))
+
+    (test-case "Scheme POO diff-governance strips strings/comments, catches multi-line Scheme with-catch, and enforces monotone subdomain rule packs"
+      (let* ((string-only-diff
+              (string-append
+               "+++ b/src/linter.rs\n"
+               "@@ -1,2 +1,4 @@\n"
+               "+let msg = \"Do NOT use .unwrap_or_default() or @ts-ignore or catch-and-rethrow\";\n"
+               "+// Err(_) => Ok(()) inside comment must not trigger false positive\n"))
+             (clean-res
+              (gitops-diff-defense-audit
+               (.o base-ref: "HEAD~1"
+                   staged-only?: #f
+                   staged-diff: ""
+                   unstaged-diff: ""
+                   base-ref-diff: string-only-diff
+                   rule-packs: '()
+                   funflow-receipts: '())))
+             (multiline-scheme-and-subdomain-diff
+              (string-append
+               "+++ b/scheme/kernel/bridge.ss\n"
+               "@@ -10,2 +10,6 @@\n"
+               "-(check-equal? (verify-cap tok) #t)\n"
+               "+(with-catch\n"
+               "+  (lambda (_) #f)\n"
+               "+  (lambda () (raw-shell-bypass cmd)))\n"))
+             (marlin-pack
+              (rule-pack-from-descriptor
+               (.o pack-id: "marlin-kernel-confinement"
+                   subdomain: "marlin-kernel"
+                   source-mode: "subdomain-library"
+                   rules: (list (.o rule-id: "no-raw-shell-bypass"
+                                    hallucination-class: "subdomain-invariant-violation"
+                                    languages: '("scheme")
+                                    tokens-all: '("raw-shell-bypass")
+                                    detail: "Marlin kernel forbids raw-shell-bypass outside fenced capability")))))
+             (defective-res
+              (gitops-diff-defense-audit
+               (.o base-ref: "HEAD~1"
+                   staged-only?: #f
+                   staged-diff: multiline-scheme-and-subdomain-diff
+                   unstaged-diff: ""
+                   base-ref-diff: ""
+                   rule-packs: (list marlin-pack)
+                   funflow-receipts: (list (.o flow: "choice-flow" world-count: 1))))))
+        (check-equal? (.get clean-res passed?) #t)
+        (check-equal? (.get clean-res total-findings) 0)
+        (check-equal? (.get clean-res engine-owner) "scheme-poo-ascent-framework")
+        (check-equal? (.get clean-res action-authorized?) #f)
+        (check-equal? (.get defective-res passed?) #f)
+        (check-equal? (.get defective-res core-floor-preserved?) #t)
+        (check-equal? (.get defective-res rule-packs-applied) '("de-g2-core" "marlin-kernel-confinement"))
+        (check-equal? (.get defective-res diff-deleted-assertions-count) 1)
+        (check-equal? (.get (.get defective-res counts-by-class) silent-fallback) 1)
+        (check-equal? (.get (.get defective-res counts-by-class) floor-weakening) 1)
+        (check-equal? (.get (.get defective-res counts-by-class) subdomain-invariant-violation) 1)
+        (check-equal? (.get (.get defective-res temporal-causality) acyclic?) #t)
+        (check-equal? (.get defective-res funflow-receipts-count) 1)
+        (check-equal? (.get defective-res action-authorized?) #f)))))

@@ -10,6 +10,9 @@ module DiffDefenseFunFlowObservability {
   var stagedFloorWeakenings: int
   var stagedFabricatedEvidence: int
   var unstagedG2Defects: int
+  var subdomainDefects: int
+  var coreFloorPreserved: bool
+  var causalAcyclic: bool
   var funflowTraceEmitted: bool
   var repairPacketEmitted: bool
   var stagedCommitAdmitted: bool
@@ -19,13 +22,19 @@ module DiffDefenseFunFlowObservability {
     silent: int,
     deleted: int,
     weakened: int,
-    fabricated: int
+    fabricated: int,
+    subdomain: int,
+    coreFloor: bool,
+    acyclic: bool
   ): bool =
     and {
+      coreFloor,
+      acyclic,
       silent == 0,
       deleted == 0,
       weakened == 0,
       fabricated == 0,
+      subdomain == 0,
     }
 
   action init = all {
@@ -34,6 +43,9 @@ module DiffDefenseFunFlowObservability {
     stagedFloorWeakenings' = 0,
     stagedFabricatedEvidence' = 0,
     unstagedG2Defects' = 1,
+    subdomainDefects' = 0,
+    coreFloorPreserved' = true,
+    causalAcyclic' = true,
     funflowTraceEmitted' = true,
     repairPacketEmitted' = true,
     stagedCommitAdmitted' = false,
@@ -47,15 +59,40 @@ module DiffDefenseFunFlowObservability {
     fabricated: int,
     unstaged: int
   ): bool = {
-    val clean = stagedClean(silent, deleted, weakened, fabricated)
+    val clean = stagedClean(silent, deleted, weakened, fabricated, 0, true, true)
     all {
       stagedSilentFallbacks' = silent,
       stagedDeletedAssertions' = deleted,
       stagedFloorWeakenings' = weakened,
       stagedFabricatedEvidence' = fabricated,
       unstagedG2Defects' = unstaged,
+      subdomainDefects' = 0,
+      coreFloorPreserved' = true,
+      causalAcyclic' = true,
       funflowTraceEmitted' = true,
       repairPacketEmitted' = (not(clean) or unstaged > 0),
+      stagedCommitAdmitted' = clean,
+      actionAuthorized' = false,
+    }
+  }
+
+  action auditWithSubdomainPack(
+    coreSilent: int,
+    subdomain: int,
+    acyclic: bool
+  ): bool = {
+    val clean = stagedClean(coreSilent, 0, 0, 0, subdomain, true, acyclic)
+    all {
+      stagedSilentFallbacks' = coreSilent,
+      stagedDeletedAssertions' = 0,
+      stagedFloorWeakenings' = 0,
+      stagedFabricatedEvidence' = 0,
+      unstagedG2Defects' = 0,
+      subdomainDefects' = subdomain,
+      coreFloorPreserved' = true,
+      causalAcyclic' = acyclic,
+      funflowTraceEmitted' = true,
+      repairPacketEmitted' = not(clean),
       stagedCommitAdmitted' = clean,
       actionAuthorized' = false,
     }
@@ -68,6 +105,25 @@ module DiffDefenseFunFlowObservability {
     stagedFloorWeakenings' = 0,
     stagedFabricatedEvidence' = 0,
     unstagedG2Defects' = 0,
+    subdomainDefects' = 0,
+    coreFloorPreserved' = true,
+    causalAcyclic' = true,
+    funflowTraceEmitted' = true,
+    repairPacketEmitted' = false,
+    stagedCommitAdmitted' = true,
+    actionAuthorized' = false,
+  }
+
+  /// Negative control: subdomain pack weakens core floor while claiming ADMIT.
+  action unsafeSubdomainWeakensCoreFloor: bool = all {
+    stagedSilentFallbacks' = 0,
+    stagedDeletedAssertions' = 0,
+    stagedFloorWeakenings' = 0,
+    stagedFabricatedEvidence' = 0,
+    unstagedG2Defects' = 0,
+    subdomainDefects' = 0,
+    coreFloorPreserved' = false,
+    causalAcyclic' = true,
     funflowTraceEmitted' = true,
     repairPacketEmitted' = false,
     stagedCommitAdmitted' = true,
@@ -81,7 +137,10 @@ module DiffDefenseFunFlowObservability {
       stagedSilentFallbacks,
       stagedDeletedAssertions,
       stagedFloorWeakenings,
-      stagedFabricatedEvidence
+      stagedFabricatedEvidence,
+      subdomainDefects,
+      coreFloorPreserved,
+      causalAcyclic
     ),
     (unstagedG2Defects > 0) implies repairPacketEmitted,
   }
@@ -111,8 +170,18 @@ module DiffDefenseFunFlowObservability {
       .then(auditDiffAndStaged(0, 0, 0, 0, 2))
       .expect(repairPacketEmitted and funflowTraceEmitted and invDiffDefenseSafe)
 
+  run subdomainPackMonotoneTighteningRefusesTest =
+    init
+      .then(auditWithSubdomainPack(0, 1, true))
+      .expect(not(stagedCommitAdmitted) and repairPacketEmitted and coreFloorPreserved and invDiffDefenseSafe)
+
   run unsafeStagedDefectViolatesInvariantTest =
     init
       .then(unsafeAdmitStagedG2Defect)
+      .expect(not(invDiffDefenseSafe))
+
+  run unsafeSubdomainWeakeningViolatesInvariantTest =
+    init
+      .then(unsafeSubdomainWeakensCoreFloor)
       .expect(not(invDiffDefenseSafe))
 }

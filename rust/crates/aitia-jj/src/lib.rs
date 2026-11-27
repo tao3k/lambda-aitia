@@ -23,3 +23,6 @@ pub use observation::PushRemote;
 
 mod push;
 pub use push::{PushReceipt, push_reviewed_description, recover_reviewed_push};
+
+mod git_sidecar;
+pub use git_sidecar::{VcsSidecarObservation, observe_vcs_sidecar_state, read_sanitized_git_diff};

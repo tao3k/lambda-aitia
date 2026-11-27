@@ -1,14 +1,46 @@
 // SPDX-FileCopyrightText: 2026 tao3k team and Contributors
 // SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-//! Own the linked Scheme runtime and route calls through its owner thread.
+//! Own the linked Scheme runtime and route calls through its single process-global owner thread.
 
 use crate::AitiaProgram;
 use gerbil_scheme::NativeError;
 use std::sync::mpsc::{self, SyncSender};
-use std::thread::{self, JoinHandle};
+use std::sync::{Arc, OnceLock};
+use std::thread;
 
 type Task = Box<dyn FnOnce(&AitiaProgram<'_>) + Send + 'static>;
+
+static SHARED_OWNER: OnceLock<Result<Arc<SyncSender<Task>>, String>> = OnceLock::new();
+
+fn shared_sender() -> Result<Arc<SyncSender<Task>>, SessionError> {
+    let init = SHARED_OWNER.get_or_init(|| {
+        let (sender, requests) = mpsc::sync_channel::<Task>(0);
+        let (ready, initialized) = mpsc::sync_channel(0);
+        thread::Builder::new()
+            .name("aitia-scheme-owner".into())
+            .spawn(move || {
+                let _ = crate::with_linked_program(|program| {
+                    if ready.send(()).is_err() {
+                        return Ok(());
+                    }
+                    for task in requests {
+                        task(&program);
+                    }
+                    Ok(())
+                });
+            })
+            .map_err(|e| format!("could not start AITIA owner: {e}"))?;
+        if initialized.recv().is_err() {
+            return Err("AITIA owner stopped during initialization".to_owned());
+        }
+        Ok(Arc::new(sender))
+    });
+    match init {
+        Ok(sender) => Ok(Arc::clone(sender)),
+        Err(msg) => Err(SessionError::Spawn(std::io::Error::other(msg.clone()))),
+    }
+}
 
 /// Errors at the Rust session boundary.
 #[derive(Debug)]
@@ -32,45 +64,23 @@ impl std::fmt::Display for SessionError {
 
 impl std::error::Error for SessionError {}
 
-/// Reuses one bridge-owned runtime on its own thread. Requests rendezvous with
-/// the owner, and only Rust-owned values cross threads.
+/// Reuses the process's single Gambit runtime on its dedicated owner thread.
+/// Multiple sessions and free functions share the live owner safely without
+/// ever attempting a second Gambit initialization.
 pub struct AitiaSession {
-    sender: Option<SyncSender<Task>>,
-    owner: Option<JoinHandle<Result<(), NativeError>>>,
+    sender: Option<Arc<SyncSender<Task>>>,
 }
 
 impl AitiaSession {
-    /// Start the process's one-shot linked program and wait for initialization.
+    /// Obtain a handle bound to the process's single live linked Scheme owner.
     ///
     /// # Errors
     ///
-    /// Returns an error if the thread or Scheme runtime could not start.
+    /// Returns an error if the owner thread or Scheme runtime could not start.
     pub fn start() -> Result<Self, SessionError> {
-        let (sender, requests) = mpsc::sync_channel::<Task>(0);
-        let (ready, initialized) = mpsc::sync_channel(0);
-        let owner = thread::Builder::new()
-            .name("aitia-scheme-owner".into())
-            .spawn(move || {
-                crate::with_linked_program(|program| {
-                    if ready.send(()).is_err() {
-                        return Ok(());
-                    }
-                    for task in requests {
-                        task(&program);
-                    }
-                    Ok(())
-                })
-            })
-            .map_err(SessionError::Spawn)?;
-        let mut session = Self {
-            sender: Some(sender),
-            owner: Some(owner),
-        };
-        if initialized.recv().is_err() {
-            session.join()?;
-            return Err(SessionError::OwnerStopped);
-        }
-        Ok(session)
+        Ok(Self {
+            sender: Some(shared_sender()?),
+        })
     }
 
     /// Execute an operation against the live linked Scheme program on its owner
@@ -168,6 +178,15 @@ impl AitiaSession {
         self.call_string(move |program| program.sidecar_audit_assess(&payload))
     }
 
+    /// Evaluate unified Git diffs with composable POO subdomain rule packs and temporal causality via Scheme.
+    ///
+    /// # Errors
+    ///
+    /// Returns an operation or owner failure.
+    pub fn diff_defense_audit(&self, payload: String) -> Result<String, SessionError> {
+        self.call_string(move |program| program.diff_defense_audit(&payload))
+    }
+
     /// Drive the Scheme-owned single-repository 5-state IoC protocol against `directory` inside
     /// this live session without re-initializing the Gambit runtime.
     ///
@@ -225,13 +244,14 @@ impl AitiaSession {
         serde_json::to_string(&step).map_err(|error| error.to_string())
     }
 
-    /// End the session and wait for Scheme cleanup.
+    /// Release this handle; subsequent calls on this handle fail with `OwnerStopped`.
     ///
     /// # Errors
     ///
-    /// Returns an error if the owner failed.
+    /// Returns `Ok(())` after releasing the handle.
     pub fn close(mut self) -> Result<(), SessionError> {
-        self.join()
+        drop(self.sender.take());
+        Ok(())
     }
 
     fn call_string<F>(&self, operation: F) -> Result<String, SessionError>
@@ -240,21 +260,10 @@ impl AitiaSession {
     {
         self.execute(operation)?.map_err(SessionError::Scheme)
     }
-
-    fn join(&mut self) -> Result<(), SessionError> {
-        drop(self.sender.take());
-        if let Some(owner) = self.owner.take() {
-            owner
-                .join()
-                .map_err(|_| SessionError::OwnerPanicked)?
-                .map_err(SessionError::Scheme)?;
-        }
-        Ok(())
-    }
 }
 
 impl Drop for AitiaSession {
     fn drop(&mut self) {
-        let _ = self.join();
+        drop(self.sender.take());
     }
 }

@@ -45,6 +45,8 @@ message AuditDiffDefenseRequest {
   string repo_dir = 1;
   string base_ref = 2;
   bool staged_only = 3;
+  string rule_packs_json = 4;
+  string funflow_receipts_json = 5;
 }
 
 message AssessSidecarAuditRequest {

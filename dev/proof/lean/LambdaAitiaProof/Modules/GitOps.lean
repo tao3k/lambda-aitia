@@ -811,4 +811,39 @@ theorem diffDefenseAuditPreservesZeroAuthority
     auth = false :=
   hValid.2.2.2.2.2.2
 
+/-- Scheme POO Subdomain Rule-Pack Monotonicity & Temporal Causality Admissibility:
+    arbitrary subdomain or LLM-proposed rule packs may strictly tighten checks (`subdomainDefects`),
+    must preserve `coreFloorPreserved = true` (cannot drop DE G2 core findings `coreDefects`),
+    must maintain an acyclic temporal causality DAG (`causalAcyclic = true`), and must preserve
+    `actionAuthorized = false`. -/
+def SubdomainRulePackAuditAdmissible
+    (coreDefects subdomainDefects : Nat)
+    (coreFloorPreserved causalAcyclic actionAuthorized : Bool) : Prop :=
+  coreFloorPreserved = true ∧
+  coreDefects = 0 ∧
+  subdomainDefects = 0 ∧
+  causalAcyclic = true ∧
+  actionAuthorized = false
+
+theorem subdomainRulePackNeverWeakensCoreFloor
+    {coreDefects subdomainDefects : Nat} {causalAcyclic auth : Bool}
+    (hCore : coreDefects > 0) :
+    ¬ SubdomainRulePackAuditAdmissible coreDefects subdomainDefects true causalAcyclic auth := by
+  intro hValid
+  have hZero : coreDefects = 0 := hValid.2.1
+  rw [hZero] at hCore
+  exact Nat.not_lt_zero 0 hCore
+
+theorem subdomainAuditRequiresAcyclicCausality
+    {coreDefects subdomainDefects : Nat} {coreFloor auth : Bool} :
+    ¬ SubdomainRulePackAuditAdmissible coreDefects subdomainDefects coreFloor false auth := by
+  intro hValid
+  exact Bool.false_ne_true hValid.2.2.2.1
+
+theorem subdomainRulePackPreservesZeroAuthority
+    {coreDefects subdomainDefects : Nat} {coreFloor causalAcyclic auth : Bool}
+    (hValid : SubdomainRulePackAuditAdmissible coreDefects subdomainDefects coreFloor causalAcyclic auth) :
+    auth = false :=
+  hValid.2.2.2.2
+
 end LambdaAitiaProof.Modules.GitOps
