@@ -255,3 +255,27 @@ pub(crate) fn run_review_flow_step_json(
     }
     Ok(out)
 }
+
+/// Single-source-of-truth `ModelToolDefinition` JSON Schema projected directly from Scheme
+/// (`gitops-review-tool-schema`), used by both `aitia review --tool-schema` and gRPC
+/// `GetToolSchema` for Marlin Agent Core LLM tool registration.
+pub(crate) fn get_review_tool_schema_json(session_opt: Option<&AitiaSession>) -> Result<Value> {
+    let req_str = r#"{"toolSchemaOnly":true}"#.to_owned();
+    let raw_response = match session_opt {
+        Some(session) => session
+            .review_flow_step(req_str)
+            .map_err(|e| err(format!("Scheme review-tool-schema failed: {e}")))?,
+        None => {
+            let session = AitiaSession::start()
+                .map_err(|e| err(format!("Failed to attach to AITIA Scheme session: {e}")))?;
+            session
+                .review_flow_step(req_str)
+                .map_err(|e| err(format!("Scheme review-tool-schema failed: {e}")))?
+        }
+    };
+    let mut out: Value = serde_json::from_str(&raw_response)?;
+    if let Some(obj) = out.as_object_mut() {
+        obj.insert("actionAuthorized".to_owned(), json!(false));
+    }
+    Ok(out)
+}

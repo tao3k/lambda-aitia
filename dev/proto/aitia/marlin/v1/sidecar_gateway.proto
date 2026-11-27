@@ -15,6 +15,7 @@ package aitia.marlin.v1;
 // - Every RPC response preserves `action_authorized = false`.
 service AitiaSidecarGateway {
   rpc Health(HealthRequest) returns (HealthResponse);
+  rpc GetToolSchema(GetToolSchemaRequest) returns (JsonEnvelopeResponse);
   rpc StepReview(StepReviewRequest) returns (JsonEnvelopeResponse);
   rpc CaptureDetachedContext(CaptureDetachedContextRequest) returns (JsonEnvelopeResponse);
   rpc AuditDiffDefense(AuditDiffDefenseRequest) returns (JsonEnvelopeResponse);
@@ -26,6 +27,8 @@ service AitiaSidecarGateway {
 }
 
 message HealthRequest {}
+
+message GetToolSchemaRequest {}
 
 message StepReviewRequest {
   string repo = 1;

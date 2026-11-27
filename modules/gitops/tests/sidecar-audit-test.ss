@@ -5,7 +5,7 @@
         (only-in :clan/poo/object .o .cc .get)
         (only-in "../sidecar-audit.ss" gitops-sidecar-audit-assess)
         (only-in "../diff-governance.ss" gitops-diff-defense-audit rule-pack-from-descriptor)
-        (only-in "../review-flow.ss" gitops-review-flow-step))
+        (only-in "../review-flow.ss" gitops-review-flow-step gitops-review-tool-schema))
 (export sidecar-audit-test)
 
 (def +ctx-digest+ "sha256:1111111111111111111111111111111111111111111111111111111111111111")
@@ -368,4 +368,64 @@
         (check-equal? (.get (.get r-forb plan-validation) core-floor-intact?) #f)
         (check-equal? (.get (.get r-forb ascent-choice-solution) choice-status) "unsatisfiable")
         (check-equal? (.get (.get r-forb ascent-choice-solution) world-count) 0)
-        (check-equal? (.get r-forb action-authorized?) #f)))))
+        (check-equal? (.get r-forb action-authorized?) #f)))
+
+    (test-case "Phase 1 FunFlow CAS hit, cyclic depends-on fail-closed, DE formal recommender, token-budgeted disclosure, and tool schema"
+      (let* ((ctx-cas "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+             (r-turn1
+              (gitops-review-flow-step
+               (.o target-repo: "marlin-agent-core"
+                   context-digest: ctx-cas
+                   changed-paths: '("crates/marlin-agent-harness/src/live_weaver/governance.rs"))))
+             (sexp-turn2
+              "(aitia-review-plan
+                 (scenario \"marlin-governance-cas\")
+                 (open-branches \"hyp-cedar-sound\" \"hyp-bypass\")
+                 (depends-on \"audit-diff\" \"verify-formal\")
+                 (probes
+                   (probe \"hyp-cedar-sound\" supports \"Cedar read-only gate verified\")
+                   (probe \"hyp-bypass\" refutes \"static check disproved bypass\"))
+                 (formal-model \"capability-governance-gate\"
+                   (mode \"upstream-library-reuse\")
+                   (library \"@deterministic-engineering/quint-models\")
+                   (resolver-digest \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\")
+                   (countermodel-verified #t) (proof-clean #t) (passed #t)))")
+             (r-turn2
+              (gitops-review-flow-step
+               (.o target-repo: "marlin-agent-core"
+                   context-digest: ctx-cas
+                   changed-paths: '("crates/marlin-agent-harness/src/live_weaver/governance.rs")
+                   plan-sexp: sexp-turn2)))
+             (sexp-cycle
+              "(aitia-review-plan
+                 (scenario \"cyclic-dag\")
+                 (depends-on \"step-a\" \"step-b\")
+                 (depends-on \"step-b\" \"step-a\"))")
+             (r-cycle
+              (gitops-review-flow-step
+               (.o target-repo: "marlin-agent-core"
+                   context-digest: ctx-cas
+                   changed-paths: '("crates/marlin-agent-harness/src/live_weaver/governance.rs")
+                   plan-sexp: sexp-cycle)))
+             (tool-schema (gitops-review-tool-schema)))
+        ;; Turn 1 emits teaching kit + DE formal model recommendations
+        (check-equal? (and (.get r-turn1 dsl-grammar) #t) #t)
+        (check-equal? (and (.get r-turn1 sexp-plan-template) #t) #t)
+        (check-equal? (> (length (.get r-turn1 recommended-formal-models)) 0) #t)
+        ;; Turn 2 hits cross-round FunFlow CAS and omits bulky grammar/template
+        (check-equal? (.get (.get r-turn2 shared-prefix) shared-prefix-cas-hit?) #t)
+        (check-equal? (.get r-turn2 dsl-grammar) #f)
+        (check-equal? (.get r-turn2 sexp-plan-template) #f)
+        (check-equal? (.get (.get r-turn2 plan-validation) acyclic?) #t)
+        (check-equal? (.get (.get r-turn2 ascent-choice-solution) world-count) 1)
+        ;; Cyclic depends-on fails closed with 0 surviving worlds and re-emits teaching kit
+        (check-equal? (.get (.get r-cycle plan-validation) validated?) #f)
+        (check-equal? (.get (.get r-cycle plan-validation) acyclic?) #f)
+        (check-equal? (.get (.get r-cycle ascent-choice-solution) choice-status) "unsatisfiable")
+        (check-equal? (.get (.get r-cycle ascent-choice-solution) world-count) 0)
+        (check-equal? (and (.get r-cycle dsl-grammar) #t) #t)
+        (check-equal? (.get r-cycle action-authorized?) #f)
+        ;; Single-source-of-truth tool schema projection
+        (check-equal? (.get tool-schema name) "aitia_review_step")
+        (check-equal? (.get tool-schema read-only?) #t)
+        (check-equal? (.get tool-schema action-authorized?) #f)))))

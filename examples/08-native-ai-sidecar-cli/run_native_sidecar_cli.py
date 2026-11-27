@@ -182,7 +182,15 @@ def main() -> None:
         assert zero_cfg_cap["funflowObservability"]["engineOwner"] == "scheme-poo-ascent-framework"
         assert zero_cfg_cap["actionAuthorized"] is False
 
-        # 0d. Verify ZERO-FLAG single-entry FunFlow Choice `aitia review <dir>` + self-healing choice!
+        # 0d. Verify single-source-of-truth `aitia review --tool-schema` and ZERO-FLAG
+        #     single-entry FunFlow Choice `aitia review <dir>` + self-healing choice!
+        _, schema_out, _ = run_cli(cli, ["review", "--tool-schema"])
+        tool_schema = json.loads(schema_out)
+        assert tool_schema["schema"] == "lambda-aitia.model-tool-definition.v1"
+        assert tool_schema["name"] == "aitia_review_step"
+        assert tool_schema["readOnly"] is True
+        assert tool_schema["actionAuthorized"] is False
+
         _, rev_discover_out, _ = run_cli(cli, ["review", str(upstream_repo)])
         rev_discover = json.loads(rev_discover_out)
         assert rev_discover["schema"] == "lambda-aitia.funflow-choice-frontier.v1"
@@ -191,6 +199,7 @@ def main() -> None:
         assert rev_discover["fencedTailAdmitted"] is False
         assert rev_discover["worldCount"] >= 2
         assert rev_discover["actionAuthorized"] is False
+        assert len(rev_discover["recommendedFormalModels"]) >= 1
         choice_ids = [c["choiceId"] for c in rev_discover["choices"]]
         assert "repair-diff-defects" in choice_ids
         assert "compose-subdomain-rule-pack" in choice_ids
@@ -207,13 +216,15 @@ def main() -> None:
         assert "dslGrammar" in rev_discover and "sexpPlanTemplate" in rev_discover
 
         # 0e. Verify declarative `(aitia-review-plan ...)` S-expr file drives native ASCENT
-        #     `relational-choice-solve` convergence (2 competing worlds -> 1 unique-deduction)
-        #     and rejects forbidden `disable-core-floor` with 0 surviving worlds!
+        #     `relational-choice-solve` convergence (2 competing worlds -> 1 unique-deduction),
+        #     omits bulky teaching kit on Turn 2 valid plans, and rejects forbidden
+        #     `disable-core-floor` AND cyclic `(depends-on ...)` with 0 surviving worlds!
         plan_file = root / "scenario-plan.sexp"
         plan_file.write_text(
             f'(aitia-review-plan\n'
             f'  (scenario "worktree-parser-audit")\n'
             f'  (repo "{upstream_repo}")\n'
+            f'  (depends-on "audit-diff" "verify-formal")\n'
             f'  (open-branches "hyp-missing-assert" "hyp-external-test-moved")\n'
             f'  (probes\n'
             f'    (probe "hyp-missing-assert" supports "parser.py deleted assert without replacement")\n'
@@ -223,11 +234,26 @@ def main() -> None:
         _, rev_plan_out, _ = run_cli(cli, ["review", str(plan_file)])
         rev_plan = json.loads(rev_plan_out)
         assert rev_plan["planValidation"]["validated"] is True
+        assert rev_plan["planValidation"]["acyclic"] is True
         assert rev_plan["planValidation"]["zeroEvalDatumParser"] is True
+        assert "dslGrammar" not in rev_plan and "sexpPlanTemplate" not in rev_plan
         assert rev_plan["ascentChoiceSolution"]["choiceStatus"] == "unique-deduction"
         assert rev_plan["ascentChoiceSolution"]["worldCount"] == 1
         assert rev_plan["ascentChoiceSolution"]["worlds"][0]["reviewBranch"] == "hyp-missing-assert"
         assert rev_plan["ascentChoiceSolution"]["worlds"][0]["dispatchDecision"] == "repair-mechanical-defects"
+
+        cyclic_plan = root / "cyclic-plan.sexp"
+        cyclic_plan.write_text(
+            f'(aitia-review-plan (repo "{upstream_repo}") (depends-on "a" "b") (depends-on "b" "a"))\n',
+            encoding="utf-8",
+        )
+        _, rev_cyc_out, _ = run_cli(cli, ["review", str(cyclic_plan)])
+        rev_cyc = json.loads(rev_cyc_out)
+        assert rev_cyc["planValidation"]["validated"] is False
+        assert rev_cyc["planValidation"]["acyclic"] is False
+        assert rev_cyc["ascentChoiceSolution"]["choiceStatus"] == "unsatisfiable"
+        assert rev_cyc["ascentChoiceSolution"]["worldCount"] == 0
+        assert "dslGrammar" in rev_cyc
 
         evil_plan = root / "evil-plan.sexp"
         evil_plan.write_text(

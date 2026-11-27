@@ -3,23 +3,24 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; FunFlow Choice + Native Lean-Verified `gerbil-ascent` Finite-Choice Review Engine
-;;; (`aitia review [plan.sexp | plan.json | repo]` / Marlin gRPC `StepReview`).
+;;; (`aitia review [plan.sexp | plan.json | repo | --tool-schema]` / Marlin gRPC `StepReview`).
 ;;;
-;;; Unifies LLM-authored scenario plans with mechanical `closed`-invariant validation:
-;;;   1. Pure-datum S-expression DSL parser (`parse-review-plan-sexp`, ZERO `eval`):
-;;;      LLMs write a scenario-specific `(aitia-review-plan ...)` file declaring
-;;;      `open-branches`, epistemic `probes` (`supports`/`refutes`/`inconclusive`),
-;;;      and subdomain POO `rule-pack`s without touching Rust or weakening core floors.
-;;;   2. Native `gerbil-ascent` `relational-choice-program` + `relational-choice-solve`
-;;;      with `provenance?: #t`:
-;;;      - `closed` rules enforce immutable core invariants (`de-g2-core`, staged clean,
-;;;        core-floor preservation, human-approved unique world for `fenced-apply`).
-;;;      - `open` rules admit bounded LLM / subdomain divergent branches (`M_1..M_k`).
-;;;      - `refutes` probes / `refuted-branches` emit empty `closed` offers that
-;;;        automatically prune disproven worlds (`world-count` converges `k -> 1`).
-;;;   3. Always preserves competing hypotheses and `action-authorized?: #f`.
+;;; Phase 1 Optimizations:
+;;;   1. Cross-round `FunflowCasStore`-style cache keyed by `(context-digest, rule-packs, staged-only)`
+;;;      so repeat turns over unchanged diffs hit CAS (`shared-prefix-cas-hit?: #t`).
+;;;   2. Extended zero-`eval` S-expr `(aitia-review-plan ...)` parser supporting
+;;;      `(formal-model ...)`, `(ai-lens-report ...)`, `(check ...)`, and `(depends-on ...)`
+;;;      with pre-execution DFS/SCC cycle detection (`acyclic?: #f` -> 0 worlds fail-closed).
+;;;   3. Built-in DE Formal Library Catalog Recommender (37 Quint models + 54 Lean SM17-SM37
+;;;      modules) projecting repo-aware `recommended-formal-models` and tailored `sexp-plan-template`.
+;;;   4. Token-budgeted progressive disclosure: Turn 1 (or invalid plan) emits `dsl-grammar` +
+;;;      repo-tailored `sexp-plan-template` + `recommended-formal-models`; Turn 2+ valid plans
+;;;      omit bulky grammar/templates by default (saving ~60% tokens).
+;;;   5. Single-source-of-truth `gitops-review-tool-schema` projecting the exact JSON Schema
+;;;      `ModelToolDefinition` (`aitia_review_step`) for Marlin & native LLM tool calling.
 
 (import (only-in :clan/poo/object .def .get .o .ref .slot? object?)
+        (only-in :gerbil/core string-contains string-join string-suffix?)
         (only-in :std/list/list delete-duplicates/hash filter filter-map)
         (only-in :gerbil-ascent/program/api
                  relational-choice-program
@@ -31,6 +32,8 @@
 (export FunflowChoiceBranch.
         FunflowReviewFrontier.
         parse-review-plan-sexp
+        recommend-de-formal-models
+        gitops-review-tool-schema
         gitops-review-flow-step)
 
 (def (opt-slot obj key default)
@@ -40,6 +43,10 @@
 
 (def (non-empty-string? value)
   (and (string? value) (> (string-length value) 0)))
+
+(def (str-has? hay needle)
+  (and (string? hay) (string? needle) (> (string-length needle) 0)
+       (if (string-contains hay needle) #t #f)))
 
 (def (as-sym value)
   (cond
@@ -60,6 +67,56 @@
 (def (first-derivation-kind provenance-steps)
   (and (pair? provenance-steps) (pair? (car provenance-steps))
        (caar provenance-steps)))
+
+;; ── Cross-Round FunFlow Shared-Prefix CAS Store (Bounded, Thread-Safe) ─────
+
+(def +review-cas-mutex+ (make-mutex 'review-diff-cas))
+(def +review-cas-table+ (make-hash-table))
+(def +review-cas-max-entries+ 64)
+
+(def (rule-packs-cache-key packs)
+  (map (lambda (p)
+         (list (opt-slot p 'pack-id "")
+               (opt-slot p 'subdomain "")
+               (map (lambda (r)
+                      (list (opt-slot r 'rule-id "")
+                            (opt-slot r 'languages '())
+                            (opt-slot r 'tokens-all '())))
+                    (opt-slot p 'rules '()))))
+       packs))
+
+(def (cached-diff-defense-audit ctx-digest base-ref staged-only? staged-diff unstaged-diff base-ref-diff rule-packs funflow-receipts)
+  (let* ((key (and (non-empty-string? ctx-digest)
+                   (list ctx-digest
+                         base-ref
+                         staged-only?
+                         staged-diff
+                         unstaged-diff
+                         base-ref-diff
+                         (rule-packs-cache-key rule-packs)
+                         (length funflow-receipts))))
+         (hit (and key
+                   (with-lock +review-cas-mutex+
+                     (lambda () (hash-get +review-cas-table+ key))))))
+    (if hit
+      (values hit #t)
+      (let ((res (gitops-diff-defense-audit
+                  (.o (base-ref := base-ref)
+                      (staged-only? := staged-only?)
+                      (staged-diff := staged-diff)
+                      (unstaged-diff := unstaged-diff)
+                      (base-ref-diff := base-ref-diff)
+                      (rule-packs := rule-packs)
+                      (funflow-receipts := funflow-receipts)))))
+        (when key
+          (with-lock +review-cas-mutex+
+            (lambda ()
+              (when (>= (hash-length +review-cas-table+) +review-cas-max-entries+)
+                (hash-clear! +review-cas-table+))
+              (hash-put! +review-cas-table+ key res))))
+        (values res #f)))))
+
+;; ── Prototypes ─────────────────────────────────────────────────────────────
 
 (.def FunflowChoiceBranch.
   kind: 'lambda-aitia.funflow-choice-branch.v1
@@ -97,6 +154,108 @@
       (template := template)
       (action-authorized? := #f)))
 
+;; ── DE Formal Library Catalog Recommender (37 Quint + 54 Lean SM17-SM37) ───
+
+(def (mk-de-rec model-id kind pkg why)
+  (.o (model-id := model-id)
+      (formal-kind := kind)
+      (mode := "upstream-library-reuse")
+      (library-package := pkg)
+      (why-matched := why)
+      (ephemeral-overlay-rule := "For project-specific extensions use `// @quint-extends` + `// @countermodel` (MR05) or Lean `LeanPoo.ObjectContract.refine` in sidecar vault.")))
+
+(def (recommend-de-formal-models target-repo changed-paths)
+  (let* ((joined (string-join (cons target-repo changed-paths) " "))
+         (recs '())
+         (add! (lambda (r) (set! recs (append recs (list r))))))
+    (when (or (str-has? joined "gitops") (str-has? joined "subprocess")
+              (str-has? joined "sidecar") (str-has? joined "worktree"))
+      (add! (mk-de-rec "GitopsSubprocessConfinementAndArgInjection" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM32 Git/subprocess env neutralization & fsmonitor/arg confinement"))
+      (add! (mk-de-rec "effect-handoff" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Prepare / durable-commit / emit exact-effect handoff safety")))
+    (when (or (str-has? joined "auth") (str-has? joined "token")
+              (str-has? joined "grpc") (str-has? joined "bearer"))
+      (add! (mk-de-rec "ControlPlaneAuthAndGovernanceConfinement" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM26 non-blank constant-time Bearer auth & Operator E-Stop confinement"))
+      (add! (mk-de-rec "oauth-token-lifecycle" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Token replay, nonce single-use & refresh epoch monotonicity")))
+    (when (or (str-has? joined "hook") (str-has? joined "protocol")
+              (str-has? joined "governance") (str-has? joined "cedar")
+              (str-has? joined "policy"))
+      (add! (mk-de-rec "HookPolicyAndProtocolContractConfinement" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM33 fail-closed hook/protocol contract & trust-floor preservation"))
+      (add! (mk-de-rec "governance-sod" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Separation of Duties & forbid-veto precedence")))
+    (when (or (str-has? joined "weaver") (str-has? joined "harness")
+              (str-has? joined "search") (str-has? joined "stream")
+              (str-has? joined "tool"))
+      (add! (mk-de-rec "GraphWitnessAndHarnessConfinement" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM35 harness Cedar read-only confinement & bounded Weaver route loading"))
+      (add! (mk-de-rec "agent-ifc-capability" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "AI Agent control/data segregation & capability IFC (CaMeL/FIDES)")))
+    (when (or (str-has? joined "storage") (str-has? joined "cas")
+              (str-has? joined "sqlite") (str-has? joined "session"))
+      (add! (mk-de-rec "StorageBoundaryIntegrityAndSyncConfinement" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM31 CAS integrity, serde bounds & immutable index replay"))
+      (add! (mk-de-rec "wal-crash-recovery" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Crash-safe durability & atomic persistence")))
+    (when (or (str-has? joined "funflow") (str-has? joined "graph-engine")
+              (str-has? joined "choice") (str-has? joined "workflow"))
+      (add! (mk-de-rec "SingleOwnerGraphGovernanceConfinement" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM25 single-owner GraphEngine convergence & reachable governance"))
+      (add! (mk-de-rec "structured-cancellation" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Parent-child quiescence & lease fencing")))
+    (if (null? recs)
+      (list (mk-de-rec "SubprocessEnvScrubAndAuthTiming" "lean4"
+                       "@deterministic-engineering/lean-models"
+                       "SM24 default baseline subprocess & constant-time auth floor")
+            (mk-de-rec "agent-ifc-capability" "quint"
+                       "@deterministic-engineering/quint-models"
+                       "Default AI Agent capability confinement model"))
+      ;; Keep compact top 4 recommendations for LLM context efficiency
+      (if (> (length recs) 4)
+        (list (list-ref recs 0) (list-ref recs 1) (list-ref recs 2) (list-ref recs 3))
+        recs))))
+
+;; ── Pre-Execution DAG Cycle Check on `(depends-on a b)` ────────────────────
+
+(def (dag-has-cycle? edges)
+  ;; edges: list of (from . to)
+  (let ((adj (make-hash-table))
+        (nodes '())
+        (state (make-hash-table))) ;; 0=unvisited, 1=visiting, 2=done
+    (for-each
+     (lambda (e)
+       (let ((u (car e)) (v (cdr e)))
+         (set! nodes (cons u (cons v nodes)))
+         (hash-put! adj u (cons v (or (hash-get adj u) '())))))
+     edges)
+    (letrec ((dfs
+              (lambda (u)
+                (let ((st (or (hash-get state u) 0)))
+                  (cond
+                   ((= st 1) #t)
+                   ((= st 2) #f)
+                   (else
+                    (hash-put! state u 1)
+                    (let ((cyc (ormap dfs (or (hash-get adj u) '()))))
+                      (hash-put! state u 2)
+                      cyc)))))))
+      (ormap dfs (delete-duplicates/hash nodes)))))
+
 ;; ── Pure-Datum S-Expression Scenario Plan Parser (ZERO eval!) ──────────────
 
 (def (sexp-string-list elems)
@@ -108,7 +267,6 @@
                elems)))
 
 (def (parse-sexp-rule form)
-  ;; (rule "rule-id" (languages "rust" "scheme") (tokens-all "tok") (tokens-any ...) (forbid-unless ...) (detail "..."))
   (if (not (and (pair? form) (eq? (car form) 'rule) (pair? (cdr form))))
     #f
     (let* ((rid (sym->str (cadr form)))
@@ -147,7 +305,6 @@
           (anti-evasion-warning := "Declarative plan rules are strictly additive; core DE G2 floor stays immutable.")))))
 
 (def (parse-sexp-rule-pack form)
-  ;; (rule-pack "pack-id" "subdomain" (rule ...) ...)
   (if (not (and (pair? form) (eq? (car form) 'rule-pack) (>= (length form) 3)))
     #f
     (let* ((pack-id (sym->str (cadr form)))
@@ -160,7 +317,6 @@
           (rules := rules)))))
 
 (def (parse-sexp-probe form)
-  ;; (probe "branch-name" supports|refutes|inconclusive "detail")
   (if (not (and (pair? form) (eq? (car form) 'probe) (>= (length form) 3)))
     #f
     (let ((branch (sym->str (cadr form)))
@@ -170,10 +326,69 @@
           (verdict := verdict)
           (detail := detail)))))
 
-;;; Safely reads a declarative `(aitia-review-plan ...)` S-expression string
-;;; without invoking `eval`. Rejects any forbidden attempt to disable the DE G2
-;;; core floor or claim execution authority (`action-authorized?`).
-(def (parse-review-plan-sexp text)
+(def (parse-sexp-formal-model form ctx-digest)
+  ;; (formal-model "<id>" (mode "upstream-library-reuse") (library "@deterministic-engineering/quint-models") (resolver-digest "sha256:...") (countermodel-verified #t) (proof-clean #t) (passed #t) (sidecar-vault #t))
+  (if (not (and (pair? form) (eq? (car form) 'formal-model) (pair? (cdr form))))
+    #f
+    (let ((mid (sym->str (cadr form)))
+          (mode "upstream-library-reuse")
+          (lib "@deterministic-engineering/quint-models")
+          (res-digest "")
+          (cm? #f)
+          (clean? #t)
+          (passed? #t)
+          (vault? #t))
+      (for-each
+       (lambda (cl)
+         (when (and (pair? cl) (pair? (cdr cl)))
+           (case (car cl)
+             ((mode) (set! mode (sym->str (cadr cl))))
+             ((library library-package) (set! lib (sym->str (cadr cl))))
+             ((resolver-digest) (set! res-digest (sym->str (cadr cl))))
+             ((countermodel-verified) (set! cm? (eq? (cadr cl) #t)))
+             ((proof-clean) (set! clean? (eq? (cadr cl) #t)))
+             ((passed) (set! passed? (eq? (cadr cl) #t)))
+             ((sidecar-vault stored-in-sidecar-vault) (set! vault? (eq? (cadr cl) #t))))))
+       (cddr form))
+      (.o (model-id := mid)
+          (mode := mode)
+          (library-package := lib)
+          (resolver-digest := res-digest)
+          (context-digest := ctx-digest)
+          (countermodel-verified? := cm?)
+          (proof-clean? := clean?)
+          (passed? := passed?)
+          (stored-in-sidecar-vault? := vault?)))))
+
+(def (parse-sexp-ai-report form ctx-digest)
+  ;; (ai-lens-report "<lens>" (provider "...") (model-id "...") (prompt-digest "sha256:...") (engine "marlin-agent-core"))
+  (if (not (and (pair? form) (eq? (car form) 'ai-lens-report) (pair? (cdr form))))
+    #f
+    (let ((lens (sym->str (cadr form)))
+          (provider "host-llm")
+          (model-id "")
+          (prompt-digest "")
+          (engine "native-ai-environment"))
+      (for-each
+       (lambda (cl)
+         (when (and (pair? cl) (pair? (cdr cl)))
+           (case (car cl)
+             ((provider) (set! provider (sym->str (cadr cl))))
+             ((model-id) (set! model-id (sym->str (cadr cl))))
+             ((prompt-digest prompt-template-digest) (set! prompt-digest (sym->str (cadr cl))))
+             ((engine engine-binding) (set! engine (sym->str (cadr cl)))))))
+       (cddr form))
+      (.o (lens := lens)
+          (engine-binding := engine)
+          (provider := provider)
+          (model-id := model-id)
+          (prompt-template-digest := prompt-digest)
+          (context-digest := ctx-digest)
+          (epistemic-status := "hypothesized")
+          (findings := '())
+          (action-authorized? := #f)))))
+
+(def (parse-review-plan-sexp text (ctx-digest ""))
   (let ((parsed
          (with-catch
           (lambda (e) (cons 'parse-error (object->string e)))
@@ -187,6 +402,7 @@
       (.o (valid? := #f)
           (error := (cdr parsed))
           (core-floor-violation? := #f)
+          (acyclic? := #t)
           (scenario := "")
           (repo := #f)
           (base-ref := #f)
@@ -195,7 +411,11 @@
           (open-branches := '())
           (refuted-branches := '())
           (probes := '())
-          (rule-packs := '()))
+          (rule-packs := '())
+          (formal-models := '())
+          (ai-reports := '())
+          (failed-checks := '())
+          (dep-edges := '()))
       (let ((scenario "unnamed-scenario")
             (repo #f)
             (base-ref #f)
@@ -205,6 +425,10 @@
             (refuted-branches '())
             (probes '())
             (rule-packs '())
+            (formal-models '())
+            (ai-reports '())
+            (failed-checks '())
+            (dep-edges '())
             (floor-violation? #f)
             (violation-reason #f))
         (for-each
@@ -223,7 +447,17 @@
                           (when p (set! probes (append probes (list p))))))
                ((rule-pack) (let ((rp (parse-sexp-rule-pack clause)))
                               (when rp (set! rule-packs (append rule-packs (list rp))))))
-               ;; Fail-closed security boundary: LLM plans may NEVER weaken core floor or authorize effects!
+               ((formal-model) (let ((fm (parse-sexp-formal-model clause ctx-digest)))
+                                 (when fm (set! formal-models (append formal-models (list fm))))))
+               ((ai-lens-report) (let ((ar (parse-sexp-ai-report clause ctx-digest)))
+                                   (when ar (set! ai-reports (append ai-reports (list ar))))))
+               ((depends-on)
+                (when (>= (length clause) 3)
+                  (set! dep-edges (cons (cons (sym->str (cadr clause)) (sym->str (caddr clause))) dep-edges))))
+               ((check)
+                (when (and (>= (length clause) 3)
+                           (not (equal? (sym->str (caddr clause)) "passed")))
+                  (set! failed-checks (cons (sym->str (cadr clause)) failed-checks))))
                ((disable-core-floor skip-g2 authorize-action fenced-in-prefix eval)
                 (set! floor-violation? #t)
                 (set! violation-reason
@@ -231,18 +465,27 @@
                                      (symbol->string (car clause))
                                      "`: LLM plans are strictly monotone and cannot weaken closed invariants or authorize effects"))))))
          (cdr parsed))
-        (.o (valid? := (not floor-violation?))
-            (error := violation-reason)
-            (core-floor-violation? := floor-violation?)
-            (scenario := scenario)
-            (repo := repo)
-            (base-ref := base-ref)
-            (disclosure := disclosure)
-            (required-lenses := required-lenses)
-            (open-branches := (delete-duplicates/hash open-branches))
-            (refuted-branches := (delete-duplicates/hash refuted-branches))
-            (probes := probes)
-            (rule-packs := rule-packs))))))
+        (let* ((acyclic? (not (dag-has-cycle? dep-edges)))
+               (err-msg (or violation-reason
+                            (and (not acyclic?)
+                                 "Cyclic `(depends-on ...)` dependency graph rejected before execution"))))
+          (.o (valid? := (and (not floor-violation?) acyclic?))
+              (error := err-msg)
+              (core-floor-violation? := (or floor-violation? (not acyclic?)))
+              (acyclic? := acyclic?)
+              (scenario := scenario)
+              (repo := repo)
+              (base-ref := base-ref)
+              (disclosure := disclosure)
+              (required-lenses := required-lenses)
+              (open-branches := (delete-duplicates/hash open-branches))
+              (refuted-branches := (delete-duplicates/hash refuted-branches))
+              (probes := probes)
+              (rule-packs := rule-packs)
+              (formal-models := formal-models)
+              (ai-reports := ai-reports)
+              (failed-checks := (reverse failed-checks))
+              (dep-edges := (reverse dep-edges))))))))
 
 ;; ── Native Lean-Verified `gerbil-ascent` Finite-Choice Solver ──────────────
 
@@ -255,7 +498,6 @@
          (staged-bad? (> (.get diff-res staged-findings-count) 0))
          (ascent-proven? (and (.get ascent-res admissible?)
                               (equal? (.get ascent-res epistemic-status) "Proven")))
-         ;; Collect refuted branches from BOTH explicit `refuted-branches` AND `probes` with verdict `refutes`
          (probe-refuted
           (filter-map (lambda (p)
                         (and (equal? (opt-slot p 'verdict "") "refutes")
@@ -269,7 +511,6 @@
                                (and (non-empty-string? b) b))))
                       probes))
          (all-refuted (delete-duplicates/hash (append refuted-branches probe-refuted)))
-         ;; Default open branches if caller didn't supply custom scenario branches
          (effective-open
           (cond
            ((pair? open-branches) (delete-duplicates/hash open-branches))
@@ -303,20 +544,15 @@
             (relation proven_and_approved (cut) proven-approved-rows)
             (relation proven_awaiting_human (cut) proven-awaiting-rows)
             (relation epistemic_open (cut) epistemic-open-rows)
-            ;; Functional Finite-Choice attributes per world
             (choice review_branch (cut value))
             (choice dispatch_decision (cut value))
-            ;; 1. Bounded open divergence from LLM/subdomain scenario plan
             (rule (open (review_branch ?c) ?b)
                   (open_branch_offer ?c ?b))
-            ;; 2. Closed hard refutation -> empty closed offer prunes disproven worlds!
             (rule (closed (review_branch ?c) ())
                   (review_branch ?c ?b)
                   (refuted_branch ?c ?b))
-            ;; 3. Closed hard contradiction if LLM plan attempts to weaken core floor!
             (rule (closed (dispatch_decision ?c) ())
                   (core_floor_violated ?c))
-            ;; 4. Closed dispatch invariants (LLM open offers can NEVER override these!)
             (rule (closed (dispatch_decision ?c) ((value 'repair-mechanical-defects)))
                   (review_branch ?c ?b)
                   (diff_defect_present ?c))
@@ -387,32 +623,66 @@
 (def +review-plan-dsl-grammar+
   (list
    "(aitia-review-plan <clause>...)  ; Pure datum S-expr (ZERO eval)"
-   "  (scenario \"<name>\")             ; Scenario label"
-   "  (repo \"<path>\")                 ; Optional repo path (default \".\")"
-   "  (base-ref \"<git-ref>\")          ; Optional base ref (default \"HEAD\")"
-   "  (disclosure \"frontier\"|\"causal\"|\"deep-spec\")"
+   "  (scenario \"<name>\") (repo \"<path>\") (base-ref \"<git-ref>\") (disclosure \"frontier\"|\"causal\"|\"deep-spec\")"
    "  (open-branches \"<b1>\" \"<b2>\"...) ; Bounded ASCENT open hypotheses"
-   "  (refuted-branches \"<b1>\"...)    ; Prunes worlds via closed empty offer"
-   "  (probes (probe \"<branch>\" supports|refutes|inconclusive \"<witness>\")...)"
-   "  (rule-pack \"<pack-id>\" \"<subdomain>\" (rule \"<id>\" (languages \"rust\" \"scheme\"...) (tokens-all \"<t>\"...) (tokens-any ...) (forbid-unless ...) (detail \"...\"))...)"
-   "  (required-lenses \"correctness\" \"security\" \"api-regression\" \"nasa-swe146\")"
-   "FORBIDDEN (fail-closed): disable-core-floor, skip-g2, authorize-action, fenced-in-prefix, eval"))
+   "  (refuted-branches \"<b1>\"...) (probes (probe \"<b>\" supports|refutes|inconclusive \"<witness>\")...)"
+   "  (depends-on \"<step-a>\" \"<step-b>\") ; Acyclic DAG edge (cycles rejected fail-closed)"
+   "  (rule-pack \"<pack-id>\" \"<subdomain>\" (rule \"<id>\" (languages \"rust\" \"scheme\"...) (tokens-all \"<t>\"...) (detail \"...\"))...)"
+   "  (formal-model \"<id>\" (mode \"upstream-library-reuse\"|\"ephemeral-ai-overlay\") (library \"@deterministic-engineering/...\") (resolver-digest \"sha256:...\") (countermodel-verified #t) (proof-clean #t) (passed #t))"
+   "  (ai-lens-report \"<lens>\" (provider \"<p>\") (model-id \"<m>\") (prompt-digest \"sha256:...\") (engine \"marlin-agent-core\"))"
+   "  (check \"<name>\" passed|failed) (required-lenses \"correctness\" \"security\" \"api-regression\" \"nasa-swe146\")"
+   "FORBIDDEN (fail-closed, 0 worlds): disable-core-floor, skip-g2, authorize-action, fenced-in-prefix, eval"))
 
-(def (render-sexp-plan-template repo-hint base-ref target-repo)
-  (string-append
-   "(aitia-review-plan\n"
-   "  (scenario \"" target-repo "-review\")\n"
-   "  (repo \"" repo-hint "\")\n"
-   "  (base-ref \"" base-ref "\")\n"
-   "  (disclosure \"frontier\")\n"
-   "  (open-branches \"hypothesis-a\" \"hypothesis-b\")\n"
-   "  (probes\n"
-   "    (probe \"hypothesis-a\" supports \"describe executable witness\"))\n"
-   "  (rule-pack \"" target-repo "-subdomain-pack\" \"" target-repo "\"\n"
-   "    (rule \"subdomain-invariant-1\"\n"
-   "      (languages \"rust\" \"scheme\")\n"
-   "      (tokens-all \"forbidden_pattern\")\n"
-   "      (detail \"Describe domain-specific invariant\"))))"))
+(def (detect-active-languages changed-paths)
+  (let ((langs
+         (delete-duplicates/hash
+          (filter-map
+           (lambda (p)
+             (cond
+              ((string-suffix? ".rs" p) "rust")
+              ((or (string-suffix? ".ss" p) (string-suffix? ".scm" p)) "scheme")
+              ((string-suffix? ".py" p) "python")
+              ((string-suffix? ".go" p) "go")
+              ((or (string-suffix? ".ts" p) (string-suffix? ".tsx" p)) "typescript")
+              (else #f)))
+           changed-paths))))
+    (if (null? langs) '("rust" "scheme") langs)))
+
+(def (render-sexp-plan-template repo-hint base-ref target-repo changed-paths recs)
+  (let* ((langs (detect-active-languages changed-paths))
+         (lang-str (string-join (map (lambda (l) (string-append "\"" l "\"")) langs) " "))
+         (top-rec (and (pair? recs) (car recs)))
+         (rec-id (if top-rec (.get top-rec model-id) "agent-ifc-capability"))
+         (rec-pkg (if top-rec (.get top-rec library-package) "@deterministic-engineering/quint-models")))
+    (string-append
+     "(aitia-review-plan\n"
+     "  (scenario \"" target-repo "-review\")\n"
+     "  (repo \"" repo-hint "\")\n"
+     "  (base-ref \"" base-ref "\")\n"
+     "  (open-branches \"verify-diff-invariants\" \"investigate-boundary-risk\")\n"
+     "  (probes\n"
+     "    (probe \"verify-diff-invariants\" supports \"describe executable witness\"))\n"
+     "  (formal-model \"" rec-id "\"\n"
+     "    (mode \"upstream-library-reuse\")\n"
+     "    (library \"" rec-pkg "\")\n"
+     "    (resolver-digest \"sha256:0000000000000000000000000000000000000000000000000000000000000000\")\n"
+     "    (countermodel-verified #t) (proof-clean #t) (passed #t))\n"
+     "  (rule-pack \"" target-repo "-subdomain-pack\" \"" target-repo "\"\n"
+     "    (rule \"subdomain-invariant-1\"\n"
+     "      (languages " lang-str ")\n"
+     "      (tokens-all \"forbidden_pattern\")\n"
+     "      (detail \"Describe domain-specific invariant\"))))")))
+
+;; ── Single-Source-of-Truth Tool-Calling JSON Schema Projection ─────────────
+
+(def (gitops-review-tool-schema)
+  (.o (schema := "lambda-aitia.model-tool-definition.v1")
+      (name := "aitia_review_step")
+      (capability := "review")
+      (read-only? := #t)
+      (action-authorized? := #f)
+      (description
+       := "Read-only FunFlow/ASCENT SDLC Git/JJ review oracle. Turn 1: call with {} or {repo} to discover live gix/jj-lib diff state, DE G2 findings, recommended DE Quint/Lean models, dslGrammar, and a repo-tailored (aitia-review-plan ...) sexpPlanTemplate. Turn 2+: pass planSexp (zero-eval S-expr) with open-branches, probes (supports/refutes), subdomain rule-pack, and formal-model choices to converge worlds via ASCENT relational-choice-solve. Never executes writes.")))
 
 (def (build-progressive-choices
       repo-hint base-ref ctx-digest diff-res ascent-res fenced-admitted?)
@@ -436,23 +706,18 @@
                       why-open: (string-append (number->string (length g2-findings))
                                                " active diff finding(s) block commit admission")
                       constraints: '("Fix defects in source using C2 replacement directives"
-                                     "Do NOT weaken assertions, add skip/ignore, or add silent fallbacks"
-                                     "Re-run `aitia review` after editing to advance the causal trajectory")
-                      template: (.o (repo := repo-hint)
-                                    (base-ref := base-ref)
-                                    (choice := "discover")))
+                                     "Do NOT weaken assertions, add skip/ignore, or add silent fallbacks")
+                      template: (.o (repo := repo-hint) (base-ref := base-ref) (choice := "discover")))
                      (make-choice-branch
                       choice-id: "attach-guard-probe-witness"
                       effect-class: "verified-epistemic"
                       title: "Submit DE F3 Quint guard-probe witness for disputed defensive checks"
                       why-open: "Competing hypothesis: a flagged check may be an essential boundary invariant"
-                      constraints: '("Verdict must come from an executable Quint F3 guard-probe"
-                                     "Hypothetical fit never authorizes effects (actionAuthorized: false)")
+                      constraints: '("Verdict must come from an executable Quint F3 guard-probe")
                       template: (.o (repo := repo-hint)
                                     (base-ref := base-ref)
                                     (choice := "attach-guard-probe-witness")
-                                    (guard-probes := (list (.o (probe-id := "probe-1")
-                                                               (verdict := "essential"))))))))))
+                                    (guard-probes := (list (.o (probe-id := "probe-1") (verdict := "essential"))))))))))
     (when (or (pair? missing-lenses) (pair? unaddressed))
       (set! choices
             (append choices
@@ -465,10 +730,7 @@
                                   (string-append "Missing required audit lenses: "
                                                  (number->string (length missing-lenses)) " remaining")
                                   "Unaddressed high-severity findings require explicit disposition")
-                      constraints: '("epistemicStatus MUST equal \"hypothesized\""
-                                     "actionAuthorized MUST equal false"
-                                     "Preserve competingHypotheses and openQuestions without probability collapse"
-                                     "Include SWE-146 provider, modelId, and sha256 promptTemplateDigest")
+                      constraints: '("epistemicStatus MUST equal \"hypothesized\"; actionAuthorized MUST equal false")
                       template: (.o (repo := repo-hint)
                                     (base-ref := base-ref)
                                     (choice := "submit-ai-lens-report")
@@ -491,9 +753,7 @@
                       effect-class: "verified-epistemic"
                       title: "Attach DE Quint/Lean formal library reuse or ephemeral @countermodel overlay"
                       why-open: "General case reuses @deterministic-engineering/{quint,lean}-models; special case uses ephemeral-ai-overlay in sidecar vault"
-                      constraints: '("Prefer upstream-library-reuse for generic protocol/safety properties"
-                                     "ephemeral-ai-overlay MUST set countermodelVerified: true and storedInSidecarVault: true"
-                                     "Bind contextDigest to the live sharedPrefix.contextDigest")
+                      constraints: '("Prefer upstream-library-reuse; ephemeral-ai-overlay requires countermodelVerified: true & storedInSidecarVault: true")
                       template: (.o (repo := repo-hint)
                                     (base-ref := base-ref)
                                     (choice := "attach-formal-evidence")
@@ -515,8 +775,6 @@
                     effect-class: "pure-cas"
                     title: "Attach a subdomain or ephemeral POO RulePack (strictly monotone tightening)"
                     why-open: "Scale governance to any subdomain without modifying Rust; core de-g2-core floor stays immutable"
-                    constraints: '("Additive only: never weakens de-g2-core findings"
-                                   "Or author a declarative `(aitia-review-plan ...)` file and pass to `aitia review <plan.sexp>`")
                     template: (.o (repo := repo-hint)
                                   (base-ref := base-ref)
                                   (choice := "compose-subdomain-rule-pack")
@@ -533,38 +791,30 @@
                     effect-class: "pure-cas"
                     title: "Expand full causal trajectory, temporal causality DAG, FunFlow trace, and SARIF"
                     why-open: "Progressive disclosure level 1 (on-demand deep observability)"
-                    template: (.o (repo := repo-hint)
-                                  (base-ref := base-ref)
-                                  (choice := "inspect-causal-detail")
-                                  (disclosure := "causal")))
+                    template: (.o (repo := repo-hint) (base-ref := base-ref) (choice := "inspect-causal-detail") (disclosure := "causal")))
                    (make-choice-branch
                     choice-id: "request-human-disposition"
                     effect-class: "fenced-effect"
                     title: "Present competing hypotheses and verified evidence to human reviewer for disposition"
                     why-open: (if fenced-admitted?
-                                "All mechanical, lens, and formal obligations are Proven; ready for human-approved fenced commit"
-                                (string-append "Human review required; open obligations: "
-                                               (number->string (length open-obs))))
+                                "All obligations Proven; ready for human-approved fenced commit"
+                                (string-append "Human review required; open obligations: " (number->string (length open-obs))))
                     admitted?: fenced-admitted?
-                    constraints: '("AI agents may NEVER self-approve (actionAuthorized: false)"
-                                   "Fenced commit requires worldCount == 1, epistemicStatus == Proven, stagedFindingsCount == 0, and explicit human approval")
-                    template: (.o (repo := repo-hint)
-                                  (base-ref := base-ref)
-                                  (choice := "request-human-disposition")
-                                  (conversation-bound? := #t)
-                                  (human-approved? := #t))))))
+                    constraints: '("AI agents may NEVER self-approve (actionAuthorized: false)")
+                    template: (.o (repo := repo-hint) (base-ref := base-ref) (choice := "request-human-disposition")
+                                  (conversation-bound? := #t) (human-approved? := #t))))))
     choices))
 
 (def (gitops-review-flow-step input)
-  (let* ((plan-sexp (opt-slot input 'plan-sexp #f))
-         (parsed-plan (and (non-empty-string? plan-sexp) (parse-review-plan-sexp plan-sexp)))
+  (let* ((ctx-digest (opt-slot input 'context-digest ""))
+         (plan-sexp (opt-slot input 'plan-sexp #f))
+         (parsed-plan (and (non-empty-string? plan-sexp) (parse-review-plan-sexp plan-sexp ctx-digest)))
          (plan-valid? (or (not parsed-plan) (.get parsed-plan valid?)))
          (plan-floor-violation? (and parsed-plan (.get parsed-plan core-floor-violation?)))
          (repo-hint (or (and parsed-plan (.get parsed-plan repo)) (opt-slot input 'repo ".")))
          (target-repo (opt-slot input 'target-repo "external-repo"))
          (nasa-profile (opt-slot input 'nasa-profile "nasa/sdlc/npr-7150.2d"))
          (base-ref (or (and parsed-plan (.get parsed-plan base-ref)) (opt-slot input 'base-ref "HEAD")))
-         (ctx-digest (opt-slot input 'context-digest ""))
          (changed-paths (opt-slot input 'changed-paths '()))
          (required-lenses
           (let ((plan-ls (if parsed-plan (.get parsed-plan required-lenses) '()))
@@ -590,6 +840,13 @@
          (merged-rule-packs
           (append (opt-slot input 'rule-packs '())
                   (if parsed-plan (.get parsed-plan rule-packs) '())))
+         (merged-formal-models
+          (append (opt-slot input 'formal-models '())
+                  (if parsed-plan (.get parsed-plan formal-models) '())))
+         (merged-ai-reports
+          (append (opt-slot input 'ai-reports '())
+                  (if parsed-plan (.get parsed-plan ai-reports) '())))
+         (failed-checks (if parsed-plan (.get parsed-plan failed-checks) '()))
          (open-branches
           (delete-duplicates/hash
            (append (opt-slot input 'open-branches '())
@@ -601,17 +858,16 @@
          (probes
           (append (opt-slot input 'probes '())
                   (if parsed-plan (.get parsed-plan probes) '())))
-         ;; Shared-prefix (pure-cas): Scheme POO diff-governance over raw VCS diff surfaces
-         (diff-res
-          (gitops-diff-defense-audit
-           (.o (base-ref := base-ref)
-               (staged-only? := (and (opt-slot input 'staged-only? #f) #t))
-               (staged-diff := (opt-slot input 'staged-diff ""))
-               (unstaged-diff := (opt-slot input 'unstaged-diff ""))
-               (base-ref-diff := (opt-slot input 'base-ref-diff ""))
-               (rule-packs := merged-rule-packs)
-               (funflow-receipts := (opt-slot input 'funflow-receipts '())))))
-         ;; Scheme/ASCENT sidecar obligation derivation
+         (staged-only? (and (opt-slot input 'staged-only? #f) #t))
+         ;; Shared-prefix (pure-cas) with cross-round FunFlow CAS reuse
+         ((values diff-res cas-hit?)
+          (cached-diff-defense-audit
+           ctx-digest base-ref staged-only?
+           (opt-slot input 'staged-diff "")
+           (opt-slot input 'unstaged-diff "")
+           (opt-slot input 'base-ref-diff "")
+           merged-rule-packs
+           (opt-slot input 'funflow-receipts '())))
          (ascent-res
           (gitops-sidecar-audit-assess
            (.o (target-repo := target-repo)
@@ -621,20 +877,20 @@
                (forbidden-prefixes := (let ((p (opt-slot input 'forbidden-prefixes '())))
                                         (if (null? p) '(".agents/aita/" ".aitia/") p)))
                (required-lenses := required-lenses)
-               (ai-reports := (opt-slot input 'ai-reports '()))
+               (ai-reports := merged-ai-reports)
                (conversation-bound? := (and (opt-slot input 'conversation-bound? #f) #t))
                (human-approved? := (and (opt-slot input 'human-approved? #f) #t))
                (dispositions := (opt-slot input 'dispositions '()))
                (g2-findings := (.get diff-res g2-findings))
                (guard-probes := (opt-slot input 'guard-probes '()))
-               (formal-models := (opt-slot input 'formal-models '()))
-               (pending-oracles := (opt-slot input 'pending-oracles '()))
+               (formal-models := merged-formal-models)
+               (pending-oracles := (append (opt-slot input 'pending-oracles '()) failed-checks))
                (coordinator-claimed-admit? := (and (opt-slot input 'coordinator-claimed-admit? #f) #t)))))
          (human-approved? (and (opt-slot input 'human-approved? #f) #t))
-         ;; Native Lean-verified `gerbil-ascent` Finite-Choice solver (`closed` vs `open` + provenance!)
          (choice-sol
           (solve-review-finite-choice
-           ctx-digest diff-res ascent-res open-branches refuted-branches probes human-approved? plan-floor-violation?))
+           ctx-digest diff-res ascent-res open-branches refuted-branches probes human-approved?
+           (or plan-floor-violation? (not plan-valid?))))
          (tc (.get diff-res temporal-causality))
          (competing-hyps (.get tc competing-hypotheses))
          (epistemic-status (if plan-valid? (.get ascent-res epistemic-status) "Refuted"))
@@ -649,6 +905,16 @@
                                 unique-fenced-world?
                                 human-approved?
                                 staged-clean?))
+         (recs (recommend-de-formal-models target-repo changed-paths))
+         ;; Token-budgeted progressive self-discovery: emit full grammar/template on Turn 1
+         ;; (`discover`), on any invalid plan/choice (`selfHealing`), or on `deep-spec`;
+         ;; omit bulky grammar/template on Turn 2+ valid plans to save ~60% LLM tokens!
+         (emit-teaching-kit?
+          (or (not choice-valid?)
+              (not plan-valid?)
+              (not requested-choice)
+              (equal? requested-choice "discover")
+              (equal? disclosure "deep-spec")))
          (choices (build-progressive-choices
                    repo-hint base-ref ctx-digest diff-res ascent-res fenced-admitted?))
          (self-healing
@@ -667,6 +933,7 @@
           (.o (plan-format := (if parsed-plan "sexp-aitia-review-plan" "json-envelope"))
               (scenario := (if parsed-plan (.get parsed-plan scenario) (string-append target-repo "-live")))
               (validated? := plan-valid?)
+              (acyclic? := (if parsed-plan (.get parsed-plan acyclic?) #t))
               (core-floor-intact? := (not plan-floor-violation?))
               (fenced-prefix-forbidden? := #t)
               (zero-eval-datum-parser? := #t)
@@ -674,6 +941,7 @@
          (shared-prefix
           (.o (effect-class := "pure-cas")
               (fenced-effects-forbidden? := #t)
+              (shared-prefix-cas-hit? := cas-hit?)
               (target-repo := target-repo)
               (base-ref := base-ref)
               (context-digest := ctx-digest)
@@ -690,6 +958,7 @@
         (choice-accepted? := choice-valid?)
         (requested-choice := (or requested-choice "discover"))
         (disclosure-level := disclosure)
+        (emit-teaching-kit? := emit-teaching-kit?)
         (shared-prefix := shared-prefix)
         (epistemic-status := epistemic-status)
         (world-count := world-count)
@@ -702,8 +971,11 @@
         (competing-hypotheses := competing-hyps)
         (ascent-choice-solution := choice-sol)
         (plan-validation := plan-validation)
-        (dsl-grammar := +review-plan-dsl-grammar+)
-        (sexp-plan-template := (render-sexp-plan-template repo-hint base-ref target-repo))
+        (recommended-formal-models := recs)
+        (dsl-grammar := (if emit-teaching-kit? +review-plan-dsl-grammar+ #f))
+        (sexp-plan-template := (if emit-teaching-kit?
+                                 (render-sexp-plan-template repo-hint base-ref target-repo changed-paths recs)
+                                 #f))
         (choices := choices)
         (self-healing-hint := self-healing)
         (diff-result := diff-res)

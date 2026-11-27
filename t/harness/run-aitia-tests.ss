@@ -77,7 +77,11 @@
                        "source-admission-test.ss"
                        "workflow-protocol-profile-test.ss"
                        "workflow-multi-repo-test.ss"
-                       "workflow-diamond-early-cutoff-test.ss")))))
+                       "workflow-diamond-early-cutoff-test.ss"
+                       "commit-admission-test.ss"
+                       "commit-evidence-test.ss"
+                       "commit-semantics-test.ss"
+                       "sidecar-audit-test.ss")))))
 
 (def (independent-test? file)
   (let (base (path-strip-directory file))

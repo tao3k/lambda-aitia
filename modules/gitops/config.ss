@@ -45,4 +45,5 @@
       make-rule-pack-from-descriptor: rule-pack-from-descriptor
       combine-rule-packs: compose-rule-packs
       core-g2-rule-pack: de-g2-core-rule-pack
-      review-flow-step: gitops-review-flow-step))
+      review-flow-step: gitops-review-flow-step
+      review-tool-schema: gitops-review-tool-schema))

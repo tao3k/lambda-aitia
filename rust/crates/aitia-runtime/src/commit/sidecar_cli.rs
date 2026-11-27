@@ -432,6 +432,15 @@ fn parse_review_text_input(raw: &str) -> Result<Value> {
 ///
 /// Never requires memorizing CLI flags; returns self-healing templates on invalid choices.
 pub(crate) fn run_review_cli(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("--tool-schema") {
+        let schema = defense_audit::get_review_tool_schema_json(None)?;
+        writeln!(
+            io::stdout().lock(),
+            "{}",
+            serde_json::to_string_pretty(&schema)?
+        )?;
+        return Ok(());
+    }
     let mut req: Value = if !io::stdin().is_terminal() {
         parse_review_text_input(&read_bounded_stdin()?)?
     } else {

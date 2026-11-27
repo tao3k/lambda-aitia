@@ -903,4 +903,32 @@ theorem declarativePlanViolationPrunesAllWorlds
     survivingWorlds = 0 :=
   hSafe.2.2.2 rfl
 
+/-- Acyclic DAG & cross-round FunFlow CAS safety predicate for declarative review plans:
+    cyclic `(depends-on ...)` edges (`dagAcyclic = false`) fail closed with `planValidated = false`
+    and `survivingWorlds = 0`, and cross-round `sharedPrefixCasHit` always preserves
+    `actionAuthorized = false`. -/
+def ReviewPlanDagAndCasSafe
+    (dagAcyclic sharedPrefixCasHit planValidated actionAuthorized : Bool)
+    (survivingWorlds : Nat) : Prop :=
+  actionAuthorized = false ∧
+  (planValidated = true → dagAcyclic = true) ∧
+  (dagAcyclic = false → survivingWorlds = 0) ∧
+  (sharedPrefixCasHit = true → actionAuthorized = false)
+
+theorem reviewPlanCycleRejectedFailClosed
+    {casHit planValidated actionAuthorized : Bool} {survivingWorlds : Nat}
+    (hSafe : ReviewPlanDagAndCasSafe false casHit planValidated actionAuthorized survivingWorlds) :
+    planValidated = false ∧ survivingWorlds = 0 := by
+  constructor
+  · cases hVal : planValidated with
+    | false => rfl
+    | true => exact False.elim (Bool.false_ne_true (hSafe.2.1 hVal))
+  · exact hSafe.2.2.1 rfl
+
+theorem reviewCasHitPreservesZeroAuthority
+    {dagAcyclic planValidated actionAuthorized : Bool} {survivingWorlds : Nat}
+    (hSafe : ReviewPlanDagAndCasSafe dagAcyclic true planValidated actionAuthorized survivingWorlds) :
+    actionAuthorized = false :=
+  hSafe.2.2.2 rfl
+
 end LambdaAitiaProof.Modules.GitOps

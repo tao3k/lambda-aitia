@@ -116,3 +116,5 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.funflowChoiceFrontierPreservesZeroAuthority
 #print axioms GitOps.declarativePlanCannotWeakenClosedFloor
 #print axioms GitOps.declarativePlanViolationPrunesAllWorlds
+#print axioms GitOps.reviewPlanCycleRejectedFailClosed
+#print axioms GitOps.reviewCasHitPreservesZeroAuthority
