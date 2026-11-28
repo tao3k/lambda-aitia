@@ -235,6 +235,12 @@ pub(crate) fn run_review_flow_step_json(
     payload.insert("unstagedDiff".to_owned(), json!(unstaged_diff));
     payload.insert("baseRefDiff".to_owned(), json!(base_ref_diff));
 
+    let archive_vault = req
+        .get("vaultDir")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .map(|dir| (Path::new(dir), repo_dir));
+
     // Machine-execute optional LLM-authored Quint 0.33 ephemeral overlay strictly inside an
     // isolated sidecar vault and bind its verified result into Scheme ASCENT (fail-closed!).
     let overlay_exec = req
@@ -243,7 +249,12 @@ pub(crate) fn run_review_flow_step_json(
         .filter(|s| !s.trim().is_empty())
         .map(|source| {
             let name = req.get("quintOverlayName").and_then(Value::as_str);
-            super::formal_evidence::run_ephemeral_quint_overlay(source, name, &context_digest)
+            super::formal_evidence::run_ephemeral_quint_overlay(
+                source,
+                name,
+                &context_digest,
+                archive_vault,
+            )
         });
     if let Some(ref exec) = overlay_exec {
         if exec["passed"].as_bool() == Some(true)
@@ -294,7 +305,12 @@ pub(crate) fn run_review_flow_step_json(
         .filter(|s| !s.trim().is_empty())
         .map(|source| {
             let name = req.get("leanOverlayName").and_then(Value::as_str);
-            super::formal_evidence::run_ephemeral_lean_overlay(source, name, &context_digest)
+            super::formal_evidence::run_ephemeral_lean_overlay(
+                source,
+                name,
+                &context_digest,
+                archive_vault,
+            )
         });
     if let Some(ref exec) = lean_overlay_exec {
         if exec["passed"].as_bool() == Some(true)

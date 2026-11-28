@@ -272,7 +272,23 @@ def main() -> None:
         assert rev_qnt_vac["formalOverlayExecution"]["countermodelVerified"] is False
         assert rev_qnt_vac["formalOverlayExecution"]["storedInSidecarVault"] is True
 
-        #     (b) valid MR05 overlay (from Turn 1's own quintOverlayTemplate!) passes real quint!
+        #     (b) valid MR05 overlay (from Turn 1's own quintOverlayTemplate!) passes real quint
+        #         AND archives into external_vault (while rejecting vaultDir inside upstream_repo)!
+        _, rev_qnt_badvault_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={
+                "repo": str(upstream_repo),
+                "planSexp": plan_file.read_text(encoding="utf-8"),
+                "quintOverlayName": "ParserOverlay.qnt",
+                "quintOverlaySource": rev_discover["quintOverlayTemplate"],
+                "vaultDir": str(upstream_repo / ".aitia-illegal-vault"),
+            },
+        )
+        rev_qnt_badvault = json.loads(rev_qnt_badvault_out)
+        assert rev_qnt_badvault["formalOverlayExecution"]["passed"] is False
+        assert rev_qnt_badvault["formalOverlayExecution"]["storedInSidecarVault"] is False
+
         _, rev_qnt_ok_out, _ = run_cli(
             cli,
             ["review"],
@@ -281,6 +297,7 @@ def main() -> None:
                 "planSexp": plan_file.read_text(encoding="utf-8"),
                 "quintOverlayName": "ParserOverlay.qnt",
                 "quintOverlaySource": rev_discover["quintOverlayTemplate"],
+                "vaultDir": str(external_vault),
             },
         )
         rev_qnt_ok = json.loads(rev_qnt_ok_out)
@@ -293,6 +310,8 @@ def main() -> None:
         assert qexec["passed"] is True
         assert qexec["storedInSidecarVault"] is True
         assert qexec["actionAuthorized"] is False
+        assert pathlib.Path(qexec["archivedOverlayPath"]).is_file()
+        assert pathlib.Path(qexec["archivedReceiptPath"]).is_file()
         assert not (upstream_repo / "ParserOverlay.qnt").exists()
 
         # 0g. Verify Lean 4 kernel ephemeral overlay runner:
@@ -327,6 +346,7 @@ def main() -> None:
                 "planSexp": plan_file.read_text(encoding="utf-8"),
                 "leanOverlayName": "ParserOverlay.lean",
                 "leanOverlaySource": rev_discover["leanOverlayTemplate"],
+                "vaultDir": str(external_vault),
             },
         )
         rev_lean_ok = json.loads(rev_lean_ok_out)
@@ -343,6 +363,8 @@ def main() -> None:
             assert lexec["countermodelVerified"] is True
             assert lexec["theoremCount"] >= 2
             assert lexec["passed"] is True
+            assert pathlib.Path(lexec["archivedOverlayPath"]).is_file()
+            assert pathlib.Path(lexec["archivedReceiptPath"]).is_file()
 
         cyclic_plan = root / "cyclic-plan.sexp"
         cyclic_plan.write_text(

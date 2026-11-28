@@ -20,6 +20,6 @@ pub fn with_program<T>(
     program: LinkedGerbilProgram,
     operation: impl for<'runtime> FnOnce(&'runtime GerbilRuntime) -> Result<T, NativeError>,
 ) -> Result<T, NativeError> {
-    let runtime = GerbilRuntime::initialize_program(program)?;
+    let runtime = GerbilRuntime::initialize_program_single_processor(program)?;
     operation(&runtime)
 }

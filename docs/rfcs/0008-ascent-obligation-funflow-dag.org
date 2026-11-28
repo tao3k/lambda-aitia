@@ -151,6 +151,18 @@ six established and frontier lines of research into one verifiable POO + functio
    (=workflow-execute-choice-worlds=), deduplicating shared read-only prefixes (=cas-hit?: #t=)
    while running diverging epistemic probes independently under Bernstein disjoint footprints.
 
+7. *LLM-Native Progressive Self-Teaching Loop (RFC 0026)* (Xie et al., ICLR 2022; von Oswald
+   et al., ICML 2023; Liu et al., TACL 2024; Yang et al., /SWE-agent ACI/, NeurIPS 2024;
+   Patil et al., /Gorilla/, 2023; Wang et al., /Grammar Prompting/, NeurIPS 2023; Zhou et al.,
+   /SELF-DISCOVER/, 2024; Wang et al., /CodeAct/, ICML 2024; Shinn et al., /Reflexion/,
+   NeurIPS 2023; Gou et al., /CRITIC/, ICLR 2024):
+   Optimizes frozen-weight LLM inference directly (rather than human manual reading) via single-entry
+   =aitia review= / gRPC =StepReview= (=aitia_review_step=) discovery, Turn 1 recency-peak projection
+   of compact grammars + repo-tailored S-expr/Quint/Lean templates, Turn 2+ =compactChoices= unloading
+   + cross-round FunFlow CAS, and deterministic external verification via =gerbil-ascent=, Quint 0.33
+   MR05 =@countermodel=, and Lean 4 kernel checks. See
+   =docs/rfcs/0026-llm-progressive-self-teaching-funflow-loop.org=.
+
 * Phased Delivery
 
 - *Slice 1 (Completed)*: =modules/workflow= Yuanxu 5-role POO module + =GitOpsCommitWorkflowDomain.=
@@ -171,6 +183,13 @@ six established and frontier lines of research into one verifiable POO + functio
   =HostRead= fan-out, SysML v2 =WorkspaceRepo= first-class topology projection
   (=aitia flow run/submit-decision --workspace <workspace.sysml>=), and frozen-snapshot leaf Python
   verification capability (=python.observe-pytest=).
+- *Slice 5 (Completed)*: LLM-native progressive self-teaching review flow (=aitia review= / gRPC
+  =StepReview= / =GetToolSchema= in =modules/gitops/review-flow.ss= and =formal_evidence.rs=),
+  zero-=eval= =(aitia-review-plan ...)= S-expr with pre-execution DFS DAG cycle rejection, cross-round
+  content-addressed FunFlow CAS, DE formal catalog recommender, Turn 2+ =compactChoices= unloading,
+  live sidecar-vault Quint 0.33 + Lean 4 MR05 kernel overlay execution, 93 Lean 4 =GitOps= theorems,
+  and Marlin Agent Core offline + live API LLM (=deepseek-flash=, 3 turns) end-to-end verification
+  (RFC 0026).
 
 * Engineering UX & Downstream Delivery Boundary
 

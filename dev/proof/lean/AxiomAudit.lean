@@ -122,3 +122,4 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.compactDisclosurePreservesCoreInvariants
 #print axioms GitOps.sorryOverlayRejectedByKernel
 #print axioms GitOps.dualFormalOverlayPreservesZeroAuthority
+#print axioms GitOps.overlayVaultOutsideRepoRequired

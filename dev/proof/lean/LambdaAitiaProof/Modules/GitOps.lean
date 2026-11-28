@@ -982,4 +982,10 @@ theorem dualFormalOverlayPreservesZeroAuthority
     auth = false :=
   hSafe.2.2.2 ⟨rfl, rfl⟩
 
+theorem overlayVaultOutsideRepoRequired
+    {qPassed kOk clean cm admitted auth : Bool} :
+    ¬ DualFormalOverlayKernelSafe qPassed kOk clean cm admitted false auth := by
+  intro hSafe
+  exact Bool.false_ne_true hSafe.2.1
+
 end LambdaAitiaProof.Modules.GitOps

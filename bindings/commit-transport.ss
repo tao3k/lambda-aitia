@@ -815,7 +815,8 @@
                       (quintOverlayName (hash (type "string") (description "Optional safe `.qnt` basename for ephemeral sidecar-vault Quint overlay (default \"EphemeralOverlay.qnt\")")))
                       (quintOverlaySource (hash (type "string") (description "Optional Quint 0.33 `.qnt` ephemeral overlay source containing `// @countermodel`, >=1 positive invariant `run ...Test`, and >=1 `*Countermodel*Test` negative-control trace; machine-executed live by `quint` inside an isolated sidecar vault")))
                       (leanOverlayName (hash (type "string") (description "Optional safe `.lean` basename for ephemeral sidecar-vault Lean 4 overlay (default \"EphemeralOverlay.lean\")")))
-                      (leanOverlaySource (hash (type "string") (description "Optional standalone Lean 4 `.lean` ephemeral overlay source containing `-- @countermodel`, >=2 theorems incl. at least one `*Countermodel*` negative-control theorem, zero `sorry`/`axiom`; kernel-verified live by `lean` inside an isolated sidecar vault")))))
+                      (leanOverlaySource (hash (type "string") (description "Optional standalone Lean 4 `.lean` ephemeral overlay source containing `-- @countermodel`, >=2 theorems incl. at least one `*Countermodel*` negative-control theorem, zero `sorry`/`axiom`; kernel-verified live by `lean` inside an isolated sidecar vault")))
+                      (vaultDir (hash (type "string") (description "Optional external sidecar vault directory (MUST live strictly outside target repo) where verified Quint/Lean overlays and receipts are archived")))))
                (additionalProperties #t)))))
 
 (def (aitia-review-flow-step-payload payload)

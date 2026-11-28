@@ -211,6 +211,83 @@ impl Drop for EphemeralVaultDir {
     }
 }
 
+fn canonicalize_or_parent_path(path: &Path) -> std::io::Result<PathBuf> {
+    if path.exists() {
+        return fs::canonicalize(path);
+    }
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let canon_parent = canonicalize_or_parent_path(parent)?;
+    match path.file_name() {
+        Some(name) => Ok(canon_parent.join(name)),
+        None => Ok(canon_parent),
+    }
+}
+
+fn verify_vault_outside_repo(
+    vault_dir: &Path,
+    repo_dir: &Path,
+) -> std::result::Result<PathBuf, String> {
+    let canon_repo = fs::canonicalize(repo_dir)
+        .map_err(|e| format!("Failed to canonicalize repo `{}`: {e}", repo_dir.display()))?;
+    let canon_vault = canonicalize_or_parent_path(vault_dir).map_err(|e| {
+        format!(
+            "Failed to canonicalize vaultDir `{}`: {e}",
+            vault_dir.display()
+        )
+    })?;
+    if canon_vault == canon_repo || canon_vault.starts_with(&canon_repo) {
+        return Err(
+            "Vault-outside-repo violation: overlay vaultDir must live strictly outside target Git repository"
+                .to_owned(),
+        );
+    }
+    Ok(canon_vault)
+}
+
+fn persist_verified_overlay_artifact(
+    vault_dir: &Path,
+    model_id: &str,
+    resolver_digest: &str,
+    source: &str,
+    receipt: &Value,
+) -> std::result::Result<(String, String), String> {
+    fs::create_dir_all(vault_dir).map_err(|e| {
+        format!(
+            "Failed to create external vaultDir `{}`: {e}",
+            vault_dir.display()
+        )
+    })?;
+    let short_digest: String = resolver_digest
+        .strip_prefix("sha256:")
+        .unwrap_or(resolver_digest)
+        .chars()
+        .take(16)
+        .collect();
+    let overlay_path = vault_dir.join(format!("{short_digest}.{model_id}"));
+    let receipt_path = vault_dir.join(format!("{short_digest}.{model_id}.receipt.json"));
+    fs::write(&overlay_path, source).map_err(|e| {
+        format!(
+            "Failed to write archived overlay `{}`: {e}",
+            overlay_path.display()
+        )
+    })?;
+    let receipt_text = serde_json::to_string_pretty(receipt)
+        .map_err(|e| format!("Failed to serialize overlay receipt: {e}"))?;
+    fs::write(&receipt_path, format!("{receipt_text}\n")).map_err(|e| {
+        format!(
+            "Failed to write archived receipt `{}`: {e}",
+            receipt_path.display()
+        )
+    })?;
+    Ok((
+        overlay_path.to_string_lossy().into_owned(),
+        receipt_path.to_string_lossy().into_owned(),
+    ))
+}
+
 fn sanitize_quint_basename(raw: Option<&str>) -> String {
     let base = raw.unwrap_or("EphemeralOverlay.qnt").trim();
     let stem = base.strip_suffix(".qnt").unwrap_or(base);
@@ -329,16 +406,48 @@ fn parse_quint_passed_tests(output: &str) -> (Vec<String>, bool) {
 
 /// Machine-execute an LLM-authored Quint 0.33 ephemeral overlay strictly inside an isolated
 /// temporary sidecar vault (never touching the upstream Git repo) and enforce MR05 non-vacuous
-/// `@countermodel` verification. Never grants execution authority (`actionAuthorized: false`).
+/// `@countermodel` verification. When `archive_vault` `(vault_dir, repo_dir)` is supplied,
+/// enforces vault-outside-repo confinement and persists the verified `.qnt` + `.receipt.json`
+/// into `vault_dir`. Never grants execution authority (`actionAuthorized: false`).
 pub(crate) fn run_ephemeral_quint_overlay(
     source: &str,
     overlay_name: Option<&str>,
     context_digest: &str,
+    archive_vault: Option<(&Path, &Path)>,
 ) -> Value {
     let model_id = sanitize_quint_basename(overlay_name);
     let extends_model = extract_quint_extends(source);
     let source_digest = crate::source_tree::sha256(source.as_bytes());
     let cm_annotation = source.contains("@countermodel");
+
+    let verified_vault = match archive_vault {
+        Some((vault_dir, repo_dir)) => match verify_vault_outside_repo(vault_dir, repo_dir) {
+            Ok(path) => Some(path),
+            Err(reason) => {
+                return json!({
+                    "schema": "lambda-aitia.quint-overlay-execution.v1",
+                    "modelId": model_id,
+                    "extendsModel": extends_model,
+                    "mode": "ephemeral-ai-overlay",
+                    "libraryPackage": "@deterministic-engineering/quint-models",
+                    "storedInSidecarVault": false,
+                    "machineExecuted": false,
+                    "typecheckPassed": false,
+                    "testsPassed": false,
+                    "passingTestCount": 0,
+                    "countermodelAnnotationFound": cm_annotation,
+                    "countermodelTestFound": false,
+                    "countermodelVerified": false,
+                    "passed": false,
+                    "resolverDigest": source_digest,
+                    "contextDigest": context_digest,
+                    "diagnostics": [reason],
+                    "actionAuthorized": false,
+                });
+            }
+        },
+        None => None,
+    };
 
     if source.len() > MAX_QUINT_OVERLAY_BYTES {
         return json!({
@@ -469,7 +578,7 @@ pub(crate) fn run_ephemeral_quint_overlay(
         format!("quint-overlay-v1:{model_id}:{source_digest}").as_bytes(),
     );
 
-    json!({
+    let mut out = json!({
         "schema": "lambda-aitia.quint-overlay-execution.v1",
         "modelId": model_id,
         "extendsModel": extends_model,
@@ -489,7 +598,30 @@ pub(crate) fn run_ephemeral_quint_overlay(
         "contextDigest": context_digest,
         "diagnostics": diagnostics,
         "actionAuthorized": false,
-    })
+    });
+    if passed && let Some(ref vault_path) = verified_vault {
+        match persist_verified_overlay_artifact(
+            vault_path,
+            &model_id,
+            &resolver_digest,
+            source,
+            &out,
+        ) {
+            Ok((archived_overlay, archived_receipt)) => {
+                if let Some(obj) = out.as_object_mut() {
+                    obj.insert("archivedOverlayPath".to_owned(), json!(archived_overlay));
+                    obj.insert("archivedReceiptPath".to_owned(), json!(archived_receipt));
+                }
+            }
+            Err(e) => {
+                if let Some(obj) = out.as_object_mut() {
+                    obj.insert("passed".to_owned(), json!(false));
+                    obj.insert("diagnostics".to_owned(), json!([e]));
+                }
+            }
+        }
+    }
+    out
 }
 
 fn sanitize_lean_basename(raw: Option<&str>) -> String {
@@ -599,11 +731,14 @@ fn resolve_lean_binary() -> Option<PathBuf> {
 /// Machine-execute an LLM-authored Lean 4 ephemeral overlay strictly inside an isolated
 /// temporary sidecar vault (never touching the upstream Git repo) using the Lean 4 kernel,
 /// rejecting `sorry`/`axiom`/`admit`/`unsafe`/`native_decide` and enforcing MR05 non-vacuous
-/// `@countermodel` theorem verification. Never grants execution authority (`actionAuthorized: false`).
+/// `@countermodel` theorem verification. When `archive_vault` `(vault_dir, repo_dir)` is
+/// supplied, enforces vault-outside-repo confinement and persists the verified `.lean` +
+/// `.receipt.json` into `vault_dir`. Never grants execution authority (`actionAuthorized: false`).
 pub(crate) fn run_ephemeral_lean_overlay(
     source: &str,
     overlay_name: Option<&str>,
     context_digest: &str,
+    archive_vault: Option<(&Path, &Path)>,
 ) -> Value {
     let model_id = sanitize_lean_basename(overlay_name);
     let extends_model = extract_lean_extends(source);
@@ -613,6 +748,35 @@ pub(crate) fn run_ephemeral_lean_overlay(
     let cm_theorem_found = theorems
         .iter()
         .any(|t| t.to_ascii_lowercase().contains("countermodel"));
+
+    let verified_vault = match archive_vault {
+        Some((vault_dir, repo_dir)) => match verify_vault_outside_repo(vault_dir, repo_dir) {
+            Ok(path) => Some(path),
+            Err(reason) => {
+                return json!({
+                    "schema": "lambda-aitia.lean-overlay-execution.v1",
+                    "modelId": model_id,
+                    "extendsModel": extends_model,
+                    "mode": "ephemeral-ai-overlay",
+                    "libraryPackage": "@deterministic-engineering/lean-models",
+                    "storedInSidecarVault": false,
+                    "machineExecuted": false,
+                    "proofClean": false,
+                    "theoremCount": theorems.len(),
+                    "theorems": theorems,
+                    "countermodelAnnotationFound": cm_annotation,
+                    "countermodelTheoremFound": cm_theorem_found,
+                    "countermodelVerified": false,
+                    "passed": false,
+                    "resolverDigest": source_digest,
+                    "contextDigest": context_digest,
+                    "diagnostics": [reason],
+                    "actionAuthorized": false,
+                });
+            }
+        },
+        None => None,
+    };
 
     if source.len() > MAX_QUINT_OVERLAY_BYTES {
         return json!({
@@ -757,7 +921,7 @@ pub(crate) fn run_ephemeral_lean_overlay(
         format!("lean4-overlay-v1:{model_id}:{source_digest}").as_bytes(),
     );
 
-    json!({
+    let mut out = json!({
         "schema": "lambda-aitia.lean-overlay-execution.v1",
         "modelId": model_id,
         "extendsModel": extends_model,
@@ -777,5 +941,28 @@ pub(crate) fn run_ephemeral_lean_overlay(
         "contextDigest": context_digest,
         "diagnostics": diagnostics,
         "actionAuthorized": false,
-    })
+    });
+    if passed && let Some(ref vault_path) = verified_vault {
+        match persist_verified_overlay_artifact(
+            vault_path,
+            &model_id,
+            &resolver_digest,
+            source,
+            &out,
+        ) {
+            Ok((archived_overlay, archived_receipt)) => {
+                if let Some(obj) = out.as_object_mut() {
+                    obj.insert("archivedOverlayPath".to_owned(), json!(archived_overlay));
+                    obj.insert("archivedReceiptPath".to_owned(), json!(archived_receipt));
+                }
+            }
+            Err(e) => {
+                if let Some(obj) = out.as_object_mut() {
+                    obj.insert("passed".to_owned(), json!(false));
+                    obj.insert("diagnostics".to_owned(), json!([e]));
+                }
+            }
+        }
+    }
+    out
 }
