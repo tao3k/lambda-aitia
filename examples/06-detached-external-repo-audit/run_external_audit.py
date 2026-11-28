@@ -172,7 +172,7 @@ def main() -> None:
             encoding="utf-8",
         )
         test_proc = subprocess.run(
-            ["python3", "-m", "unittest", "discover", "-s", "tests"],
+            ["python3", "-B", "-m", "unittest", "discover", "-s", "tests"],
             cwd=upstream_repo,
             check=True,
             capture_output=True,

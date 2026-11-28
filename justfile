@@ -531,6 +531,10 @@ verify-examples:
         pypath="${pypath:-$py_stage}"
       fi
     fi
+    quint_bin="${AITIA_QUINT_BIN:-}"
+    if [[ -z "$quint_bin" && -x "$PWD/dev/proof/quint/node_modules/.bin/quint" ]]; then
+      quint_bin="$PWD/dev/proof/quint/node_modules/.bin/quint"
+    fi
     for script in \
       dev/qualification/diamond_differential_oracle.py \
       examples/cardano-diamond-release-train/run_diamond_train.py \
@@ -545,8 +549,10 @@ verify-examples:
       examples/08-native-ai-sidecar-cli/run_native_sidecar_cli.py; do
       echo "=== $script ==="
       env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME \
+        PYTHONDONTWRITEBYTECODE=1 \
+        AITIA_QUINT_BIN="$quint_bin" \
         AITIA_BIN="$cli" AITIA_CDYLIB="$cdylib" PYTHONPATH="$pypath" \
-        python3 "$script"
+        python3 -B "$script"
     done
     echo "AITIA-EXAMPLES-VERIFIED-OK"
 
