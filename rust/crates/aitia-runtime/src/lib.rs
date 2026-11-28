@@ -97,7 +97,7 @@ pub use linked::{AitiaProgram, c_abi, with_linked_program};
 #[cfg(feature = "linked-program")]
 mod session;
 #[cfg(feature = "linked-program")]
-pub use session::{AitiaSession, SessionError};
+pub use session::{AitiaSession, SessionError, shutdown_shared_owner};
 
 #[cfg(unix)]
 mod org_edit;

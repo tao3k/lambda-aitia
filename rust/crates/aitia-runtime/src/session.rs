@@ -6,40 +6,93 @@
 use crate::AitiaProgram;
 use gerbil_scheme::NativeError;
 use std::sync::mpsc::{self, SyncSender};
-use std::sync::{Arc, OnceLock};
-use std::thread;
+use std::sync::{Arc, Mutex};
+use std::thread::{self, JoinHandle};
 
 type Task = Box<dyn FnOnce(&AitiaProgram<'_>) + Send + 'static>;
 
-static SHARED_OWNER: OnceLock<Result<Arc<SyncSender<Task>>, String>> = OnceLock::new();
+enum OwnerMessage {
+    Run(Task),
+    Shutdown,
+}
 
-fn shared_sender() -> Result<Arc<SyncSender<Task>>, SessionError> {
-    let init = SHARED_OWNER.get_or_init(|| {
-        let (sender, requests) = mpsc::sync_channel::<Task>(0);
-        let (ready, initialized) = mpsc::sync_channel(0);
-        thread::Builder::new()
-            .name("aitia-scheme-owner".into())
-            .stack_size(16 * 1024 * 1024)
-            .spawn(move || {
-                let _ = crate::with_linked_program(|program| {
-                    if ready.send(()).is_err() {
-                        return Ok(());
+struct SharedOwner {
+    sender: Arc<SyncSender<OwnerMessage>>,
+    worker: Option<JoinHandle<()>>,
+}
+
+static SHARED_OWNER: Mutex<Option<Result<SharedOwner, String>>> = Mutex::new(None);
+
+fn shared_sender() -> Result<Arc<SyncSender<OwnerMessage>>, SessionError> {
+    let mut guard = SHARED_OWNER
+        .lock()
+        .map_err(|_| SessionError::OwnerPanicked)?;
+    if let Some(existing) = guard.as_ref() {
+        return match existing {
+            Ok(owner) => Ok(Arc::clone(&owner.sender)),
+            Err(msg) => Err(SessionError::Spawn(std::io::Error::other(msg.clone()))),
+        };
+    }
+
+    let (sender, requests) = mpsc::sync_channel::<OwnerMessage>(0);
+    let (ready, initialized) = mpsc::sync_channel(0);
+    let worker = match thread::Builder::new()
+        .name("aitia-scheme-owner".into())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(move || {
+            let _ = crate::with_linked_program(|program| {
+                if ready.send(()).is_err() {
+                    return Ok(());
+                }
+                for msg in requests {
+                    match msg {
+                        OwnerMessage::Run(task) => task(&program),
+                        OwnerMessage::Shutdown => break,
                     }
-                    for task in requests {
-                        task(&program);
-                    }
-                    Ok(())
-                });
-            })
-            .map_err(|e| format!("could not start AITIA owner: {e}"))?;
-        if initialized.recv().is_err() {
-            return Err("AITIA owner stopped during initialization".to_owned());
+                }
+                Ok(())
+            });
+        }) {
+        Ok(handle) => handle,
+        Err(error) => {
+            let msg = format!("could not start AITIA owner: {error}");
+            *guard = Some(Err(msg.clone()));
+            return Err(SessionError::Spawn(std::io::Error::other(msg)));
         }
-        Ok(Arc::new(sender))
-    });
-    match init {
-        Ok(sender) => Ok(Arc::clone(sender)),
-        Err(msg) => Err(SessionError::Spawn(std::io::Error::other(msg.clone()))),
+    };
+    if initialized.recv().is_err() {
+        let _ = worker.join();
+        let msg = "AITIA owner stopped during initialization".to_owned();
+        *guard = Some(Err(msg.clone()));
+        return Err(SessionError::Spawn(std::io::Error::other(msg)));
+    }
+    let sender = Arc::new(sender);
+    *guard = Some(Ok(SharedOwner {
+        sender: Arc::clone(&sender),
+        worker: Some(worker),
+    }));
+    Ok(sender)
+}
+
+/// Gracefully shuts down and joins the process-global Scheme owner thread so
+/// Gambit performs `___cleanup()` before host process finalization (`atexit` /
+/// `dlclose`). Idempotent; subsequent `AitiaSession::start` calls fail closed
+/// rather than attempting a forbidden second Gambit initialization.
+pub fn shutdown_shared_owner() {
+    let owner = {
+        let Ok(mut guard) = SHARED_OWNER.lock() else {
+            return;
+        };
+        let previous = guard.take();
+        *guard = Some(Err("AITIA owner shut down".to_owned()));
+        previous
+    };
+    if let Some(Ok(mut shared)) = owner {
+        let _ = shared.sender.send(OwnerMessage::Shutdown);
+        drop(shared.sender);
+        if let Some(worker) = shared.worker.take() {
+            let _ = worker.join();
+        }
     }
 }
 
@@ -69,7 +122,7 @@ impl std::error::Error for SessionError {}
 /// Multiple sessions and free functions share the live owner safely without
 /// ever attempting a second Gambit initialization.
 pub struct AitiaSession {
-    sender: Option<Arc<SyncSender<Task>>>,
+    sender: Option<Arc<SyncSender<OwnerMessage>>>,
 }
 
 impl AitiaSession {
@@ -102,7 +155,7 @@ impl AitiaSession {
         self.sender
             .as_ref()
             .ok_or(SessionError::OwnerStopped)?
-            .send(task)
+            .send(OwnerMessage::Run(task))
             .map_err(|_| SessionError::OwnerStopped)?;
         response.recv().map_err(|_| SessionError::OwnerStopped)
     }

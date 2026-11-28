@@ -3,9 +3,9 @@
 
 use aitia_runtime::{AitiaSession, SessionError};
 use pyo3::exceptions::PyRuntimeError;
+use pyo3::types::{PyAnyMethods, PyModule, PyModuleMethods};
 #[cfg(unix)]
 use pyo3::types::{PyBytes, PyBytesMethods, PyDict, PyDictMethods};
-use pyo3::types::{PyModule, PyModuleMethods};
 use pyo3::{
     Bound, Py, PyAny, PyErr, PyRef, PyResult, Python, pyclass, pyfunction, pymethods, pymodule,
 };
@@ -613,8 +613,19 @@ fn verify_de_formal_evidence(
     .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
+#[pyfunction]
+fn _shutdown_runtime(py: Python<'_>) {
+    py.detach(aitia_runtime::shutdown_shared_owner);
+}
+
 #[pymodule]
 fn lambda_aitia_rust(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    let shutdown_fn = pyo3::wrap_pyfunction!(_shutdown_runtime, module)?;
+    module.add_function(shutdown_fn.clone())?;
+    module
+        .py()
+        .import("atexit")?
+        .call_method1("register", (shutdown_fn,))?;
     module.add_function(pyo3::wrap_pyfunction!(host_capabilities, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(dispatch_host_frames, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(

@@ -550,9 +550,10 @@ verify-examples:
       echo "=== $script ==="
       env -u GERBIL_LOADPATH -u GERBIL_PATH -u GERBIL_HOME \
         PYTHONDONTWRITEBYTECODE=1 \
+        PYTHONUNBUFFERED=1 \
         AITIA_QUINT_BIN="$quint_bin" \
         AITIA_BIN="$cli" AITIA_CDYLIB="$cdylib" PYTHONPATH="$pypath" \
-        python3 -B "$script"
+        python3 -B -u -X faulthandler "$script"
     done
     echo "AITIA-EXAMPLES-VERIFIED-OK"
 
