@@ -120,3 +120,5 @@ open LambdaAitiaProof.Modules
 #print axioms GitOps.reviewCasHitPreservesZeroAuthority
 #print axioms GitOps.unexecutedOverlayCannotSelfCertify
 #print axioms GitOps.compactDisclosurePreservesCoreInvariants
+#print axioms GitOps.sorryOverlayRejectedByKernel
+#print axioms GitOps.dualFormalOverlayPreservesZeroAuthority

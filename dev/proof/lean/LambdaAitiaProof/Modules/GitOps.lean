@@ -957,4 +957,29 @@ theorem compactDisclosurePreservesCoreInvariants
     floor = true ∧ auth = false :=
   hSafe.2.2.2 rfl
 
+/-- Dual-mode Quint + Lean 4 kernel ephemeral overlay safety predicate:
+    Lean overlays containing `sorry`/axioms (`leanProofClean = false`) cannot be admitted
+    by the kernel, and admitting both Quint and Lean machine-verified overlays strictly
+    preserves `actionAuthorized = false` and sidecar-vault isolation. -/
+def DualFormalOverlayKernelSafe
+    (quintPassed leanKernelOk leanProofClean leanCmVerified leanAdmitted
+     sidecarVaultOnly actionAuthorized : Bool) : Prop :=
+  actionAuthorized = false ∧
+  sidecarVaultOnly = true ∧
+  (leanAdmitted = true →
+    leanKernelOk = true ∧ leanProofClean = true ∧ leanCmVerified = true) ∧
+  (quintPassed = true ∧ leanAdmitted = true → actionAuthorized = false)
+
+theorem sorryOverlayRejectedByKernel
+    {qPassed kOk cm vault auth : Bool} :
+    ¬ DualFormalOverlayKernelSafe qPassed kOk false cm true vault auth := by
+  intro hSafe
+  exact Bool.false_ne_true (hSafe.2.2.1 rfl).2.1
+
+theorem dualFormalOverlayPreservesZeroAuthority
+    {kOk clean cm vault auth : Bool}
+    (hSafe : DualFormalOverlayKernelSafe true kOk clean cm true vault auth) :
+    auth = false :=
+  hSafe.2.2.2 ⟨rfl, rfl⟩
+
 end LambdaAitiaProof.Modules.GitOps

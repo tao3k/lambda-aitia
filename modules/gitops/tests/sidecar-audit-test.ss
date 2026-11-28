@@ -408,10 +408,11 @@
                    changed-paths: '("crates/marlin-agent-harness/src/live_weaver/governance.rs")
                    plan-sexp: sexp-cycle)))
              (tool-schema (gitops-review-tool-schema)))
-        ;; Turn 1 emits teaching kit + DE formal model recommendations + Quint MR05 overlay template
+        ;; Turn 1 emits teaching kit + DE formal model recommendations + Quint & Lean MR05 templates
         (check-equal? (and (.get r-turn1 dsl-grammar) #t) #t)
         (check-equal? (and (.get r-turn1 sexp-plan-template) #t) #t)
         (check-equal? (and (.get r-turn1 quint-overlay-template) #t) #t)
+        (check-equal? (and (.get r-turn1 lean-overlay-template) #t) #t)
         (check-equal? (> (length (.get r-turn1 recommended-formal-models)) 0) #t)
         ;; Turn 2 hits cross-round FunFlow CAS and omits bulky grammar/templates
         (check-equal? (.get (.get r-turn2 shared-prefix) shared-prefix-cas-hit?) #t)
@@ -419,6 +420,7 @@
         (check-equal? (.get r-turn2 dsl-grammar) #f)
         (check-equal? (.get r-turn2 sexp-plan-template) #f)
         (check-equal? (.get r-turn2 quint-overlay-template) #f)
+        (check-equal? (.get r-turn2 lean-overlay-template) #f)
         (check-equal? (.get (.get r-turn2 plan-validation) acyclic?) #t)
         (check-equal? (.get (.get r-turn2 ascent-choice-solution) world-count) 1)
         ;; Cyclic depends-on fails closed with 0 surviving worlds and re-emits teaching kit

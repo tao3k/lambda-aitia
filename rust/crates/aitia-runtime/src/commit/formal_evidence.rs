@@ -491,3 +491,291 @@ pub(crate) fn run_ephemeral_quint_overlay(
         "actionAuthorized": false,
     })
 }
+
+fn sanitize_lean_basename(raw: Option<&str>) -> String {
+    let base = raw.unwrap_or("EphemeralOverlay.lean").trim();
+    let stem = base.strip_suffix(".lean").unwrap_or(base);
+    let cleaned: String = stem
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .take(48)
+        .collect();
+    if cleaned.is_empty()
+        || !cleaned
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic())
+    {
+        "EphemeralOverlay.lean".to_owned()
+    } else {
+        format!("{cleaned}.lean")
+    }
+}
+
+fn extract_lean_extends(source: &str) -> Option<String> {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        let rest = trimmed
+            .strip_prefix("-- @lean-extends")
+            .or_else(|| trimmed.strip_prefix("// @lean-extends"));
+        if let Some(r) = rest {
+            let model = r.trim().split_whitespace().next().unwrap_or("");
+            if !model.is_empty() {
+                return Some(model.to_owned());
+            }
+        }
+    }
+    None
+}
+
+fn scan_lean_source_meta(source: &str) -> (Vec<String>, Vec<String>) {
+    let mut theorems = Vec::new();
+    let mut forbidden = Vec::new();
+    for line in source.lines() {
+        let code_part = line.split("--").next().unwrap_or("");
+        let trimmed = code_part.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        for tok in trimmed.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
+            if matches!(
+                tok,
+                "sorry"
+                    | "admit"
+                    | "sorryAx"
+                    | "axiom"
+                    | "unsafe"
+                    | "native_decide"
+                    | "implemented_by"
+            ) && !forbidden.iter().any(|f| f == tok)
+            {
+                forbidden.push(tok.to_owned());
+            }
+        }
+        if let Some(rest) = trimmed.strip_prefix("theorem ")
+            && let Some(name) = rest
+                .split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '.')
+                .next()
+            && !name.is_empty()
+        {
+            theorems.push(name.to_owned());
+        }
+    }
+    (theorems, forbidden)
+}
+
+fn resolve_lean_binary() -> Option<PathBuf> {
+    if let Some(explicit) = std::env::var_os("AITIA_LEAN_BIN").filter(|v| !v.is_empty()) {
+        let p = PathBuf::from(explicit);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        let elan_lean = PathBuf::from(home).join(".elan/bin/lean");
+        if elan_lean.is_file() {
+            return Some(elan_lean);
+        }
+    }
+    for candidate in [
+        Path::new("/opt/homebrew/bin/lean"),
+        Path::new("/usr/local/bin/lean"),
+    ] {
+        if candidate.is_file() {
+            return Some(candidate.to_path_buf());
+        }
+    }
+    if let Ok(path_var) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            let cand = dir.join("lean");
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
+    }
+    None
+}
+
+/// Machine-execute an LLM-authored Lean 4 ephemeral overlay strictly inside an isolated
+/// temporary sidecar vault (never touching the upstream Git repo) using the Lean 4 kernel,
+/// rejecting `sorry`/`axiom`/`admit`/`unsafe`/`native_decide` and enforcing MR05 non-vacuous
+/// `@countermodel` theorem verification. Never grants execution authority (`actionAuthorized: false`).
+pub(crate) fn run_ephemeral_lean_overlay(
+    source: &str,
+    overlay_name: Option<&str>,
+    context_digest: &str,
+) -> Value {
+    let model_id = sanitize_lean_basename(overlay_name);
+    let extends_model = extract_lean_extends(source);
+    let source_digest = crate::source_tree::sha256(source.as_bytes());
+    let cm_annotation = source.contains("@countermodel");
+    let (theorems, forbidden_tokens) = scan_lean_source_meta(source);
+    let cm_theorem_found = theorems
+        .iter()
+        .any(|t| t.to_ascii_lowercase().contains("countermodel"));
+
+    if source.len() > MAX_QUINT_OVERLAY_BYTES {
+        return json!({
+            "schema": "lambda-aitia.lean-overlay-execution.v1",
+            "modelId": model_id,
+            "extendsModel": extends_model,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/lean-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "proofClean": false,
+            "theoremCount": theorems.len(),
+            "theorems": theorems,
+            "countermodelAnnotationFound": cm_annotation,
+            "countermodelTheoremFound": cm_theorem_found,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": ["Lean overlay source exceeds 128 KiB safety bound"],
+            "actionAuthorized": false,
+        });
+    }
+
+    if !forbidden_tokens.is_empty() {
+        return json!({
+            "schema": "lambda-aitia.lean-overlay-execution.v1",
+            "modelId": model_id,
+            "extendsModel": extends_model,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/lean-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "proofClean": false,
+            "theoremCount": theorems.len(),
+            "theorems": theorems,
+            "countermodelAnnotationFound": cm_annotation,
+            "countermodelTheoremFound": cm_theorem_found,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": [format!(
+                "Lean kernel fail-closed: forbidden proof-bypass token(s) rejected: {}",
+                forbidden_tokens.join(", ")
+            )],
+            "actionAuthorized": false,
+        });
+    }
+
+    let Some(lean_bin) = resolve_lean_binary() else {
+        return json!({
+            "schema": "lambda-aitia.lean-overlay-execution.v1",
+            "modelId": model_id,
+            "extendsModel": extends_model,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/lean-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "pendingOracle": "lean",
+            "proofClean": false,
+            "theoremCount": theorems.len(),
+            "theorems": theorems,
+            "countermodelAnnotationFound": cm_annotation,
+            "countermodelTheoremFound": cm_theorem_found,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": ["PendingMethod: local `lean` binary unavailable (set AITIA_LEAN_BIN or install Lean 4)"],
+            "actionAuthorized": false,
+        });
+    };
+
+    let seq = QUINT_VAULT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let vault_dir =
+        std::env::temp_dir().join(format!("aitia-lean-vault-{}-{seq}", std::process::id()));
+    if let Err(e) = fs::create_dir_all(&vault_dir) {
+        return json!({
+            "schema": "lambda-aitia.lean-overlay-execution.v1",
+            "modelId": model_id,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/lean-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "proofClean": false,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": [format!("Failed to create isolated Lean sidecar vault: {e}")],
+            "actionAuthorized": false,
+        });
+    }
+    let _guard = EphemeralVaultDir(vault_dir.clone());
+    let lean_path = vault_dir.join(&model_id);
+    if let Err(e) = fs::write(&lean_path, source) {
+        return json!({
+            "schema": "lambda-aitia.lean-overlay-execution.v1",
+            "modelId": model_id,
+            "mode": "ephemeral-ai-overlay",
+            "libraryPackage": "@deterministic-engineering/lean-models",
+            "storedInSidecarVault": true,
+            "machineExecuted": false,
+            "proofClean": false,
+            "countermodelVerified": false,
+            "passed": false,
+            "resolverDigest": source_digest,
+            "contextDigest": context_digest,
+            "diagnostics": [format!("Failed to write Lean overlay in sidecar vault: {e}")],
+            "actionAuthorized": false,
+        });
+    }
+
+    let lean_str = lean_path.to_string_lossy().into_owned();
+    let (kernel_ok, kernel_out) = run_bounded_quint_cmd(&lean_bin, &[&lean_str], &vault_dir)
+        .unwrap_or_else(|e| (false, format!("failed to spawn lean kernel: {e}")));
+    let mut diagnostics: Vec<String> = Vec::new();
+    let kernel_mentions_sorry =
+        kernel_out.contains("sorryAx") || kernel_out.contains("uses 'sorry'");
+    if !kernel_ok || kernel_mentions_sorry {
+        diagnostics.push(kernel_out.chars().take(1200).collect());
+    }
+    let has_pos_and_cm = theorems.len() >= 2 && cm_theorem_found;
+    if kernel_ok && !cm_annotation {
+        diagnostics.push(
+            "MR05 fail-closed: add `-- @countermodel` annotation to prove non-vacuous Lean overlay"
+                .to_owned(),
+        );
+    }
+    if kernel_ok && !has_pos_and_cm {
+        diagnostics.push(
+            "MR05 fail-closed: Lean overlay must prove >= 2 theorems including at least one `*Countermodel*` negative-control theorem"
+                .to_owned(),
+        );
+    }
+
+    let proof_clean = kernel_ok && !kernel_mentions_sorry && forbidden_tokens.is_empty();
+    let cm_verified = proof_clean && cm_annotation && has_pos_and_cm;
+    let passed = cm_verified;
+    let resolver_digest = crate::source_tree::sha256(
+        format!("lean4-overlay-v1:{model_id}:{source_digest}").as_bytes(),
+    );
+
+    json!({
+        "schema": "lambda-aitia.lean-overlay-execution.v1",
+        "modelId": model_id,
+        "extendsModel": extends_model,
+        "mode": "ephemeral-ai-overlay",
+        "libraryPackage": "@deterministic-engineering/lean-models",
+        "storedInSidecarVault": true,
+        "machineExecuted": true,
+        "kernelPassed": kernel_ok,
+        "proofClean": proof_clean,
+        "theoremCount": theorems.len(),
+        "theorems": theorems,
+        "countermodelAnnotationFound": cm_annotation,
+        "countermodelTheoremFound": cm_theorem_found,
+        "countermodelVerified": cm_verified,
+        "passed": passed,
+        "resolverDigest": resolver_digest,
+        "contextDigest": context_digest,
+        "diagnostics": diagnostics,
+        "actionAuthorized": false,
+    })
+}

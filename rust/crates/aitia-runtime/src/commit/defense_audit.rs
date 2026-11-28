@@ -286,6 +286,58 @@ pub(crate) fn run_review_flow_step_json(
         }
     }
 
+    // Machine-execute optional LLM-authored Lean 4 ephemeral overlay strictly inside an
+    // isolated sidecar vault via the Lean 4 kernel and bind its verified result into Scheme ASCENT.
+    let lean_overlay_exec = req
+        .get("leanOverlaySource")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .map(|source| {
+            let name = req.get("leanOverlayName").and_then(Value::as_str);
+            super::formal_evidence::run_ephemeral_lean_overlay(source, name, &context_digest)
+        });
+    if let Some(ref exec) = lean_overlay_exec {
+        if exec["passed"].as_bool() == Some(true)
+            && exec["proofClean"].as_bool() == Some(true)
+            && exec["countermodelVerified"].as_bool() == Some(true)
+        {
+            let entry = json!({
+                "modelId": exec["modelId"],
+                "mode": "ephemeral-ai-overlay",
+                "libraryPackage": exec["libraryPackage"],
+                "resolverDigest": exec["resolverDigest"],
+                "contextDigest": context_digest,
+                "countermodelVerified": true,
+                "proofClean": true,
+                "passed": true,
+                "storedInSidecarVault": true,
+            });
+            match payload
+                .get_mut("formalModels")
+                .and_then(Value::as_array_mut)
+            {
+                Some(arr) => arr.push(entry),
+                None => {
+                    payload.insert("formalModels".to_owned(), json!([entry]));
+                }
+            }
+        } else {
+            let oracle_tag = exec
+                .get("pendingOracle")
+                .and_then(Value::as_str)
+                .unwrap_or("lean-ephemeral-overlay-failed");
+            match payload
+                .get_mut("pendingOracles")
+                .and_then(Value::as_array_mut)
+            {
+                Some(arr) => arr.push(json!(oracle_tag)),
+                None => {
+                    payload.insert("pendingOracles".to_owned(), json!([oracle_tag]));
+                }
+            }
+        }
+    }
+
     let req_str = serde_json::to_string(&Value::Object(payload))?;
     let raw_response = match session_opt {
         Some(session) => session
@@ -304,6 +356,9 @@ pub(crate) fn run_review_flow_step_json(
         obj.insert("vcsObservation".to_owned(), serde_json::to_value(&vcs)?);
         if let Some(exec) = overlay_exec {
             obj.insert("formalOverlayExecution".to_owned(), exec);
+        }
+        if let Some(exec) = lean_overlay_exec {
+            obj.insert("leanOverlayExecution".to_owned(), exec);
         }
         obj.insert("actionAuthorized".to_owned(), json!(false));
     }

@@ -215,6 +215,7 @@ def main() -> None:
         assert "repair-diff-defects" in rev_bad["selfHealingHint"]["validChoiceIds"]
         assert "dslGrammar" in rev_discover and "sexpPlanTemplate" in rev_discover
         assert "quintOverlayTemplate" in rev_discover and "@countermodel" in rev_discover["quintOverlayTemplate"]
+        assert "leanOverlayTemplate" in rev_discover and "@countermodel" in rev_discover["leanOverlayTemplate"]
         assert rev_discover["compactChoices"] is False
         assert "template" in rev_discover["choices"][0]
 
@@ -293,6 +294,55 @@ def main() -> None:
         assert qexec["storedInSidecarVault"] is True
         assert qexec["actionAuthorized"] is False
         assert not (upstream_repo / "ParserOverlay.qnt").exists()
+
+        # 0g. Verify Lean 4 kernel ephemeral overlay runner:
+        #     (a) `sorry` proof bypass MUST ALWAYS fail closed (even without lean binary!)
+        sorry_lean = (
+            "-- @countermodel\n"
+            "theorem fakeSafe : True := by sorry\n"
+            "theorem fakeCountermodel : False := by sorry\n"
+        )
+        _, rev_lean_sorry_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={
+                "repo": str(upstream_repo),
+                "planSexp": plan_file.read_text(encoding="utf-8"),
+                "leanOverlayName": "SorryOverlay.lean",
+                "leanOverlaySource": sorry_lean,
+            },
+        )
+        rev_lean_sorry = json.loads(rev_lean_sorry_out)
+        assert rev_lean_sorry["leanOverlayExecution"]["passed"] is False
+        assert rev_lean_sorry["leanOverlayExecution"]["proofClean"] is False
+        assert rev_lean_sorry["leanOverlayExecution"]["actionAuthorized"] is False
+
+        #     (b) valid MR05 Lean 4 overlay (from Turn 1's own leanOverlayTemplate!):
+        #         passes Lean 4 kernel when `lean` is installed, or fails closed as PendingMethod!
+        _, rev_lean_ok_out, _ = run_cli(
+            cli,
+            ["review"],
+            stdin_payload={
+                "repo": str(upstream_repo),
+                "planSexp": plan_file.read_text(encoding="utf-8"),
+                "leanOverlayName": "ParserOverlay.lean",
+                "leanOverlaySource": rev_discover["leanOverlayTemplate"],
+            },
+        )
+        rev_lean_ok = json.loads(rev_lean_ok_out)
+        lexec = rev_lean_ok["leanOverlayExecution"]
+        assert lexec["storedInSidecarVault"] is True
+        assert lexec["actionAuthorized"] is False
+        assert not (upstream_repo / "ParserOverlay.lean").exists()
+        if lexec.get("pendingOracle") == "lean":
+            assert lexec["passed"] is False and lexec["machineExecuted"] is False
+        else:
+            assert lexec["machineExecuted"] is True
+            assert lexec["kernelPassed"] is True
+            assert lexec["proofClean"] is True
+            assert lexec["countermodelVerified"] is True
+            assert lexec["theoremCount"] >= 2
+            assert lexec["passed"] is True
 
         cyclic_plan = root / "cyclic-plan.sexp"
         cyclic_plan.write_text(

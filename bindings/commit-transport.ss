@@ -813,7 +813,9 @@
                       (openBranches (hash (type "array") (items (hash (type "string")))))
                       (refutedBranches (hash (type "array") (items (hash (type "string")))))
                       (quintOverlayName (hash (type "string") (description "Optional safe `.qnt` basename for ephemeral sidecar-vault Quint overlay (default \"EphemeralOverlay.qnt\")")))
-                      (quintOverlaySource (hash (type "string") (description "Optional Quint 0.33 `.qnt` ephemeral overlay source containing `// @countermodel`, >=1 positive invariant `run ...Test`, and >=1 `*Countermodel*Test` negative-control trace; machine-executed live by `quint` inside an isolated sidecar vault")))))
+                      (quintOverlaySource (hash (type "string") (description "Optional Quint 0.33 `.qnt` ephemeral overlay source containing `// @countermodel`, >=1 positive invariant `run ...Test`, and >=1 `*Countermodel*Test` negative-control trace; machine-executed live by `quint` inside an isolated sidecar vault")))
+                      (leanOverlayName (hash (type "string") (description "Optional safe `.lean` basename for ephemeral sidecar-vault Lean 4 overlay (default \"EphemeralOverlay.lean\")")))
+                      (leanOverlaySource (hash (type "string") (description "Optional standalone Lean 4 `.lean` ephemeral overlay source containing `-- @countermodel`, >=2 theorems incl. at least one `*Countermodel*` negative-control theorem, zero `sorry`/`axiom`; kernel-verified live by `lean` inside an isolated sidecar vault")))))
                (additionalProperties #t)))))
 
 (def (aitia-review-flow-step-payload payload)
@@ -863,6 +865,7 @@
              (dsl-g (.get res dsl-grammar))
              (sexp-t (.get res sexp-plan-template))
              (qnt-t (.get res quint-overlay-template))
+             (lean-t (.get res lean-overlay-template))
              (emit-kit? (.get res emit-teaching-kit?))
              (out
               (hash (schema (.get res schema))
@@ -917,6 +920,8 @@
           (hash-put! out 'sexpPlanTemplate sexp-t))
         (when qnt-t
           (hash-put! out 'quintOverlayTemplate qnt-t))
+        (when lean-t
+          (hash-put! out 'leanOverlayTemplate lean-t))
         (when sh
           (hash-put! out 'selfHealingHint
                      (hash (rejectedChoice (.get sh rejected-choice))

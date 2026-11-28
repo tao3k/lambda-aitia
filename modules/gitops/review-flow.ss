@@ -694,6 +694,28 @@
      "  run mr05CountermodelTest = init.then(buggyFallback).expect(not(failClosedInv))\n"
      "}")))
 
+(def (render-lean-overlay-template recs)
+  (let* ((lrec (let loop ((xs recs))
+                 (cond
+                  ((null? xs) #f)
+                  ((equal? (.get (car xs) formal-kind) "lean4") (car xs))
+                  (else (loop (cdr xs))))))
+         (extends-id (if lrec (.get lrec model-id) "SubprocessEnvScrubAndAuthTiming")))
+    (string-append
+     "-- @lean-extends " extends-id "\n"
+     "-- @countermodel\n"
+     "namespace EphemeralOverlay\n\n"
+     "def failClosedInv (inputValid authorized : Bool) : Prop :=\n"
+     "  authorized = true -> inputValid = true\n\n"
+     "theorem safePathPreservesInv : failClosedInv true true := by\n"
+     "  intro _; rfl\n\n"
+     "theorem mr05CountermodelUnsafeFallback : Not (failClosedInv false true) := by\n"
+     "  intro h\n"
+     "  exact Bool.false_ne_true (h rfl)\n\n"
+     "#print axioms safePathPreservesInv\n"
+     "#print axioms mr05CountermodelUnsafeFallback\n\n"
+     "end EphemeralOverlay")))
+
 ;; ── Single-Source-of-Truth Tool-Calling JSON Schema Projection ─────────────
 
 (def (gitops-review-tool-schema)
@@ -703,7 +725,7 @@
       (read-only? := #t)
       (action-authorized? := #f)
       (description
-       := "Read-only FunFlow/ASCENT SDLC Git/JJ review oracle. Turn 1: call with {} or {repo} to discover live gix/jj-lib diff state, DE G2 findings, recommended DE Quint/Lean models, dslGrammar, repo-tailored (aitia-review-plan ...) sexpPlanTemplate, and quintOverlayTemplate. Turn 2+: pass planSexp (zero-eval S-expr) with open-branches, probes (supports/refutes), subdomain rule-pack, and optional quintOverlaySource (Quint 0.33 module with // @countermodel + positive & *Countermodel*Test traces, executed live in an isolated sidecar vault) to converge worlds via ASCENT relational-choice-solve. Never executes writes.")))
+       := "Read-only FunFlow/ASCENT SDLC Git/JJ review oracle. Turn 1: call with {} or {repo} to discover live gix/jj-lib diff state, DE G2 findings, recommended DE Quint/Lean models, dslGrammar, repo-tailored (aitia-review-plan ...) sexpPlanTemplate, quintOverlayTemplate, and leanOverlayTemplate. Turn 2+: pass planSexp (zero-eval S-expr) with open-branches, probes (supports/refutes), subdomain rule-pack, and optional quintOverlaySource / leanOverlaySource (executed live by `quint` / `lean` kernel in an isolated sidecar vault with MR05 @countermodel verification) to converge worlds via ASCENT relational-choice-solve. Never executes writes.")))
 
 (def (build-progressive-choices
       repo-hint base-ref ctx-digest diff-res ascent-res fenced-admitted?)
@@ -1000,6 +1022,9 @@
         (quint-overlay-template := (if emit-teaching-kit?
                                      (render-quint-overlay-template recs)
                                      #f))
+        (lean-overlay-template := (if emit-teaching-kit?
+                                    (render-lean-overlay-template recs)
+                                    #f))
         (choices := choices)
         (self-healing-hint := self-healing)
         (diff-result := diff-res)

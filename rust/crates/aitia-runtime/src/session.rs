@@ -19,6 +19,7 @@ fn shared_sender() -> Result<Arc<SyncSender<Task>>, SessionError> {
         let (ready, initialized) = mpsc::sync_channel(0);
         thread::Builder::new()
             .name("aitia-scheme-owner".into())
+            .stack_size(16 * 1024 * 1024)
             .spawn(move || {
                 let _ = crate::with_linked_program(|program| {
                     if ready.send(()).is_err() {
