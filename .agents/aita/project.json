@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "services": {
+    "sysml": {
+      "enable": true,
+      "parse": true
+    }
+  },
+  "programs": {
+    "jj": {
+      "enable": true,
+      "settings": {
+        "project": "tao3k/lambda-aitia",
+        "profile": "nasa/sdlc/npr-7150.2",
+        "primary": "SWE-084",
+        "checks": [
+          {
+            "requirement": "SWE-083",
+            "method": "jj.recorded-change"
+          },
+          {
+            "requirement": "SWE-084",
+            "method": "jj.configuration-audit"
+          }
+        ],
+        "naming": {
+          "convention": "conventional-commits",
+          "types": [
+            "build",
+            "chore",
+            "ci",
+            "docs",
+            "feat",
+            "fix",
+            "perf",
+            "refactor",
+            "style",
+            "test"
+          ],
+          "references": [
+            {
+              "identity": "RFC-0007",
+              "source": "docs/rfcs/0007-source-bound-commit-engineering.org",
+              "element": "lambda-aitia-commit-engineering"
+            },
+            {
+              "identity": "RFC-0008",
+              "source": "docs/rfcs/0008-ascent-obligation-funflow-dag.org",
+              "element": "ascent-obligation-funflow"
+            }
+          ],
+          "languageSources": [
+            "README.org"
+          ]
+        }
+      }
+    }
+  }
+}

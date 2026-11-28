@@ -1,0 +1,114 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: AITIA independent package — Assurance and ADR Module qualification
+
+:PROPERTIES:
+:ID: lambda-aitia-yuanxu-module-slice-2026-11-07
+:STATUS: partial
+:DATE: 2026-11-07
+:REVISION: r1
+:END:
+
+* Qualified boundary
+
+This receipt qualifies Assurance/ADR in the existing workspace Scheme package
+pool. AITIA is an independent =lambda-aitia= package; Yuanxu supplies its
+declaration language and Module mechanisms. The host Git submodule location
+does not define its namespace. This is dirty-worktree local evidence, not
+remote CI, a release or complete AITIA migration acceptance.
+
+[[file:../plans/yuanxu-rust-framework-implementation.org][The implementation plan]] retains unfinished obligations. [[file:../../init.ss][AITIA's init]] selects
+[[file:../../modules/assurance/interface.ss][Assurance]] and [[file:../../modules/ADR/interface.ss][ADR]]. The build consumes the generated =std-make-spec=;
+there is no second hand-maintained production source inventory.
+
+* Source cut
+
+| Input | Revision or binding |
+|-------+---------------------|
+| AITIA base commit | =9bc08170ffcfa23f27fb52b36d8c583e3ee6946d= plus worktree changes |
+| CORE source commit | =2e8ae25085387142528cd4c4504a8ab71b5cdcdd= |
+| Lab host commit | =5bd6c8d77bdadbd4a976b4a93ebbeee1b18f475e= plus existing host changes |
+| Selected source-set SHA-256 | =1806452ab5558a8680c10131881d5d7626063e3c6a7f9096b7378769bcf5ddfc= |
+| Selected source-set count | 27 files |
+| Package identity | =lambda-aitia= |
+| Language dependency | =:tao3k/yuanxu/prelude= |
+
+The digest is SHA-256 of sorted lines
+=<file-sha256>  <AITIA-relative-path>\n=. Its set contains =gerbil.pkg=,
+=init.ss=, =build-modules.ss=, =build.ss=,
+=dev/modules/source-projection-test.ss=, =t/ADR/unit/ADR-module-test.ss=,
+=t/formal/lifecycle-fixture.ss= and every =*.ss= directly under
+=modules/ADR/=, =modules/assurance/= and =t/assurance/unit/=. This identifies
+the bounded source cut; it does not authenticate a principal or grant execution.
+Raw logs remain local artifacts and are not committed.
+
+The local gerbil-poo checkout reports =v0.1.2=; CORE's manifest declares
+=v0.1.3=, absent from that checkout's local refs. Current-pool success does not
+qualify a clean installation of the manifest-declared cohort.
+
+* Executed acceptance
+
+AITIA's =build.ss compile --modules ADR= ran in the current package pool with
+the existing 120-second fence and exited naturally with code 0. It compiled
+the declared ADR dependency closure, not every AITIA Module or bindings target.
+
+Each following AITIA-relative source ran serially through the Lab host's
+heap-fenced =just test-file= entry. All seven processes exited 0, with
+=MODULE-OK=, =HARNESS-OK= and final =OK=, and without =ERROR CASE=,
+=ERROR CHECK=, =ERROR HARNESS=, =Heap overflow= or =Stack overflow=.
+Timeouts, heap, watchdog and Case expectations were not relaxed.
+
+| Test source | Cases | Result |
+|-------------+-------+--------|
+| =dev/modules/source-projection-test.ss= | 2 | passed |
+| =t/ADR/unit/ADR-module-test.ss= | 6 | passed |
+| =t/assurance/unit/assurance-kernel-test.ss= | 34 | passed |
+| =t/assurance/unit/evidence-admission-test.ss= | 20 | passed |
+| =t/assurance/unit/required-support-test.ss= | 5 | passed |
+| =t/assurance/unit/decision-preflight-test.ss= | 5 | passed |
+| =t/assurance/unit/lifecycle-boundary-test.ss= | 22 | passed |
+
+The cold spec constructs zero business Scopes. First demand constructs exactly
+one Assurance Scope and one ADR Scope, including each actual package-qualified
+owner counter. Repeated ADR demand returns the same Scope with no new factory
+call. Callback-free counters are not replaced by an open observer.
+
+Controls retain nominal-forgery rejection, reciprocal supersession, accepted
+ADR not granting authority, exact evidence admission, required support,
+preflight, authorization, reservation, delivery, withdrawal and replay. Four
+Assurance fixture/assertion bodies are unchanged after public-entry bindings.
+The support-row fixture uses the admitted Record's =proto= instead of CLOS;
+fields and membership expectations are unchanged. Replay glue consumes the
+same admitted Module scope, not a proof-side semantic copy.
+
+* Failed evidence and repairs
+
+Data schema initialization formerly registered CLOS classes and mutated shared
+parent metadata. Source replay correctly refused stale reads. Record/Type
+schemas remove that registry mutation while retaining field and nominal checks.
+The new factory's initial field flattening error was repaired, not excused by
+a weaker Contract. Relative private-role imports prevent installed and source
+Type instances from diverging. Missing evidence-kind and support-row Scope
+exports were repaired without private imports or copied proof semantics.
+
+The initial counter assertion used the wrong key shape and host namespace.
+The final test retains aggregate and independent package-qualified owner
+counts. Earlier failures and intermediate namespace results do not substitute
+for the final consumer runs.
+
+* Mechanism gates and open obligations
+
+After CORE rebuilt through its ordinary entry, its input-context mutation gate
+passed before/after order and admission controls and refused four real mutations
+with exit 70, not timeouts or compiler failures. CORE Module publication passed.
+Lab deployment downstream passed with 46 targets, four owners, three selected
+tests, B-product consumption and unchanged compiler prerequisites. CORE testing
+source admission also exited 0 with MODULE-OK, HARNESS-OK and final OK.
+
+SDLC, GitOps, formal-methods, Standards, Profiles and Scenarios remain unclosed.
+Standalone dependency installation and AITIA's independent test driver are
+separate gates. Rust application linking, ABI/Python consumers, old-driver
+replacement and joint formal/replay acceptance remain open. Storage executors,
+bindings behavior and old Memory were not redesigned or deleted by this slice.
+No commit, push or remote CI success is claimed.

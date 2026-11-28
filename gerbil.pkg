@@ -2,6 +2,7 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-;;; Native contributor package identity.  Importing the package does not run
+;;; Independent AITIA package identity. Importing the package does not run
 ;;; verification, authorize release, or execute an effect.
-(package: poo-flow/lambda-aitia)
+(package: lambda-aitia
+ depend: ("github.com/tao3k/agentic-ai-lab@d8d240b67ecf2dff6e2504bfd7fd64085f18dc8c"))

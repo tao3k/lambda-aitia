@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0010 — Proof-Carrying Multi-Repo Release Attestations & Incremental Verification Cache
+#+startup: overview
+
+* Proof-carrying release attestations and incremental verification memoization
+:PROPERTIES:
+:ID: proof-carrying-release-attestation
+:ENGINEERING_ID: RFC-0010
+:STATUS: implemented
+:END:
+
+RFC 0009 established Bazel Skyframe two-level semantic/OpenSysML AST Early Cutoff,
+Bzlmod/CHaP transitive diamond pin coherence, and durable crash-recovery checkpoints.
+This RFC synthesizes two foundational supply-chain and incremental-computation bodies of
+research to close the remaining gap between *safe execution* and *independently verifiable,
+memoized multi-repository verification*:
+
+1. *in-toto / TUF / SLSA* (Torres-Arias et al., USENIX Security 2019; Samuel et al., CCS 2010):
+   farm-to-table cryptographic link attestations binding every step's inputs, materials,
+   products, and policy into an offline-verifiable Merkle/Ed25519 release bundle.
+2. *Adapton / Salsa / Buck2 DICE* (Hammer et al., PLDI 2014; Mokhov/Mitchell/Peyton Jones,
+   JFP 2020): demand-driven incremental verification where memoized proof reuse is sound
+   *if and only if* the canonical content-addressed verification key — including every
+   upstream repository's projected semantic/AST interface digest — matches an independently
+   verified attestation.
+
+* Comparative paper synthesis
+
+| Source System / Paper | Core Mechanism | Lambda Aitia RFC 0010 Realization |
+|---|---|---|
+| Torres-Arias et al., /in-toto/ (USENIX Security 2019) | Per-step signed Link metadata + Layout verification | Per-repo link entries (`repoId`, `effectiveCommit`, `interfaceDigest`, `verificationKey`, `earlyCutoff`, `missingReports`) bound into a canonical `lambda-aitia.release-attestation-bundle.v1` |
+| Samuel et al., /TUF/ (CCS 2010) & SLSA v1.0 | Offline cryptographic integrity, key separation, tamper-evident roots | Ed25519 (`ring::signature::ED25519`) signed `bundleDigest` (`sha256:...`) verified offline via `verify_release_attestation_bundle`; single-bit tampering fails closed |
+| Hammer et al., /Adapton/ (PLDI 2014) & Salsa / Buck2 DICE | Dependency-tracked dirtying & sound memo reuse across unchanged outputs | Pure Scheme `repo-verification-key = sha256(repoId, effectiveCommit, sorted(upstreamIfaceDigests), profile)` matched only against cryptographically verified `priorAttestationBundle` links (`verificationCacheHits`) |
+| Pat Helland (CIDR 2007) & Gray/Lamport | Honest partial-publish Saga recovery & at-most-once commit | Formalized in `dev/proof/quint/MultiRepoSaga.qnt`, `ReleaseAttestation.qnt`, and 15 zero-axiom Lean 4 theorems in `LambdaAitiaProof.Modules.GitOps` |
+
+* Architectural invariants
+
+1. *Zero authority in attestations*: every link and bundle carries `actionAuthorized: false`;
+   a verified attestation establishes historical verification lineage and cache eligibility,
+   never release or effect execution authority.
+2. *Cryptographic gate before cache admission*: Rust verifies `priorAttestationBundle`
+   (recomputing `bundleDigest`, verifying Ed25519 signature, enforcing `missingReports == 0`)
+   *before* projecting `attestedVerificationKeys` to Scheme. Unverified or tampered bundles
+   fail closed and contribute zero cache hits.
+3. *Soundness of Adapton/Salsa memo reuse*: a downstream repo hits `verificationCacheHits`
+   only when its exact `verificationKey` equals the attested key — any change to its own
+   commit, its profile, or any upstream semantic/OpenSysML AST `interfaceDigest` changes
+   the SHA-256 key and invalidates the cache entry automatically.
+4. *Formal closure*: `dev/proof/quint/ReleaseAttestation.qnt` (6 tests including tamper &
+   stale-ABI negative controls) and 4 new Lean 4 theorems audited by `AxiomAudit.lean`
+   (zero `sorryAx`).

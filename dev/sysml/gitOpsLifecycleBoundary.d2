@@ -1,0 +1,25 @@
+# AitiaCommit::gitOpsLifecycleBoundary — interconnection rendering (render asInterconnectionDiagram)
+classes: {
+  usage: { style: { fill: white; stroke: "#181818"; stroke-width: 1; font-color: black; font-size: 14; border-radius: 8 } }
+  connection: { style: { stroke: "#181818"; font-size: 13; font-color: black; stroke-width: 3 } }
+}
+n0: "«part»\ngitOpsModule" { class: usage }
+n1: "«part»\ngitOpsFfi" { class: usage }
+n2: "«part»\njjAdapter" { class: usage }
+n3: "«part»\njjRepository" { class: usage }
+n4: "«part»\nengineeringChecks" { class: usage }
+n5: "«part»\nevidenceAdmission" { class: usage }
+n6: "«part»\nascentReasoning" { class: usage }
+n7: "«part»\ngovernance" { class: usage }
+n5 -- n6: "admittedFacts" { class: connection }
+n6 -- n7: "reviewInputs" { class: connection }
+n0 -- n1: "gitOpsRequest" { class: connection }
+n1 -- n2: "repositoryOperation" { class: connection }
+n2 -- n3: "repositoryEffect" { class: connection }
+n3 -- n2: "repositoryObservation" { class: connection }
+n2 -- n1: "operationResult" { class: connection }
+n1 -- n0: "semanticObservation" { class: connection }
+n0 -- n4: "evidenceObligations" { class: connection }
+n0 -- n5: "evidenceReview" { class: connection }
+n6 -- n0: "obligationState" { class: connection }
+n7 -- n0: "authorizedIntent" { class: connection }

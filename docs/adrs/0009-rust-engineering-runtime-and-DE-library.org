@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: ADR 0009 — Rust Engineering Runtime and DE Library
+
+:PROPERTIES:
+:ID: lambda-aitia-adr-0009
+:STATUS: accepted
+:DATE: 2026-11-07
+:REVISION: r2
+:RFC_ID: lambda-aitia-rfc-0006
+:SUPERSEDES: lambda-aitia-adr-0006
+:DECISION_MAKERS: tao3k-maintainers
+:CONSULTED: agentic-ai-lab-maintainers
+:INFORMED: lambda-aitia-consumers
+:END:
+
+* Context and Problem Statement
+
+Yuanxu and Lab now own reusable composition, verification, Graph, Ops and
+Governance mechanisms. Aitia needs an engineering execution Runtime without
+duplicating those owners or its Scheme assurance semantics. DE supplies the
+principal reusable engineering Library, but currently imports Aitia itself.
+
+* Decision Drivers
+
+- Preserve Scheme/POO semantic ownership and one authoritative capability owner.
+- Execute, supervise and recover real engineering work with Rust.
+- Reuse DE definitions/methods without introducing a package dependency cycle.
+- Distinguish source implementation, design decisions and qualified runtime behavior.
+
+* Considered Options
+
+1. Continue Python as the primary SDLC execution Runtime.
+2. Add a Rust executor beside an independent Python semantic/execution system.
+3. Select Rust execution, retain Scheme/POO semantics and compose DE at the Project boundary.
+
+* Decision Outcome
+
+Choose option 3. [[file:../rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] owns the detailed boundaries and proposed admission,
+authorization and recovery protocol. Its protocol remains draft and unqualified.
+Acceptance of this language/library direction is not acceptance of a wire schema,
+ABI, storage backend, dependency pin, implemented Runtime or effect authority.
+
+The three design layers are AITIA's Rust-implemented SDLC framework, DE's
+extensible engineering Library, and user Projects selecting capabilities by
+language and problem. A Rust service and a Python framework can use the same
+AITIA Runtime with different DE definitions and project evidence. The Python
+Project is distinct from the Python wheel built from AITIA’s Rust runtime.
+RFC 0006 contains both examples and marks missing library capabilities as gaps.
+DE's Rust resource-lifecycle Case is one reusable engineering asset; it is not
+the SDLC model. AITIA may consume that asset for its own Rust implementation,
+but framework self-application requires separate subject-bound qualification.
+
+The application/Project selects DE and Aitia together. Aitia receives admitted
+engineering values through POO contracts, not an import of the whole current DE
+package. A direct dependency requires an upstream cycle-free package split.
+Yuanxu/Lab remain mechanism owners under ADR 0007; its historical Python-primary
+wording is superseded by this decision, not its one-way dependency invariant.
+
+Python remains a maintained existing consumer/tool integration, not an example
+or an implementation scheduled for deletion. Its current AnyIO observations and
+owned-byte ABI remain until an independently reviewed migration qualifies their
+consumers. No second assurance evaluator or compatibility framework is selected.
+
+* Consequences
+
+- Rust owns long-lived execution and recovery; issuer-checked semantic decisions
+  remain distinct from tool observations and effect acknowledgements.
+- Existing local Hosts and in-memory receipts cannot be advertised as persistent
+  cross-runtime authority merely by serialization.
+- DE method issuance, Aitia independent review and Governance authorization retain
+  distinct owners even when composed in one application.
+- Build/release packaging, capability transport, durable consumption and cohort
+  compatibility remain explicit qualification obligations.
+- No implementation, dependency or historical test receipt changes with this ADR.
+
+* Confirmation
+
+- The selected dependency graph is acyclic at package level and exact cohorts replay.
+- Rust and Python user Projects select language/problem capabilities without
+  changing the framework's implementation-language decision or borrowing its evidence.
+- Rust cannot promote a copied receipt, observation or eligible relation to authority.
+- Restart/revocation/concurrent consumption controls preserve unknown outcomes,
+  history and obligation reopening under the original resource policy.
+- ORG, Quint, LeanPOO, ASCENT, Scheme and Rust correspondence is executable for
+  each selected Case before runtime qualification is claimed.
+
+These are required future fitness functions, not checks executed for this ADR.
+
+* More Information
+
+- [[file:0006-production-python-sdlc-runtime.org][ADR 0006 — Superseded Python-primary direction]]
+- [[file:0007-consume-agentic-ai-lab-public-library.org][ADR 0007 — Shared mechanism dependency invariant]]
+- [[https://github.com/hardenedlinux/deterministic-engineering/tree/6f3113eaeb75effb8b692b8eacae1cbe48767769][DE inspected reference revision]]

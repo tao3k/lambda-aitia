@@ -1,13 +1,20 @@
 ;;; -*- Gerbil -*-
 ;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
-;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import :poo-flow/lambda-aitia/modules/ADR/types)
-(export (import: :poo-flow/lambda-aitia/modules/ADR/types))
-(import :poo-flow/lambda-aitia/modules/ADR/objects)
-(export (import: :poo-flow/lambda-aitia/modules/ADR/objects))
-(import :poo-flow/lambda-aitia/modules/ADR/funs)
-(export (import: :poo-flow/lambda-aitia/modules/ADR/funs))
-(import :poo-flow/lambda-aitia/modules/ADR/config)
-(export (import: :poo-flow/lambda-aitia/modules/ADR/config))
+(import (only-in :clan/poo/object .def .get .o)
+        (only-in "./types.ss" ADRScopeContract)
+        (only-in "./func.ss" ADR-assurance-projector)
+        (only-in "./config.ss" Config)
+        (rename-in (only-in "../assurance/config.ss" Config) (Config Assurance)))
+(export ADR)
+
+(.def ADR
+  identity: 'ADR
+  tags: '(software-engineering decisions)
+  core: (.o scope-contract: ADRScopeContract
+            exports: (.o (:: @ Config)
+                         assurance-decision:
+                         (ADR-assurance-projector (.get Assurance decision) (.get Assurance digest))
+                         decision?: (.get Assurance decision?)))
+  features: (.o))

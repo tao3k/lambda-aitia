@@ -1,0 +1,215 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0008: Native ASCENT Obligation Reconciliation and FunFlow CAS DAGs for Lambda Aitia
+#+startup: overview
+
+* Summary
+:PROPERTIES:
+:ID: ascent-obligation-funflow
+:ENGINEERING_ID: RFC-0008
+:END:
+
+Command-line interfaces (`aitia jj commit [preview|prepare|apply|decision|recover|evidence]`) are
+designed for human memory and linear terminal interaction. For LLM agents operating over stateful
+GitOps and SDLC lifecycles, manually orchestrating 8--10 imperative subcommands is brittle, wastes
+context window, and conflates deterministic observation/verification with bounded epistemic synthesis
+and irreversible effects.
+
+This RFC brings Agentic AI Lab's maintained =modules/funflow= (three-state =EffectClass.= CAS DAG,
+Bernstein disjoint-footprint parallelism, crash-resumable skip planning, =GovernedFunflowRunner.=)
+and =modules/graph-engine= (Post-ReAct =ObligationGraph.=, native =gerbil-ascent= fixed-point
+reconciler, typed =SynthesisHole.= oracle admission, and bitemporal premise retraction) directly
+into =lambda-aitia= via a new Yuanxu module =:lambda-aitia/modules/workflow=.
+
+* Architectural Principle: Zero Custom Workflow DSL
+
+In accordance with =core/module-system/design/44-current-project-programming-style.org= and
+=AGENTS.md=, =lambda-aitia= MUST NOT invent a parallel workflow macro DSL or shadow interpreter
+that hides or duplicates native =gerbil-ascent= or =gerbil-poo=:
+
+1. *Reasoning and Frontier Plane*: Native =gerbil-ascent= two-stage pure relational pipeline:
+   - *Stage 1 (Stratified Fact & Closure Layer)*: =ascent= / =relational-program= reused from
+     =modules/gitops/commit-semantics.ss=, =modules/gitops/commit-evidence.ss=, and
+     =agentic-ai-lab/modules/graph-engine/ascent-reconciler.ss= for stratified negation, SysML v2
+     scope projection, Org contract verification, and transitive obligation closure.
+   - *Stage 2 (Lean-Verified Finite-Choice Multi-World Solver)*: Native =relational-choice-program=
+     and =relational-choice-solve= with detached =provenance?: #t= derivation witnesses
+     (=modules/workflow/choice.ss=). Hard graph/SysML/policy invariants are encoded as =closed= rules
+     (singleton intersection triggers forced ='deduction= with 0 LLM calls; empty closed =()= prunes
+     contradictions automatically), while bounded Agent/LLM divergence and cross-scope candidates are
+     encoded as =open= offers bounded by =state-budget:=.
+2. *Object and Extension Plane*: Native =gerbil-poo= prototypes and pure constructors
+   (=Obligation.=, =Hypothesis.=, =EvidenceFact.=, =DeterministicTaskNode.=, =SynthesisHole.=,
+   =ObligationGraph.=, =AitiaWorkflowDomain.=, =GitOpsCommitWorkflowDomain.=). DE and user projects
+   extend domains through ordinary POO prototype composition (=:: @=), never a custom DSL.
+3. *Execution and Cross-World CAS Plane*: =agentic-ai-lab/modules/funflow= (=PureCAS.=,
+   =VerifiedEpistemic.=, =FencedEffect.=, =ParallelFrontierStrategy.=, =GovernedFunflowRunner.=).
+   Surviving Finite-Choice worlds share one =FunflowCasStore= (=workflow-execute-choice-worlds=):
+   shared read-only prefixes compute ONCE (=cas-hit?: #t= on subsequent worlds), diverging epistemic
+   probes run independently, and =FencedEffect.= transitions are strictly blocked whenever
+   =world-count != 1= or signed human approval is absent.
+4. *Wire / Agent Projection Plane*: Thin, pure JSON/Schema projections over admitted POO facts for
+   Rust =AitiaSession= and LLM callers (=reconcile= / =submit_patch= / =submit_decision=).
+
+* Controlled Divergence Under Graph Constraints
+
+Static workflows (Airflow / YAML pipelines) hardcode a fixed edge list =A -> B -> C= and fail
+whenever an unexpected scope gap, competing architectural alternative, or counter-evidence arises.
+Instead, =lambda-aitia/modules/workflow= separates:
+
+1. *Strict Deterministic-First Precedence (=0= LLM calls)*: ASCENT derives transitive
+   =obligation_unsatisfied(?o)= and dispatches all =ready_deterministic_task(?t)= nodes through
+   =plan-funflow-c4-frontier= (Bernstein disjoint read/write footprints, =subagents-spawned = 0=,
+   and CAS fingerprint reuse) before exposing any synthesis hole.
+2. *Typed Synthesis Holes (Controlled Divergence)*: Only when deterministic FunFlow work is
+   exhausted and obligations remain open does ASCENT expose =candidate_synthesis_hole(?h)= keyed
+   by =(hole-id, premise-digest)= for relational loop immunity.
+3. *Graph-Constrained Proposals Only*: Raw single-step ReAct tool calls are rejected fail-closed
+   (=raw-single-step-tool-call-forbidden=). An agent may submit only:
+   - =TypedFunflowDagPatch.=: dynamically synthesized FunFlow sub-DAG nodes validated by Tarjan
+     SCC acyclicity, Bernstein footprints, =EffectClass.=, and sandbox/MCP/CaMeL/MindGuard gates.
+   - =BoundedCompetingBranches.=: bounded POO branches evaluated against EVERY active hypothesis,
+     preserving contradictions, defeaters, and open questions (=open-competition=) without
+     collapsing to a greedy next step or inferring likelihood from missing-claim counts.
+4. *Effect Authority Fence*: Neither ASCENT derivations nor oracle proposals ever grant execution
+   authority (=action-authorized?: #f=). =FencedEffect.= transitions (e.g. =jj commit apply=,
+   =jj git push=) remain blocked on human/governance decisions (=blocked-on-human=) until an
+   authenticated decision is committed to =modules/gitops/commit-admission.ss='s durable journal.
+5. *Selective Bitemporal Premise Retraction*: When the workspace cut changes,
+   =obligation-graph-apply-event= retracts only affected premise lineages and preserves unaffected
+   CAS evidence.
+
+* Negative Contracts (Required Executable Gates)
+
+- A raw single-step ReAct tool call proposal is rejected (=raw-single-step-tool-call-forbidden=).
+- No synthesis hole is exposed while any deterministic FunFlow task is ready (=total-llm-calls = 0=).
+- Repeated reconciliation on unchanged premises calls an oracle at most once per
+  =(hole-id, premise-digest)= and terminates at =quiescent-fixed-point=.
+- Competing hypotheses (e.g. unscoped path registration vs. scope separation) remain unrefuted
+  (=open-competition=) unless live counter-evidence refutes one; model fit grants zero authority.
+- =FencedEffect.= commit application remains =blocked-on-human= while signed approval is absent.
+- Workspace cut retraction invalidates dependent commit evidence without discarding unrelated facts.
+
+* Theoretical Foundations and AI-Native Literature Alignment
+
+Lambda Aitia's SDLC Core, GitOps commit/push protocol, and FunFlow CAS execution plane synthesize
+six established and frontier lines of research into one verifiable POO + functional architecture:
+
+1. *Mixed-Initiative Interaction and Explicit Handoff Gaps* (Horvitz, /Principles of Mixed-Initiative
+   User Interfaces/, CHI 1999; Amershi et al., /Guidelines for Human-AI Interaction/, CHI 2019):
+   Instead of a single opaque agent loop that silently guesses or interrupts humans on every step,
+   =modules/workflow/protocol.ss= partitions every non-quiescent frontier into three explicit gap
+   classes:
+   - =model-reality-gap= (=need-host-frames= -> =host-probe=): missing side-effect-free host facts
+     dispatched automatically through =HostCapabilityRegistry= (=HostRead=).
+   - =model-check-gap= (=need-agent-synthesis= -> =agent-synthesis=): machine-checkable synthesis
+     holes handed to the AI Agent with bounded repair budgets (=max-repair-rounds=).
+   - =requirement-gap= (=need-human-decision= -> =human-decision=): irreducible competing worlds,
+     exhausted/rejected repair rounds, route mismatches, or governance approval gates requiring
+     explicit human authority.
+
+2. *Typed Holes and Schwarz-Style Domain-Decomposed Local Repair* (Omar et al., /Live Functional
+   Programming with Typed Holes/, POPL 2019; Lubin et al., /Program Sketching with Typed Holes/,
+   OOPSLA 2020; alternating Schwarz domain decomposition):
+   Each open synthesis hole emits a typed =repairTask= keyed by =(hole-id, premise-digest)= carrying
+   only the local allowed scopes, references, types, open diagnostics, =recompute-scope=
+   (=localized-decay= vs =synthesis-hole=), and =preserved-supported-obligations=. Agents repair the
+   localized boundary without invalidating unaffected FunFlow CAS evidence, and rejected or
+   budget-exhausted repair attempts escalate deterministically to =need-human-decision=.
+
+3. *Truth Maintenance Systems (TMS/ATMS) and Bitemporal Evidence Decay* (Doyle, /A Truth Maintenance
+   System/, AIJ 1979; de Kleer, /An Assumption-based TMS/, AIJ 1986; Jensen & Snodgrass, bitemporal
+   relational models):
+   Observations are bound to exact workspace cuts (=premise:cut:<sha>=). When a workspace cut moves,
+   =modules/gitops/commit-evidence.ss= derives =stale= observations and =reopened= obligations
+   (projected as =decayedObligations=, =staleEvidenceIds=, =evidenceDecayDetected=), while
+   =workflow-retract-premise= retracts only affected assumption lineages and preserves unaffected
+   current-cut support.
+
+4. *Checked Relational Compilation, Stratified Datalog, and Provenance Semirings* (Green,
+   Karvounarakis, Tannen, /Provenance Semirings/, PODS 2007; Bembenek et al., /Formulog/, OOPSLA
+   2020; Arntzenius & Krishnaswami, /Datafun/ / /Ascent/):
+   Stage 1 compiles =commit-semantics= and =commit-evidence= once into pre-admitted checked
+   =relational-fragment= sessions (eliminating per-cut macro compilation and enforcing deterministic
+   lexicographic row ordering). Stage 2 runs Lean-verified =relational-choice-solve= with detached
+   =provenance?: #t= derivation witnesses to preserve all consistent competing worlds without greedy
+   ranking.
+
+5. *Object-Capability Security and Plan/Data Separation for Agents* (Miller, /Robust Composition/,
+   2006; Debenedetti et al., /CaMeL: Defeating Prompt Injections by Design/, 2025):
+   Scheme owns the semantic control flow and emits declarative host frames with
+   =action-authorized?: #f=. Rust's flat =HostCapabilityRegistry= enforces bidirectional SysML v2
+   capability parity (=dev/sysml/project-architecture.sysml=) and rejects any =FencedEffect=
+   (=prepare-description=, =apply-description=, =push-reviewed=) lacking a Scheme-issued
+   =fenceToken=.
+
+6. *Content-Addressed Functional Workflows and Cross-World Memoization* (Mokhov, Mitchell, Peyton
+   Jones, /Build Systems à la Carte/, ICFP 2018; Bernstein, /Analysis of Programs for Parallel
+   Processing/, 1966):
+   Surviving Finite-Choice worlds execute over one shared =FunflowCasStore=
+   (=workflow-execute-choice-worlds=), deduplicating shared read-only prefixes (=cas-hit?: #t=)
+   while running diverging epistemic probes independently under Bernstein disjoint footprints.
+
+7. *LLM-Native Progressive Self-Teaching Loop (RFC 0026)* (Xie et al., ICLR 2022; von Oswald
+   et al., ICML 2023; Liu et al., TACL 2024; Yang et al., /SWE-agent ACI/, NeurIPS 2024;
+   Patil et al., /Gorilla/, 2023; Wang et al., /Grammar Prompting/, NeurIPS 2023; Zhou et al.,
+   /SELF-DISCOVER/, 2024; Wang et al., /CodeAct/, ICML 2024; Shinn et al., /Reflexion/,
+   NeurIPS 2023; Gou et al., /CRITIC/, ICLR 2024):
+   Optimizes frozen-weight LLM inference directly (rather than human manual reading) via single-entry
+   =aitia review= / gRPC =StepReview= (=aitia_review_step=) discovery, Turn 1 recency-peak projection
+   of compact grammars + repo-tailored S-expr/Quint/Lean templates, Turn 2+ =compactChoices= unloading
+   + cross-round FunFlow CAS, and deterministic external verification via =gerbil-ascent=, Quint 0.33
+   MR05 =@countermodel=, and Lean 4 kernel checks. See
+   =docs/rfcs/0026-llm-progressive-self-teaching-funflow-loop.org=.
+
+* Phased Delivery
+
+- *Slice 1 (Completed)*: =modules/workflow= Yuanxu 5-role POO module + =GitOpsCommitWorkflowDomain.=
+  and =GitOpsNasaCommitWorkflowDomain.= (SDLC Core =lambda-aitia/sdlc= decoupled from
+  =nasa/sdlc/npr-7150.2=), pre-admitted checked =relational-fragment= commit evidence with
+  Evidence Decay, and 5-state Mixed-Initiative IoC protocol (=modules/workflow/protocol.ss=).
+- *Slice 2 (Completed)*: AI-Native localized Schwarz repair feedback loop with bounded repair rounds
+  and deterministic human escalation, plus end-to-end fenced GitOps commit + remote PR/push
+  (=gitops.jj.prepare-description= -> =gitops.jj.apply-description= -> =gitops.jj.push-reviewed= ->
+  =quiescent= + verified =evidenceLineage=).
+- *Slice 3 (Completed)*: Multi-profile SDLC Core (=SdlcCoreStandard=, =SdlcOpenSecurityStandard=,
+  and =nasa/sdlc/npr-7150.2= composed orthogonally) driving =SdlcLifecycleWorkflowDomain.= through
+  the same 5-state IoC protocol, with Rust =AitiaSession= / thin CLI / Python bindings compiled
+  into the zero-=GERBIL_LOADPATH= native binary.
+- *Slice 4 (Completed)*: Pure functional Multi-Repo GitOps wave orchestration
+  (=aitia/case/multi-repo-gitops= in =modules/workflow/multi-repo.ss=) with Kahn topological wave
+  gating, bitemporal cross-repo pin-drift Schwarz repair tasks, concurrent =std::thread::scope=
+  =HostRead= fan-out, SysML v2 =WorkspaceRepo= first-class topology projection
+  (=aitia flow run/submit-decision --workspace <workspace.sysml>=), and frozen-snapshot leaf Python
+  verification capability (=python.observe-pytest=).
+- *Slice 5 (Completed)*: LLM-native progressive self-teaching review flow (=aitia review= / gRPC
+  =StepReview= / =GetToolSchema= in =modules/gitops/review-flow.ss= and =formal_evidence.rs=),
+  zero-=eval= =(aitia-review-plan ...)= S-expr with pre-execution DFS DAG cycle rejection, cross-round
+  content-addressed FunFlow CAS, DE formal catalog recommender, Turn 2+ =compactChoices= unloading,
+  live sidecar-vault Quint 0.33 + Lean 4 MR05 kernel overlay execution, 93 Lean 4 =GitOps= theorems,
+  and Marlin Agent Core offline + live API LLM (=deepseek-flash=, 3 turns) end-to-end verification
+  (RFC 0026).
+
+* Engineering UX & Downstream Delivery Boundary
+
+1. *Zero Downstream Gerbil/Gambit Compilation*:
+   Once the standalone Rust =aitia= binary (or PyO3 wheel) is built with the AOT-linked Scheme
+   FunFlow/ASCENT/POO runtime embedded, downstream repositories NEVER install Gerbil or Gambit and
+   NEVER compile =.ss= files. Downstream teams declare their architecture and multi-repo topology
+   directly in SysML v2 (=part def CommitScope=, =part def WorkspaceRepo=) and recorded project
+   configuration, then execute directly via the pre-compiled native binary.
+2. *Single Source of Truth in SysML v2 + Scheme FunFlow (No Python Declarative DSL Duplicate)*:
+   Workflow topology, dependency waves, SDLC profiles, and pin-drift invariants live strictly in
+   SysML v2 and Scheme POO/FunFlow. Python scripts and tests (=pytest=) are invoked from FunFlow
+   DAGs as frozen-snapshot =HostRead= leaf capabilities (=python.observe-pytest=) returning
+   SHA-256-bound =ObservedFact= receipts, rather than duplicating workflow orchestration in Python.
+3. *Thin In-Process ABI Role for =aitia-python= and C ABI (=include/aitia.h=)*:
+   =lambda_aitia_rust= (=rust/crates/aitia-python=) is intentionally frozen as a thin, zero-logic
+   in-process ABI over =AitiaSession= (one resident Gambit runtime thread). The same pre-compiled
+   =cdylib= directly exports the minimal C ABI (=aitia_abi_version=, =aitia_host_capabilities=,
+   =aitia_dispatch_host_frames=, =aitia_session_start=, =aitia_session_call=,
+   =aitia_session_close=, =aitia_buffer_free=; header in =rust/crates/aitia-runtime/include/aitia.h=).
+   Its sole purpose is to eliminate per-call CLI process startup overhead for high-frequency hosts
+   (Python AI Agents, Go, Node, C/C++, Zig, or editor plugins), never to grow into a second
+   declarative DSL or orchestration framework.

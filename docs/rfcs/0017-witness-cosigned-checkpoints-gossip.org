@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0017 — Witness-Cosigned Checkpoints & Cross-Auditor Gossip Equivocation Detection
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-witness-checkpoint-gossip
+:ENGINEERING_ID: RFC-0017
+:STATUS: implementation-in-progress
+:END:
+
+RFC 0015 introduced RFC 6962 `O(log N)` Merkle inclusion proofs over per-repo release
+attestations, and RFC 0016 introduced RFC 6962 §2.1.2 `O(log N)` append-only consistency
+proofs between two checkpoints `(M, R_M)` and `(N, R_N)`. However, consistency proofs
+alone cannot stop a compromised log operator from presenting two *internally consistent*
+parallel log histories to isolated auditors (a **Split-View / Equivocation Attack**).
+
+Following the C2SP `tlog-checkpoint` + `tlog-cosignature` specification (Go SumDB,
+Sigstore Rekor v2, Sunlight) and Trillian Omniwitness gossip protocols, RFC 0017 closes
+the split-view threat with two orthogonal cryptographic mechanisms:
+
+1. **Witness-Cosigned Signed Tree Heads (STH / Checkpoint Notes)**:
+   - Canonical 3-line checkpoint body: `<origin>\n<treeSize>\n<rootHash>\n`.
+   - Domain-separated log operator Ed25519 signature (`lambda-aitia.checkpoint.origin.v1\n<body>`).
+   - Timestamp-bound `k-of-n` distinct, non-revoked witness Ed25519 cosignatures
+     (`lambda-aitia.checkpoint.cosignature.v1\ntime <unixTimestamp>\n<body>`).
+   - Verifier-pinned `WitnessPolicy` (`lambda-aitia.witness-policy.v1`) enforcing exact
+     `origin`, `originPublicKey`, `witnessThreshold >= 1`, `allowedWitnessKeys`, and
+     fail-closed `revokedWitnessKeys` exclusion.
+2. **Cosigned Checkpoint Transitions & Cross-Auditor Gossip Equivocation Detection**:
+   - `verify_checkpoint_transition` composes witness-quorum validation on both `STH_1`
+     and `STH_2` with RFC 0016 RFC 6962 §2.1.2 consistency verification.
+   - `detect_checkpoint_equivocation` compares two independently observed checkpoints
+     `(left, right)` from distinct auditors:
+     - Same `treeSize` and identical `rootHash` -> `status: "consistent"`.
+     - Same `treeSize` and distinct `rootHash` with authentic origin signatures ->
+       **non-repudiable** `EquivocationEvidenceReceipt`
+       (`schema: "lambda-aitia.checkpoint-equivocation-evidence.v1"`,
+       `conflictKind: "same-size-root-mismatch"`, canonical SHA-256 `evidenceDigest`).
+     - Distinct `treeSize` with valid consistency proof -> `status: "consistent"`.
+     - Distinct `treeSize` with invalid consistency proof -> `EquivocationEvidenceReceipt`
+       (`conflictKind: "inconsistent-history-proof"`).
+     - Distinct `treeSize` with no proof supplied -> explicit epistemic
+       `status: "consistency-proof-required"` (never falsely claims consistency).
+
+* Non-negotiable invariants
+
+- **Domain & Origin Separation**: Origin signatures and witness cosignatures use disjoint
+  domain prefixes and bind `origin`, `treeSize`, `rootHash`, and (for witnesses) `timestamp`.
+- **Distinct Non-Revoked Witness Quorum**: Duplicate witness public keys never inflate a
+  quorum; revoked or untrusted witness keys are excluded before threshold counting.
+- **Preservation of Competing Views**: Gossip comparison never overwrites or suppresses
+  either auditor's checkpoint; unresolved cross-size pairs remain explicitly `unknown`
+  (`consistency-proof-required`).
+- **Zero Authority (`actionAuthorized: false`)**: Checkpoints, transition verdicts, and
+  equivocation evidence receipts are pure verification facts and never authorize execution,
+  key revocation, or remote writes.
+- **Zero New Crates / Zero `unsafe` in PyO3**: Reuses `ring` and `commit::transparency`
+  inside `aitia-runtime`; exposes pure JSON-in/JSON-out functions on `lambda_aitia_rust`
+  under `#![forbid(unsafe_code)]` with zero Scheme VM boot.
+
+* Verification gates
+
+- Rust runtime module: `rust/crates/aitia-runtime/src/commit/witness.rs`
+- PyO3 bindings: `rust/crates/aitia-python/src/python.rs` (`sign_checkpoint`,
+  `verify_signed_checkpoint`, `verify_checkpoint_transition`, `detect_checkpoint_equivocation`)
+- Quint formal model: `dev/proof/quint/WitnessCheckpointGossip.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 43 total `GitOps` theorems, zero `sorryAx`)
+- End-to-end Scenario L in `examples/cardano-diamond-release-train/run_diamond_train.py`.

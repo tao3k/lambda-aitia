@@ -1,0 +1,215 @@
+;;; -*- Gerbil -*-
+;;; SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+;;; RFC 0009: IOHK (Cardano) + Bazel Skyframe / Bzlmod 4-repo diamond invariants:
+;;;   1. Two-level bitemporal Early Cutoff (Change Pruning) when interface-digest is unchanged.
+;;;   2. io-sim-inspired Church-Rosser schedule confluence under peer repo permutation.
+;;;   3. Breaking interface-digest drift -> localized Schwarz `cross-repo-pin-drift` repair.
+;;;   4. Bzlmod / CHaP Transitive Diamond Pin Conflict -> fail-closed `need-human-decision`.
+
+(import :std/test
+        (only-in :clan/poo/object .o .get .ref)
+        (only-in :lambda-aitia/init lambda-aitia.init.exports))
+
+(export aitia-workflow-diamond-early-cutoff-test)
+
+(def wf (.get lambda-aitia.init.exports modules workflow))
+
+(def diamond-naming
+  (.o project-key: "AITIA"
+      types: '("build" "chore" "ci" "docs" "feat" "fix" "refactor" "test")
+      primary-language: "en"
+      language-sources: '("README.org")
+      scopes: (list (.o name: "gitops" paths: '("justfile" "modules/gitops" ".agents/aita")))
+      references: (list (.o identity: "RFC-0008"
+                            source: "docs/rfcs/0008-ascent-obligation-funflow-dag.org"
+                            element: "ascent-obligation-funflow"))))
+
+(def diamond-valid-proposal
+  (.o identity: "AITIA-RFC-0008"
+      reference: "RFC-0008"
+      language: "en"
+      language-source: "README.org"
+      type: "feat"
+      scope: "gitops"
+      summary: "Verify diamond early cutoff"
+      rationale: "Preserve CAS support on interface-preserving upstream commits and fail closed on diamond pin conflicts."))
+
+(def aitia-workflow-diamond-early-cutoff-test
+  (test-suite "RFC 0009 IOHK/Bazel 4-repo diamond Early Cutoff, Diamond Conflict, and Schedule Confluence"
+
+    (test-case "1. Bazel Skyframe Early Cutoff, io-sim Schedule Confluence, Breaking Interface Drift, and Bzlmod/CHaP Diamond Conflict"
+      (let* ((mk-cut (lambda (proj sha)
+                       (.o project: proj workspace: "default" change: sha
+                           operation: (string-append "op-" sha) commit: sha
+                           tree: (string-append "tree-" sha) parents: '("base-0"))))
+             (mk-src (lambda (src-cut)
+                       (list (.o path: "README.org" text: "* Repo\nEnglish readme.\n" cut: src-cut)
+                             (.o path: "docs/rfcs/0008-ascent-obligation-funflow-dag.org"
+                                 text: "* RFC 0008\n:PROPERTIES:\n:ID: ascent-obligation-funflow\n:ENGINEERING_ID: RFC-0008\n:END:\n"
+                                 cut: src-cut))))
+             (base-cut (mk-cut "iohk/protocol-base" "base-sha-v2"))
+             (ledger-cut (mk-cut "iohk/ledger-core" "ledger-sha-v1"))
+             (net-cut (mk-cut "iohk/network-mux" "net-sha-v1"))
+             (node-cut (mk-cut "iohk/node-runner" "node-sha-v1"))
+             (mk-repo (lambda (rid deps repo-cut iface pins iface-pins)
+                        (.o (repo-id := rid)
+                            (directory := (string-append "/tmp/" rid))
+                            (depends-on := deps)
+                            (interface-digest := iface)
+                            (pinned-upstream-commits := pins)
+                            (pinned-upstream-interfaces := iface-pins)
+                            (receipts := (.o (jj-observe-cut := #t)
+                                             (sysml-project-scopes := '())
+                                             (jj-apply-description := (hash ("resulting_commit" (.get repo-cut commit))))))
+                            (naming := diamond-naming)
+                            (cut := repo-cut)
+                            (sources := (mk-src repo-cut))
+                            (paths := '("justfile"))
+                            (proposals := (list diamond-valid-proposal))
+                            (approval-live? := #t)
+                            (reconcile? := #t))))
+             ;; A. Bazel Skyframe Early Cutoff: protocol-base moved base-sha-v1 -> base-sha-v2,
+             ;;    but interface-digest stayed "abi:v1" -> ledger & network hit early-cutoff and stay quiescent!
+             (repos-cutoff
+              (list (mk-repo "protocol-base" '() base-cut "abi:v1" '() '())
+                    (mk-repo "ledger-core" '("protocol-base") ledger-cut "abi:ledger-v1"
+                             '(("protocol-base" . "base-sha-v1")) '(("protocol-base" . "abi:v1")))
+                    (mk-repo "network-mux" '("protocol-base") net-cut "abi:net-v1"
+                             '(("protocol-base" . "base-sha-v1")) '(("protocol-base" . "abi:v1")))
+                    (mk-repo "node-runner" '("ledger-core" "network-mux") node-cut "abi:node-v1"
+                             '() '())))
+             (s-cutoff ((.get wf plan-protocol-step)
+                        (.o (case-id := 'aitia/case/multi-repo-gitops) (repos := repos-cutoff))))
+             ;; Extract RFC 0010 content-addressed verification keys from s-cutoff
+             (attested-keys
+              (list->hash-table
+               (map (lambda (rs) (cons (.ref rs 'repo-id) (.ref rs 'verification-key)))
+                    (.ref s-cutoff 'repo-summaries))))
+             ;; B. io-sim Schedule Confluence + RFC 0010 Adapton/Salsa 4/4 verification-cache-hits
+             ;;    + RFC 0011 Counterfactual Competing-Branch Verification Matrix!
+             (cf-branches
+              (list (.o (branch-id := "branch-preserve-abi-v1")
+                        (hypothesis := "Keep protocol-base ABI v1 to preserve Early Cutoff and 4/4 memo hits")
+                        (repo-overrides := '()))
+                    (.o (branch-id := "branch-upgrade-abi-v2")
+                        (hypothesis := "Bump protocol-base ABI to v2, invalidating Wave 1 downstream caches")
+                        (repo-overrides := (list (.o (repo-id := "protocol-base")
+                                                     (interface-digest := "abi:v2")))))))
+             (s-cutoff-rev ((.get wf plan-protocol-step)
+                            (.o (case-id := 'aitia/case/multi-repo-gitops)
+                                (attested-verification-keys := attested-keys)
+                                (counterfactual-branches := cf-branches)
+                                (repos := (reverse repos-cutoff)))))
+             ;; C. Breaking interface change ("abi:v2") invalidates protocol-base + Wave 1 peers
+             ;;    (localized Schwarz repair + Adapton/Salsa cache invalidation!)
+             (s-iface-break
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (attested-verification-keys := attested-keys)
+                   (repos :=
+                    (list (mk-repo "protocol-base" '() base-cut "abi:v2" '() '())
+                          (mk-repo "ledger-core" '("protocol-base") ledger-cut "abi:ledger-v1"
+                                   '(("protocol-base" . "base-sha-v1")) '(("protocol-base" . "abi:v1")))
+                          (mk-repo "network-mux" '("protocol-base") net-cut "abi:net-v1"
+                                   '(("protocol-base" . "base-sha-v1")) '(("protocol-base" . "abi:v1")))
+                          (mk-repo "node-runner" '("ledger-core" "network-mux") node-cut "abi:node-v1"
+                                   '() '()))))))
+             ;; D. Bazel Bzlmod / IOHK CHaP Diamond Conflict: ledger pins abi:v2 while network pins abi:v1!
+             (s-diamond-conflict
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos :=
+                    (list (mk-repo "protocol-base" '() base-cut "abi:v2" '() '())
+                          (mk-repo "ledger-core" '("protocol-base") ledger-cut "abi:ledger-v1"
+                                   '() '(("protocol-base" . "abi:v2")))
+                          (mk-repo "network-mux" '("protocol-base") net-cut "abi:net-v1"
+                                   '() '(("protocol-base" . "abi:v1")))
+                          (mk-repo "node-runner" '("ledger-core" "network-mux") node-cut "abi:node-v1"
+                                   '() '())))))))
+        (check-equal? (.get s-cutoff state) 'quiescent)
+        (check-equal? (.ref s-cutoff 'waves) '(("protocol-base") ("ledger-core" "network-mux") ("node-runner")))
+        (check-equal? (length (.ref s-cutoff 'early-cutoffs)) 2)
+        (check-equal? (.ref s-cutoff 'pin-drifts) '())
+        ;; Church-Rosser confluence + RFC 0010 Adapton/Salsa 4/4 verification-cache-hits:
+        (check-equal? (.ref s-cutoff-rev 'waves) (.ref s-cutoff 'waves))
+        (check-equal? (.get s-cutoff-rev state) (.get s-cutoff state))
+        (check-equal? (length (.ref s-cutoff-rev 'early-cutoffs)) (length (.ref s-cutoff 'early-cutoffs)))
+        (check-equal? (length (.ref s-cutoff-rev 'verification-cache-hits)) 4)
+        ;; RFC 0011 Counterfactual Competing-Branch Matrix preserves BOTH branches with zero authority:
+        (let* ((cf-mat (.ref s-cutoff-rev 'counterfactual-matrix))
+               (b1 (car cf-mat))
+               (b2 (cadr cf-mat)))
+          (check-equal? (length cf-mat) 2)
+          (check-equal? (.ref b1 'hypothetical?) #t)
+          (check-equal? (.ref b1 'action-authorized?) #f)
+          (check-equal? (length (.ref b1 'verification-cache-hits)) 4)
+          (check-equal? (.ref b2 'hypothetical?) #t)
+          (check-equal? (.ref b2 'action-authorized?) #f)
+          (check-equal? (.ref b2 'resulting-state) 'need-agent-synthesis)
+          (check-equal? (length (.ref b2 'invalidated-repos)) 3))
+        ;; True ABI break triggers cross-repo-pin-drift AND invalidates protocol-base + Wave 1 caches:
+        (check-equal? (.get s-iface-break state) 'need-agent-synthesis)
+        (check-equal? (.get s-iface-break escalation-reason) 'cross-repo-pin-drift)
+        (check-equal? (length (.get s-iface-break repair-tasks)) 2)
+        (check-equal? (map (lambda (h) (.ref h 'repo-id)) (.ref s-iface-break 'verification-cache-hits))
+                      '("node-runner"))
+        ;; Diamond conflict fails closed to need-human-decision with competing peer provenance:
+        (check-equal? (.get s-diamond-conflict state) 'need-human-decision)
+        (check-equal? (.get s-diamond-conflict escalation-reason) 'diamond-pin-conflict)
+        (check-equal? (length (.ref s-diamond-conflict 'diamond-conflicts)) 1)
+        (check-equal? (.ref (car (.ref s-diamond-conflict 'diamond-conflicts)) 'consumer-repo) "node-runner")
+        (check-equal? (.ref (car (.ref s-diamond-conflict 'diamond-conflicts)) 'upstream-repo) "protocol-base")
+        (check-equal? (.get s-diamond-conflict action-authorized?) #f)))
+
+    (test-case "2. Content-addressed interface.project-digest HostRead probe emission and receipt consumption"
+      (let* ((s-probe
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (repos :=
+                    (list (.o (repo-id := "protocol-base")
+                              (directory := "/tmp/protocol-base")
+                              (depends-on := '())
+                              (interface-paths := '("include/protocol.h"))))))))
+             (caps (map (lambda (f) (.get f capability)) (.get s-probe frames))))
+        (check-equal? (.get s-probe state) 'need-host-frames)
+        (check (and (member "interface.project-digest" caps) #t) => #t)
+        (check-equal? (.get s-probe action-authorized?) #f)))
+
+    (test-case "3. RFC 0013 Benveniste Assume-Guarantee contract gap fail-closed & counterfactual resolution"
+      (let* ((s-gap
+              ((.get wf plan-protocol-step)
+               (.o (case-id := 'aitia/case/multi-repo-gitops)
+                   (counterfactual-branches :=
+                    (list (.o (branch-id := "branch-export-guarantee")
+                              (hypothesis := "protocol-base exports zero-copy.framing")
+                              (repo-overrides :=
+                               (list (.o (repo-id := "protocol-base")
+                                         (guarantees := '("protocol.v1.codecs" "zero-copy.framing"))))))
+                          (.o (branch-id := "branch-drop-assumption")
+                              (hypothesis := "ledger-core drops zero-copy.framing assumption")
+                              (repo-overrides :=
+                               (list (.o (repo-id := "ledger-core")
+                                         (assumes := '("protocol.v1.codecs"))))))))
+                   (repos :=
+                    (list (.o (repo-id := "protocol-base")
+                              (directory := "/tmp/protocol-base")
+                              (depends-on := '())
+                              (guarantees := '("protocol.v1.codecs")))
+                          (.o (repo-id := "ledger-core")
+                              (directory := "/tmp/ledger-core")
+                              (depends-on := '("protocol-base"))
+                              (assumes := '("protocol.v1.codecs" "zero-copy.framing"))))))))
+             (gaps (.ref s-gap 'contract-gaps))
+             (cf (.ref s-gap 'counterfactual-matrix)))
+        (check-equal? (.get s-gap state) 'need-human-decision)
+        (check-equal? (.get s-gap escalation-reason) 'assume-guarantee-gap)
+        (check-equal? (length gaps) 1)
+        (check-equal? (.ref (car gaps) 'consumer-repo) "ledger-core")
+        (check-equal? (.ref (car gaps) 'missing-assumption) "zero-copy.framing")
+        (check-equal? (length cf) 2)
+        (check-equal? (.ref (car cf) 'resulting-state) 'quiescent)
+        (check-equal? (.ref (cadr cf) 'resulting-state) 'quiescent)
+        (check-equal? (.ref (car cf) 'action-authorized?) #f)
+        (check-equal? (.get s-gap action-authorized?) #f)))))

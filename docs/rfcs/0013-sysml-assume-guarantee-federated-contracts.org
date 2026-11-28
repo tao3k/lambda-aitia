@@ -1,0 +1,66 @@
+#+TITLE: RFC 0013: OpenSysML v2 Cross-Repo Assume-Guarantee Contracts & SysML-Pinned TUF Governance
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0009–0012 built a formally verified multi-repo GitOps engine covering topological
+wave ordering, Early Cutoff, Diamond Pin Coherence, Saga checkpoints, offline TUF
+~k-of-n~ threshold attestations, dual-quorum root rotation chains, and counterfactual
+competing-branch evaluation. Two architectural gaps remain between the *OpenSysML v2*
+system model (~workspace.sysml~) and the multi-repo semantic verifier:
+
+1. *Cross-Repo Assume-Guarantee Contract Verification (Benveniste et al., 2018)*:
+   Commit hashes and ABI digests prove /what/ changed, but not whether the declared
+   behavioral/safety contract of a downstream repository is satisfied by its upstream
+   dependencies. Following /Contracts for System Design/ (Benveniste, Caillaud,
+   Nickovic, Passerone, Raclet, Reinkemeier, Sangiovanni-Vincentelli, Damm, Henzinger,
+   Larsen — FnTEDA 2018) and NASA NPR 7150.2 interface traceability, each
+   ~WorkspaceRepo~ in ~workspace.sysml~ may declare:
+   - ~assumes~: preconditions / capability contracts required from its immediate
+     upstream dependencies,
+   - ~guarantees~: postconditions / capability contracts exported to downstream consumers.
+   Composition is sound iff for every repository ~R~:
+   ~assumes(R) ⊆ ⋃_{u ∈ dependsOn(R)} guarantees(u)~.
+2. *SysML-Pinned TUF Policy Floor*:
+   If TUF ~threshold~ and ~minEpoch~ come solely from caller-supplied runtime JSON, a
+   misconfigured caller or untrusted Agent could weaken a 2-of-3 quorum down to 1-of-1.
+   Pinning a ~TufPolicy~ floor (~minThreshold~, ~minEpoch~) directly inside the
+   version-controlled ~workspace.sysml~ architectural model lets Rust fail closed
+   whenever a runtime ~trustRoot~ or ~pinnedGenesisRoot~ undercuts the architecture's
+   minimum quorum or epoch floor.
+
+* Architectural Invariants
+
+1. *Assume-Guarantee Discharge Law*: Every declared assumption of every repository
+   must appear in the union of its immediate upstream repositories' declared guarantees.
+   Any unsatisfied assumption fails closed to ~need-human-decision~ with
+   ~escalationReason: "assume-guarantee-gap"~, full provenance (~consumerRepo~,
+   ~missingAssumption~, ~upstreamRepos~, ~availableUpstreamGuarantees~), and
+   ~actionAuthorized: false~.
+2. *Counterfactual Contract Exploration*: The RFC 0011 ~counterfactualMatrix~ evaluates
+   ~assumes~ / ~guarantees~ overrides per branch so investigators and Agents can compare
+   competing contract resolutions (e.g., /upstream exports missing guarantee/ vs
+   /downstream weakens assumption/) side-by-side with ~hypothetical: true~ and
+   ~actionAuthorized: false~.
+3. *SysML TUF Policy Floor Non-Weakening*: When ~workspace.sysml~ declares
+   ~TufPolicy { minThreshold, minEpoch }~, any runtime TUF verification whose
+   ~threshold < minThreshold~ or effective ~minEpoch < policy.minEpoch~ fails closed.
+4. *Strict Layer Ownership*: OpenSysML parsing lives in Rust (~sysml.rs~); Assume-Guarantee
+   compositional semantics live 100% in pure functional Scheme POO (~multi-repo.ss~).
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~missingUpstreamGuaranteeBlocksComposition~, ~satisfiedAssumptionsAdmitComposition~,
+  ~weakenedThresholdRejectedBySysmlPolicy~, ~weakenedMinEpochRejectedBySysmlPolicy~
+  (27 total ~GitOps~ theorems, zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/AssumeGuaranteeContracts.qnt~):
+  6 model-checking tests covering compositional contract discharge, missing upstream
+  guarantee fail-closed gap, counterfactual dual-branch resolution, SysML TUF policy
+  floor enforcement, and negative-control violation detection.
+- *Live 4-Repo Diamond Scenario H* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  Declares real ~assumes~ / ~guarantees~ and ~TufPolicy~ directly inside ~workspace.sysml~,
+  verifying live Assume-Guarantee closure, missing-guarantee fail-closed escalation,
+  counterfactual contract-resolution comparison, and SysML TUF threshold floor defense.

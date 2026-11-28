@@ -1,0 +1,724 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: AITIA Yuanxu Modules and Rust Framework Implementation
+
+:PROPERTIES:
+:ID: lambda-aitia-yuanxu-rust-implementation
+:STATUS: active
+:DATE: 2026-11-07
+:REVISION: r9
+:RFC_ID: lambda-aitia-rfc-0006
+:END:
+
+* Objective and scope
+
+Implement the three-layer design in [[file:../rfcs/0006-engineering-runtime-and-library-boundaries.org][RFC 0006]] through the current Yuanxu Module
+framework. AITIA uses Rust for engineering execution, DE supplies extensible
+engineering definitions, and user Projects select by language and problem.
+This plan records implementation obligations; unchecked rows are not capability
+claims. The active chat Goal owns continuation, not an automatic execution grant
+from this document.
+
+Only Aitia-owned implementation/consumers are migrated. Preserve unrelated
+staged and unstaged work. Do not change Core loading semantics to accommodate
+Aitia, enlarge budgets, introduce an alternate package loader, delete old Memory,
+or infer authority from hypothetical model fit. No commit or push is included.
+
+* Current source audit
+
+Lab's =init.ss= selects Modules using =yuanxu!= and publishes configured scopes
+under =init.exports=. AITIA uses its own =init.ss= for both publication and
+build selection. =build.ss= consumes that declaration's =std-make-spec= with
+explicit requested roots.
+
+The initial Aitia source had ordinary reexport Interfaces, older Profile
+selection, a manual build-root list and =proof/=. Proof relocation and the
+first managed Modules are implemented. The independent package init
+selects Assurance, ADR, formal methods, GitOps, the NASA catalog and
+SDLC, together with the maintained Profiles and Scenarios. The Rust
+workspace and Maturin wheel are the maintained delivery paths.
+Verification assets live under =dev/=, including the relocated source
+admission preflight. The current worktree removes the replaced CFFI
+package and standalone Tools paths. Their disposition and remaining
+consumer qualification are recorded below.
+
+* Implementation work packages and acceptance
+
+| Work package | Owned surface | Acceptance obligation | State |
+|--------------+---------------+-----------------------+-------|
+| A. Ownership/inventory | this plan, RFC/ADR, build and consumer references | distinguish semantic owners, generated projections, old drivers and genuine test coverage | active |
+| B. Yuanxu entry | Aitia init/build catalog, managed Module Types/objects/config/Interface, Profiles/Scenarios | actual source admission and selected scopes; no eager business construction or duplicated source list | active |
+| C. Development assets | =dev/proof/= and development validation owners | verify relocated proof sources, imports, CI, recipes and negative controls | relocated; joint qualification open |
+| D. Rust workspace and Scheme bridge | =rust/= multi-crate workspace and tests | consume Scheme/POO declarations through the current bridge; no second Rust DSL; ASP Rust enforces style through development dependencies | active |
+| E. Runtime handoff | Rust execution and semantic admission boundary | exact input binding, independent result admission, authorization, revoke/replay and process/resource failure propagation | pending |
+| F. Recovery | authoritative incarnation/operation records and consumer tests | crash cuts retain history and unknown effects, reopen obligations and refuse old grants; no unsupported exactly-once claim | pending |
+| G. Old-path removal | Aitia Python/Tools/build/CI references only | check replacements against the old contracts and negative controls | replaced paths removed in worktree; full parity open |
+| H. Joint qualification | development gates and structured ORG receipt | current stable source cut, all required markers, exact dependencies, unchanged time/heap/idle limits, no skipped Cases | pending |
+
+Work packages describe dependencies and acceptance, not an Agent's fixed action
+route. Findings can reopen an earlier package; competing designs and countercases
+remain available. Proofs consume Modules; they must not retain duplicate runtime
+semantics. Internal closed records are not a replacement for the public POO API.
+
+* Removal and custody policy
+
+The user's target removes the obsolete Python framework/Tools paths, not their
+useful contracts or negative verification obligations. Identify each consumer,
+the replacement owner and evidence before removal. Move proof assets to =dev/=
+without rewriting historical SHA-bound receipt payloads. Source-controlled
+references used by current gates migrate; historical receipts retain their
+original provenance and may carry an explicit relocation note.
+
+No fallback aliases, temporary SDK, new load-path precedence, silent warmup,
+foreign-memory cleanup omission or forced successful exit is acceptable. Rust
+must consume the qualified existing Scheme/Rust mechanism rather than invent
+another Scheme interpreter. Durable-storage and capability transport choices
+need explicit reviewed contracts before implementation claims are made.
+
+* Validation matrix
+
+- Module source/projection changes: Core =just test-build-input-context-mutations=
+  and Lab =t/yuanxu-deployment-downstream-test.ss= under their existing budgets;
+  focused Aitia tests use heap-fenced Just entrypoints with =MODULE-OK=,
+  =HARNESS-OK=, final =OK= and no error/overflow markers.
+- Proof relocation: Lean libraries and axiom audit, all Quint safe/reachable/
+  unsafe Cases, Scheme replay and source-cut identity checks from their new owner.
+- Rust: formatting, lint, unit/integration controls; real tool process failure,
+  cancellation and drain, then language-specific Rust/Python Project consumers.
+- Authority/recovery: forged result and principal, substituted target, stale
+  inputs/review, revoked/consumed grant, competing submission and crash replay.
+- Documentation: local references, ownership, implementation/design distinction;
+  raw execution logs remain local/CI artifacts, not committed ORG evidence.
+
+* Progress receipt
+
+Goal created and current entry/build source inspected. The first migration cut
+moved all 29 versioned proof files to =dev/proof/=: 26 retain their exact bytes;
+two checker files and their README have relocation-only changes. CI, Just,
+ignore rules, current test references and documentation navigation now use that
+owner. Historical SHA-bound table entries retain their original recorded paths.
+
+| Executed control | Result | Boundary |
+|------------------+--------+----------|
+| Proof-file custody comparison against Git index | 29 present; 26 unchanged; 3 path-adjusted | does not validate semantics |
+| Relocated lifecycle graph-admission tests | 10 passed | validator tests, not Scheme execution |
+| Relocated Quint replay-driver tests | 8 passed | existing driver controls, retained pending replacement |
+| =timeout 120s just check-proof= | retry passed, both Lean libraries and axiom audit | first sandbox attempt failed with operation-not-permitted; retained as environment failure |
+| =timeout 120s just check-quint work= | 4 controls passed, including two expected counterexample traces | work model only, not the full Quint/replay suite |
+| Diff and new design-link checks | passed | static checks only |
+
+The Rust owner is established at [[file:../../rust/README.org][rust/]] as a multi-crate workspace. A short-lived
+handwritten declaration DSL and its five tests were rejected and removed: Scheme
+already owns that language. The implementation uses pinned bridge PR18 rather
+than interpreting a Rust copy of Scheme semantics. Shared ASP Rust deny policy
+is consumed by production members only through development dependencies.
+The first ASP run rejected package placement and facade implementation; that
+failure is retained and the source is being repaired, not the policy weakened.
+After moving the shared gate into the Build Support owner and explicit unit
+test targets, the upstream deny-mode workspace policy passed for both workspace
+members. Cargo's normal Runtime dependency tree contains the pinned Scheme
+bridge, not ASP or Build Support. Formatting checks pass. This is style/dependency
+evidence, not execution or authorization acceptance. The locked/offline Rust
+bridge compilation check also passed in 56.37 seconds under its unchanged
+120-second bound. It checked =aitia-runtime= against PR18 =380f8ba5= and built
+the actual upstream bridge dependency graph; it did not execute a generated
+AITIA program or establish full Scheme/POO Module correspondence.
+Workspace/all-target Clippy with =-D warnings= also passed under 120 seconds.
+The Justfile exposes separate formatting, ASP policy, bridge compilation and
+Clippy gates; none substitutes for actual AITIA execution or semantic acceptance.
+At that earlier workspace cut, no Module conversion, old-driver replacement
+parity, AITIA-linked program execution or complete joint qualification was
+accepted. Old Python drivers
+remain temporarily so no verification
+obligation is deleted before its replacement closes. All limits remain unchanged.
+Raw logs remain local cache artifacts, not committed publication material.
+
+* Module-first implementation cut
+
+The user's priority is complete Yuanxu integration before further Rust expansion.
+The prior paragraph's no-Module-conversion status describes the earlier Rust
+workspace cut, not the new changes below. Rust execution expansion is held while
+the remaining Module and consumer migration proceeds.
+
+- =init.ss= now owns explicit Assurance and ADR selection with =yuanxu!=.
+- =build.ss= consumes =init.exports.std-make-spec=. One declaration owns the
+  Modules, Profiles and Scenarios used for publication and build selection.
+- ADR and Assurance publish one declarative Interface and named Scope Type.
+  Their algorithms use =func.ss=; ADR's value constructors moved into that
+  functional owner to remove an actual reversed-role dependency.
+- ADR no longer imports Assurance private roles. Its Interface declares
+  =requires: Assurance= using the directory-local =assurance= identity and
+  assembles a projector from that admitted Scope. Config does not reference
+  an unbound dependency; dependency assembly belongs in Interface.
+- The ADR consumer uses =init.exports= rather than the removed selection adapter.
+  Reciprocal supersession, invalid transitions, invalid records and the
+  accepted-ADR-is-not-authority Case remain in the same test suite.
+
+Current execution evidence:
+
+| Gate | Result | Scope |
+|------+--------+-------|
+| Initial ADR spec/build/consumer | passed before package correction | historical intermediate cut, not qualification of the independent package |
+| Core input-context mutation gate after Core rebuild | passed: four real refusals, before/after order and admission pass | same existing package pool; original time and idle budgets |
+| Core Module publication gate | MODULE-OK / HARNESS-OK / final OK | mechanism qualification, not complete AITIA acceptance |
+| Lab deployment downstream gate after Core rebuild | MODULE-OK / HARNESS-OK / final OK | 46 targets, four owners, three selected tests, B products and unchanged compiler prerequisites |
+| Independent-package ADR consumer | MODULE-OK / HARNESS-OK / final OK | six existing Cases, including reciprocal supersession and accepted-is-not-authority |
+| Independent-package Assurance consumers | passed: 86 Cases, all markers and natural exits | the five original suites consume the admitted Module scope |
+| Independent-package final build and cold projection | passed: build exit 0; two cold/demand Cases | zero spec-time business scopes; two actual qualified owners, one factory each |
+
+[[file:../receipts/2026-11-07-yuanxu-module-slice.org][The independent-package Module receipt]] binds seven final consumer suites
+(94 Cases), repaired boundaries and remaining obligations to the selected
+source-set digest. This is a local slice, not full migration qualification.
+
+Retained earlier failures include reversed =func -> objects= ownership, an
+unnamed Scope Contract, an unselected private Assurance import, a dependency
+referenced from Config instead of Interface, and a full compiler path used as
+a directory-local Module ID. Those were fixed at their consumer/declaration
+owners without modifying Core semantics or weakening source admission.
+The current Core package has now rebuilt successfully through its ordinary
+entry in the existing workspace package pool. Its installed source-package
+metadata now exports =call-with-build-input-path=. The required input-context,
+publication and Lab deployment guards passed against that same package pool,
+with no prerequisite reordering. CORE testing-source admission also passed its
+MODULE-OK / HARNESS-OK / final OK gate in the same package pool.
+This table does not claim the remaining
+Modules, all consumers, source-projection counters or joint acceptance passed.
+
+** Independent Project and language boundary
+
+=gerbil.pkg= declares =package: lambda-aitia=. Build source registration,
+generated init export names, source imports and current consumers use that
+identity. The Git submodule placement under Lab is not an enclosing namespace.
+The selected =:tao3k/yuanxu/prelude= is a language dependency, independently of
+AITIA's package identity and init-owned Module selection. No extra AITIA prelude
+or alias namespace is introduced. Historical receipts retain their original IDs.
+
+Within migrated Modules, private role imports are relative. An installed private
+role must not supply a second instance of a source-declared Type. The observed
+ADR failure after namespace correction distinguished this problem from source
+authentication: a constructor and predicate referred to different Type instances.
+Switching Module-local imports to the owning source association repaired that
+consumer; no loader/currentness check was disabled.
+
+** Pure data schemas and replay custody
+
+Assurance and ADR data schemas now use POO Record/Type descriptors. Their former
+CLOS class initialization mutated shared parent subclass metadata while Yuanxu
+was retaining source dependencies, causing a genuine =stale slot dependency=
+refusal. Data schema construction no longer registers CLOS classes. Constructor
+validation delegates to Record, and domain membership retains the declared
+prototype ancestry check as well as field validation; matching slots alone do
+not acquire nominal identity or authority.
+
+Five Assurance suites retain their assertion bodies after the public-entry
+binding block. The required-support row fixture now obtains the declared
+Record prototype through the Scope's =contracts= slot instead of CLOS; its
+field values and membership expectation are unchanged. The other four suites'
+fixture and assertion bodies remain unchanged. This includes nominal-forgery,
+admission, preflight, effect and replay controls. Replay glue consumes the same
+Module scope. The Scope publishes its actual evidence-kind vocabulary rather
+than copying it into a proof-side evaluator.
+
+Intermediate failures include a malformed Record field-list flattening in the
+new factory and a missing evidence-kind Scope slot. Both are implementation
+errors, not justification to relax a Contract or change an expectation. The
+field-list flattening and public Scope were repaired; their successful source
+projection result alone was never treated as semantic replay acceptance.
+
+The existing local package checkout of gerbil-poo reports =v0.1.2= while the
+inspected Core manifest declares =v0.1.3=. The latter tag is absent from that
+local checkout. Current-pool tests do not establish qualification of the
+manifest-declared clean installation. Dependency reconciliation and clean
+installation therefore remain open; no dependency tag was rewritten or
+package uninstalled to conceal this distinction.
+
+** Record contracts for formal-methods and GitOps
+
+The init selects =formal-methods= and =gitops= alongside Assurance and ADR.
+Their Interfaces each publish one Scope. A Record declares fields and native
+=Function= descriptors declare callable inputs and outputs; no second field
+scanner or hand-maintained flat export surface is required.
+
+[[file:../../modules/formal-methods/types.ss][Formal-methods Types]] use a Record for provider data, including the fixed
+obligation-only and execution flags and the typed artifact list. Its functions
+construct and project these values. The Scope reuses the Lab Proof Module
+contract. Declaring Quint, Lean or Cedar supplies no execution receipt or
+authorization. The existing composition consumer now reads the admitted Scope.
+
+[[file:../../modules/gitops/types.ss][GitOps Types]] publish a Record scope with Function contracts for checks,
+changes, matching and evaluation, including the two optional check keywords.
+The maintained Profiles refine the POO prototype and derive their matcher from
+the receiver's event and target ref. GitHub consumes that Scope. The
+[[file:../../user-interface/adapters/gitops-evaluation.ss][opt-in CLOS adapter]] composes a checked bundle around the same evaluation
+function; the ordinary Module does not import or register CLOS evaluators.
+
+An isolated cold spec passed for formal-methods and refused stale identity
+reads for the GitOps closure with CLOS. Separating the explicit adapter removed
+that dependency from the ordinary build without suppressing source replay.
+A subsequent adapter test caught a POO slot shadowing its helper name; the
+helper was renamed and both default and specialized dispatch were exercised.
+
+| Gate | Cases | Result |
+|------+-------+--------|
+| =build.ss compile --modules ADR formal-methods gitops= | — | exit 0, four Module closure |
+| =dev/modules/source-projection-test.ss= | 3 | zero Scope factories during spec; one per actual owner upon demand |
+| =dev/modules/formal-methods-test.ss= | 2 | typed providers; malformed artifacts and forged execution refused |
+| =t/gitops/unit/gitops-protocol-test.ss= | 5 | profile refinement, checked CLOS composition, stale checks and GitHub adapter |
+| =t/modules/unit/composition-identity-test.ss= | 4 | original composition assertions consume the published Scope |
+
+All four Scheme suites ran serially through the existing heap-fenced Just
+entry and exited 0 with MODULE-OK, HARNESS-OK and final OK. No time, heap or
+watchdog limit was widened. These results qualify this four-Module cut and the
+listed consumers, not SDLC/Standards, complete application composition, clean
+installation, bindings, Rust execution or the joint formal replay.
+
+** SDLC Record data contracts
+
+SDLC and its NASA Standards use POO Record descriptors for model fields.
+The declared parents supply inherited field constraints and the instance
+prototype retains the same parent ancestry. Membership checks require both
+that ancestry and Record validation. The existing model tests exercise
+multiple inheritance, invalid inherited fields, and a structurally identical
+object without the required ancestry. Construction uses POO =validate=.
+
+Existing model, NASA certification, lifecycle, structured inventory, review
+and trace suites ran serially with the existing heap-fenced =just test-file=
+entry. All six suites exited 0 with MODULE-OK, HARNESS-OK and final OK. They
+contain 34 Cases. Source imports in these tests and their inventory fixture
+resolve to the owning SDLC source. An earlier lifecycle run failed on the
+fixture's installed-library import. The source import was repaired and the
+same suite passed without changing the workload or assertions.
+
+This verifies the data contracts and those consumers. The SDLC Interface still
+requires managed Scope assembly, including explicit Assurance dependencies for
+design digests, implementation links and verification review. Complete Profile
+composition, standalone installation, Rust and joint replay remain open.
+
+** Catalog publication and test selection
+
+AITIA init selects the NASA catalog as Module ID =nasa-7150-2d-catalog=.
+Its Record Scope publishes =requirements= and =source-digests=. The review
+test obtains the catalog through the same namespace as downstream consumers.
+
+#+begin_src scheme
+(.get lambda-aitia.init.exports modules nasa-7150-2d-catalog requirements)
+(.call (.get lambda-aitia.init.exports tests) .select '(nasa-7150-2d-catalog))
+#+end_src
+
+The owner test checks that the selected spec identifies its own test source
+and that the Scope exposes the source digest. The review suite retains the
+existing 130 requirements and 255 paragraphs assertions. Both tests passed
+through the heap-fenced Just entry with MODULE-OK, HARNESS-OK and final OK.
+The generated catalog moved byte-for-byte into the catalog Module's objects
+role. The NASA Profile resolves the catalog Module ID at one integration
+point and exposes its existing =requirements= and =source-digests= slots.
+Standards factors consume those slots from =Nasa7150_2D=. Their code needs
+neither the generated filename nor the init namespace. The complete Standards
+Scope still needs Yuanxu assembly with a declared catalog dependency.
+
+The Provider suite detected an aggregate Sources Lock digest mismatch against
+current CORE. The existing Scheme generator reproduced a lock that differed
+only in the aggregate digest. All six source files matched their existing
+per-file hashes. The regenerated lock and current-digest binding fixtures use
+the new aggregate identity. An attestation carrying the previous aggregate
+digest is stale under the existing exact-source check. The Provider suite
+passed deterministic regeneration and exact source materialization after the
+refresh. All five affected suites passed serially with MODULE-OK, HARNESS-OK
+and final OK, covering 33 Cases across Provider, review, certification,
+lifecycle and structured inventory. Native and Python binding replay remain
+separate acceptance gates.
+
+** Test ownership and consumer boundary
+
+CORE's test selection projects guarded source inputs from Module IDs. AITIA's
+source projection suite verifies that selecting the catalog returns its owner
+test and constructs zero business Scopes. The catalog's own =yuanxu-test-case=
+asserts a public catalog value. Both suites passed with MODULE-OK, HARNESS-OK
+and final OK.
+
+The remaining ergonomics gap is the handoff from selection to execution and
+from execution to the configured Scope. A candidate CORE design would have the
+existing test entry select an owner by ID, carry the selected source epoch
+through compilation and execution, and make the admitted Scope available to
+an explicit owner fixture. Module Cases would declare only their behavioral
+assertions. Tests for namespace projection, rejected owners, source changes
+and cold selection belong in mechanism or downstream qualification suites.
+This fixture handoff is a design proposal. Current Cases still import the
+product init and demand the public Scope explicitly.
+
+AITIA now exposes =just test-module nasa-7150-2d-catalog= through its existing
+test entry. Yuanxu resolves the owner and projects its files. The observer
+passes those files to the existing ASP executor with source admission before
+and after execution. Owner tests use the serial resource profile and retain
+the existing heap policy. An unknown owner and a selected owner with no tests
+both fail before worker dispatch.
+
+The catalog owner passed through this command in the existing workspace
+package pool. The pool initially lacked ASP testing exports. The local ASP
+checkout at =f5b7c009d2cab61144a8af18008a0bfba3056584= was built through its
+normal entry, then the owner test completed with MODULE-OK, HARNESS-OK and
+final OK. Qualification with the host's declared ASP pin and a clean package
+installation remains open. This command does not yet implement fixture Scope
+handoff or a separate test compilation phase.
+
+Keep native Gerbil library imports for pure functions and Records. Cases
+that verify a managed Scope exercise the same published Module ID as ordinary
+consumers. The test selector resolves ownership and supplies files to the
+existing runner. Generic unknown-owner rejection and selection isolation
+belong to Yuanxu's mechanism suites. AITIA keeps the product-specific check
+that NASA standards cannot be activated as SDLC Features.
+
+The semantic gate now runs the catalog owner through =test-module=. The
+catalog Case asserts the published Appendix C source digest for this catalog
+revision. An independent published-consumer check still needs to verify that
+the Scope is accessible without importing AITIA's source tree.
+
+After this separation, =test-module sdlc= and
+=test-module nasa-7150-2d-catalog= passed serially with the existing workspace
+package pool. Both reported MODULE-OK, HARNESS-OK, and OK and exited normally
+within the existing limits. This run qualifies the two owner suites.
+
+** SDLC design digest dependency
+
+The =sdlc= Interface declares =assurance= through =requires=. Its config
+constructs one design digester and one implementation operation set. The
+verification operation receives both. The design factor owns the canonical
+payload and preserves its identity, revision and ordered fields. SDLC factors
+receive the admitted Assurance Scope without importing AITIA init.
+
+The selected =sdlc= closure compiled through =build.ss compile --modules sdlc=.
+Design, implementation, verification, flow, profile composition, retirement
+source binding and SDLC owner selection passed 41 Cases. The owner suite ran
+through =just test-module sdlc= and is included in the semantic gate. The
+Cases cover current and stale evidence, source bytes, revoked admissions
+and unsupported Features. The retired source-binding
+fixture reads the relocated =dev/proof/= sources and calls the published Scope.
+This verifies source binding. Quint and Lean replay have separate gates.
+
+POO authoring and runtime checks identified two slot-name shadowing failures
+during assembly. The conflicting bindings were renamed and the affected
+suites passed. NASA Profile composition now consumes the SDLC Scope's
+standard prototype.
+
+** Application and binding build
+
+The integration build projects the Gerbil import closure from the C binding
+entry. Package-owned imports are relative within that closure, including the
+GitOps and NASA Profiles reached through the delivery configuration. The
+native entry retains its platform-specific compiler options.
+
+In the existing workspace package pool, =integration-build.ss compile=
+compiled the delivery configuration, Scheme ABI contract, and C FFI module.
+=just test-scheme bindings= and =just test-scheme integration= both reported
+MODULE-OK, HARNESS-OK, and OK and exited normally under their existing
+limits. This verifies the Scheme round trip and GitHub workflow composition.
+Complete Standards Scope assembly, shared-library qualification, and Python
+wheel replay remain open.
+
+** User Interface publication
+
+AITIA's =init.ss= follows the Lab's Yuanxu declaration structure. The
+=Profiles= window publishes =delivery= and =nasa-7150-2d=. The =scenarios=
+window publishes =github-gitops=. The Scenario requires the two Profiles
+and the GitOps Module. The NASA Profile requires the SDLC and Catalog
+Scopes and constructs the standard from their admitted values. The GitHub
+Actions Profile source is private to the delivery Profile owner.
+
+The C contract and Scheme integration Cases consume these publications
+through =lambda-aitia.init.exports=. The integration build requests
+=github-gitops= through Yuanxu before compiling the FFI closure. The
+existing workspace package pool passed =just test-integration= and
+=just test-scheme gitops= serially. The binding, workflow, and GitOps
+Suites each reported MODULE-OK, HARNESS-OK, and OK and exited normally
+under the existing limits.
+
+The default Project is now published as =Profiles.software-engineering= and
+composed by =scenarios.aitia= through a declared dependency. The selected
+=aitia= build compiled both owners. The existing composition identity Suite
+exercised these published values and passed its four Cases under the original
+60-second and 1 GiB limits. It checks the semantic identity, closed Scenario,
+default Project selections, and formal-method declarations.
+
+The Retirement contract and synthetic impact graphs publish through
+=scenarios.job-retirement-contract= and =scenarios.job-executor-retirement=.
+The first combined Scope passed assertions but exceeded the 60-second process
+budget. Separate Scopes keep the formal source-binding Case independent of
+the Temporal Causality imports needed for impact analysis. Both Suites then
+passed and exited normally within the original 60-second and 1 GiB limits.
+This run checks source binding and impact behavior. Quint, Lean, shared-library
+and installed-consumer qualification have their own gates.
+
+After removing the duplicate =build-modules.ss= declaration, the normal
+package build and one explicit build request for =github-gitops=, =aitia=,
+=job-executor-retirement= and =job-retirement-contract= both succeeded
+using =init.exports.std-make-spec=. The retirement source-binding Suite
+passed again after the build entry changed.
+
+** Embedded C consumer checkpoint
+
+=just check-native= initially stopped at the linker because the Homebrew
+Gerbil link metadata referenced a removed OpenSSL patch-version directory.
+On that host, supplying =$(brew --prefix openssl@3)/lib= in =LIBRARY_PATH=
+let the unchanged native link command complete. The header harness, shared
+library load, runtime initialization, ABI revision, descriptor, and descriptor
+result release passed. The dynamic harness then returned 7 at the SDLC flow
+plan. The harness now prints the owned error payload before releasing it.
+The rebuilt dynamic harness reports =:gerbil/core= as the unresolved library.
+The AITIA C shim invokes Gambit's setup but has no Gerbil startup call. The
+paired SDK's ordinary executable stub invokes =gerbil-runtime-init!= with the
+compiler's builtin Module list, and Gerbil's library resolver searches the
+load path that this initialization installs. The first deferred Yuanxu
+binding resolution therefore fails before it reaches the SDLC Scope.
+The pinned Scheme/Rust bridge already uses the SDK-generated program stub
+and has a build-time option for runtime library metadata. AITIA's linked
+program and portable package metadata still require execution evidence.
+Python tests and wheel qualification were not reached by the legacy gate.
+
+** Rust linked program staging
+
+The pinned bridge's Scheme package compiled in the current pool using the
+host's pkgconf and the declared OpenSSL, zlib and SQLite metadata. The
+=stage-rust-program= entry then generated the AOT manifest and SDK startup
+stub. The 184-entry manifest includes the bridge runtime, AITIA init,
+the Scheme flow-plan contract and the rooted program entry. The generated
+stub invokes =gerbil-runtime-init!= before the program's main loads the
+expander. The Rust runtime's =linked-program= feature validates and links
+that archive through the bridge. A first run without =GERBIL_HOME= returned
+initialization status 4. With the SDK location reported by the paired =gxi=,
+the linked test rejected a missing lifecycle ID and then returned the SDLC
+plan including =release/42/effect= in the same live owner.
+=just test-rust-linked-program= repeated the result within its 120-second
+Cargo gate. The ASP deny gate, workspace formatting, and linked-feature
+Clippy with =-D warnings= passed. The run used the workspace package pool
+and the host linker emitted SDK and compact-unwind warnings.
+Installed package metadata and legacy Python parity are still unverified.
+
+The same Rust owner now consumes the published GitOps Scenario. The linked
+test accepted the Dev decision with current checks, rejected the same
+request after replacing its NASA source-lock digest, and observed no
+release authorization or runtime execution on the accepted decision.
+=just test-rust-linked-program= and the ASP deny gate passed on this cut.
+
+The shared JSON operation projection now lives in =bindings/operations.ss=.
+The Rust archive admits that Module and excludes the C ABI descriptor and
+FFI modules. Rust staging no longer builds the C integration closure. Its
+Gerbil compile step emits loadable modules alongside the static inputs,
+so subsequent Scheme execution in the same pool does not fall back to
+compiler intermediate files. =just test-rust-linked-program= and
+=just test-integration= passed serially after this change.
+
+** Development tools and remaining legacy consumer
+
+The NASA catalog, source-lock and report generators are owned by
+=dev/standards/=. Re-running the catalog generator exposed six obsolete
+HTML digests in the generated Scheme Catalog. The regenerated Catalog
+changes only those digests, and uses the same raw HTML byte digests as
+the Source Lock. All 130 requirement rows remain identical. Independent
+generation reproduced the Catalog, Source Lock and implementation matrix
+byte for byte.
+
+The generated NASA ledger lives under =dev/qualification/=. AITIA delivers
+the linked Rust program and the Maturin wheel through =check-rust-delivery=.
+The installed wheel exercises bounded pytest replay with a separate verifier
+interpreter and checks source-bound ORG edit spans. The local test used the
+previously staged Scheme program. Fresh staging against the Lab-pinned
+package set, trusted Orgize projection custody and Host admission remain
+open.
+
+In a fresh shared-staging run, the linked Rust test built in about
+85 seconds, started, and hit the existing 120-second Cargo recipe
+deadline. That run did not reach the Quint or wheel steps. The linked
+test recipe now exposes the existing finite phase markers for the
+session and CLI calls so a timed-out run shows its last reached phase.
+
+A runtime-only diagnostic using the already linked executable also
+returned 124. It finished the Session graph, GitOps and ORG assertions
+and reached the call to close the Session. The then-current trace did
+not mark the return from close separately from early CLI work.
+The linked fixture now emits a marker at entry to the CLI checks and
+another before reading the recorded manifest. The diagnostic does not
+replace the combined build-and-test gate.
+
+The run with the additional markers built in 45.55 seconds. It returned
+from Session close, passed the CLI initialization assertions, and
+recorded the minimal manifest in JJ. The enclosing deadline then
+returned 124 before the manifest read produced a verdict. The linked
+gate therefore remains open, and the Session close is not the last
+reached boundary in this run.
+
+The current Rust workspace passed format checking, Clippy and the
+default-feature test suite, including the ASP Rust workspace policy.
+The CLI executable delegates to the runtime-owned command module.
+The default Cargo suite leaves the external-interpreter pytest case
+for =just test-rust-frozen-pytest=. The delivery gate now runs that
+case explicitly. The focused run passed with pytest 9.0.2 and verified
+frozen input execution and mutation detection.
+
+** Source admission against the locked ASP interface
+
+The Lab development cohort pins ASP Gerbil Scheme at
+=9ae9bc377cbab4b84de52b512a2c03375a36d6c9=. Its prepared import API
+is =native-import-closure=. The shared development observer now uses
+that API. =just test-scheme-atomic sdlc source-admission-test.ss=
+passed in the Lab-pinned local package set with 17 source files, 345
+observations, and zero diagnostics. Prepared graph projection took
+3,091 microseconds under the existing 100,000-microsecond check.
+The harness exited normally with its success markers. This qualifies
+the local source-admission test. The same fixture now lives in
+=dev/proof/scheme/= and runs once via =just test-proof-scheme
+source-admission-test.ss= before the SDLC unit suite. The previous
+directory layout caused the complete gate to run it a second time
+inside the SDLC suite, which exceeded its aggregate timeout after
+printing the final assertion markers. The preflight limits and SDLC
+unit suite limit are preserved. Remote CI remains bound to its declared
+Lab revision.
+
+The relocated preflight passed with the same 17 files and 345
+observations, with no diagnostics and normal exit. The subsequent SDLC
+suite selected 14 unit fixtures. Thirteen completed before the
+unchanged 120-second deadline. The remaining fixture was
+=sdlc-trace-test.ss=. Removing duplicate preflight execution improves
+ownership and test selection. It does not resolve the aggregate gate.
+
+The trace fixture passed alone with its existing profile and returned
+normally in about 23 seconds. A first SDLC batching trial reduced the
+process count but hit heap overflow in grouped 512 MiB fixtures.
+Keep those fixtures isolated. ASP can group the existing 2 GiB
+catalog and trace fixtures with compatible runtime options. The
+source-admission preflight and single-file entry retain their isolated
+profiles. The focused policy test passed with the original per-file
+heap limits, isolation for ordinary fixtures, and all selected files
+present exactly once in the planned batches.
+
+The two-worker trial selected all 14 files in nine batches and returned
+124 under the existing 120-second limit. Single-file batches took about
+27 to 39 seconds. The four-worker trial keeps the selection and per-process heap limits.
+ASP also changes its batch partition when the worker count changes.
+The four-worker run selected 14 files in 11 batches. All 14 modules
+and 11 harnesses reported success, the launcher reported completion
+and exited normally within the original 120-second limit.
+
+The subsequent full =just check= stopped earlier at the single-file
+source-admission preflight. It reported all three success markers and
+zero diagnostics across the same 345 observations, but the launcher
+returned 137 before reporting batch completion. This run does not
+qualify source admission or the aggregate check. The 60-second
+single-file deadline and its existing termination policy still apply. An isolated
+recheck completed normally with all three markers, zero diagnostics,
+and a 28.1-second batch. The intermittent full-run exit remains open.
+
+The next full run passed source admission (37.7-second batch), the
+Scheme build, Assurance (five fixtures) and ADR. SDLC dispatched the
+same 14 files in 11 batches with four workers. It emitted all module,
+harness and batch-completion markers, but the aggregate recipe returned
+124. The standalone pass therefore does not establish that the batch
+layout is sufficient for the full gate. The aggregate deadline remains
+120 seconds.
+
+The next scheduling trial dispatches the four catalog and trace
+batches first. It retains four workers, 11 batches, 14 files and all
+existing heap profiles. The focused scheduling contract and standalone
+SDLC suite both completed normally. All 14 modules and 11 harnesses
+reported success, and the first four batches each finished within
+25 seconds. Full-gate acceptance remains open.
+
+The next aggregate attempt returned 124 at source admission even
+though its batch reported completion after 52.9 seconds. File and
+directory selection now launch only the test observer. Module-ID
+selection still imports the Aitia init declaration and uses its
+published test selection. Both use the same observer and ASP runner.
+The source-admission preflight passed through the file entry with
+all markers and a normal exit after a 47.4-second batch. The separate
+GitOps Module-ID check selected its published commit-evidence fixture
+and emitted all assertion markers, but did not finish the batch before
+the existing 120-second recipe returned 124. Selection is observed.
+The Module-ID gate still needs a normal exit.
+
+A subsequent full run and an isolated resource-measured recheck both
+returned 137 at source admission before the fixture printed a verdict.
+The isolated command elapsed 63.12 seconds and reported 3.33 seconds of
+user CPU and 0.75 seconds of system CPU. The host's one-minute load
+average was above 60. The resource reporter could not read the remaining
+counters in the sandbox. The elapsed/CPU disparity does not identify
+where the child waited. These runs provide no admission receipt and
+leave the existing deadline and closure requirement in force.
+
+A separate run under the same deadline sampled the launcher and
+worker before the first harness marker. The launcher was in Gerbil
+device selection. The worker was in expander, interface and MOP code,
+with GC stack samples. The run returned 137 without a fixture verdict.
+This sample places the observed delay before assertion execution. It
+does not explain runs that print a verdict and then fail to exit.
+
+The proof-owned import root now lives beside the source-admission
+fixture in =dev/proof/scheme/=. The relocated root produced the same
+17 files, 345 observations and zero diagnostics. It emitted all three
+success markers, then returned 124 before batch completion. This
+confirms equivalent observed coverage with the new location and leaves
+the process-exit requirement open.
+
+** Formal gates after relocation
+
+The current package pool passed Retirement source binding and Scheme Host
+execution. The Quint Retirement replay passed with 512 safe traces, 177 of
+248 states, 13 actions and two negative traces. The Lean libraries built
+and the axiom audit reported no =sorryAx=.
+
+The default sandbox refused Apalache's local listener before lifecycle
+graph export. With local listener permission, the same gate enumerated
+19,042 distinct states and 62,345 edges across all 16 actions and selected
+3,084 replay traces. This graph receipt is distinct from the Scheme
+replay verdict. The replay retains its existing trace coverage,
+per-process limits and fault controls.
+
+The complete Quint contract gate passed all 23 model checks. The
+fairness control satisfied eventual delivery, and its no-fairness
+counterpart produced the expected counterexample. The first full Scheme lifecycle run stopped on batch
+9 with status 124 even though that batch emitted the Suite and Harness
+success markers. The failure input was retained. The lifecycle build now
+compiles the common Scheme fixture once before worker dispatch. The
+retained six-trace input then passed in isolation under the original limits.
+The replay checker now requires every trace's step receipt, both harness
+markers, final OK and clean exit. Its 11 controls passed. The all-traces
+rerun is separate from the isolated failure replay.
+
+The rerun reached the complete graph again. Its seven Scheme fault traces
+emitted the expected success markers but the batch again returned 124, so
+the checker preserved the fault input and did not dispatch the positive
+trace batches. The original 60-second worker gate remains in force.
+
+The replay supervisor now dispatches each batch directly to the same
+Gerbil test harness through a dedicated Just recipe. Each batch still has
+its own process, the worker's 512 MiB heap, the 60-second worker limit
+and the supervisor's original silence and total deadlines. This removes
+the extra ASP launcher process from the batch path. The retained
+seven-trace fault batch passed through this route with the original
+watchdogs and all receipts. Full replay remains a separate verdict.
+
+The direct-launch full run passed the fault batch and reached 143 positive
+traces. Batch 18 then exceeded the unchanged 12-second silence limit
+before the native Harness reported its first event. Its input remains
+preserved. That run overlapped a Rust build and does not isolate the cost
+of Scheme startup from host contention. The current gate compiles both
+the fixture and the replay suite under =dev/proof/scheme/=, then dispatches
+one batch at a time. Follow the [[file:../../dev/proof/quint/README.org][formal replay record]]
+for receipts against that layout.
+
+A later full run rebuilt the graph and passed all seven fault traces and
+the first 16 positive traces. The third positive batch reached the existing
+12-second silence limit before the Scheme harness emitted a verdict.
+The retained batch passed in isolation with all 12 trace receipts and
+natural exit in 14.068 seconds total under the same watchdogs. This
+confirms the retained input can replay. The complete ordered run still
+needs a passing receipt.
+
+** Rust Graph consumer
+
+The Rust API uses =flow_graph= and its CLI uses =flow-graph=. The shared
+Scheme binding projects nodes and typed edges directly from the published
+SDLC Graph. Python distribution is a Rust extension built through PyO3
+and Maturin. The fresh installed wheel passed Graph, GitOps acceptance
+and stale-source refusal, and explicit close using the paired SDK and
+workspace package pool. The [[file:../../rust/README.org][Rust consumer record]]
+tracks the remaining Orgize, source-verification and packaging obligations.

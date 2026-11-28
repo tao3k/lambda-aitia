@@ -3,154 +3,184 @@
 ;;;
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
-(import (only-in :clan/poo/object .o)
-        :poo-flow/src/module-system/contribution/model
-        :poo-flow/lambda-aitia/modules/assurance/types)
+(import (only-in :clan/poo/object .get .o)
+        (only-in :gerbil/core list-sort)
+        :std/list/list
+        (only-in :clan/poo/type validate)
+        "types.ss")
 
-(export assurance-artifact assurance-claim assurance-assumption
+(export AssurancePolicy assurance-artifact assurance-claim assurance-assumption
         assurance-observation assurance-event assurance-action
         assurance-obligation assurance-evidence assurance-counterexample
         assurance-finding assurance-decision assurance-effect
-        assurance-relation)
+        assurance-relation assurance-verifier-candidate)
 
-(def (assurance-artifact identity-value revision-value state-value digest-value
-                         owner: owner-value media-kind: media-kind-value
-                         provenance: (provenance-values '()))
-  (poo-flow-check-model AssuranceArtifact
-    (.o (:: @ (poo-flow-model-prototype AssuranceArtifact))
-        identity: identity-value kind: 'artifact revision: revision-value
-        state: state-value content-digest: digest-value owner: owner-value
-        media-kind: media-kind-value provenance: provenance-values)))
-(def (assurance-claim identity-value revision-value state-value digest-value
-                      subject: subject-value predicate: predicate-value
-                      assumptions: (assumption-values '())
-                      defeaters: (defeater-values '())
-                      support-requirements: (support-values '())
-                      scope: scope-value valid-from: valid-from-value
-                      valid-until: (valid-until-value #f))
-  (poo-flow-check-model AssuranceClaim
-    (.o (:: @ (poo-flow-model-prototype AssuranceClaim))
-        identity: identity-value kind: 'claim revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        predicate: predicate-value assumptions: assumption-values
-        defeaters: defeater-values support-requirements: support-values
-        scope: scope-value valid-from: valid-from-value
-        valid-until: valid-until-value)))
-(def (assurance-assumption identity-value revision-value state-value digest-value
-                           owner: owner-value scope: scope-value
-                           review-policy: review-policy-value
-                           expires-at: (expires-at-value #f))
-  (poo-flow-check-model AssuranceAssumption
-    (.o (:: @ (poo-flow-model-prototype AssuranceAssumption))
-        identity: identity-value kind: 'assumption revision: revision-value
-        state: state-value content-digest: digest-value owner: owner-value
-        scope: scope-value review-policy: review-policy-value
-        expires-at: expires-at-value)))
-(def (assurance-observation identity-value revision-value state-value digest-value
-                            subject: subject-value source: source-value
-                            clock-role: clock-role-value
-                            logical-position: logical-position-value)
-  (poo-flow-check-model AssuranceObservation
-    (.o (:: @ (poo-flow-model-prototype AssuranceObservation))
-        identity: identity-value kind: 'observation revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        source: source-value clock-role: clock-role-value
-        logical-position: logical-position-value)))
-(def (assurance-event identity-value revision-value state-value digest-value
-                      subject: subject-value event-kind: event-kind-value
-                      observation: observation-value payload-digest: payload-digest-value
-                      modality: modality-value commitment-state: commitment-value
-                      causal-parents: (causal-parent-values '()))
-  (poo-flow-check-model AssuranceEvent
-    (.o (:: @ (poo-flow-model-prototype AssuranceEvent))
-        identity: identity-value kind: 'event revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        event-kind: event-kind-value observation: observation-value
-        payload-digest: payload-digest-value modality: modality-value
-        commitment-state: commitment-value causal-parents: causal-parent-values)))
-(def (assurance-action identity-value revision-value state-value digest-value
-                       subject: subject-value action-kind: action-kind-value
-                       requested-by: requested-by-value scope: scope-value)
-  (poo-flow-check-model AssuranceAction
-    (.o (:: @ (poo-flow-model-prototype AssuranceAction))
-        identity: identity-value kind: 'action revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        action-kind: action-kind-value requested-by: requested-by-value
-        scope: scope-value)))
-(def (assurance-obligation identity-value revision-value state-value digest-value
-                           subject: subject-value claim: claim-value
-                           snapshot: snapshot-value evidence-kind: evidence-kind-value
-                           capability: capability-value scope: scope-value)
-  (poo-flow-check-model AssuranceObligation
-    (.o (:: @ (poo-flow-model-prototype AssuranceObligation))
-        identity: identity-value kind: 'obligation revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        claim: claim-value snapshot: snapshot-value evidence-kind: evidence-kind-value
-        capability: capability-value scope: scope-value)))
-(def (assurance-evidence identity-value revision-value state-value digest-value
-                         producer: producer-value tool: tool-value
-                         tool-version: tool-version-value
-                         input-artifacts: input-artifact-values
-                         obligation: obligation-value subject: subject-value
-                         scope: scope-value valid-from: valid-from-value
-                         valid-until: (valid-until-value #f)
-                         admission-state: admission-state-value)
-  (poo-flow-check-model AssuranceEvidence
-    (.o (:: @ (poo-flow-model-prototype AssuranceEvidence))
-        identity: identity-value kind: 'evidence revision: revision-value
-        state: state-value content-digest: digest-value producer: producer-value
-        tool: tool-value tool-version: tool-version-value
-        input-artifacts: input-artifact-values obligation: obligation-value
-        subject: subject-value scope: scope-value valid-from: valid-from-value
-        valid-until: valid-until-value admission-state: admission-state-value)))
-(def (assurance-counterexample identity-value revision-value state-value digest-value
-                               subject: subject-value challenges: challenges-value
-                               evidence: evidence-value details-digest: details-digest-value)
-  (poo-flow-check-model AssuranceCounterexample
-    (.o (:: @ (poo-flow-model-prototype AssuranceCounterexample))
-        identity: identity-value kind: 'counterexample revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        challenges: challenges-value evidence: evidence-value
-        details-digest: details-digest-value)))
-(def (assurance-finding identity-value revision-value state-value digest-value
-                        subject: subject-value challenges: challenges-value
-                        evidence: evidence-value finding-kind: finding-kind-value)
-  (poo-flow-check-model AssuranceFinding
-    (.o (:: @ (poo-flow-model-prototype AssuranceFinding))
-        identity: identity-value kind: 'finding revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        challenges: challenges-value evidence: evidence-value
-        finding-kind: finding-kind-value)))
-(def (assurance-decision identity-value revision-value state-value digest-value
-                         subject: subject-value snapshot: snapshot-value
-                         policy: policy-value authority: authority-value
-                         outcome: outcome-value)
-  (poo-flow-check-model AssuranceDecision
-    (.o (:: @ (poo-flow-model-prototype AssuranceDecision))
-        identity: identity-value kind: 'decision revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        snapshot: snapshot-value policy: policy-value authority: authority-value
-        outcome: outcome-value)))
-(def (assurance-effect identity-value revision-value state-value digest-value
-                       subject: subject-value decision: decision-value
-                       effect-kind: effect-kind-value effect-state: effect-state-value)
-  (poo-flow-check-model AssuranceEffect
-    (.o (:: @ (poo-flow-model-prototype AssuranceEffect))
-        identity: identity-value kind: 'effect revision: revision-value
-        state: state-value content-digest: digest-value subject: subject-value
-        decision: decision-value effect-kind: effect-kind-value
-        effect-state: effect-state-value)))
+;;; Pure declared defaults.  This value invokes no verifier and grants no
+;;; authority.
+(def AssurancePolicy
+  (.o identity: "lambda-aitia/assurance-policy"
+      revision: "1"
+      relation-planes: +assurance-relation-planes+
+      unresolved-frontier: 'block
+      conflict-resolution: 'explicit
+      planner-executes?: #f
+      grants-authority?: #f))
 
-(def (assurance-relation identity-value plane-value relation-value
-                         source-value target-value modality-value)
-  (let ((owned-plane (assurance-relation-kind-plane relation-value)))
+;; Declarative internal helper expanding directly to ordinary validated POO objects.
+(defrule (validated-assurance-object RecordType (slot expr) ...)
+  (validate RecordType
+    (.o (:: @ (.get RecordType proto))
+        (slot := expr) ...)))
+
+(def (assurance-artifact identity revision state digest
+                         owner: owner media-kind: media-kind
+                         provenance: (provenance '()))
+  (validated-assurance-object AssuranceArtifact
+    (identity identity) (kind 'artifact) (revision revision)
+    (state state) (content-digest digest) (owner owner)
+    (media-kind media-kind) (provenance provenance)))
+
+(def (assurance-claim identity revision state digest
+                      subject: subject predicate: predicate
+                      assumptions: (assumptions '())
+                      defeaters: (defeaters '())
+                      support-requirements: (support-requirements '())
+                      scope: scope valid-from: valid-from
+                      valid-until: (valid-until #f))
+  (validated-assurance-object AssuranceClaim
+    (identity identity) (kind 'claim) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (predicate predicate) (assumptions assumptions)
+    (defeaters defeaters) (support-requirements support-requirements)
+    (scope scope) (valid-from valid-from) (valid-until valid-until)))
+
+(def (assurance-assumption identity revision state digest
+                           owner: owner scope: scope
+                           review-policy: review-policy
+                           expires-at: (expires-at #f))
+  (validated-assurance-object AssuranceAssumption
+    (identity identity) (kind 'assumption) (revision revision)
+    (state state) (content-digest digest) (owner owner)
+    (scope scope) (review-policy review-policy) (expires-at expires-at)))
+
+(def (assurance-observation identity revision state digest
+                            subject: subject source: source
+                            clock-role: clock-role
+                            logical-position: logical-position)
+  (validated-assurance-object AssuranceObservation
+    (identity identity) (kind 'observation) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (source source) (clock-role clock-role)
+    (logical-position logical-position)))
+
+(def (assurance-event identity revision state digest
+                      subject: subject event-kind: event-kind
+                      observation: observation payload-digest: payload-digest
+                      modality: modality commitment-state: commitment-state
+                      causal-parents: (causal-parents '()))
+  (validated-assurance-object AssuranceEvent
+    (identity identity) (kind 'event) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (event-kind event-kind) (observation observation)
+    (payload-digest payload-digest) (modality modality)
+    (commitment-state commitment-state) (causal-parents causal-parents)))
+
+(def (assurance-action identity revision state digest
+                       subject: subject action-kind: action-kind
+                       requested-by: requested-by scope: scope)
+  (validated-assurance-object AssuranceAction
+    (identity identity) (kind 'action) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (action-kind action-kind) (requested-by requested-by) (scope scope)))
+
+(def (assurance-obligation identity revision state digest
+                           subject: subject claim: claim
+                           snapshot: snapshot evidence-kind: evidence-kind
+                           capability: capability scope: scope
+                           snapshot-revision: (snapshot-revision #f)
+                           snapshot-context-digest: (snapshot-context-digest #f))
+  (validated-assurance-object AssuranceObligation
+    (identity identity) (kind 'obligation) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (claim claim) (snapshot snapshot) (evidence-kind evidence-kind)
+    (snapshot-revision snapshot-revision)
+    (snapshot-context-digest snapshot-context-digest)
+    (capability capability) (scope scope)))
+
+(def (assurance-evidence identity revision state digest
+                         producer: producer tool: tool
+                         tool-version: tool-version
+                         input-artifacts: input-artifacts
+                         obligation: obligation subject: subject
+                         scope: scope valid-from: valid-from
+                         valid-until: (valid-until #f)
+                         admission-state: admission-state)
+  (validated-assurance-object AssuranceEvidence
+    (identity identity) (kind 'evidence) (revision revision)
+    (state state) (content-digest digest) (producer producer)
+    (tool tool) (tool-version tool-version)
+    (input-artifacts input-artifacts) (obligation obligation)
+    (subject subject) (scope scope) (valid-from valid-from)
+    (valid-until valid-until) (admission-state admission-state)))
+
+(def (assurance-counterexample identity revision state digest
+                               subject: subject challenges: challenges
+                               evidence: evidence details-digest: details-digest)
+  (validated-assurance-object AssuranceCounterexample
+    (identity identity) (kind 'counterexample) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (challenges challenges) (evidence evidence)
+    (details-digest details-digest)))
+
+(def (assurance-finding identity revision state digest
+                        subject: subject challenges: challenges
+                        evidence: evidence finding-kind: finding-kind)
+  (validated-assurance-object AssuranceFinding
+    (identity identity) (kind 'finding) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (challenges challenges) (evidence evidence)
+    (finding-kind finding-kind)))
+
+(def (assurance-decision identity revision state digest
+                         subject: subject snapshot: snapshot
+                         policy: policy authority: authority
+                         outcome: outcome)
+  (validated-assurance-object AssuranceDecision
+    (identity identity) (kind 'decision) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (snapshot snapshot) (policy policy) (authority authority)
+    (outcome outcome)))
+
+(def (assurance-effect identity revision state digest
+                       subject: subject decision: decision
+                       effect-kind: effect-kind effect-state: effect-state)
+  (validated-assurance-object AssuranceEffect
+    (identity identity) (kind 'effect) (revision revision)
+    (state state) (content-digest digest) (subject subject)
+    (decision decision) (effect-kind effect-kind)
+    (effect-state effect-state)))
+
+(def (assurance-relation identity plane relation source target modality)
+  (let ((owned-plane (assurance-relation-kind-plane relation)))
     (unless owned-plane
-      (error "unknown assurance relation kind" relation-value))
-    (unless (eq? plane-value owned-plane)
+      (error "unknown assurance relation kind" relation))
+    (unless (eq? plane owned-plane)
       (error "assurance relation crosses its owned plane"
-             relation-value plane-value owned-plane))
-    (poo-flow-check-model
-     AssuranceRelation
-     (.o (:: @ (poo-flow-model-prototype AssuranceRelation))
-         identity: identity-value plane: plane-value relation: relation-value
-         source: source-value target: target-value modality: modality-value))))
+             relation plane owned-plane))
+    (validated-assurance-object AssuranceRelation
+      (identity identity) (plane plane) (relation relation)
+      (source source) (target target) (modality modality))))
+
+(def (assurance-verifier-candidate identity revision priority evidence-kinds capability)
+  (unless (and (list? evidence-kinds)
+               (pair? evidence-kinds)
+               (every assurance-evidence-kind? evidence-kinds))
+    (error "invalid verifier evidence kinds" evidence-kinds))
+  (validated-assurance-object AssuranceVerifierCandidate
+    (identity identity) (revision revision) (priority priority)
+    (evidence-kinds
+     (list-sort
+      (lambda (left right)
+        (string<? (symbol->string left) (symbol->string right)))
+      (delete-duplicates/hash evidence-kinds)))
+    (capability capability)))

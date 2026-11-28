@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+[build-system]
+requires = ["maturin==1.16.0"]
+build-backend = "maturin"
+
+[project]
+name = "lambda-aitia-rust"
+version = "0.1.0"
+requires-python = ">=3.10"
+license = "Apache-2.0 AND LGPL-2.1-or-later"
+license-files = ["LICENSE"]
+
+[tool.maturin]
+module-name = "lambda_aitia_rust"
+features = ["extension-module"]
+locked = true

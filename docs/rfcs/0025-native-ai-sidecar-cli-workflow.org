@@ -1,0 +1,73 @@
+#+TITLE: RFC 0025: Native AI Host External Sidecar CLI Workflow & Vault-Outside-Repo Confinement
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+PROPERTY: ID native-ai-sidecar-cli-workflow
+#+PROPERTY: ENGINEERING_ID RFC-0025
+#+PROPERTY: STATUS active
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Summary
+
+RFC 0025 completes the symmetric dual-environment closure for detached external
+Git repository governance by exposing a zero-=GERBIL_LOADPATH=, single-binary
+CLI surface (=aitia sidecar <capture|assess|verify-formal|receipt>=) tailored
+for *Environment 1 (=native-ai-environment=)* — complementing RFC 0024's
+process-isolated gRPC gateway (=aitia serve-marlin-grpc=) for *Environment 2
+(=marlin-agent-core=)*.
+
+Both environments now execute the exact same linked Scheme/POO 4-fragment
+=gerbil-ascent= engine (RFC 0022), Deterministic Engineering functional library
+reuse + ephemeral AI overlay verification (RFC 0023), and NASA NPR 7150.2D /
+DSSEv1 PAE cryptographic receipt builder (RFC 0021).
+
+* CLI Surface & Local Installation
+
+#+begin_example
+aitia sidecar capture --repo <dir> [--base <ref>] --profile <file> [--checks <file>]
+aitia sidecar assess < assessment-request.json
+aitia sidecar verify-formal --context-digest <sha256:...> < formal-evidence.json
+aitia sidecar receipt [--repo <dir>] [--vault-dir <dir>] < receipt-spec.json
+aitia sidecar commit --repo <dir> --vault-dir <dir> < receipt-spec.json
+#+end_example
+
+=aitia sidecar commit= works directly in pure Git repositories and pure Git
+*worktrees* (where =.git= is a file, with zero =.jj= and zero =.agents/aita/=):
+it verifies =vault-outside-repo=, verifies HEAD matches audited =baseCommit=,
+verifies pre-staged paths contain zero forbidden prefixes, seals and archives
+the NASA Org report + DSSE bundle into =--vault-dir=, and commits only the
+pre-staged index with the verified clean upstream headline.
+
+=just install-local= builds and installs the release Rust =aitia= binary into
+=~/.local/bin/aitia=, verifying zero-=GERBIL_LOADPATH= operation from =/tmp=
+so external Git/worktree repositories invoke =aitia sidecar ...= directly
+from =$PATH= with zero Python dependency and zero manual symlinks.
+
+* Core Invariants
+
+1. *Zero Upstream Pollution & Vault-Outside-Repo Confinement*: When
+   =--vault-dir= is passed to =aitia sidecar receipt=, the runtime canonicalizes
+   both the vault directory and the external repository root and refuses
+   fail-closed if the vault path resolves inside the external repository tree.
+2. *Single-Binary Zero-=GERBIL_LOADPATH= Execution*: Native LLM hosts (IDE /
+   Chat Agents / Skills / CI workflows) invoke =aitia sidecar ...= directly
+   with no Python runtime or Scheme loadpath required.
+3. *Two-Mode Formal Verification Closure*: Supports both generic
+   =upstream-library-reuse= (pinned DE Quint/Lean libraries) and project-specific
+   =ephemeral-ai-overlay= (mandatory =MR05= =@countermodel= + Sidecar Vault
+   isolation).
+4. *Zero Execution Authority*: Every subcommand and archived vault artifact
+   preserves =actionAuthorized: false=.
+
+* Formal Assurance
+
+- Quint: =dev/proof/quint/NativeSidecarCliWorkflow.qnt= (6/6 tests, 21st
+  commit-assurance model).
+- Lean 4: 4 axiom-free theorems in =LambdaAitiaProof.Modules.GitOps=
+  (=vaultInsideUpstreamRepoRejected=,
+  =unverifiedFormalEvidenceBlocksCliReceipt=,
+  =upstreamPollutionBlocksCliCapture=,
+  =nativeSidecarCliPreservesZeroAuthority=), reaching 75 =GitOps= theorems with
+  zero axioms and zero =sorryAx=.
+- Live E2E: =examples/08-native-ai-sidecar-cli/run_native_sidecar_cli.py= wired
+  into =just verify-examples= (10 verified examples).

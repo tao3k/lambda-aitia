@@ -3,15 +3,47 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-(import :poo-flow/src/module-system/declaration/interface
-        :poo-flow/lambda-aitia/modules/gitops/objects)
-(export gitops-config)
-(def (gitops-config selection)
-  (unless (and (poo-flow-user-module-selection? selection)
-               (equal? (poo-flow-user-module-selection-key selection)
-                       '(custom . gitops)))
-    (error "expected a custom/gitops selection"))
-  (let (flags (poo-flow-user-module-selection-flags selection))
-    (unless (or (null? flags) (equal? flags '(+open-gitops)))
-      (error "unsupported GitOps feature" flags))
-    GitOpsModule))
+(import (only-in :clan/poo/object .o)
+        "types.ss" "func.ss" "objects.ss" "commit-evidence.ss" "commit-admission.ss"
+        "commit-semantics.ss" "review-association.ss" "review-lineage.ss" "review-query.ss"
+        "sidecar-audit.ss" "diff-governance.ss" "review-flow.ss")
+(export Config)
+
+(def Config
+  (.o profile: OpenGitOpsProfile profile?: gitops-profile?
+      conventional-commits-convention: ConventionalCommitsConvention
+      project-keyed-commit-convention: ProjectKeyedCommitConvention
+      commit-convention?: gitops-commit-convention?
+      resolve-commit-convention: gitops-resolve-commit-convention
+      change: gitops-change change?: gitops-change?
+      check: gitops-check check?: gitops-check?
+      decision?: gitops-decision?
+      matches?: gitops-profile-matches? match-change: gitops-match-change
+      evaluate: gitops-evaluate-default
+      admit-commit-observation: gitops-admit-commit-observation
+      assess-replay-observation: gitops-assess-replay-observation
+      replay-receipt: gitops-replay-receipt
+      commit-intent: gitops-commit-intent
+      record-commit-approval!: gitops-record-commit-approval!
+      revoke-commit-approval!: gitops-revoke-commit-approval!
+      consume-commit-admission!: gitops-consume-commit-admission!
+      commit-admission: gitops-commit-admission
+      commit-check-receipt: gitops-commit-check-receipt
+      commit-review-association: gitops-commit-review-association
+      commit-model-assessment: gitops-commit-model-assessment
+      commit-semantics: gitops-commit-semantics
+      commit-draft-requirements: gitops-commit-draft-requirements
+      commit-description: gitops-commit-description
+      nasa-draft-requirements: gitops-nasa-draft-requirements
+      nasa-commit-description: gitops-nasa-commit-description
+      commit-evidence: gitops-commit-evidence
+      review-lineage: gitops-review-lineage
+      review-query: gitops-review-query
+      model-gaps: gitops-model-gaps
+      sidecar-audit-assess: gitops-sidecar-audit-assess
+      diff-defense-audit: gitops-diff-defense-audit
+      make-rule-pack-from-descriptor: rule-pack-from-descriptor
+      combine-rule-packs: compose-rule-packs
+      core-g2-rule-pack: de-g2-core-rule-pack
+      review-flow-step: gitops-review-flow-step
+      review-tool-schema: gitops-review-tool-schema))

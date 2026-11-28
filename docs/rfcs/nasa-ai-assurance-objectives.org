@@ -1,0 +1,103 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: NASA AI assurance objectives and evidence admission
+#+startup: overview
+
+:PROPERTIES:
+:STATUS: design-draft
+:DATE: 2026-11-07
+:END:
+
+* Source lineage and adoption
+
+| Source | Status and role | AITIA treatment |
+|--------+-----------------+-----------------|
+| [[https://nodis3.gsfc.nasa.gov/displayDir.cfm?Internal_ID=N_PR_7150_002D_][NPR 7150.2D]] | Software engineering directive effective 2022-03-08 | Preserve the existing edition-bound catalog, applicability matrix and authorized tailoring. Apply to a project only through its applicable authority. |
+| [[https://standards.nasa.gov/standard/nasa/nasa-std-87398][NASA-STD-8739.8B]] | NASA Technical Standards System lists revision B as Active | Candidate for a separate source-locked assurance catalog. The existing SWE references do not establish catalog or verification coverage for B. |
+| [[https://sma.nasa.gov/news/articles/newsitem/2026/11/05/nasa-modernizes-software-assurance-guidance-with-updates-to-nasa-std-8739-8c-and-the-software-engineering-and-assurance-handbook][NASA-STD-8739.8C announcement]] | NASA announces draft C and an updated handbook on 2026-11-05 | Record as a candidate source. No normative projection from the announcement. Draft text has not been acquired and reviewed in this work. |
+| [[https://swehb.nasa.gov/spaces/SWEHBVD/pages/184320054/7.25%2B-%2BSuper%2BIntelligence%2BAnd%2BSoftware%2BEngineering][SWEHB 7.25]] and [[https://swehb.nasa.gov/spaces/SWEHBVD/pages/184320002/8.25%2B-%2BSuper%2BIntelligence%2BAnd%2BSoftware%2BAssurance][SWEHB 8.25]] | Engineering and assurance guidance | Crosswalk guidance to an exact revision of the governing clause. Local policy can adopt an objective by a separately attributable decision. |
+
+NASA's announcement reports 94 objective-based requirements and 28
+new SI requirements. Those are separately reported counts. The
+announcement supplies neither the clause inventory nor a basis for
+adding the counts. A captured guidance page needs its own immutable
+revision or content digest. A citation in this RFC is a research
+reference. Source capture and review are required before the page
+can serve as an input to automated assessment.
+
+An initial crosswalk already has two anchors in AITIA's D catalog.
+SWE-022 directs applicable assurance work to NASA-STD-8739.8.
+SWE-146 defines how projects control automatic source generation.
+SWEHB 7.25 connects AI-generated source to SWE-146. SWEHB 8.25 informs
+the design of operational AI assurance objectives. That relation
+does not assign a draft clause or make an AITIA objective mandatory.
+
+Track separately whether a clause is captured, whether a verifier
+covers an objective derived from it, and whether current project
+evidence supports the objective. A source revision change invalidates
+the relevant source binding and reopens the applicability or crosswalk
+review. It does not automatically invalidate independent project
+evidence or adopt the replacement source.
+
+* Scheme/POO objective and evidence model
+
+| Object | Ownership and binding |
+|--------+-----------------------|
+| Requirement and guidance reference | Standards owner records source identity, edition, clause or section, source digest and normative status. |
+| Assurance Objective | A project-independent claim template identifies intended property, risk, applicable AI roles and admissible verification strategies. The source crosswalk records its rationale. |
+| Applicability decision | The selected Project Profile records source and policy revisions, software class or project risk, AI roles, change scope, and accountable authority. Unknown applicability leaves an open question. |
+| Claim, Assumption and Obligation | Reuse the Assurance Module objects. Instantiate objectives at an exact subject and record which inputs and assumptions each obligation depends on. |
+| Observation and Evidence | Rust records actual execution custody. ORG checks declaration and provenance, then Assurance admits the observation against independently obtained input, tool, outcome and producer identities. |
+| Independent review and decision | Bind the reviewer identity, role, reviewed subject and allowed scope. Governance owns acceptance and effect authorization. |
+
+An AI-assisted development tool, a delivered AI capability and an
+Agent that can mutate runtime state are separate roles. A project can
+have several roles. Compose the applicable obligations and add
+composition obligations where interactions create new risks. Developing
+is a mode. Staging and Release consume the resulting assurance status.
+
+Evidence dependencies are declared by objective. Build and code
+verification bind the exact source and toolchain. A runtime Agent
+evaluation also binds the model, evaluation dataset, retrieval index,
+prompt/tool configuration, policy revision and evaluation window where
+relevant. Human decisions additionally bind the authenticated
+authority and their approved scope. Changed inputs reopen only
+affected obligations. Keep the history and counterexamples. An
+assurance decision cannot supply authority for a different effect.
+
+* ASCENT relation design
+
+| Input relations | Derived relations |
+|-----------------+-------------------|
+| =objective-source=, =source-status=, =adopted-source=, =project-role= and =risk-applicability= | applicable objective, inapplicable objective with rationale, or applicability still open |
+| =applicable-objective=, =claim-subject=, =depends-on= and =selected-strategy= | required obligation and its bound verification inputs |
+| =admitted-observation=, =current-binding= and =counterexample= | current support, contradiction, stale support and still-open obligation |
+| =changed-input= and =depends-on= | affected claim and obligation reopening, with provenance |
+
+Missing inputs in an incomplete inventory remain unknown. Only an
+admitted inventory can justify a negative conclusion about the
+absence of an observation. Multiple strategies and conflicting
+observations remain queryable. ASCENT derives assessment relations.
+Governance separately authenticates decisions and grants.
+
+* Two engineering cases
+
+| Case | Positive control | Required negative controls |
+|------+------------------+----------------------------|
+| AI-assisted Rust concurrency repair | Bind generated change, tool configuration and reviewed code to the recorded JJ revision. Check the actual build and concurrency tests, plus selected model properties. Admit attributable results against the adopted SWE-146 objective. | A green result from before a rewrite is stale. Missing provenance or independent review leaves its own obligation open. The assisted-development role does not itself add runtime RAG obligations. |
+| Delivered RAG Agent with state-changing tools | Bind model, dataset, index, prompt/tool configuration, policy and run window. Admit adversarial evaluation and independent review. Demonstrate a separately authorized tool execution and a safe refusal. | Index or model replacement reopens affected evaluation. Prompt injection cannot grant authority. Withdrawn authority and replayed receipts cannot authorize a tool effect. Preserve unrelated evidence. |
+
+These are acceptance cases for future real Rust and Agent executions.
+The [[file:../../dev/proof/quint/AiAssuranceObjectives.qnt][Quint design fixture]] passed four checks for role selection,
+source-status separation and evidence currentness under Quint 0.33.0.
+Run it with =just check-quint-ai-assurance=. The local formal gate and
+the CI Quint job both include this fixture. It does not
+execute either system or implement ASCENT admission. Use Quint for
+state and interleaving, Lean for composition and binding laws, and
+ASCENT for deriving relations over admitted facts.
+
+The next implementation decision is where to publish the objective
+descriptor and applicability projection. Reuse the existing Assurance
+owners and Yuanxu Profile composition. Keep NASA-specific source and
+crosswalk data separate from shared admission and Governance.

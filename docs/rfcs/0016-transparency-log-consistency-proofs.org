@@ -1,0 +1,51 @@
+#+TITLE: RFC 0016: RFC 6962 Append-Only Transparency Log & Logarithmic Consistency Proofs
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0015 added RFC 6962 binary SHA-256 Merkle *inclusion proofs* proving that a single
+repository link resides in a signed release attestation tree. In long-lived multi-repo
+release trains audited by multiple independent consumers (Certificate Transparency
+RFC 6962 §2.1.2 / RFC 9162 / Sigstore Rekor / Trillian), inclusion proofs alone do not
+prevent a compromised log operator from presenting *split-view equivocation* (rewriting
+an earlier epoch's entry while continuing to produce valid inclusion proofs against a
+divergent root).
+
+*Consistency Proofs* solve anti-equivocation logarithmically: given an earlier trusted
+checkpoint ~(M, R_M)~ and a newer checkpoint ~(N, R_N)~ (~1 <= M <= N~), a consistency
+proof of ~O(log N)~ hashes cryptographically proves that the first ~M~ entries of log
+~T_N~ are bit-for-bit identical to ~T_M~ (strict append-only extension with zero
+historical rewrite or truncation).
+
+* Architectural Invariants
+
+1. *Canonical RFC 6962 Merkle Tree Hash (MTH)*:
+   - Single leaf: ~MTH(D[0..1]) = sha256(0x00 || canonical_json(D[0]))~
+   - Recursive split at largest power of 2 strictly less than ~n~ (~k < n <= 2k~):
+     ~MTH(D[0..n]) = sha256(0x01 || MTH(D[0..k]) || '|' || MTH(D[k..n]))~
+2. *Strict Append-Only Consistency (RFC 6962 §2.1.2)*:
+   - Rejects ~first == 0~ or ~first > second~ (anti-truncation).
+   - Verifier independently reconstructs BOTH ~recomputedFirst == expectedFirstRoot~
+     AND ~recomputedSecond == expectedSecondRoot~ from the exact ~O(log N)~ proof
+     sequence (rejecting truncated, padded, or equivocated proofs).
+3. *Zero-Unsafe In-Process Wheel Exposure & Zero Authority*:
+   - Exposed directly on the ~#![forbid(unsafe_code)]~ PyO3 Python wheel
+     (~generate_consistency_proof~, ~verify_consistency_proof~) with zero Scheme boot
+     and ~actionAuthorized: false~ across every proof and verdict.
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~consistencyProofRejectsLogTruncation~, ~consistencyProofRequiresOldRootMatch~,
+  ~consistencyProofRequiresNewRootMatch~, ~consistencyProofPreservesZeroAuthority~
+  (39 total ~GitOps~ theorems, zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/TransparencyConsistency.qnt~):
+  6 model-checking tests covering append-only growth, historical equivocation rejection,
+  truncation rejection, split-view fork rejection, zero-size rejection, and negative-control
+  unchecked old-root violation.
+- *Live 4-Repo Diamond Scenario K* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  Exercises power-of-2 (~1 -> 2~) and non-power-of-2 (~2 -> 3~) append-only consistency
+  proofs in-process via PyO3, plus fail-closed rejection of 1-byte historical Epoch 5
+  equivocation and log truncation attacks.

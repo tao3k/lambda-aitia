@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Flagship IOHK/Bazel Diamond Release Train (4 Real Repos, 3 Waves)
+
+This case implements the architectural synthesis of [[file:../../docs/rfcs/0009-iohk-bazel-diamond-early-cutoff.org][RFC 0009]]
+across a real 4-repository Cardano-inspired diamond topology with *zero =GERBIL_LOADPATH=* and
+*zero downstream Gerbil/Gambit compilation*:
+
+#+begin_example
+                 [Wave 0] protocol-base
+                        /              \
+         [Wave 1] ledger-core      network-mux   (concurrent peers)
+                        \              /
+                 [Wave 2] node-runner
+#+end_example
+
+* Scenarios Exercised End-to-End (=run_diamond_train.py=)
+
+1. *Scenario A — Bazel Skyframe Early Cutoff (Change Pruning)*:
+   =protocol-base= advances its commit SHA while preserving =interfaceDigest = "abi:protocol-v1"=.
+   Scheme prunes invalidation on =ledger-core= and =network-mux= (=earlyCutoffs= has 2 entries,
+   =pinDrifts = []=), proving unchanged interface digests avoid unnecessary cross-repo repair.
+2. *Scenario B — Bazel Bzlmod / IOHK CHaP Transitive Diamond Conflict*:
+   =ledger-core= pins =protocol-base= at ="abi:protocol-v2"= while =network-mux= still pins
+   ="abi:protocol-v1"=. Before touching any repo, Scheme detects the transitive conflict at
+   =node-runner= and fails closed to =need-human-decision= (=diamond-pin-conflict=) with full
+   competing peer witnesses.
+3. *Scenario C — 3-Wave Diamond Cascading Fenced Release Train*:
+   Creates *4 real JJ workspaces* + *4 real bare Git remotes* + one SysML v2 =workspace.sysml=,
+   then runs a single =aitia flow submit-decision --workspace workspace.sysml --execute-fenced=
+   command:
+   - Parallel =HostRead= fan-out across all 4 repos;
+   - Wave 0 (=protocol-base=) -> Wave 1 (=ledger-core= & =network-mux=) -> Wave 2 (=node-runner=)
+     -> global =quiescent=;
+   - Verifies =repoEvidenceLineages= (=missingReports = []=) and exact =refs/heads/reviewed=
+     commit SHAs on *all 4 bare Git remotes*.

@@ -3,27 +3,11 @@
 ;;; SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
 
 ;;; -*- Gerbil -*-
-;;; Profile slot dispatch is the normal extension path. CLOS owns the optional
-;;; evaluator strategy axis where provider/runtime specializers may combine.
-(import (only-in :clan/poo/object .def .o)
-        (only-in :clan/poo/mop .defgeneric .new)
-        (only-in :poo-flow/src/module-system/poo-clos/interface
-                 poo-clos-call
-                 poo-clos-class
-                 poo-clos-generic-function
-                 poo-clos-generic-protocol
-                 poo-clos-make-instance)
-        (only-in :poo-flow/src/module-system/contribution/objects
-                 make-contribution)
-        :poo-flow/lambda-aitia/modules/gitops/types)
-(export GitOpsEvaluator GitOpsDefaultEvaluator
-        GitOpsEvaluationProtocol GitOpsEvaluationGeneric
-        GitOpsProfile OpenGitOpsProfile GitOpsModule
-        gitops-profile-matches?
-        gitops-change gitops-check gitops-evaluate)
-
-(.defgeneric (gitops-profile-matches? profile change)
-  slot: .matches?)
+(import (only-in :clan/poo/object .o .def .get .ref .slot? object?)
+        (only-in "types.ss" gitops-commit-convention?))
+(export OpenGitOpsProfile
+        CommitConvention. ConventionalCommitsConvention ProjectKeyedCommitConvention
+        gitops-resolve-commit-convention)
 
 (def GitOpsProfile
   (.o gitops-profile?: #t
@@ -50,27 +34,58 @@
                 continuously-reconciled))
   (source-url "https://opengitops.dev/"))
 
-(def GitOpsEvaluator (poo-clos-class 'gitops/evaluator))
-(def GitOpsDefaultEvaluator (poo-clos-make-instance GitOpsEvaluator))
-(def GitOpsEvaluationProtocol
-  (poo-clos-generic-protocol 'gitops/evaluate))
-(def GitOpsEvaluationGeneric
-  (poo-clos-generic-function 'gitops-evaluate 4
-    protocol: GitOpsEvaluationProtocol))
-(def (gitops-evaluate composition change checks)
-  (poo-clos-call GitOpsEvaluationGeneric GitOpsDefaultEvaluator
-                 composition change checks))
+;;; First-class POO Commit Convention standard prototypes.
+;;; Profiles and project naming map declaratively onto a CommitConvention
+;;; instead of hard-coding title formatting inside semantic checks.
+(def CommitConvention.
+  (.o commit-convention?: #t
+      identity: "gitops/commit-convention"
+      name: 'commit-convention
+      edition: "1.0.0"
+      source-url: #f
+      .valid-naming?: (lambda (_naming) #t)
+      .render-title: (lambda (_naming _proposal) "")))
 
-(def GitOpsModule
-  (make-contribution
-   "lambda-aitia/gitops" "1" "lambda-aitia"
-   OpenGitOpsProfile '(delivery-governance) '()))
-(def (gitops-change provider-value event-value repository-value revision-value
-                    source-ref-value target-ref-value pull-request-value)
-  (.new GitOpsChange
-    provider: provider-value event: event-value repository: repository-value
-    revision: revision-value source-ref: source-ref-value
-    target-ref: target-ref-value pull-request: pull-request-value))
-(def (gitops-check name-value repository-value revision-value conclusion-value)
-  (.new GitOpsCheck name: name-value repository: repository-value
-        revision: revision-value conclusion: conclusion-value))
+(.def (ConventionalCommitsConvention @ CommitConvention.)
+  (identity "conventional-commits/1.0.0")
+  (name 'conventional-commits)
+  (edition "1.0.0")
+  (source-url "https://www.conventionalcommits.org/en/v1.0.0/")
+  (.valid-naming? (lambda (_naming) #t))
+  (.render-title
+   (lambda (_naming proposal)
+     (string-append (.get proposal type) "(" (.get proposal scope) "): "
+                    (.get proposal summary) " (" (.get proposal reference) ")"))))
+
+(.def (ProjectKeyedCommitConvention @ CommitConvention.)
+  (identity "project-keyed-conventional/1.0.0")
+  (name 'project-keyed-conventional)
+  (edition "1.0.0")
+  (source-url "https://www.conventionalcommits.org/en/v1.0.0/")
+  (.valid-naming?
+   (lambda (naming)
+     (let ((pk (.get naming project-key)))
+       (and (string? pk) (> (string-length pk) 0)))))
+  (.render-title
+   (lambda (naming proposal)
+     (string-append (.get naming project-key) "-" (.get proposal reference) " "
+                    (.get proposal type) "(" (.get proposal scope) "): "
+                    (.get proposal summary)))))
+
+(def (gitops-resolve-commit-convention naming)
+  (let ((declared (and (object? naming) (.slot? naming 'convention) (.ref naming 'convention))))
+    (cond
+     ((gitops-commit-convention? declared) declared)
+     ((or (equal? declared "conventional-commits")
+          (equal? declared "conventional-commits/1.0.0")
+          (eq? declared 'conventional-commits))
+      ConventionalCommitsConvention)
+     ((or (equal? declared "project-keyed-conventional")
+          (equal? declared "project-keyed-conventional/1.0.0")
+          (eq? declared 'project-keyed-conventional))
+      ProjectKeyedCommitConvention)
+     ((not declared)
+      (if (and (object? naming) (.slot? naming 'project-key) (string? (.ref naming 'project-key)))
+        ProjectKeyedCommitConvention
+        ConventionalCommitsConvention))
+     (else #f))))

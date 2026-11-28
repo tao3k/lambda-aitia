@@ -1,0 +1,125 @@
+-- SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+--
+-- SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+import LambdaAitiaProof.Modules.Assurance
+import LambdaAitiaProof.Modules.Sdlc
+import LambdaAitiaProof.Modules.GitOps
+
+open LambdaAitiaProof.Modules
+
+#print axioms Assurance.Invalidation.impactMonotoneForFixedSnapshot
+#print axioms Assurance.Invalidation.unresolvedFrontierBlocksClosure
+#print axioms Assurance.Invalidation.inertReceiptGrantsNoAuthority
+#print axioms Assurance.Composition.componentOnlyEvidenceCannotSupportComposite
+#print axioms Assurance.Composition.directObligationNeeded
+#print axioms Assurance.Composition.directWitnessDiffersFromComponentObligation
+#print axioms Sdlc.Design.refinesRefl
+#print axioms Sdlc.Design.refinesTrans
+#print axioms Sdlc.Design.strongerAssumptionBlocks
+#print axioms Sdlc.Design.droppedGuaranteeBlocks
+#print axioms Sdlc.Retirement.initialSafe
+#print axioms Sdlc.Retirement.stepPreservesSafety
+#print axioms Sdlc.Retirement.reachableSafe
+#print axioms Sdlc.Retirement.cancellationDoesNotJustifyRetirement
+#print axioms Sdlc.Retirement.oldReviewDoesNotJustifyRetirement
+#print axioms Sdlc.Retirement.unknownInventoryBlocksRetirement
+#print axioms Sdlc.RetirementIngress.initialSafe
+#print axioms Sdlc.RetirementIngress.currentGrantExcludesRetirement
+#print axioms Sdlc.RetirementIngress.stepPreservesSafety
+#print axioms Sdlc.RetirementIngress.reachableSafe
+
+#print axioms GitOps.sameExpectedHeadCannotPublishTwice
+#print axioms GitOps.consumedGrantCannotBeAdmittedAgain
+#print axioms GitOps.withdrawnGrantCannotBeAdmitted
+#print axioms GitOps.earlyCutoffRequiresUnchangedInterface
+#print axioms GitOps.interfaceChangePreventsEarlyCutoff
+#print axioms GitOps.diamondConflictBlocksConsumerClosure
+#print axioms GitOps.waveBarrierPreventsPrematureDownstreamEffect
+#print axioms GitOps.partialWaveBlocksConsumerPublish
+#print axioms GitOps.checkpointPreventsDuplicatePublish
+#print axioms GitOps.appliedDecisionCannotReplay
+#print axioms GitOps.semanticAstEquivalencePreservesCutoff
+#print axioms GitOps.attestationCacheHitRequiresMatchingKey
+#print axioms GitOps.staleUpstreamInterfaceInvalidatesCache
+#print axioms GitOps.forgedAttestationSignatureRejected
+#print axioms GitOps.incompleteWaveBundleRejected
+#print axioms GitOps.duplicateKeyCannotSatisfyThreshold
+#print axioms GitOps.revokedKeyExcludedFromQuorum
+#print axioms GitOps.epochRollbackRejected
+#print axioms GitOps.counterfactualEvaluationPreservesZeroAuthority
+#print axioms GitOps.rootRotationRequiresDualQuorum
+#print axioms GitOps.rootVersionSkipRejected
+#print axioms GitOps.attestationChainRequiresParentLink
+#print axioms GitOps.attestationChainRequiresStrictlyIncreasingEpoch
+#print axioms GitOps.missingUpstreamGuaranteeBlocksComposition
+#print axioms GitOps.satisfiedAssumptionsAdmitComposition
+#print axioms GitOps.weakenedThresholdRejectedBySysmlPolicy
+#print axioms GitOps.weakenedMinEpochRejectedBySysmlPolicy
+#print axioms GitOps.verifierPinnedPolicyOverridesUntrustedBundle
+#print axioms GitOps.missingExpectedRepoBlocksOfflineAudit
+#print axioms GitOps.airGappedVerdictGrantsNoAuthority
+#print axioms GitOps.completeChainAndInventoryAdmitOfflineAudit
+#print axioms GitOps.merkleDomainSeparationDistinct
+#print axioms GitOps.merkleProofRequiresMatchingRoot
+#print axioms GitOps.merkleInclusionPreservesZeroAuthority
+#print axioms GitOps.tamperedLeafChangesMerkleRootUnderInjectiveHash
+#print axioms GitOps.consistencyProofRejectsLogTruncation
+#print axioms GitOps.consistencyProofRequiresOldRootMatch
+#print axioms GitOps.consistencyProofRequiresNewRootMatch
+#print axioms GitOps.consistencyProofPreservesZeroAuthority
+#print axioms GitOps.duplicateWitnessCannotSatisfyQuorum
+#print axioms GitOps.revokedWitnessExcludedFromCheckpointQuorum
+#print axioms GitOps.sameSizeDistinctRootsYieldEquivocation
+#print axioms GitOps.equivocationEvidencePreservesZeroAuthority
+#print axioms GitOps.gossipEquivocationBlocksUnifiedAudit
+#print axioms GitOps.unresolvedPeerBlocksUnifiedAudit
+#print axioms GitOps.unboundHeadAttestationBlocksUnifiedAudit
+#print axioms GitOps.unifiedAirGapAuditPreservesZeroAuthority
+#print axioms GitOps.dssePayloadTypeConfusionRejected
+#print axioms GitOps.dsseDuplicateOrRevokedQuorumRejected
+#print axioms GitOps.dsseHeadDigestMismatchRejected
+#print axioms GitOps.dsseInTotoPreservesZeroAuthority
+#print axioms GitOps.singleOrgCollusionRejectedByFederation
+#print axioms GitOps.excessiveWitnessSkewRejected
+#print axioms GitOps.staleWitnessTimestampRejected
+#print axioms GitOps.sigstoreFederatedBundlePreservesZeroAuthority
+#print axioms GitOps.upstreamPollutionBlocksDetachedAudit
+#print axioms GitOps.staleAiContextBlocksDetachedAudit
+#print axioms GitOps.unaddressedHighFindingBlocksDetachedAudit
+#print axioms GitOps.detachedSidecarAuditPreservesZeroAuthority
+#print axioms GitOps.ascentMissingLensBlocksClosure
+#print axioms GitOps.unsanctionedEngineBindingBlocksClosure
+#print axioms GitOps.ascentBlockerPreventsMarlinPromotion
+#print axioms GitOps.schemeAscentBridgePreservesZeroAuthority
+#print axioms GitOps.vacuousEphemeralOverlayBlocksReview
+#print axioms GitOps.unresolvedFormalLibraryBlocksReview
+#print axioms GitOps.g2DefectOrPendingOracleBlocksReview
+#print axioms GitOps.deFormalReviewPreservesZeroAuthority
+#print axioms GitOps.nonLoopbackWithoutBearerRejected
+#print axioms GitOps.blankBearerCredentialRejected
+#print axioms GitOps.activeEstopBlocksGatewayRpc
+#print axioms GitOps.marlinGrpcGatewayPreservesZeroAuthority
+#print axioms GitOps.vaultInsideUpstreamRepoRejected
+#print axioms GitOps.unverifiedFormalEvidenceBlocksCliReceipt
+#print axioms GitOps.upstreamPollutionBlocksCliCapture
+#print axioms GitOps.nativeSidecarCliPreservesZeroAuthority
+#print axioms GitOps.stagedSilentFallbackBlocksCommit
+#print axioms GitOps.diffDeletedAssertionBlocksCommit
+#print axioms GitOps.unstagedG2DefectReopensFunFlowFrontier
+#print axioms GitOps.diffDefenseAuditPreservesZeroAuthority
+#print axioms GitOps.subdomainRulePackNeverWeakensCoreFloor
+#print axioms GitOps.subdomainAuditRequiresAcyclicCausality
+#print axioms GitOps.subdomainRulePackPreservesZeroAuthority
+#print axioms GitOps.funflowChoicePrefixForbidsFencedEffect
+#print axioms GitOps.funflowChoiceFencedTailRequiresUniqueProvenWorld
+#print axioms GitOps.funflowChoiceFrontierPreservesZeroAuthority
+#print axioms GitOps.declarativePlanCannotWeakenClosedFloor
+#print axioms GitOps.declarativePlanViolationPrunesAllWorlds
+#print axioms GitOps.reviewPlanCycleRejectedFailClosed
+#print axioms GitOps.reviewCasHitPreservesZeroAuthority
+#print axioms GitOps.unexecutedOverlayCannotSelfCertify
+#print axioms GitOps.compactDisclosurePreservesCoreInvariants
+#print axioms GitOps.sorryOverlayRejectedByKernel
+#print axioms GitOps.dualFormalOverlayPreservesZeroAuthority
+#print axioms GitOps.overlayVaultOutsideRepoRequired

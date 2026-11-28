@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+title: RFC 0021 — Detached Sidecar Governance, Multi-Lens AI Audit Bridge & NASA-Standard Commit/Conversation Provenance
+#+startup: overview
+
+* Context and problem statement
+:PROPERTIES:
+:ID: lambda-aitia-detached-sidecar-ai-audit
+:ENGINEERING_ID: RFC-0021
+:STATUS: implementation-in-progress
+:END:
+
+Aitia's native `aitia jj commit` flow requires `.agents/aita/project.json` and project
+declarations inside the target repository's recorded tree. When contributing to external
+open-source or third-party repositories that have *not* initialized Aitia, contributors
+cannot commit `.agents/aita/`, `dev/sysml/`, or Org audit files into upstream pull
+requests. Yet teams still need:
+
+1. **Zero-Pollution External SDLC Governance**: Enforce NASA NPR 7150.2D obligations
+   (`SWE-083` change tracking, `SWE-084` configuration audit, `SWE-087` peer/human review,
+   `SWE-146` automated/AI-assisted source control) without adding a single Aitia file to
+   the upstream repository.
+2. **Dual-Mode Sanctioned AI Engine Binding (No Ad-Hoc CLI HTTP Wrappers)**:
+   Aitia connects to AI engines through **exactly two sanctioned paths** (explicitly
+   excluding lightweight ad-hoc CLI/HTTP LLM wrappers):
+   - **Mode 1 — Native AI Host Environment (`native-ai-environment`)**: When running inside
+     an AI-native environment (coding agent / IDE assistant), `capture_detached_audit_context`
+     emits structured **ASCENT-guided obligation directives** (`aiEngineHandoffs.nativeHostLlm`)
+     directly into the surrounding LLM context, compelling multi-lens audit (`correctness`,
+     `security`, `api-regression`, `nasa-swe146`), exact `contextDigest` binding, SWE-146
+     provenance, and preserved competing hypotheses / open questions.
+   - **Mode 2 — Marlin Agent Core Handoff (`marlin-agent-core`)**: For full autonomous or
+     orchestrated AI execution, `capture_detached_audit_context` emits a typed Marlin Agent
+     Core handoff frame (`aiEngineHandoffs.marlinAgentCore`, schema
+     `lambda-aitia.marlin-audit-handoff.v1`, `actionAuthorized: false`) delegating model
+     orchestration across the sanctioned Marlin handoff boundary.
+   Every `lambda-aitia.ai-audit-report.v1` must declare `engineBinding` in
+   `{"native-ai-environment", "marlin-agent-core"}`; ad-hoc unapproved bindings fail closed.
+3. **NASA-Compliant Dual-Surface Commit & Conversation Lineage**:
+   - **Surface A (Upstream Commit Message)**: Clean commit message following the upstream
+     repository's own convention (with optional minimal `Audit-Receipt:` trailer only when
+     explicitly permitted by the sidecar profile).
+   - **Surface B (Detached Sidecar Audit Vault)**: Complete Org-mode NASA evidence report,
+     redacted or full `ConversationAuditTranscript` (`conversationDigest`), multi-lens AI
+     audit findings with human dispositions, and a wire-compatible **RFC 0019 DSSEv1 PAE
+     in-toto v1 / SLSA v1.0** envelope verifiable offline against a pinned TUF `TrustRoot`.
+
+* Non-negotiable invariants
+
+- **Zero Upstream Pollution**: Any changed or untracked file in the external repository
+  matching `forbiddenUpstreamPrefixes` (default `[".agents/aita/", ".aitia/"]`) fails closed.
+- **Anti-Stale Context Binding**: Every AI audit report, conversation transcript, and human
+  decision must bind the exact SHA-256 `contextDigest` of the current diff and deterministic
+  check receipts; a 1-byte code edit invalidates prior AI reviews.
+- **No AI Self-Approval**: AI audit reports are strictly `epistemicStatus: "hypothesized"`
+  and `actionAuthorized: false`. Every `critical` or `high` finding requires an explicit
+  human disposition (`fixed-verified` or `waived-with-rationale` with non-empty rationale).
+- **Competing Hypotheses & Open Questions Preserved**: Audit verdicts preserve competing
+  hypotheses, contradictions, and open questions rather than collapsing them into a score.
+- **Zero Authority (`actionAuthorized: false`)**: Detached contexts, audit verdicts, Org
+  reports, and DSSE envelopes are verification artifacts and never authorize remote pushes.
+- **Zero New Crates / Zero `unsafe` in PyO3**: Uses `std::process::Command` (read-only
+  `git`), `ring`, and `commit::dsse` helpers; keeps `cli/flow.rs` untouched (69/75 lines)
+  and zero `Cargo.lock` churn.
+
+* Verification gates
+
+- Rust detached sidecar kernel: `rust/crates/aitia-runtime/src/commit/sidecar.rs`
+- PyO3 bindings: `rust/crates/aitia-python/src/python.rs` (`capture_detached_audit_context`,
+  `verify_ai_audit_and_conversation`, `build_nasa_sidecar_receipt`)
+- Quint formal model: `dev/proof/quint/DetachedSidecarAudit.qnt` (6 tests in `check-quint-commit`)
+- Lean 4 theorems: `dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean` + `AxiomAudit.lean`
+  (4 new theorems -> 59 total `GitOps` theorems, zero axioms, zero `sorryAx`)
+- End-to-end live example: `examples/06-detached-external-repo-audit/run_external_audit.py`
+  (wired into `just verify-examples`).

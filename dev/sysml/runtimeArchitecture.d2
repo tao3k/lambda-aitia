@@ -1,0 +1,28 @@
+# AitiaCommit::runtimeArchitecture — interconnection rendering (render asInterconnectionDiagram)
+classes: {
+  usage: { style: { fill: white; stroke: "#181818"; stroke-width: 1; font-color: black; font-size: 14; border-radius: 8 } }
+  connection: { style: { stroke: "#181818"; font-size: 13; font-color: black; stroke-width: 3 } }
+}
+n0: "«part»\nagentAndHuman" { class: usage }
+n1: "«part»\nrustRuntime" { class: usage }
+n2: "«part»\nyuanxuGraph" { class: usage }
+n3: "«part»\njjGitOps" { class: usage }
+n4: "«part»\nengineeringChecks" { class: usage }
+n5: "«part»\nevidenceStore" { class: usage }
+n6: "«part»\nevidenceAdmission" { class: usage }
+n7: "«part»\nascentReasoning" { class: usage }
+n8: "«part»\ngovernance" { class: usage }
+n9: "«part»\noperationReceipt" { class: usage }
+n0 -- n1: "request" { class: connection }
+n1 -- n2: "graphSemantics" { class: connection }
+n1 -- n3: "snapshotAndMutation" { class: connection }
+n1 -- n4: "checkExecution" { class: connection }
+n4 -- n5: "observation" { class: connection }
+n5 -- n6: "sourceArtifact" { class: connection }
+n1 -- n6: "hostExecution" { class: connection }
+n6 -- n7: "admittedFacts" { class: connection }
+n7 -- n8: "reviewInputs" { class: connection }
+n0 -- n8: "humanReview" { class: connection }
+n8 -- n1: "commitGrant" { class: connection }
+n1 -- n9: "actualOutcome" { class: connection }
+n9 -- n5: "custody" { class: connection }

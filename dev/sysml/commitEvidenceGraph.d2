@@ -1,0 +1,33 @@
+# AitiaCommit::commitEvidenceGraph — interconnection rendering (render asInterconnectionDiagram)
+classes: {
+  usage: { style: { fill: white; stroke: "#181818"; stroke-width: 1; font-color: black; font-size: 14; border-radius: 8 } }
+  connection: { style: { stroke: "#181818"; font-size: 13; font-color: black; stroke-width: 3 } }
+}
+n0: "«item»\ncapture : CommitCut" { class: usage }
+n1: "«item»\npropose : CommitIntent" { class: usage }
+n2: "«item»\nobserve : EvidenceObservation" { class: usage }
+n3: "«part»\nadmitObservation" { class: usage }
+n4: "«part»\nretainRejectedArtifact" { class: usage }
+n5: "«part»\nevaluate" { class: usage }
+n6: "«item»\nauthorize : LocalCommitGrant" { class: usage }
+n7: "«part»\nvalidateCurrent" { class: usage }
+n8: "«part»\napplyLocalCommit" { class: usage }
+n9: "«part»\nrecordOutcome" { class: usage }
+n10: "«part»\nreopen" { class: usage }
+n11: "«part»\nreconcileUnknown" { class: usage }
+n0 -- n1: "capturedIntent" { class: connection }
+n0 -- n2: "exactInput" { class: connection }
+n1 -- n5: "intentSubject" { class: connection }
+n2 -- n3: "claimedObservation" { class: connection }
+n0 -- n3: "expectedSubject" { class: connection }
+n3 -- n5: "evidenceInput" { class: connection }
+n3 -- n4: "rejectedObservation" { class: connection }
+n5 -- n6: "eligibleCandidate" { class: connection }
+n6 -- n7: "currentGrant" { class: connection }
+n7 -- n8: "validatedWrite" { class: connection }
+n8 -- n9: "observedWrite" { class: connection }
+n7 -- n10: "staleCut" { class: connection }
+n5 -- n10: "changedEvidence" { class: connection }
+n10 -- n0: "recapture" { class: connection }
+n8 -- n11: "interruptedWrite" { class: connection }
+n11 -- n9: "provenOutcome" { class: connection }

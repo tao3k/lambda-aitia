@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+#+TITLE: Machine-Derived Native Concurrency and Cold POO Admission
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Confirmed policy and entrypoint repair
+:PROPERTIES:
+:CUSTOM_ID: aitia-native-machine-20261029
+:STATUS: qualified-poo-builds
+:END:
+
+The resource contract is 2 GiB heap *per Gerbil/Gambit process* and a
+180-second deadline for a guarded invocation. Concurrency follows the machine
+and preserves explicit caller limits. The earlier aggregate 2 GiB tree limit
+was an incorrect diagnostic assumption, not a native POO requirement.
+
+Aitia's Just entry now asks Gambit's native =##core-count= for the
+host-derived default and retains caller overrides through Just's existing
+=env_var_or_default= declaration instead of hard-coding 12. Aitia CI uses the existing
+native provider's machine/resource admission. The engineering entry similarly
+removes its unconditional two-worker setting. The explicit SDK query matters:
+this cohort's std/make would otherwise default an unset variable to serial
+frontend compilation, while its backend separately discovers cores.
+
+The SDK scheduler, source contexts, native manifests, complete package specs,
+heap bounds and assertions retain their existing owners. There is no compiler
+compatibility layer or replacement executor.
+
+The initial helper-based revision failed the Linux Scheme step in
+[[https://github.com/tao3k/lambda-aitia/actions/runs/40815816373][run 40815816373]] before semantic tests: =available-build-cores= was present in
+the Darwin SDK but absent from the fixed Linux SDK. The portable query uses
+=##core-count= directly. Regression children inspect the native compiler's
+actual =__available-cores=, and the query is also exercised under released
+SDK 2591dcd. The failed remote run remains failed evidence.
+
+
+* Real cold products and independent controls
+
+Each build starts from its own empty native package root, without project
+LOADPATH or existing compiled project products. The installed 1cfb032 SDK
+standard library is a declared toolchain input. Native pkg-fetch and pkg-build
+own source acquisition, tags, manifests and the complete default build entry.
+
+| POO source | Original default scope | Selected workers | Guard seconds | Result |
+|------------+------------------------+------------------+---------------+--------|
+| c0d47633c2aad7591944f874eaf730ee9c0e451e | 92 frontend units / 238 backend jobs | 12 on this machine | 67.847 | completed / 0 |
+| 780e66928c2f73aee6ab356dcb7a625c37123973 | 213 frontend units / 521 backend jobs, including representation executable | 12 on this machine | 105.772 | completed / 0 |
+
+Different inventories make these separate qualifications, not a speedup ratio.
+The latest package uses its established Darwin compiler environment and actual
+Homebrew OpenSSL discovery/link paths. Earlier OpenSSL/configuration and link
+failures remain refused observations.
+
+An independently compiled consumer exercises the real object macro/slot path
+and table iterator from each cold root. It produces 41 and (2 3 4). Removing
+actual object~1.o1 causes compiler exit 70; the original product is restored.
+The Aitia resource suite executes four cases, including the two unchanged
+lifecycle 2048M / retirement 512M assertions and real Just/GXI host/caller
+propagation. The engineering suite executes two further propagation cases.
+Existing sixteen Python controls and the license contract pass.
+
+* Cache-independent CI gate
+
+The Scheme job now invokes the native SDK from the checked-out Core directory
+before restoring any project package cache. Its existing =gerbil.pkg= owns the
+POO dependency revision. A fresh =mktemp= package root and an unset project
+LOADPATH prevent restored project products from entering the invocation.
+Native =gxpkg deps --install= keeps original pin negotiation, manifests and
+build entrypoints. The existing provider selects the runner's worker count;
+the 2 GiB process heaps and 180-second outer deadline remain unchanged.
+The step emits =AITIA-COLD-POO-NATIVE-BUILD-OK= only after actual success.
+No failed prefix can be admitted through directory presence or cache restore.
+
+* Revision and closure boundaries
+
+Full source, actual native manifests, guard receipts, holder attribution and
+the synchronized Org/D2 view are in [[https://github.com/hardenedlinux/deterministic-engineering/pull/1][engineering PR #1]], document 10.127 and
+view 90.116. This change remains on existing [[https://github.com/tao3k/lambda-aitia/pull/2][Aitia PR #2]].
+
+The active Core revision 3527b55631c72c7665a8e0f00ee9bc6b2241d178 still declares
+POO c0d4763. Accepted Parser/ASCENT declare Core e77698c. Updating Aitia alone
+to a different Core/POO source would conflict with these native owners and the
+parent's Core gitlink check. The concurrency repair retains the accepted pins;
+a coherent cohort migration has separate source and native acceptance gates.
+
+These receipts close local POO cold package construction. They do not issue a
+complete eight-package Aitia cold-closure verdict or a new exact-head Linux CI
+result. A restored-input lifecycle verdict remains attached to its own source.

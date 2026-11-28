@@ -1,0 +1,64 @@
+#+TITLE: RFC 0011: TUF k-of-n Threshold Attestations, Key Revocation & Counterfactual Branch Verification
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-26
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0010 introduced single-signer Proof-Carrying Release Attestations
+(~lambda-aitia.release-attestation-bundle.v1~) and Adapton/Salsa content-addressed
+~verificationKey~ memo reuse across multi-repo diamonds. In real-world safety-critical
+and multi-team supply chains, single-key attestation leaves three classic failure modes
+open, and single-path planning violates competing-hypothesis epistemic governance:
+
+1. *Single-Key Compromise & Quorum Inflation (TUF, Samuel et al., CCS 2010)*:
+   A single compromised CI or release key can forge an attestation bundle, and a naive
+   signature counter can be tricked by repeating one valid signature ~k~ times.
+2. *Freeze & Rollback Replay Attacks (TUF Snapshot/Timestamp Roles)*:
+   Without a monotonic ~epoch~ bound enforced against a caller-pinned ~TrustRoot~,
+   an adversary can replay an old, validly signed attestation bundle from an earlier
+   release epoch to re-admit retired verification keys.
+3. *Single-Path Collapse During Multi-Repo Exploration*:
+   When an ABI upgrade breaks downstream repos, investigators and Agents propose
+   competing remediation branches (e.g., /upgrade downstream pins to ABI v2/ vs
+   /revert upstream ABI to preserve Early Cutoff/). Collapsing competing branches into
+   a single favored "next step" violates Lab epistemic invariants and hides trade-offs
+   in cache invalidation, diamond pin conflicts, and open questions.
+
+| System | Key Compromise Defense | Replay / Rollback Defense | Multi-Branch Counterfactuals |
+|---|---|---|---|
+| *in-toto* (USENIX Sec '19) | Step-level functionary keys | Layout expiration | None |
+| *TUF* (CCS '10) | k-of-n distinct threshold + explicit key revocation | Monotonic version / epoch floor | None |
+| *Sigstore / SLSA L3* | OIDC + Rekor transparency log | Log inclusion timestamp | None |
+| *Lambda Aitia (RFC 0011)* | Offline TUF ~k-of-n~ distinct Ed25519 quorum + ~revokedKeys~ fail-closed | Monotonic ~epoch >= minEpoch~ against ~lambda-aitia.tuf-trust-root.v1~ | Pure functional POO ~counterfactualMatrix~ preserving all competing branches (~hypothetical: true~, ~actionAuthorized: false~) |
+
+* Architectural Invariants
+
+1. *TUF Quorum Distinctness*: Duplicate signatures from the same ~publicKey~ NEVER
+   increment quorum count; verification succeeds iff at least ~threshold~ distinct keys
+   in ~authorizedKeys \ revokedKeys~ carry valid Ed25519 signatures over canonical
+   ~bundleDigest~.
+2. *Immediate Key Revocation*: Presenting any signature from a key in ~revokedKeys~
+   fails closed immediately, even if other keys signed the bundle.
+3. *Monotonic Epoch Anti-Rollback*: When a ~TrustRoot~ specifies ~minEpoch~, any bundle
+   with ~payload.epoch < minEpoch~ fails closed.
+4. *Counterfactual Non-Authority & Competing-Branch Preservation*:
+   Evaluating bounded candidate POO branches produces a ~counterfactualMatrix~ entry
+   for EVERY proposed branch with ~hypothetical: true~, ~actionAuthorized: false~,
+   its ~resultingState~, ~pinDrifts~, ~diamondConflicts~, ~earlyCutoffs~,
+   ~verificationCacheHits~, ~invalidatedRepos~, ~contradictions~, and ~openQuestions~.
+   Hypothetical branch fit NEVER authenticates evidence, mutates live state, or grants
+   execution authority.
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~duplicateKeyCannotSatisfyThreshold~, ~revokedKeyExcludedFromQuorum~,
+  ~epochRollbackRejected~, ~counterfactualEvaluationPreservesZeroAuthority~ (zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/TufThresholdAttestation.qnt~):
+  6 model-checking tests covering 2-of-3 quorum, duplicate-key inflation rejection,
+  revoked-key rejection, epoch rollback rejection, counterfactual zero-authority
+  preservation, and negative-control violation detection.
+- *Live 4-Repo Diamond Scenario F* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  End-to-end 2-of-3 Ed25519 quorum mint, duplicate-key attack rejection, key revocation
+  rejection, epoch rollback rejection, and competing 2-branch counterfactual verification matrix.

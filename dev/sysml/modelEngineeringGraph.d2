@@ -1,0 +1,22 @@
+# AitiaCommit::modelEngineeringGraph — interconnection rendering (render asInterconnectionDiagram)
+classes: {
+  usage: { style: { fill: white; stroke: "#181818"; stroke-width: 1; font-color: black; font-size: 14; border-radius: 8 } }
+  connection: { style: { stroke: "#181818"; font-size: 13; font-color: black; stroke-width: 3 } }
+}
+n0: "«part»\nrustRuntime" { class: usage }
+n1: "«part»\njjGitOps" { class: usage }
+n2: "«part»\nopenSysmlSdk" { class: usage }
+n3: "«part»\ngerbilJavaScriptDriver" { class: usage }
+n4: "«part»\nquintChecker" { class: usage }
+n5: "«part»\nevidenceAdmission" { class: usage }
+n6: "«part»\nmodelGapQuery" { class: usage }
+n7: "«part»\nagentProposal" { class: usage }
+n0 -- n2: "resolveDesign" { class: connection }
+n2 -- n6: "designElements" { class: connection }
+n0 -- n3: "runDeclaredCheck" { class: connection }
+n3 -- n4: "checkAuthoredModel" { class: connection }
+n4 -- n5: "modelObservation" { class: connection }
+n5 -- n6: "admittedModelEvidence" { class: connection }
+n1 -- n6: "exactRevisionForReview" { class: connection }
+n6 -- n7: "groundedGaps" { class: connection }
+n7 -- n0: "proposedChanges" { class: connection }

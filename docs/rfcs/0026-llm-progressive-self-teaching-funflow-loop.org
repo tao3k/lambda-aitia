@@ -1,0 +1,216 @@
+#+TITLE: RFC 0026: LLM-Native Progressive Self-Teaching FunFlow Loop & Dual Formal Kernel Feedback
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-28
+#+PROPERTY: ID llm-progressive-self-teaching-funflow-loop
+#+PROPERTY: ENGINEERING_ID RFC-0026
+#+PROPERTY: STATUS active
+# SPDX-FileCopyrightText: 2026 tao3k team and Contributors
+# SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Summary
+
+RFC 0026 formalizes the *Progressive Self-Teaching Loop* implemented across
+=modules/gitops/review-flow.ss=, =bindings/commit-transport.ss=,
+=rust/crates/aitia-runtime/src/commit/{defense_audit,formal_evidence,grpc_gateway,sidecar_cli}.rs=,
+and the Marlin Agent Core gRPC harness (=aitia_grpc.rs=).
+
+Its central thesis is that *progressive self-discovery and self-teaching is an
+inference-time optimization targeting Large Language Models (LLMs) themselves —
+not a human UX convenience*. Whereas human engineers build durable cross-session
+mental models from static schemas and reference manuals, frozen-weight
+Transformers operate over a stateless 1D token window subject to out-of-distribution
+(OOD) DSL hallucination, U-shaped long-context attention decay, and lack of
+internal symbolic verification.
+
+By projecting a single zero-flag entrypoint (=aitia review= / gRPC
+=StepReview= / tool =aitia_review_step=) that emits repo-bound grammars and
+executable templates at the Turn 1 recency peak, validates Turn 2+ declarative
+plans and ephemeral Quint 0.33 / Lean 4 overlays through deterministic kernels,
+and unloads bulky templates (=compactChoices: true=) once aligned, =lambda-aitia=
+dynamically specializes general-purpose fast models (e.g. =deepseek-flash=)
+within 2--3 turns with *zero weight updates* and *zero system-prompt DSL
+coaching*.
+
+* Why This Optimizes the LLM Rather Than Human Users
+
+Human engineers and autoregressive Transformers face opposite cognitive
+bottlenecks:
+
+| Dimension | Human Engineer | Frozen-Weight LLM (Inference Time) |
+|-----------+----------------+------------------------------------|
+| Memory substrate | Persistent long-term semantic & episodic memory across sessions | Stateless per session; private DSLs & subdomain packs are OOD in weights |
+| Reference consumption | Random-access manuals, static JSON Schema, CLI =--help= | Flat 1D token stream; static megabyte manuals dilute Self-Attention |
+| Error recovery | Reads source, asks peers, recalls prior bugs | Blind probabilistic resampling unless given structured verifier feedback |
+| Optimization target | Lower human cognitive load & memorization | Maximize $P(y_{\text{valid}} \mid x_{\text{ctx}})$ in minimal turns & tokens |
+
+Designing an agent tool as a 10-subcommand human CLI accompanied by a giant
+static prompt manual optimizes for neither: humans already know their workflow,
+while LLMs suffer schema hallucination, middle-context attention loss, and
+multi-round thrashing.
+
+* Human Schema Comprehension vs. LLM FunFlow Generation & Execution
+
+1. *Abstract Schema Instantiation vs. Concrete Structural Conditioning*:
+   - Humans read an abstract schema once, build a mental model of =PureCAS=
+     prefixes, =open/closed= choice frontiers, and =FencedEffect= boundaries,
+     and instantiate concrete configurations top-down.
+   - Abstract schemas alone carry low semantic density for an LLM: knowing
+     =planSexp: string= does not tell the model which clauses compose legally,
+     which repo paths changed, or which of Deterministic Engineering's 37 Quint
+     and 54 Lean SM17--SM37 models apply.
+   - Emitting concrete, repo-bound executable scaffolds (=sexpPlanTemplate=,
+     =quintOverlayTemplate=, =leanOverlayTemplate=) activates Transformer
+     *induction heads*, turning zero-shot synthesis into high-probability
+     *in-context structural editing*.
+
+2. *Active Attention Filtering vs. U-Shaped Context Physics*:
+   - Humans skip irrelevant chapters of a manual effortlessly.
+   - LLMs exhibit a strong U-shaped primacy/recency attention curve; burying
+     DSL rules and formal catalogs in the middle of a large system prompt
+     severely degrades adherence.
+   - Progressive disclosure exploits the *recency peak*:
+     - *Before Turn 1*: zero DSL manual in the system prompt — only the concise
+       =GetToolSchema= definition for =aitia_review_step=.
+     - *Turn 1 response*: injects only the current repo's diff findings, compact
+       =dslGrammar=, top 2--4 matched DE =recommendedFormalModels=, and
+       repo-tailored executable templates immediately before Turn 2 decoding.
+     - *Turn 2+ valid responses*: switches to =compactChoices: true=, unloading
+       =dslGrammar=, all three templates, and =choices[*].template= so history
+       stays high-signal and token-bounded.
+
+3. *Internal Sanity Checking vs. External Deterministic Kernel Echo*:
+   - Humans mentally detect cyclic =(depends-on a b) (depends-on b a)= edges,
+     vacuous tests, or unproven =sorry= stubs before running tools.
+   - Autoregressive left-to-right decoding has no built-in Datalog solver,
+     model checker, or type-theory proof kernel.
+   - FunFlow turns this into *inversion of control*: the LLM diverges freely
+     inside bounded declarative payloads (zero-=eval= S-expr, strictly monotone
+     POO =rule-pack=s, ephemeral Quint/Lean overlays), while deterministic
+     kernels immediately compute exact verdicts and return actionable
+     self-healing diagnostics.
+
+* The Five-Stage Self-Teaching Closed Loop
+
+#+begin_example
+Turn 1: Zero-Knowledge Discovery ({repo})
+  -> gix/jj-lib observation + DE G2 core diff audit + DE catalog recommender
+  -> emits dslGrammar + sexpPlanTemplate + quintOverlayTemplate + leanOverlayTemplate
+     directly at the LLM's Turn 2 recency peak
+
+Turn 2: LLM-Authored Declarative Plan + Ephemeral Formal Overlays
+  -> Zero-eval (aitia-review-plan ...) parser + pre-execution DFS DAG cycle gate
+  -> Native Lean-verified gerbil-ascent relational-choice-solve (open vs closed)
+  -> Cross-round content-addressed FunFlow shared-prefix CAS (sharedPrefixCasHit)
+  -> Isolated sidecar-vault Quint 0.33 (typecheck + test + MR05 @countermodel)
+  -> Isolated sidecar-vault Lean 4 kernel (zero sorry/axiom + MR05 @countermodel)
+  -> On valid pass: compactChoices=true (unloads teaching kit), worlds converge 2->1
+  -> On defect/cycle/vacuity: fail-closed (0 worlds / PendingMethod) + exact diagnostics
+     + re-emitted teaching kit for 1-turn self-healing
+
+Turn 3: Verified Synthesis & Human Governance Handoff
+  -> actionAuthorized: false preserved at every boundary
+  -> Marlin Cedar read-only gate + Scheme Bi-Temporal Causality trajectory proof
+#+end_example
+
+* Peer-Reviewed Literature Foundations
+
+The loop composes four distinct lines of established LLM systems and theory
+research into one verifiable architecture:
+
+1. *In-Context Learning Theory (Zero-Weight-Update Inference Optimization)*:
+   - Xie et al., /An Explanation of In-context Learning as Implicit Bayesian
+     Inference/, ICLR 2022: shows ICL acts as implicit Bayesian inference over
+     latent document concepts $\theta$; Turn 1's coherent repo-bound grammar and
+     templates collapse the posterior $P(\theta \mid x_{\text{Turn 1}})$ onto
+     the target DSL manifold.
+   - von Oswald et al., /Transformers Learn In-Context by Gradient Descent/,
+     ICML 2023: demonstrates mechanistically that forward-pass self-attention
+     implements implicit gradient descent (mesa-optimization) over in-context
+     examples, explaining why Turn 1 concrete scaffolds and Turn 2 verifier
+     diagnostics adapt the model without weight updates.
+
+2. *Long-Context Attention Physics*:
+   - Liu et al., /Lost in the Middle: How Language Models Use Long Contexts/,
+     TACL 2024 (arXiv 2023): establishes the U-shaped primacy/recency retrieval
+     curve, motivating zero static prompt manuals, Turn 1 recency-peak teaching
+     injection, and Turn 2+ =compactChoices= unloading.
+
+3. *Agent-Computer Interfaces (ACI), Schema Grounding & Composable Reasoning*:
+   - Yang et al., /SWE-agent: Agent-Computer Interfaces Enable Automated
+     Software Engineering/, NeurIPS 2024: introduces ACIs tailored specifically
+     to LLM capabilities and failure modes rather than human terminals.
+   - Patil et al., /Gorilla: Large Language Model Connected with Massive APIs/,
+     2023: quantifies tool schema hallucination and demonstrates retrieval-bound
+     interface grounding.
+   - Wang et al., /Grammar Prompting for Domain-Specific Language Generation
+     with Large Language Models/, NeurIPS 2023: shows pairing compact BNF
+     grammars with concrete task-aligned examples enables reliable private DSL
+     generation.
+   - Zhou et al., /SELF-DISCOVER: Large Language Models Self-Compose Reasoning
+     Structures/, Google DeepMind 2024: motivates letting LLMs *Select -> Adapt
+     -> Implement* modular reasoning structures rather than hardcoding fixed
+     workflows across thousands of subdomains.
+   - Wang et al., /Executable Code Actions Elicit Better LLM Agents (CodeAct)/,
+     ICML 2024: shows executable structured programs paired with live execution
+     feedback outperform flat JSON tool calls by ~20%.
+
+4. *Deterministic Verifier-Driven Verbal Reinforcement Learning*:
+   - Shinn et al., /Reflexion: Language Agents with Verbal Reinforcement
+     Learning/, NeurIPS 2023; Gou et al., /CRITIC: Large Language Models Can
+     Self-Correct with Tool-Interactive Critiquing/, ICLR 2024: establish that
+     reliable LLM self-correction requires *external deterministic verifiers*
+     rather than pure self-reflection. =lambda-aitia= upgrades the critic from
+     informal scripts to mathematically sound kernels (=gerbil-ascent=,
+     =quint 0.33= MR05, =lean 4.36= kernel, Cedar, and Bi-Temporal Causality).
+
+* Empirical Verification & Live Telemetry (2026-11-28)
+
+Verified end-to-end across both repositories:
+
+- *Formal Proofs (=lambda-aitia=)*: 93 Lean 4 =GitOps= theorems (zero axioms,
+  zero =sorryAx=), 22 Quint models.
+- *Runtime & Example Gates (=lambda-aitia=)*: Scheme =sidecar-audit-test.ss=
+  (=MODULE-OK=/=HARNESS-OK=/=OK=), Rust =fmt=/=clippy -D warnings=, ASP 4/4,
+  =framework_boundary= 5/5, =aitia_runtime= 10/10, and 10/10 live examples
+  (=AITIA-EXAMPLES-VERIFIED-OK=).
+- *Marlin Offline Contract & Live API LLM Eval (=deepseek-flash=, zero
+  system-prompt DSL coaching)*:
+  - Completed in *3 rounds (2 tool calls, 28.6s total, zero retries)*.
+  - Turn 1 (1.25s): discovered 2 real DE G2 defects in =src/auth_gate.rs= +
+    grammar + templates + DE recommendations.
+  - Turn 2 (2.32s): hit cross-round FunFlow CAS (=cas_hit=true=), enabled
+    =compactChoices=true= (=grammar=false=), converged ASCENT =2 -> 1=
+    (=unique-deduction=), and passed *both* first-attempt LLM-authored
+    ephemeral overlays live:
+    - Quint 0.33: =AuthGateFallbackOverlay.qnt= (3/3 passing tests incl.
+      =silentFallbackCountermodelTest=, =countermodelVerified=true=).
+    - Lean 4.36 kernel: =AuthGateFallbackOverlay.lean= (3/3 kernel-verified
+      theorems incl. =silentFallbackCountermodel=, zero =sorry=/axioms).
+  - Cedar read-only gate permitted only =aitia_review_step= (=Allow=); Marlin
+    Scheme Bi-Temporal Causality admitted the full trajectory (=admitted=true=);
+    =actionAuthorized= remained =false= throughout.
+
+* Next-Phase Roadmap: Marlin Agent Core Production Wiring
+
+While the gRPC sidecar bridge, Cedar read-only gate, and live LLM eval are
+proven inside =crates/marlin-agent-harness/src/live_weaver/aitia_grpc.rs=, full
+production integration into =marlin-agent-core= proceeds in four bounded steps:
+
+1. *Production Tooling Registration*: Declare =aitia_review_step= as a
+   read-only capability (=review=) in Marlin's Scheme =ToolingCatalogValue=
+   (=scheme/tooling/=) and wire =AitiaSidecarGrpcClient= as a resident tool
+   handler in =crates/marlin-agent-tooling/=, governed by Marlin's production
+   Cedar policy set.
+2. *App-Server / Magit Workbench Bridge*: Expose =StepReview= / =GetToolSchema=
+   and human disposition handoffs (=actionAuthorized: false= -> explicit human
+   approval) in =marlin-agent-app-server= alongside the in-progress Magit UI
+   workbench (=ui-magit=).
+3. *Multi-Model & Adversarial Self-Healing Benchmark*: Expand the live eval
+   suite across multiple models (=deepseek-flash=, =deepseek-v4-pro=, Claude /
+   OpenAI routes) and adversarial scenarios (cyclic =depends-on=, deliberate
+   Quint/Lean syntax errors requiring 1-turn self-healing, and multi-file
+   subdomain RulePack composition).
+4. *CI & Vault Lifecycle Polish*: Verify 4/4 green GitHub Actions on PR #2
+   (including the 16 MiB =aitia-scheme-owner= stack fix for Linux), and persist
+   verified Quint/Lean ephemeral overlays and DSSE receipts into a configured
+   external sidecar vault directory on human commit disposition.

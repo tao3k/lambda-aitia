@@ -1,0 +1,56 @@
+#+TITLE: RFC 0015: RFC 6962 Merkle Inclusion Proofs & In-Process Air-Gapped Python Wheel Auditor
+#+AUTHOR: tao3k team and Contributors
+#+DATE: 2026-11-27
+#+SPDX-License-Identifier: Apache-2.0 AND LGPL-2.1-or-later
+
+* Problem Statement & Research Lineage
+
+RFC 0014 delivered the standalone air-gapped CLI auditor (~aitia flow verify-attestation~).
+Two engineering needs remain for high-fanout multi-repo release trains and embedded
+Python/CI verifiers:
+
+1. *Logarithmic O(log N) Selective Repository Inclusion Proofs (RFC 6962 / Sigstore Rekor)*:
+   A downstream consumer verifying a single repository (e.g., ~ledger-core~) from a
+   large release attestation bundle should not need to inspect all ~N-1~ sibling
+   repositories. Embedding a domain-separated RFC 6962 binary SHA-256 ~merkleRoot~
+   inside the TUF-signed attestation payload enables ~O(log N)~ inclusion proofs
+   (~lambda-aitia.repo-merkle-proof.v1~) with leaf tag ~0x00~ and internal node tag
+   ~0x01~ (preventing second-preimage attacks where an internal node is presented as
+   a leaf).
+2. *In-Process Air-Gapped Python Wheel Verification (`unsafe_code = "forbid"`)*:
+   Python verification pipelines, Jupyter notebooks, and CI gates should be able to
+   verify portable audit bundles and Merkle inclusion proofs directly in-process via
+   ~lambda_aitia_rust~ without spawning subprocesses, booting the Gambit Scheme
+   runtime, or accessing JJ/Git repositories.
+
+* Architectural Invariants
+
+1. *RFC 6962 Domain Separation*:
+   - Leaf hash: ~H_leaf(link) = sha256(0x00 || canonical_json(link))~
+   - Node hash: ~H_node(L, R) = sha256(0x01 || L || R)~ (odd trailing nodes promote)
+   - Any bundle carrying ~payload.merkleRoot~ MUST match the recomputed Merkle root
+     over ~payload.links~ during offline bundle verification.
+2. *Order-Sensitive Logarithmic Proof Verification*:
+   ~verify_repo_merkle_proof~ folds sibling hashes respecting exact ~left~ / ~right~
+   position, rejecting tampered links, flipped sibling sides, domain-tag confusion,
+   or mismatched roots with ~actionAuthorized: false~.
+3. *Zero-Unsafe In-Process Wheel Boundary*:
+   ~aitia-python~ preserves ~#![forbid(unsafe_code)]~ and exposes pure offline
+   functions (~verify_portable_audit_bundle~, ~generate_repo_merkle_proof~,
+   ~verify_repo_merkle_proof~) that execute without initializing the Scheme runtime.
+
+* Verification Closure
+
+- *Lean 4* (~dev/proof/lean/LambdaAitiaProof/Modules/GitOps.lean~):
+  ~merkleDomainSeparationDistinct~, ~merkleProofRequiresMatchingRoot~,
+  ~merkleInclusionPreservesZeroAuthority~, ~tamperedLeafChangesMerkleRootUnderInjectiveHash~
+  (35 total ~GitOps~ theorems, zero ~sorryAx~).
+- *Quint* (~dev/proof/quint/MerkleInclusionProof.qnt~):
+  6 model-checking tests covering valid inclusion proof, tampered leaf rejection,
+  swapped sibling order rejection, domain-separation second-preimage defense, stale
+  root mismatch rejection, and negative-control unchecked-root violation.
+- *Live 4-Repo Diamond Scenario J* (~examples/cardano-diamond-release-train/run_diamond_train.py~):
+  Calls ~lambda_aitia_rust.verify_portable_audit_bundle~, ~generate_repo_merkle_proof~,
+  and ~verify_repo_merkle_proof~ directly in-process in an empty air-gapped directory,
+  verifying ~O(log_2 4) = 2~ sibling inclusion proof and fail-closed rejection of
+  tampered link, flipped sibling side, and wrong root.

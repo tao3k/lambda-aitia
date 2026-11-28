@@ -10,13 +10,13 @@
 :REVISION:        r1
 :RFC_ID:          lambda-aitia-rfc-0001
 :DECISION_MAKERS: tao3k-maintainers
-:CONSULTED:       poo-flow-maintainers
+:CONSULTED:       agentic-ai-lab-maintainers
 :INFORMED:        lambda-aitia-consumers
 :END:
 
 * Context and Problem Statement
 
-Lambda Aitia needs POO Flow composition and graph contracts, while POO Flow
+Lambda Aitia needs Agentic AI Lab composition and graph contracts, while Agentic AI Lab
 must remain independently usable.  The ownership of Software/SDLC, native
 bindings and runtime transport also needs one explicit direction.
 
@@ -30,15 +30,15 @@ bindings and runtime transport also needs one explicit direction.
 
 * Considered Options
 
-1. POO Flow core imports Aitia.
-2. Bidirectional imports between POO Flow and Aitia.
-3. Aitia imports reviewed POO Flow public contracts; applications compose them.
+1. Agentic AI Lab core imports Aitia.
+2. Bidirectional imports between Agentic AI Lab and Aitia.
+3. Aitia imports reviewed Agentic AI Lab public contracts; applications compose them.
 
 * Decision Outcome
 
-Lambda Aitia may import reviewed public POO Flow contracts.  POO Flow core must
+Lambda Aitia may import reviewed public Agentic AI Lab contracts.  Agentic AI Lab core must
 remain usable without Lambda Aitia and must never import Aitia source modules.
-Applications explicitly compose POO Flow, Aitia and any other contribution.
+Applications explicitly compose Agentic AI Lab, Aitia and any other contribution.
 Mounting the Aitia Git submodule performs no activation, verification or
 effect.
 
@@ -49,9 +49,9 @@ it is not an Aitia semantic owner.
 
 * Consequences
 
-- Good: Aitia modules use precise POO Flow import owners rather than aggregate
+- Good: Aitia modules use precise Agentic AI Lab import owners rather than aggregate
   facades when a precise owner exists.
-- Good: integration adapters live in Aitia or an application, not POO Flow core.
+- Good: integration adapters live in Aitia or an application, not Agentic AI Lab core.
 - Good: Python calls the Aitia C ABI and does not reproduce Scheme decisions.
 - Neutral: parent registration identifies and locates the contribution but grants no
   runtime authority.
@@ -62,7 +62,7 @@ it is not an Aitia semantic owner.
 
 - Parent registry and import-policy tests retain the one-way dependency.
 - Aitia native and Python smoke tests cross only the owned C ABI.
-- Source scans reject Aitia imports from POO Flow core.
+- Source scans reject Aitia imports from Agentic AI Lab core.
 
 * More Information
 
